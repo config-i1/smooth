@@ -753,7 +753,7 @@ forecast.smooth <- function(object, h=10,
                 newModel <- msarima(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
             }
             else{
-                newModel <- ssarima(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
+                newModel <- ssarima_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
             }
         }
         else{

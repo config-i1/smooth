@@ -25,11 +25,9 @@ ssarima_old(data, orders = list(ar = c(0), i = c(1), ma = c(1)),
   lags = c(1), constant = FALSE, AR = NULL, MA = NULL,
   initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC",
   "BICc"), loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE",
-  "GTMSE", "MSCE"), h = 10, holdout = FALSE, cumulative = FALSE,
-  interval = c("none", "parametric", "likelihood", "semiparametric",
-  "nonparametric"), level = 0.95, bounds = c("admissible", "none"),
-  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
-  regressors = c("use", "select"), initialX = NULL, ...)
+  "GTMSE", "MSCE"), h = 10, holdout = FALSE, bounds = c("admissible",
+  "none"), silent = c("all", "graph", "legend", "output", "none"),
+  xreg = NULL, regressors = c("use", "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector, containing data needed to be forecasted. If a matrix (or
@@ -136,38 +134,6 @@ passed here.}
 be lag-wise. This means that first all the MA parameters of the firs lag
 should be passed, then for the second etc. MA of another ssarima can be
 passed here.}
-
-\item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
-interval are produced instead of the normal ones. This is useful for
-inventory control systems.}
-
-\item{interval}{Type of interval to construct. This can be:
-
-\itemize{
-\item \code{"none"}, aka \code{"n"} - do not produce prediction
-interval.
-\item \code{"parametric"}, \code{"p"} - use state-space structure of ETS. In
-case of mixed models this is done using simulations, which may take longer
-time than for the pure additive and pure multiplicative models. This type
-of interval relies on unbiased estimate of in-sample error variance, which
-divides the sume of squared errors by T-k rather than just T.
-\item \code{"likelihood"}, \code{"l"} - these are the same as \code{"p"}, but
-relies on the biased estimate of variance from the likelihood (division by
-T, not by T-k).
-\item \code{"semiparametric"}, \code{"sp"} - interval based on covariance
-matrix of 1 to h steps ahead errors and assumption of normal / log-normal
-distribution (depending on error type).
-\item \code{"nonparametric"}, \code{"np"} - interval based on values from a
-quantile regression on error matrix (see Taylor and Bunn, 1999). The model
-used in this process is e[j] = a j^b, where j=1,..,h.
-}
-The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-parametric interval are constructed, while the latter is equivalent to
-\code{none}.
-If the forecasts of the models were combined, then the interval are combined
-quantile-wise (Lichtendahl et al., 2013).}
-
-\item{level}{Confidence level. Defines width of prediction interval.}
 
 \item{xreg}{The vector (either numeric or time series) or the matrix (or
 data.frame) of exogenous variables that should be included in the model. If
@@ -379,10 +345,6 @@ ssarima(rnorm(118,100,3),model=ourModel)
 \donttest{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
                        initial="o",h=18,holdout=TRUE)}
 
-# And now combined ARIMA
-\donttest{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
-                       combine=TRUE,h=18,holdout=TRUE)}
-
 \donttest{summary(ourModel)
 forecast(ourModel)
 plot(forecast(ourModel))}
@@ -390,7 +352,7 @@ plot(forecast(ourModel))}
 
 # ARIMA(1,1,1) fitted to some data
 ourModel <- ssarima_old(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(1),h=18,
-                             holdout=TRUE,interval="p")
+                             holdout=TRUE)
 
 # Model with the same lags and orders, applied to a different data
 ssarima_old(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdout=TRUE)
@@ -447,16 +409,6 @@ estimates. International Journal of Forecasting, 21(2), 303-314.
 \item Svetunkov, I., & Boylan, J. E. (2019). State-space ARIMA for supply-chain forecasting.
 International Journal of Production Research, 0(0), 1–10.
 \doi{10.1080/00207543.2019.1600764}
-}
-
-\itemize{
-\item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to
-Generating Prediction Intervals. Management Science, Vol 45, No 2, pp
-225-237.
-\item Lichtendahl Kenneth C., Jr., Grushka-Cockayne Yael, Winkler
-Robert L., (2013) Is It Better to Average Probabilities or
-Quantiles? Management Science 59(7):1594-1611. DOI:
-\doi{10.1287/mnsc.1120.1667}
 }
 
 \itemize{

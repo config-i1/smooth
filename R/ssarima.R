@@ -51,12 +51,10 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssXregParam
-#' @template ssIntervals
 #' @template ssInitialParam
 #' @template ssAuthor
 #' @template ssKeywords
 #'
-#' @template ssIntervalsRef
 #' @template ssGeneralRef
 #' @template ssARIMARef
 #'
@@ -159,7 +157,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' # ARIMA(1,1,1) fitted to some data
 #' ourModel <- ssarima_old(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(1),h=18,
-#'                              holdout=TRUE,interval="p")
+#'                              holdout=TRUE)
 #'
 #' # Model with the same lags and orders, applied to a different data
 #' ssarima_old(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdout=TRUE)
@@ -175,13 +173,14 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' plot(forecast(ourModel))
 #'
 #' @rdname ssarima
-#' @export ssarima
+#' @export
 ssarima_old <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                         constant=FALSE, AR=NULL, MA=NULL,
                         initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                         loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-                        h=10, holdout=FALSE, cumulative=FALSE,
-                        interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
+                        h=10, holdout=FALSE,
+                        # cumulative=FALSE,
+                        # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                         bounds=c("admissible","none"),
                         silent=c("all","graph","legend","output","none"),
                         xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
@@ -201,6 +200,10 @@ ssarima_old <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
     oesmodel <- "MNN";
+    y <- data;
+    interval <- "none";
+    cumulative <- FALSE;
+    level <- 0.95;
 
 # Add all the variables in ellipsis to current environment
     list2env(ellipsis,environment());

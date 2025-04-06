@@ -23,7 +23,6 @@ utils::globalVariables(c("silent","silentGraph","silentLegend","initialType","ar
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssXregParam
-#' @template ssIntervals
 #' @template ssInitialParam
 #' @template ssAuthor
 #' @template ssKeywords
@@ -70,10 +69,6 @@ utils::globalVariables(c("silent","silentGraph","silentLegend","initialType","ar
 #' \donttest{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
 #'                        initial="o",h=18,holdout=TRUE)}
 #'
-#' # And now combined ARIMA
-#' \donttest{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
-#'                        combine=TRUE,h=18,holdout=TRUE)}
-#'
 #' \donttest{summary(ourModel)
 #' forecast(ourModel)
 #' plot(forecast(ourModel))}
@@ -95,8 +90,6 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    # Switch of combinations
-    combine <- FALSE;
     ### Depricate the old parameters
     ellipsis <- list(...);
 
@@ -107,8 +100,8 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                  "BIC"=BIC,
                  "BICc"=BICc);
 
-# Add all the variables in ellipsis to current environment
-    list2env(ellipsis,environment());
+    # Switch of combinations
+    combine <- FALSE;
 
     # If this is Mcomp data, then take the frequency from it
     if(any(class(data)=="Mdata") && all(lags==frequency(data))){
