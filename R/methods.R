@@ -745,7 +745,7 @@ forecast.smooth <- function(object, h=10,
         newModel <- ces_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="GUM"){
-        newModel <- gum(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=levelNew,silent="all",...);
+        newModel <- gum_old(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
