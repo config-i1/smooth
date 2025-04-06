@@ -40,8 +40,6 @@ utils::globalVariables(c("silent","silentGraph","silentLegend","initialType","ar
 #' @param lags Defines lags for the corresponding orders (see examples). The
 #' length of \code{lags} must correspond to the length of \code{orders}. There
 #' is no restrictions on the length of \code{lags} vector.
-#' @param combine If \code{TRUE}, then resulting ARIMA is combined using AIC
-#' weights.
 #' @param fast If \code{TRUE}, then some of the orders of ARIMA are
 #' skipped. This is not advised for models with \code{lags} greater than 12.
 #' @param constant If \code{NULL}, then the function will check if constant is
@@ -133,7 +131,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 responseName <- all.vars(formula)[1];
             }
             else{
-                responseName <- colnames(xregData)[1];
+                responseName <- colnames(data)[1];
             }
             y <- data[,responseName];
         }
@@ -682,13 +680,13 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         ICs <- c(t(testICs) %*% icWeights);
         names(ICs) <- ic;
 
-        bestModel <- list(model=modelname,timeElapsed=Sys.time()-startTime,
+        bestModel <- list(data=data, model=modelname, timeElapsed=Sys.time()-startTime,
                           initialType=initialType,
-                          fitted=yFitted,forecast=yForecast,cumulative=cumulative,
-                          lower=yLower,upper=yUpper,residuals=errors,s2=s2,interval=intervalType,level=level,
-                          y=y,holdout=yHoldout,
-                          xreg=xreg, regressors=regressors, initialX=initialX,
-                          ICs=ICs,ICw=icWeights,lossValue=NULL,loss=loss,accuracy=errormeasures);
+                          fitted=yFitted, forecast=yForecast,
+                          lower=yLower, upper=yUpper, residuals=errors,
+                          s2=s2, holdout=yHoldout,
+                          regressors=regressors, formula=formula,
+                          ICs=ICs, ICw=icWeights, lossValue=NULL, loss=loss, accuracy=errormeasures);
 
         bestModel <- structure(bestModel,class="smooth");
     }

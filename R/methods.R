@@ -957,7 +957,7 @@ errorType.smooth <- function(object, ...){
         }
     }
     # SSARIMA models
-    else if(smoothType=="ARIMA"){
+    else if(any(smoothType==c("ARIMA","SSARIMA"))){
         Etype <- "A";
     }
     # CES models

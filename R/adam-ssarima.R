@@ -1,6 +1,7 @@
 utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimate","xregNames",
                          "otLogical","yFrequency","yIndex",
-                         "persistenceXreg","yHoldout","distribution"));
+                         "persistenceXreg","persistenceXregEstimate",
+                         "yHoldout","distribution"));
 
 #' State Space ARIMA
 #'
@@ -108,10 +109,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #'
 #' # SARIMA(1,1,1)(0,0,1)[4] with different initialisations
 #' \donttest{ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
-#'         lags=c(1,4),h=18,holdout=TRUE,initial="optimal")}
-#'
-#' # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-#' \donttest{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")}
+#'         lags=c(1,4),h=18,holdout=TRUE,initial="backcasting")}
 #'
 #' @rdname ssarima
 #' @export
@@ -179,19 +177,10 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         arPolynomialMatrix <- maPolynomialMatrix <- NULL;
     }
 
-    # orders <- orders[order(lags)];
-    # lags <- sort(lags);
-    # # Remove redundant lags (if present)
-    # lags <- lags[!is.na(orders)];
-    # # Remove NAs (if lags are longer than orders)
-    # orders <- orders[!is.na(orders)];
-
     # SSARIMA is checked as ADAM ARIMA
     model <- "NNN";
-    ordersOriginal <- orders;
-    lagsOriginal <- lags;
 
-    ##### Set environment for ssInput and make all the checks #####
+    ##### Make all the checks #####
     checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
                                        orders=orders,
                                        constant=constant, arma=arma,
@@ -202,6 +191,11 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                        ic="AICc", bounds=bounds[1],
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
+
+    # If the regression was returned, just return it
+    if(is.alm(checkerReturn)){
+        return(checkerReturn);
+    }
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. GUM doesn't need that.
@@ -444,6 +438,70 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         iOrders <- 0;
         maOrders <- 0;
     }
+
+    # If there are zero lags, drop them
+    if(any(lags==0)){
+        arOrders <- arOrders[lags!=0];
+        iOrders <- iOrders[lags!=0];
+        maOrders <- maOrders[lags!=0];
+        lags <- lags[lags!=0];
+    }
+
+    if(any(lags>48)){
+        warning(paste0("SSARIMA is quite slow with lags greater than 48. ",
+                       "It is recommended to use MSARIMA in this case instead."),
+                call.=FALSE);
+    }
+
+    # Define maxorder and make all the values look similar (for the polynomials)
+    maxorder <- max(length(arOrders),length(iOrders),length(maOrders));
+    if(length(arOrders)!=maxorder){
+        arOrders <- c(arOrders,rep(0,maxorder-length(arOrders)));
+    }
+    if(length(iOrders)!=maxorder){
+        iOrders <- c(iOrders,rep(0,maxorder-length(iOrders)));
+    }
+    if(length(maOrders)!=maxorder){
+        maOrders <- c(maOrders,rep(0,maxorder-length(maOrders)));
+    }
+
+    if((length(lags)!=length(arOrders)) & (length(lags)!=length(iOrders)) & (length(lags)!=length(maOrders))){
+        stop("Seasonal lags do not correspond to any element of SARIMA",call.=FALSE);
+    }
+
+    # If zeroes are defined for some orders, drop them.
+    if(any((arOrders + iOrders + maOrders)==0)){
+        orders2leave <- (arOrders + iOrders + maOrders)!=0;
+        if(all(!orders2leave)){
+            orders2leave <- lags==min(lags);
+        }
+        arOrders <- arOrders[orders2leave];
+        iOrders <- iOrders[orders2leave];
+        maOrders <- maOrders[orders2leave];
+        lags <- lags[orders2leave];
+    }
+
+    # Get rid of duplicates in lags
+    if(length(unique(lags))!=length(lags)){
+        if(dataFreq!=1){
+            warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),
+                           "). Getting rid of some of them."),call.=FALSE);
+        }
+        lagsNew <- unique(lags);
+        arOrdersNew <- iOrdersNew <- maOrdersNew <- lagsNew;
+        for(i in 1:length(lagsNew)){
+            arOrdersNew[i] <- max(arOrders[which(lags==lagsNew[i])]);
+            iOrdersNew[i] <- max(iOrders[which(lags==lagsNew[i])]);
+            maOrdersNew[i] <- max(maOrders[which(lags==lagsNew[i])]);
+        }
+        arOrders <- arOrdersNew;
+        iOrders <- iOrdersNew;
+        maOrders <- maOrdersNew;
+        lags <- lagsNew;
+    }
+    # Recollect the orders to reuse them in other functions
+    orders <- list(ar=arOrders, i=iOrders, ma=maOrders);
+
     componentsNumberARIMA <- max(arOrders %*% lags + iOrders %*% lags, maOrders %*% lags);
 
     # componentsNumberAll is the ARIMA components + intercept/drift
@@ -491,7 +549,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     }
                 }
             }
-            if(iOrders[lags==1]==0 || all(iOrders==0)){
+            if(all(iOrders==0) || (any(lags==1) && iOrders[lags==1]==0)){
                 matVt[1:componentsNumberARIMA,1] <- yDifferenced[componentsNumberARIMA:1]-
                     mean(yDifferenced[componentsNumberARIMA:1]);
             }
@@ -857,6 +915,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
 
         if(initialType=="optimal"){
+            initialOriginal <- initialType;
             initialType <- "provided";
         }
         initialXregEstimateOriginal <- initialXregEstimate;
@@ -879,6 +938,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         initialType <- initialOriginal;
         initialXregEstimate <- initialXregEstimateOriginal;
     }
+
 
     #### Fisher Information ####
     if(FI){
@@ -981,7 +1041,6 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         yForecast[] <- NA;
     }
 
-
     ##### Do final check and make some preparations for output #####
     # Write down initials of states vector and exogenous
     if(initialType!="provided"){
@@ -992,6 +1051,9 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
     if(constantRequired){
         constantValue <- matVt[componentsNumberAll+xregNumber,1]
+    }
+    else{
+        constantValue <- FALSE;
     }
     if(arimaModel){
         armaParametersList <- vector("list",arRequired+maRequired);

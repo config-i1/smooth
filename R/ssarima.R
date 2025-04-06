@@ -158,38 +158,17 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' @examples
 #'
 #' # ARIMA(1,1,1) fitted to some data
-#' ourModel <- ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(1),h=18,
+#' ourModel <- ssarima_old(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(1),h=18,
 #'                              holdout=TRUE,interval="p")
 #'
-#' # The previous one is equivalent to:
-#' \donttest{ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),
-#'                               lags=c(1),h=18,holdout=TRUE,interval="p")}
-#'
 #' # Model with the same lags and orders, applied to a different data
-#' ssarima(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdout=TRUE)
+#' ssarima_old(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdout=TRUE)
 #'
 #' # The same model applied to a different data
-#' ssarima(rnorm(118,100,3),model=ourModel,h=18,holdout=TRUE)
-#'
-#' # Example of SARIMA(2,0,0)(1,0,0)[4]
-#' \donttest{ssarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)}
-#'
-#' # SARIMA(1,1,1)(0,0,1)[4] with different initialisations
-#' \donttest{ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
-#'         lags=c(1,4),h=18,holdout=TRUE)
-#' ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
-#'         lags=c(1,4),h=18,holdout=TRUE,initial="o")}
-#'
-#' # SARIMA of a peculiar order on AirPassengers data
-#' \donttest{ssarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),
-#'                   lags=c(1,6,12),h=10,holdout=TRUE)}
-#'
-#' # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-#' \donttest{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")
-#' ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="aTMSE")}
+#' ssarima_old(rnorm(118,100,3),model=ourModel,h=18,holdout=TRUE)
 #'
 #' # SARIMA(0,1,1) with exogenous variables
-#' ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,xreg=c(1:118))
+#' ssarima_old(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,xreg=c(1:118))
 #'
 #' summary(ourModel)
 #' forecast(ourModel)
@@ -197,7 +176,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' @rdname ssarima
 #' @export ssarima
-ssarima_old <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
+ssarima_old <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                         constant=FALSE, AR=NULL, MA=NULL,
                         initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                         loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),

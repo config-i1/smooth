@@ -21,15 +21,15 @@ auto.ssarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   "AIC", "BIC", "BICc"), h = 0, holdout = FALSE, bounds = c("admissible",
   "none"), silent = TRUE, ...)
 
-ssarima_old(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
-  constant = FALSE, AR = NULL, MA = NULL, initial = c("backcasting",
-  "optimal"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood",
-  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10,
-  holdout = FALSE, cumulative = FALSE, interval = c("none", "parametric",
-  "likelihood", "semiparametric", "nonparametric"), level = 0.95,
-  bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
-  "output", "none"), xreg = NULL, regressors = c("use", "select"),
-  initialX = NULL, ...)
+ssarima_old(data, orders = list(ar = c(0), i = c(1), ma = c(1)),
+  lags = c(1), constant = FALSE, AR = NULL, MA = NULL,
+  initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC",
+  "BICc"), loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE",
+  "GTMSE", "MSCE"), h = 10, holdout = FALSE, cumulative = FALSE,
+  interval = c("none", "parametric", "likelihood", "semiparametric",
+  "nonparametric"), level = 0.95, bounds = c("admissible", "none"),
+  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
+  regressors = c("use", "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector, containing data needed to be forecasted. If a matrix (or
@@ -127,8 +127,6 @@ skipped. This is not advised for models with \code{lags} greater than 12.}
 
 \item{ic}{The information criterion used in the model selection procedure.}
 
-\item{y}{Vector or ts object, containing data needed to be forecasted.}
-
 \item{AR}{Vector or matrix of AR parameters. The order of parameters should
 be lag-wise. This means that first all the AR parameters of the firs lag
 should be passed, then for the second etc. AR of another ssarima can be
@@ -182,8 +180,7 @@ produced using \link[smooth]{es} function.}
 \item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}
 
-\item{combine}{If \code{TRUE}, then resulting ARIMA is combined using AIC
-weights.}
+\item{y}{Vector or ts object, containing data needed to be forecasted.}
 }
 \value{
 Object of class "adam" is returned with similar elements to the
@@ -369,10 +366,7 @@ ssarima(rnorm(118,100,3),model=ourModel)
 
 # SARIMA(1,1,1)(0,0,1)[4] with different initialisations
 \donttest{ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
-        lags=c(1,4),h=18,holdout=TRUE,initial="optimal")}
-
-# ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-\donttest{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")}
+        lags=c(1,4),h=18,holdout=TRUE,initial="backcasting")}
 
 
 \donttest{x <- rnorm(118,100,3)}
@@ -395,38 +389,17 @@ plot(forecast(ourModel))}
 
 
 # ARIMA(1,1,1) fitted to some data
-ourModel <- ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(1),h=18,
+ourModel <- ssarima_old(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(1),h=18,
                              holdout=TRUE,interval="p")
 
-# The previous one is equivalent to:
-\donttest{ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),
-                              lags=c(1),h=18,holdout=TRUE,interval="p")}
-
 # Model with the same lags and orders, applied to a different data
-ssarima(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdout=TRUE)
+ssarima_old(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdout=TRUE)
 
 # The same model applied to a different data
-ssarima(rnorm(118,100,3),model=ourModel,h=18,holdout=TRUE)
-
-# Example of SARIMA(2,0,0)(1,0,0)[4]
-\donttest{ssarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)}
-
-# SARIMA(1,1,1)(0,0,1)[4] with different initialisations
-\donttest{ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
-        lags=c(1,4),h=18,holdout=TRUE)
-ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
-        lags=c(1,4),h=18,holdout=TRUE,initial="o")}
-
-# SARIMA of a peculiar order on AirPassengers data
-\donttest{ssarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),
-                  lags=c(1,6,12),h=10,holdout=TRUE)}
-
-# ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-\donttest{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")
-ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="aTMSE")}
+ssarima_old(rnorm(118,100,3),model=ourModel,h=18,holdout=TRUE)
 
 # SARIMA(0,1,1) with exogenous variables
-ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,xreg=c(1:118))
+ssarima_old(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,xreg=c(1:118))
 
 summary(ourModel)
 forecast(ourModel)
