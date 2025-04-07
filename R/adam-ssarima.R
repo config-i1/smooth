@@ -549,7 +549,8 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     }
                 }
             }
-            if(all(iOrders==0) || (any(lags==1) && iOrders[lags==1]==0)){
+            if(all(iOrders==0) || (any(lags==1) && iOrders[lags==1]==0) ||
+               length(yDifferenced)<(componentsNumberARIMA+as.vector(iOrders %*% lags)-1)){
                 matVt[1:componentsNumberARIMA,1] <- yDifferenced[componentsNumberARIMA:1]-
                     mean(yDifferenced[componentsNumberARIMA:1]);
             }
