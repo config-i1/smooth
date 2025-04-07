@@ -548,7 +548,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         else{
             yDifferenced <- yInSample;
             # If the model has differences, take them
-            if(any(iOrders>0)){
+            if(any(iOrders>0) && (any(arOrders>0) || any(maOrders>0) || constantRequired)){
                 for(i in 1:length(iOrders)){
                     if(iOrders[i]>0){
                         yDifferenced <- diff(yDifferenced,lag=lags[i],differences=iOrders[i]);
@@ -565,7 +565,8 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     mean(yDifferenced[min(componentsNumberARIMA,obsInSample):1]);
             }
             else{
-                matVt[1:componentsNumberARIMA,1] <- yDifferenced[componentsNumberARIMA:1 + as.vector(iOrders %*% lags)-1];
+                # matVt[1:componentsNumberARIMA,1] <- yDifferenced[1:componentsNumberARIMA + as.vector(iOrders %*% lags)-1];
+                matVt[1:componentsNumberARIMA,1] <- yDifferenced[1:componentsNumberARIMA];
             }
             matVt[1,1] <- yDifferenced[1];
         }
