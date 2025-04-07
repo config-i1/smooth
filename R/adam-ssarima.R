@@ -549,10 +549,14 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     }
                 }
             }
-            if(all(iOrders==0) || (any(lags==1) && iOrders[lags==1]==0) ||
-               length(yDifferenced)<(componentsNumberARIMA+as.vector(iOrders %*% lags)-1)){
-                matVt[1:componentsNumberARIMA,1] <- yDifferenced[componentsNumberARIMA:1]-
-                    mean(yDifferenced[componentsNumberARIMA:1]);
+            obsDiff <- length(yDifferenced)
+            if(obsDiff<componentsNumberARIMA){
+                matVt[1:componentsNumberARIMA,1] <- mean(yDifferenced[obsDiff:1]);
+            }
+            else if(all(iOrders==0) || (any(lags==1) && iOrders[lags==1]==0) ||
+               obsDiff<(componentsNumberARIMA+as.vector(iOrders %*% lags)-1)){
+                matVt[1:componentsNumberARIMA,1] <- yDifferenced[min(componentsNumberARIMA,obsInSample):1]-
+                    mean(yDifferenced[min(componentsNumberARIMA,obsInSample):1]);
             }
             else{
                 matVt[1:componentsNumberARIMA,1] <- yDifferenced[componentsNumberARIMA:1 + as.vector(iOrders %*% lags)-1];
