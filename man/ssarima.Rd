@@ -10,8 +10,8 @@ ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, arma = NULL, formula = NULL, regressors = c("use",
   "select", "adapt"), initial = c("optimal", "backcasting", "complete"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
-  "MSCE"), h = 0, holdout = FALSE, bounds = c("admissible", "none"),
-  silent = TRUE, model = NULL, ...)
+  "MSCE"), h = 0, holdout = FALSE, bounds = c("admissible", "usual",
+  "none"), silent = TRUE, model = NULL, ...)
 
 auto.ssarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   lags = c(1, frequency(y)), fast = TRUE, constant = NULL,

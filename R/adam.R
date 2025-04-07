@@ -1986,8 +1986,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(arimaModel && any(c(arEstimate,maEstimate))){
                 # Calculate the polynomial roots for AR
                 if(arEstimate &&
-                   (all(-elements$arimaPolynomials$arPolynomial[-1]>0) &
-                    sum(-(elements$arimaPolynomials$arPolynomial[-1]))>=1)){
+                   (all(-adamElements$arimaPolynomials$arPolynomial[-1]>0) &
+                    sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1)){
                     arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
                     arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(arPolyroots>1)){
@@ -2045,8 +2045,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(arimaModel){
                 # Calculate the polynomial roots for AR
                 if(arEstimate &&
-                   (all(-elements$arimaPolynomials$arPolynomial[-1]>0) &
-                    sum(-(elements$arimaPolynomials$arPolynomial[-1]))>=1)){
+                   (all(-adamElements$arimaPolynomials$arPolynomial[-1]>0) &
+                    sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1)){
                     arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
                     eigenValues <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(eigenValues>1)){
