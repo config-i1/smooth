@@ -287,7 +287,8 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                 if(arEstimate &&
                    all(elements$arimaPolynomials$arPolynomial[-1]>0) &&
                    sum(-(elements$arimaPolynomials$arPolynomial[-1]))>=1){
-                    arPolyroots <- abs(eigen(elements$matF, symmetric=FALSE, only.values=TRUE)$values);
+                    arPolynomialMatrix[,1] <- -elements$arimaPolynomials$arPolynomial[-1];
+                    arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(arPolyroots>1)){
                         return(1E+100*max(arPolyroots));
                     }
@@ -318,7 +319,8 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                 if(arEstimate &&
                    (all(-elements$arimaPolynomials$arPolynomial[-1]>0) &
                     sum(-(elements$arimaPolynomials$arPolynomial[-1]))>=1)){
-                    eigenValues <- abs(eigen(elements$matF, symmetric=FALSE, only.values=TRUE)$values);
+                    arPolynomialMatrix[,1] <- -elements$arimaPolynomials$arPolynomial[-1];
+                    eigenValues <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(eigenValues>1)){
                         return(1E+100*max(eigenValues));
                     }
@@ -876,7 +878,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
 
         # Tuning the best obtained values using Nelder-Mead
-        res <- suppressWarnings(nloptr(B, CF, lb=lb, ub=ub,
+        res <- suppressWarnings(nloptr(B, CF,# lb=lb, ub=ub,
                                        opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
                                                  ftol_rel=ftol_rel, ftol_abs=ftol_abs,
                                                  maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level),
