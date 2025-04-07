@@ -118,7 +118,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     formula=NULL, regressors=c("use","select","adapt"),
                     initial=c("optimal","backcasting","complete"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-                    h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
+                    h=0, holdout=FALSE, bounds=c("admissible","usual","none"), silent=TRUE,
                     model=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state space approach
 #
@@ -284,9 +284,10 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             # Stationarity and invertibility conditions for ARIMA
             if(arimaModel && any(c(arEstimate,maEstimate))){
                 # Calculate the polynomial roots for AR
-                if(arEstimate && sum(-(elements$arimaPolynomials$arPolynomial[-1]))>=1){
-                    arPolynomialMatrix[,1] <- -elements$arimaPolynomials$arPolynomial[-1];
-                    arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
+                if(arEstimate &&
+                   all(elements$arimaPolynomials$arPolynomial[-1]>0) &&
+                   sum(-(elements$arimaPolynomials$arPolynomial[-1]))>=1){
+                    arPolyroots <- abs(eigen(elements$matF, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(arPolyroots>1)){
                         return(1E+100*max(arPolyroots));
                     }
@@ -314,10 +315,10 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             if(arimaModel){
                 # Stationarity condition of ARIMA
                 # Calculate the polynomial roots for AR
-                if(arEstimate && (sum(-(elements$arimaPolynomials$arPolynomial[-1]))>=1 |
-                                  sum(-(elements$arimaPolynomials$arPolynomial[-1]))<0)){
-                    arPolynomialMatrix[,1] <- -elements$arimaPolynomials$arPolynomial[-1];
-                    eigenValues <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
+                if(arEstimate &&
+                   (all(-elements$arimaPolynomials$arPolynomial[-1]>0) &
+                    sum(-(elements$arimaPolynomials$arPolynomial[-1]))>=1)){
+                    eigenValues <- abs(eigen(elements$matF, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(eigenValues>1)){
                         return(1E+100*max(eigenValues));
                     }
