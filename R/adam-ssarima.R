@@ -167,6 +167,9 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         arPolynomialMatrix <- model$other$arPolynomialMatrix;
         maPolynomialMatrix <- model$other$maPolynomialMatrix;
         constant <- model$constant;
+        if(is.null(constant)){
+            constant <- FALSE;
+        }
 
         modelDo <- modelDoOriginal <- "use";
     }
@@ -1061,7 +1064,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         constantValue <- matVt[componentsNumberAll+xregNumber,1]
     }
     else{
-        constantValue <- FALSE;
+        constantValue <- NULL;
     }
     if(arimaModel){
         armaParametersList <- vector("list",arRequired+maRequired);
