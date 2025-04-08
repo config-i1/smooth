@@ -939,12 +939,6 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
     #     }
     # }
 
-    ##### Make a plot #####
-    if(!silent){
-        graphmaker(actuals=y,forecast=yForecast,fitted=yFitted,
-                   legend=FALSE,main=modelname);
-    }
-
     # Transform everything into appropriate classes
     if(any(yClasses=="ts")){
         yInSample <- ts(yInSample,start=yStart, frequency=yFrequency);
@@ -960,20 +954,21 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
     }
 
     ##### Return values #####
-    modelReturned <- list(model=modelname, timeElapsed=Sys.time()-startTime,
-                          call=cl, parameters=list(a=a$value, b=b$value), seasonality=seasonality,
-                          data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
-                          forecast=yForecast, states=matVt, accuracy=errormeasures,
-                          profile=profilesRecentTable, profileInitial=profilesRecentInitial,
-                          persistence=vecG[,1], transition=matF,
-                          measurement=matWt, initial=initialValue, initialType=initialType,
-                          nParam=parametersNumber,
-                          formula=formula, regressors=regressors,
-                          loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
-                          # ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
-                          #              c("AIC","AICc","BIC","BICc")),
-                          distribution=distribution, bounds=bounds,
-                          scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI);
+    modelReturned <- structure(list(model=modelname, timeElapsed=Sys.time()-startTime,
+                                    call=cl, parameters=list(a=a$value, b=b$value), seasonality=seasonality,
+                                    data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
+                                    forecast=yForecast, states=matVt, accuracy=errormeasures,
+                                    profile=profilesRecentTable, profileInitial=profilesRecentInitial,
+                                    persistence=vecG[,1], transition=matF,
+                                    measurement=matWt, initial=initialValue, initialType=initialType,
+                                    nParam=parametersNumber,
+                                    formula=formula, regressors=regressors,
+                                    loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
+                                    # ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
+                                    #              c("AIC","AICc","BIC","BICc")),
+                                    distribution=distribution, bounds=bounds,
+                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI),
+                               class=c("adam","smooth"));
 
     # Fix data and holdout if we had explanatory variables
     if(!is.null(xregData) && !is.null(ncol(data))){
@@ -1001,5 +996,9 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         }
     }
 
-    return(structure(modelReturned,class=c("adam","smooth")));
+    if(!silent){
+        plot(modelReturned, 7)
+    }
+
+    return(modelReturned);
 }

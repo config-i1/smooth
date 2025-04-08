@@ -1161,12 +1161,6 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         matVt <- zoo(t(matVt), order.by=yStatesIndex);
     }
 
-    ##### Make a plot #####
-    if(!silent){
-        graphmaker(actuals=y,forecast=yForecast,fitted=yFitted,
-                   legend=FALSE,main=modelName);
-    }
-
     # Transform everything into appropriate classes
     if(any(yClasses=="ts")){
         yInSample <- ts(yInSample,start=yStart, frequency=yFrequency);
@@ -1182,21 +1176,22 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     ##### Return values #####
-    modelReturned <- list(model=modelName, timeElapsed=Sys.time()-startTime,
-                          call=cl, orders=orders, lags=lags,
-                          arma=armaParametersList, other=otherReturned,
-                          data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
-                          forecast=yForecast, states=matVt, accuracy=errormeasures,
-                          profile=profilesRecentTable, profileInitial=profilesRecentInitial,
-                          persistence=vecG[,1], transition=matF,
-                          measurement=matWt, initial=initialValue, initialType=initialType,
-                          constant=constantValue, nParam=parametersNumber,
-                          formula=formula, regressors=regressors,
-                          loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
-                          ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
-                                       c("AIC","AICc","BIC","BICc")),
-                          distribution=distribution, bounds=bounds,
-                          scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI);
+    modelReturned <- structure(list(model=modelName, timeElapsed=Sys.time()-startTime,
+                                    call=cl, orders=orders, lags=lags,
+                                    arma=armaParametersList, other=otherReturned,
+                                    data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
+                                    forecast=yForecast, states=matVt, accuracy=errormeasures,
+                                    profile=profilesRecentTable, profileInitial=profilesRecentInitial,
+                                    persistence=vecG[,1], transition=matF,
+                                    measurement=matWt, initial=initialValue, initialType=initialType,
+                                    constant=constantValue, nParam=parametersNumber,
+                                    formula=formula, regressors=regressors,
+                                    loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
+                                    ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
+                                                 c("AIC","AICc","BIC","BICc")),
+                                    distribution=distribution, bounds=bounds,
+                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI),
+                               class=c("adam","smooth"));
 
     # Fix data and holdout if we had explanatory variables
     if(!is.null(xregData) && !is.null(ncol(data))){
@@ -1224,5 +1219,11 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
     }
 
-    return(structure(modelReturned,class=c("adam","smooth")));
+
+    ##### Make a plot #####
+    if(!silent){
+        plot(modelReturned, 7)
+    }
+
+    return(modelReturned);
 }
