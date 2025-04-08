@@ -844,7 +844,8 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
         if(is.null(B)){
             B <- BValues$B;
-            # Parameter bounds
+            # Parameter bounds.
+            # Not used in the estimation because they lead to wrong estimates
             lb <- BValues$Bl;
             ub <- BValues$Bu;
         }

@@ -1,3 +1,10 @@
+smooth v4.2.1 (Release data: 2025-04-08)
+=======
+
+Changes:
+* ssarima() now uses adam engine.
+
+
 smooth v4.2.0 (Release data: 2025-04-02)
 =======
 
