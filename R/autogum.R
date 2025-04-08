@@ -38,9 +38,6 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
     # Record the parental environment. Needed for optimal initialisation
     env <- environment();
 
-# Add all the variables in ellipsis to current environment
-    list2env(ellipsis,environment());
-
     # If this is Mcomp data, then take the frequency from it
     if(any(class(data)=="Mdata") && lags==frequency(data)){
         lags <- frequency(data$x);
@@ -62,7 +59,7 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                 responseName <- all.vars(formula)[1];
             }
             else{
-                responseName <- colnames(xregData)[1];
+                responseName <- colnames(data)[1];
             }
             y <- data[,responseName];
         }

@@ -745,7 +745,7 @@ forecast.smooth <- function(object, h=10,
         newModel <- ces_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="GUM"){
-        newModel <- gum(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=levelNew,silent="all",...);
+        newModel <- gum_old(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
@@ -753,7 +753,7 @@ forecast.smooth <- function(object, h=10,
                 newModel <- msarima(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
             }
             else{
-                newModel <- ssarima(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
+                newModel <- ssarima_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
             }
         }
         else{
@@ -957,7 +957,7 @@ errorType.smooth <- function(object, ...){
         }
     }
     # SSARIMA models
-    else if(smoothType=="ARIMA"){
+    else if(any(smoothType==c("ARIMA","SSARIMA"))){
         Etype <- "A";
     }
     # CES models
@@ -2619,6 +2619,9 @@ smoothType <- function(object, ...){
         }
         else if(gregexpr("CES",object$model)!=-1){
             smoothType <- "CES";
+        }
+        else if(gregexpr("SSARIMA",object$model)!=-1){
+            smoothType <- "SSARIMA";
         }
         else if(gregexpr("ARIMA",object$model)!=-1){
             smoothType <- "ARIMA";

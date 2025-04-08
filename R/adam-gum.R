@@ -573,7 +573,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     }
     yForecast <- rep(NA, h);
 
-    # Values for occurrence. No longer supported in ces()
+    # Values for occurrence. No longer supported in gum()
     parametersNumber[1,3] <- parametersNumber[2,3] <- 0;
     # Xreg parameters
     parametersNumber[1,2] <- xregNumber + sum(persistenceXreg);
@@ -903,26 +903,22 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         errormeasures <- NULL;
     }
 
-    if(!silent){
-        graphmaker(actuals=y,forecast=yForecast,fitted=yFitted,
-                   legend=FALSE,main=modelname);
-    }
-
     ##### Return values #####
-    modelReturned <- list(model=modelname, timeElapsed=Sys.time()-startTime,
-                          call=cl, orders=orders, lags=lags, type=type,
-                          data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
-                          forecast=yForecast, states=matVt, accuracy=errormeasures,
-                          profile=profilesRecentTable, profileInitial=profilesRecentInitial,
-                          persistence=vecG[,1], transition=matF,
-                          measurement=matWt, initial=initialValue, initialType=initialType,
-                          nParam=parametersNumber,
-                          formula=formula, regressors=regressors,
-                          loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
-                          ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
-                                       c("AIC","AICc","BIC","BICc")),
-                          distribution=distribution, bounds=bounds,
-                          scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI);
+    modelReturned <- structure(list(model=modelname, timeElapsed=Sys.time()-startTime,
+                                    call=cl, orders=orders, lags=lags, type=type,
+                                    data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
+                                    forecast=yForecast, states=matVt, accuracy=errormeasures,
+                                    profile=profilesRecentTable, profileInitial=profilesRecentInitial,
+                                    persistence=vecG[,1], transition=matF,
+                                    measurement=matWt, initial=initialValue, initialType=initialType,
+                                    nParam=parametersNumber,
+                                    formula=formula, regressors=regressors,
+                                    loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
+                                    ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
+                                                 c("AIC","AICc","BIC","BICc")),
+                                    distribution=distribution, bounds=bounds,
+                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI),
+                          class=c("adam","smooth"));
 
     # Fix data and holdout if we had explanatory variables
     if(!is.null(xregData) && !is.null(ncol(data))){
@@ -950,5 +946,9 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         }
     }
 
-    return(structure(modelReturned,class=c("adam","smooth")));
+    if(!silent){
+        plot(modelReturned, 7)
+    }
+
+    return(modelReturned);
 }

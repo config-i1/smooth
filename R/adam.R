@@ -1368,8 +1368,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # ARMA parameters. This goes before xreg in persistence
         if(arimaModel){
             # Call the function returning ARI and MA polynomials
-            # arimaPolynomials <- polynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))], arOrders, iOrders, maOrders,
-            #                                    arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
             arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                           arOrders, iOrders, maOrders,
                                                           arEstimate, maEstimate, armaParameters, lags), as.vector);
@@ -1637,6 +1635,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         # ARIMA parameters (AR / MA)
         if(arimaModel){
+            # This index is needed to get the correct polynomials
+            k <- j
             # These are filled in lags-wise
             if(any(c(arEstimate,maEstimate))){
                 acfValues <- rep(-0.1, maOrders %*% lags);
@@ -1704,7 +1704,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
             }
 
-            arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+            arimaPolynomials <- lapply(adamPolynomialiser(B[k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                           arOrders, iOrders, maOrders,
                                                           arEstimate, maEstimate, armaParameters, lags), as.vector)
         }
@@ -1985,7 +1985,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # Stationarity and invertibility conditions for ARIMA
             if(arimaModel && any(c(arEstimate,maEstimate))){
                 # Calculate the polynomial roots for AR
-                if(arEstimate && sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1){
+                if(arEstimate &&
+                   (all(-adamElements$arimaPolynomials$arPolynomial[-1]>0) &
+                    sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1)){
                     arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
                     arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(arPolyroots>1)){
@@ -2042,8 +2044,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # Stationarity condition of ARIMA
             if(arimaModel){
                 # Calculate the polynomial roots for AR
-                if(arEstimate && (sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1 |
-                                  sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))<0)){
+                if(arEstimate &&
+                   (all(-adamElements$arimaPolynomials$arPolynomial[-1]>0) &
+                    sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1)){
                     arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
                     eigenValues <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(eigenValues>1)){
@@ -6836,6 +6839,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     yInSample <- actuals(object);
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     method <- match.arg(method);
     if(method=="cr"){
@@ -6926,7 +6930,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
         newCall$loss <- object$loss;
     }
     # If ETS was selected
-    if(!any(c(cesModel,gumModel)) && any(object$call!=modelType(object))){
+    if(!any(c(cesModel,gumModel,ssarimaModel)) && any(object$call!=modelType(object))){
         newCall$model <- modelType(object);
     }
     # If ARIMA was selected
@@ -7098,52 +7102,53 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             colnames(testModel$data)[1] <- all.vars(modelFormula)[1];
             return(vcov(testModel));
         }
-        else if(smoothType(object)=="CES"){
-            modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
-                                                FI=TRUE, stepSize=ellipsis$stepSize));
-            # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
-            brokenVariables <- apply(modelReturn$FI==0,1,all) | apply(is.nan(modelReturn$FI),1,any);
-            # If there are issues, try the same stuff, but with a different step size for hessian
-            if(any(brokenVariables)){
-                modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
-                                                     FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
-                brokenVariables <- apply(modelReturn$FI==0,1,all);
-            }
-            # If there are NaNs, then this has not been estimated well
-            if(any(is.nan(modelReturn$FI))){
-                stop("The Fisher Information cannot be calculated numerically with provided parameters - it contains NaNs.",
-                     "Try setting stepSize for the hessian to something like stepSize=1e-6 or using the bootstrap.", call.=FALSE);
-            }
-            if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
-                warning(paste0("Observed Fisher Information is not positive semi-definite, ",
-                               "which means that the likelihood was not maximised properly. ",
-                               "Consider reestimating the model, tuning the optimiser or ",
-                               "using bootstrap via bootstrap=TRUE."), call.=FALSE);
-            }
-            FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
-
-            vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
-            if(inherits(vcovMatrix,"try-error")){
-                vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
-                if(inherits(vcovMatrix,"try-error")){
-                    warning(paste0("Sorry, but the hessian is singular, so I could not invert it.\n",
-                                   "I failed to produce the covariance matrix of parameters. Shame on me!"),
-                            call.=FALSE);
-                    vcovMatrix <- diag(1e+100,ncol(FIMatrix));
-                }
-            }
-            # If there were broken variables, reproduce the zero elements.
-            # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
-            modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
-            modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
-
-            # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
-            diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
-            return(modelReturn$FI);
-        }
+        # else if(smoothType(object)=="CES"){
+        #     modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
+        #                                         FI=TRUE, stepSize=ellipsis$stepSize));
+        #     # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
+        #     brokenVariables <- apply(modelReturn$FI==0,1,all) | apply(is.nan(modelReturn$FI),1,any);
+        #     # If there are issues, try the same stuff, but with a different step size for hessian
+        #     if(any(brokenVariables)){
+        #         modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
+        #                                              FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+        #         brokenVariables <- apply(modelReturn$FI==0,1,all);
+        #     }
+        #     # If there are NaNs, then this has not been estimated well
+        #     if(any(is.nan(modelReturn$FI))){
+        #         stop("The Fisher Information cannot be calculated numerically with provided parameters - it contains NaNs.",
+        #              "Try setting stepSize for the hessian to something like stepSize=1e-6 or using the bootstrap.", call.=FALSE);
+        #     }
+        #     if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
+        #         warning(paste0("Observed Fisher Information is not positive semi-definite, ",
+        #                        "which means that the likelihood was not maximised properly. ",
+        #                        "Consider reestimating the model, tuning the optimiser or ",
+        #                        "using bootstrap via bootstrap=TRUE."), call.=FALSE);
+        #     }
+        #     FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
+        #
+        #     vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
+        #     if(inherits(vcovMatrix,"try-error")){
+        #         vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
+        #         if(inherits(vcovMatrix,"try-error")){
+        #             warning(paste0("Sorry, but the hessian is singular, so I could not invert it.\n",
+        #                            "I failed to produce the covariance matrix of parameters. Shame on me!"),
+        #                     call.=FALSE);
+        #             vcovMatrix <- diag(1e+100,ncol(FIMatrix));
+        #         }
+        #     }
+        #     # If there were broken variables, reproduce the zero elements.
+        #     # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
+        #     modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
+        #     modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
+        #
+        #     # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
+        #     diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
+        #     return(modelReturn$FI);
+        # }
         else{
             cesModel <- smoothType(object)=="CES";
             gumModel <- smoothType(object)=="GUM";
+            ssarimaModel <- smoothType(object)=="SSARIMA";
             if(cesModel){
                 modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
                                                 FI=TRUE, stepSize=ellipsis$stepSize));
@@ -7151,6 +7156,10 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             else if(gumModel){
                 modelReturn <- suppressWarnings(gum(object$data, h=0, model=object, formula=formula(object),
                                                 FI=TRUE, stepSize=ellipsis$stepSize));
+            }
+            else if(ssarimaModel){
+                modelReturn <- suppressWarnings(ssarima(object$data, h=0, model=object, formula=formula(object),
+                                                        FI=TRUE, stepSize=ellipsis$stepSize));
             }
             else{
                 modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
@@ -7167,6 +7176,10 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
                 else if(gumModel){
                     modelReturn <- suppressWarnings(gum(object$data, h=0, model=object, formula=formula(object),
                                                         FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+                }
+                else if(ssarimaModel){
+                    modelReturn <- suppressWarnings(ssarima(object$data, h=0, model=object, formula=formula(object),
+                                                            FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
                 }
                 else{
                     modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
@@ -7932,6 +7945,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     # Technical parameters
     lagsModelAll <- modelLags(object);
@@ -7957,6 +7971,12 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
     }
     else{
         if(!is.null(object$initial$seasonal)){
@@ -9205,6 +9225,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
 
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
@@ -9217,6 +9238,12 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
     }
     else{
         if(!is.null(object$initial$seasonal)){
@@ -10732,6 +10759,7 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
 
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
@@ -10744,6 +10772,12 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
     }
     else{
         if(!is.null(object$initial$seasonal)){
