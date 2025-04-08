@@ -116,7 +116,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, arma=NULL,
                     formula=NULL, regressors=c("use","select","adapt"),
-                    initial=c("optimal","backcasting","complete"),
+                    initial=c("backcasting","optimal","complete"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=0, holdout=FALSE, bounds=c("admissible","usual","none"), silent=TRUE,
                     model=NULL, ...){
@@ -182,6 +182,15 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     # SSARIMA is checked as ADAM ARIMA
     model <- "NNN";
+
+    # If initial was provided, trick parametersChecker
+    if(!is.character(initial)){
+        initialValueProvided <- initial;
+        initial <- "optimal";
+    }
+    else{
+        initial <- match.arg(initial);
+    }
 
     ##### Make all the checks #####
     checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,

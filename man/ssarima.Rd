@@ -8,7 +8,7 @@
 \usage{
 ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, arma = NULL, formula = NULL, regressors = c("use",
-  "select", "adapt"), initial = c("optimal", "backcasting", "complete"),
+  "select", "adapt"), initial = c("backcasting", "optimal", "complete"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
   "MSCE"), h = 0, holdout = FALSE, bounds = c("admissible", "usual",
   "none"), silent = TRUE, model = NULL, ...)
