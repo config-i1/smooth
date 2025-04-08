@@ -143,7 +143,7 @@ optimisation. By default, this is "NLOPT_LN_BOBYQA".
 2. \code{algorithm} determines the second optimiser. By default this is
 "NLOPT_LN_NELDERMEAD".
 3. maxeval0 and maxeval, that determine the number of iterations for the two
-optimisers. By default, \code{maxeval0=1000}, \code{maxeval=40*k}, where
+optimisers. By default, \code{maxeval0=maxeval=40*k}, where
 k is the number of estimated parameters.
 4. xtol_rel0 and xtol_rel, which are 1e-8 and 1e-6 respectively.
 There are also ftol_rel0, ftol_rel, ftol_abs0 and ftol_abs, which by default

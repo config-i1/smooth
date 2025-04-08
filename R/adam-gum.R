@@ -73,7 +73,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' 2. \code{algorithm} determines the second optimiser. By default this is
 #' "NLOPT_LN_NELDERMEAD".
 #' 3. maxeval0 and maxeval, that determine the number of iterations for the two
-#' optimisers. By default, \code{maxeval0=1000}, \code{maxeval=40*k}, where
+#' optimisers. By default, \code{maxeval0=maxeval=40*k}, where
 #' k is the number of estimated parameters.
 #' 4. xtol_rel0 and xtol_rel, which are 1e-8 and 1e-6 respectively.
 #' There are also ftol_rel0, ftol_rel, ftol_abs0 and ftol_abs, which by default
@@ -242,50 +242,6 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
                                        ic="AICc", bounds=bounds[1],
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
-
-    # Values for the preliminary optimiser
-    if(is.null(ellipsis$algorithm0)){
-        algorithm0 <- "NLOPT_LN_BOBYQA";
-    }
-    else{
-        algorithm0 <- ellipsis$algorithm0;
-    }
-    if(is.null(ellipsis$maxeval0)){
-        maxeval0 <- 1000;
-    }
-    else{
-        maxeval0 <- ellipsis$maxeval0;
-    }
-    if(is.null(ellipsis$maxtime0)){
-        maxtime0 <- -1;
-    }
-    else{
-        maxtime0 <- ellipsis$maxtime0;
-    }
-    if(is.null(ellipsis$xtol_rel0)){
-        xtol_rel0 <- 1e-8;
-    }
-    else{
-        xtol_rel0 <- ellipsis$xtol_rel0;
-    }
-    if(is.null(ellipsis$xtol_abs0)){
-        xtol_abs0 <- 0;
-    }
-    else{
-        xtol_abs0 <- ellipsis$xtol_abs0;
-    }
-    if(is.null(ellipsis$ftol_rel0)){
-        ftol_rel0 <- 0;
-    }
-    else{
-        ftol_rel0 <- ellipsis$ftol_rel0;
-    }
-    if(is.null(ellipsis$ftol_abs0)){
-        ftol_abs0 <- 0;
-    }
-    else{
-        ftol_abs0 <- ellipsis$ftol_abs0;
-    }
 
     # Check whether the multiplicative model is applicable
     if(type=="multiplicative"){
@@ -667,6 +623,50 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
                 maxevalUsed[] <- length(B) * 100;
                 maxevalUsed[] <- max(1000,maxevalUsed);
             }
+        }
+
+        # Values for the preliminary optimiser
+        if(is.null(ellipsis$algorithm0)){
+            algorithm0 <- "NLOPT_LN_BOBYQA";
+        }
+        else{
+            algorithm0 <- ellipsis$algorithm0;
+        }
+        if(is.null(ellipsis$maxeval0)){
+            maxeval0 <- maxevalUsed;
+        }
+        else{
+            maxeval0 <- ellipsis$maxeval0;
+        }
+        if(is.null(ellipsis$maxtime0)){
+            maxtime0 <- -1;
+        }
+        else{
+            maxtime0 <- ellipsis$maxtime0;
+        }
+        if(is.null(ellipsis$xtol_rel0)){
+            xtol_rel0 <- 1e-8;
+        }
+        else{
+            xtol_rel0 <- ellipsis$xtol_rel0;
+        }
+        if(is.null(ellipsis$xtol_abs0)){
+            xtol_abs0 <- 0;
+        }
+        else{
+            xtol_abs0 <- ellipsis$xtol_abs0;
+        }
+        if(is.null(ellipsis$ftol_rel0)){
+            ftol_rel0 <- 0;
+        }
+        else{
+            ftol_rel0 <- ellipsis$ftol_rel0;
+        }
+        if(is.null(ellipsis$ftol_abs0)){
+            ftol_abs0 <- 0;
+        }
+        else{
+            ftol_abs0 <- ellipsis$ftol_abs0;
         }
 
         # First run of BOBYQA to get better values of B

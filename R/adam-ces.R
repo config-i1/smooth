@@ -82,7 +82,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' 2. \code{algorithm} determines the second optimiser. By default this is
 #' "NLOPT_LN_NELDERMEAD".
 #' 3. maxeval0 and maxeval, that determine the number of iterations for the two
-#' optimisers. By default, \code{maxeval0=1000}, \code{maxeval=40*k}, where
+#' optimisers. By default, \code{maxeval0=maxeval=40*k}, where
 #' k is the number of estimated parameters.
 #' 4. xtol_rel0 and xtol_rel, which are 1e-8 and 1e-6 respectively.
 #' There are also ftol_rel0, ftol_rel, ftol_abs0 and ftol_abs, which by default
@@ -231,51 +231,6 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. GUM doesn't need that.
     refineHead <- FALSE;
-
-    # Values for the preliminary optimiser
-    if(is.null(ellipsis$algorithm0)){
-        algorithm0 <- "NLOPT_LN_BOBYQA";
-    }
-    else{
-        algorithm0 <- ellipsis$algorithm0;
-    }
-    if(is.null(ellipsis$maxeval0)){
-        maxeval0 <- 1000;
-    }
-    else{
-        maxeval0 <- ellipsis$maxeval0;
-    }
-    if(is.null(ellipsis$maxtime0)){
-        maxtime0 <- -1;
-    }
-    else{
-        maxtime0 <- ellipsis$maxtime0;
-    }
-    if(is.null(ellipsis$xtol_rel0)){
-        xtol_rel0 <- 1e-8;
-    }
-    else{
-        xtol_rel0 <- ellipsis$xtol_rel0;
-    }
-    if(is.null(ellipsis$xtol_abs0)){
-        xtol_abs0 <- 0;
-    }
-    else{
-        xtol_abs0 <- ellipsis$xtol_abs0;
-    }
-    if(is.null(ellipsis$ftol_rel0)){
-        ftol_rel0 <- 0;
-    }
-    else{
-        ftol_rel0 <- ellipsis$ftol_rel0;
-    }
-    if(is.null(ellipsis$ftol_abs0)){
-        ftol_abs0 <- 0;
-    }
-    else{
-        ftol_abs0 <- ellipsis$ftol_abs0;
-    }
-
 
     # Fix lagsModel and Ttype for CES. This is needed because the function drops duplicate seasonal lags
     # if(seasonality=="simple"){
@@ -610,80 +565,68 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 
         # Initialisation before the optimiser
         # if(any(initialType=="optimal",a$estimate,b$estimate)){
-        B <- NULL;
-        # If we don't need to estimate a
-        if(a$estimate){
-            B <- c(1.3,1);
-            names(B) <- c("alpha_0","alpha_1");
-        }
-
-        if(b$estimate){
-            if(seasonality=="partial"){
-                B <- c(B, setNames(0.1, "beta"));
-            }
-            else{
-                B <- c(B,
-                       setNames(c(1.3,1), c("beta_0","beta_1")));
-            }
-        }
-
-        # In case of optimal, get some initials from backcasting
-        if(initialType=="optimal"){
-            clNew <- cl;
-            # If environment is provided, use it
-            if(!is.null(ellipsis$environment)){
-                env <- ellipsis$environment;
-            }
-            # Use complete backcasting
-            clNew$initial <- "complete";
-            # Shut things up
-            clNew$silent <- TRUE;
-            # Switch off regressors selection
-            if(!is.null(clNew$regressors) && clNew$regressors=="select"){
-                clNew$regressors <- "use";
+        initialiser <- function(...){
+            B <- NULL;
+            # If we don't need to estimate a
+            if(a$estimate){
+                B <- c(1.3,1);
+                names(B) <- c("alpha_0","alpha_1");
             }
 
-            # Call for CES with backcasting
-            cesBack <- suppressWarnings(eval(clNew, envir=env));
-            B <- cesBack$B;
-            # Vector of initial estimates of parameters
-            if(seasonality!="simple"){
-                B <- c(B, cesBack$initial$nonseasonal);
-            }
-            if(seasonality!="none"){
-                BSeasonal <- as.vector(cesBack$initial$seasonal);
+            if(b$estimate){
                 if(seasonality=="partial"){
-                    names(BSeasonal) <- paste0("seasonal_", c(1:lagsModelMax));
+                    B <- c(B, setNames(0.1, "beta"));
                 }
                 else{
-                    names(BSeasonal) <- paste0(rep(c("seasonal 1_","seasonal 2_"), times=lagsModelMax),
-                                               rep(c(1:lagsModelMax), each=2))
+                    B <- c(B,
+                           setNames(c(1.3,1), c("beta_0","beta_1")));
                 }
-                B <- c(B, BSeasonal);
             }
 
-            # if(any(seasonality==c("none","simple"))){
-            #     B <- c(B,c(matVt[1:2,1:lagsModelMax]));
-            # }
-            # else if(seasonality=="partial"){
-            #     B <- c(B,
-            #            setNames(matVt[1:2,1], c("level","potential")));
-            #     B <- c(B,
-            #            setNames(matVt[3,1:lagsModelMax],
-            #                     paste0("seasonal_", c(1:lagsModelMax))));
-            # }
-            # else{
-            #     B <- c(B,
-            #            setNames(matVt[1:2,1], c("level","potential")));
-            #     B <- c(B,
-            #            setNames(matVt[3:4,1:lagsModelMax],
-            #                     paste0(rep(c("seasonal 1_","seasonal 2_"), each=lagsModelMax),
-            #                            rep(c(1:lagsModelMax), times=2))));
-            # }
+            # In case of optimal, get some initials from backcasting
+            if(initialType=="optimal"){
+                clNew <- cl;
+                # If environment is provided, use it
+                if(!is.null(ellipsis$environment)){
+                    env <- ellipsis$environment;
+                }
+                # Use complete backcasting
+                clNew$initial <- "complete";
+                # Shut things up
+                clNew$silent <- TRUE;
+                # Switch off regressors selection
+                if(!is.null(clNew$regressors) && clNew$regressors=="select"){
+                    clNew$regressors <- "use";
+                }
+
+                # Call for CES with backcasting
+                cesBack <- suppressWarnings(eval(clNew, envir=env));
+                B <- cesBack$B;
+                # Vector of initial estimates of parameters
+                if(seasonality!="simple"){
+                    B <- c(B, cesBack$initial$nonseasonal);
+                }
+                if(seasonality!="none"){
+                    BSeasonal <- as.vector(cesBack$initial$seasonal);
+                    if(seasonality=="partial"){
+                        names(BSeasonal) <- paste0("seasonal_", c(1:lagsModelMax));
+                    }
+                    else{
+                        names(BSeasonal) <- paste0(rep(c("seasonal 1_","seasonal 2_"), times=lagsModelMax),
+                                                   rep(c(1:lagsModelMax), each=2))
+                    }
+                    B <- c(B, BSeasonal);
+                }
+            }
+
+            if(xregModel){
+                B <- c(B, setNames(matVt[-c(1:componentsNumber),1], xregNames));
+            }
+            return(B);
         }
 
-        if(xregModel){
-            B <- c(B, setNames(matVt[-c(1:componentsNumber),1], xregNames));
+        if(is.null(B)){
+            B <- initialiser();
         }
 
         # Print level defined
@@ -701,6 +644,50 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                 maxevalUsed[] <- length(B) * 100;
                 maxevalUsed[] <- max(1000,maxevalUsed);
             }
+        }
+
+        # Values for the preliminary optimiser
+        if(is.null(ellipsis$algorithm0)){
+            algorithm0 <- "NLOPT_LN_BOBYQA";
+        }
+        else{
+            algorithm0 <- ellipsis$algorithm0;
+        }
+        if(is.null(ellipsis$maxeval0)){
+            maxeval0 <- maxevalUsed;
+        }
+        else{
+            maxeval0 <- ellipsis$maxeval0;
+        }
+        if(is.null(ellipsis$maxtime0)){
+            maxtime0 <- -1;
+        }
+        else{
+            maxtime0 <- ellipsis$maxtime0;
+        }
+        if(is.null(ellipsis$xtol_rel0)){
+            xtol_rel0 <- 1e-8;
+        }
+        else{
+            xtol_rel0 <- ellipsis$xtol_rel0;
+        }
+        if(is.null(ellipsis$xtol_abs0)){
+            xtol_abs0 <- 0;
+        }
+        else{
+            xtol_abs0 <- ellipsis$xtol_abs0;
+        }
+        if(is.null(ellipsis$ftol_rel0)){
+            ftol_rel0 <- 0;
+        }
+        else{
+            ftol_rel0 <- ellipsis$ftol_rel0;
+        }
+        if(is.null(ellipsis$ftol_abs0)){
+            ftol_abs0 <- 0;
+        }
+        else{
+            ftol_abs0 <- ellipsis$ftol_abs0;
         }
 
         # First run of BOBYQA to get better values of B
