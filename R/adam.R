@@ -2622,7 +2622,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         #### Preheating initials for ARIMA ####
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
-        if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
+        if(initialType=="optimal" && is.null(B)){
+        # if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
             # Estimate ARIMA with backcasting first
             clNew <- cl;
             # If environment is provided, use it
