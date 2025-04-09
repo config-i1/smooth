@@ -1,4 +1,22 @@
-smooth v4.1.1 (Release data: 2024-11-16)
+smooth v4.2.1 (Release data: 2025-04-08)
+=======
+
+Changes:
+* ssarima() now uses adam engine.
+
+
+smooth v4.2.0 (Release data: 2025-04-02)
+=======
+
+Changes:
+* A better visualisation of forecasts in case of cumulative ones.
+* model="SSS" in adam() and es(), which restricts the pool to the standard models. model="SXS" corresponds to the pool from the ets() function in the forecast package.
+* ces() now uses adam() engine instead of the old one. It lacks some functionality (e.g. variable selection, provided initials, occurrence model), but works in general quite well. If you want more features, please file an issue on Github.
+* gum() now also uses adam() engine, has more flexibility, but also lacks some functionality (variable selection, occurrence model). Let me know if anyone needs that.
+* adamFitter() now has a refineHead parameter, which explicitly says whether the head of the state vector should be refined or not. This is an internal thing, but it is needed by several functions (adam(), ces(), gum()).
+
+
+smooth v4.1.1 (Release data: 2025-02-03)
 =======
 
 Changes:
@@ -9,6 +27,8 @@ Changes:
 Bugfixes:
 * Corrected the author details in the documentation.
 * reapply() would not work with bootstrap in case of negative data. Now it does.
+* Added a check in adam() to make sure that model is not estimated when all parameters are provided in case of ARIMA.
+* Tried to fix the issue with UBSAN, but not sure whether it worked, because it is not possible to reproduce it on my PC or github Actions... Just praying that it works.
 
 
 smooth v4.1.0 (Release data: 2024-10-01)

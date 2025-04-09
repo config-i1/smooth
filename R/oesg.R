@@ -702,9 +702,9 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
         }
 
         # Clean and remove NAs
-        B <- B[!is.na(B)];
-        lb <- lb[!is.na(lb)];
-        ub <- ub[!is.na(ub)];
+        B <- as.numeric(B[!is.na(B)]);
+        lb <- as.numeric(lb[!is.na(lb)]);
+        ub <- as.numeric(ub[!is.na(ub)]);
 
         return(list(B=B,lb=lb,ub=ub));
     }
@@ -785,17 +785,17 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                  persistenceEstimateB,initialTypeB=="o",phiEstimateB,initialSeasonEstimateB,xregEstimateB,initialXEstimateB))){
             # Prepare the parameters of the two models
             BValuesA <- BValues(bounds, TtypeA, StypeA, dampedA, phiEstimateA, persistenceEstimateA,
-                          initialTypeA, modelIsSeasonalA, initialSeasonEstimateA,
-                          xregEstimateA, initialXEstimateA, updateXA,
-                          basicparamsA$lagsModelMax, basicparamsA$nComponentsAll, basicparamsA$nComponentsNonSeasonal,
-                          basicparamsA$vecg, basicparamsA$matvt, matatA,
-                          matFXA, vecgXA, xregNamesA, nExovarsA);
+                                initialTypeA, modelIsSeasonalA, initialSeasonEstimateA,
+                                xregEstimateA, initialXEstimateA, updateXA,
+                                basicparamsA$lagsModelMax, basicparamsA$nComponentsAll, basicparamsA$nComponentsNonSeasonal,
+                                basicparamsA$vecg, basicparamsA$matvt, matatA,
+                                matFXA, vecgXA, xregNamesA, nExovarsA);
             BValuesB <- BValues(bounds, TtypeB, StypeB, dampedB, phiEstimateB, persistenceEstimateB,
-                          initialTypeB, modelIsSeasonalB, initialSeasonEstimateB,
-                          xregEstimateB, initialXEstimateB, updateXB,
-                          basicparamsB$lagsModelMax, basicparamsB$nComponentsAll, basicparamsB$nComponentsNonSeasonal,
-                          basicparamsB$vecg, basicparamsB$matvt, matatB,
-                          matFXB, vecgXB, xregNamesB, nExovarsB);
+                                initialTypeB, modelIsSeasonalB, initialSeasonEstimateB,
+                                xregEstimateB, initialXEstimateB, updateXB,
+                                basicparamsB$lagsModelMax, basicparamsB$nComponentsAll, basicparamsB$nComponentsNonSeasonal,
+                                basicparamsB$vecg, basicparamsB$matvt, matatB,
+                                matFXB, vecgXB, xregNamesB, nExovarsB);
 
 
             # This is needed for the degrees of freedom calculation
@@ -803,30 +803,35 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
             # This is needed for the degrees of freedom calculation
             nParamB <- length(BValuesB$B);
 
-            # Run the optimisation
-            res <- nloptr(c(BValuesA$B,BValuesB$B), CF, lb=c(BValuesA$lb,BValuesB$lb), ub=c(BValuesA$ub,BValuesB$ub),
-                          opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
-                          ot=ot, bounds=bounds,
-                          # The parameters of the model A
-                          lagsModelA=basicparamsA$lagsModel, EtypeA=EtypeA, TtypeA=TtypeA, StypeA=StypeA, dampedA=dampedA,
-                          nComponentsAllA=basicparamsA$nComponentsAll, nComponentsNonSeasonalA=basicparamsA$nComponentsNonSeasonal,
-                          nExovarsA=nExovarsA, lagsModelMaxA=basicparamsA$lagsModelMax,
-                          persistenceEstimateA=persistenceEstimateA, initialTypeA=initialTypeA, phiEstimateA=phiEstimateA,
-                          initialSeasonEstimateA=initialSeasonEstimateA, xregEstimateA=xregEstimateA, initialXEstimateA=initialXEstimateA,
-                          updateXA=updateXA,
-                          matvtA=basicparamsA$matvt, vecgA=basicparamsA$vecg, matFA=basicparamsA$matF, matwA=basicparamsA$matw,
-                          matatA=matatA, matFXA=matFXA, vecgXA=vecgXA, matxtA=matxtA,
-                          # The parameters of the model B
-                          lagsModelB=basicparamsB$lagsModel, EtypeB=EtypeB, TtypeB=TtypeB, StypeB=StypeB, dampedB=dampedB,
-                          nComponentsAllB=basicparamsB$nComponentsAll, nComponentsNonSeasonalB=basicparamsB$nComponentsNonSeasonal,
-                          nExovarsB=nExovarsB, lagsModelMaxB=basicparamsB$lagsModelMax,
-                          persistenceEstimateB=persistenceEstimateB, initialTypeB=initialTypeB, phiEstimateB=phiEstimateB,
-                          initialSeasonEstimateB=initialSeasonEstimateB, xregEstimateB=xregEstimateB, initialXEstimateB=initialXEstimateB,
-                          updateXB=updateXB,
-                          matvtB=basicparamsB$matvt, vecgB=basicparamsB$vecg, matFB=basicparamsB$matF, matwB=basicparamsB$matw,
-                          matatB=matatB, matFXB=matFXB, vecgXB=vecgXB, matxtB=matxtB);
+            if(length(BValuesA$B)>0 && length(BValuesB$B)>0){
+                # Run the optimisation
+                res <- nloptr(c(BValuesA$B,BValuesB$B), CF, lb=c(BValuesA$lb,BValuesB$lb), ub=c(BValuesA$ub,BValuesB$ub),
+                              opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
+                              ot=ot, bounds=bounds,
+                              # The parameters of the model A
+                              lagsModelA=basicparamsA$lagsModel, EtypeA=EtypeA, TtypeA=TtypeA, StypeA=StypeA, dampedA=dampedA,
+                              nComponentsAllA=basicparamsA$nComponentsAll, nComponentsNonSeasonalA=basicparamsA$nComponentsNonSeasonal,
+                              nExovarsA=nExovarsA, lagsModelMaxA=basicparamsA$lagsModelMax,
+                              persistenceEstimateA=persistenceEstimateA, initialTypeA=initialTypeA, phiEstimateA=phiEstimateA,
+                              initialSeasonEstimateA=initialSeasonEstimateA, xregEstimateA=xregEstimateA, initialXEstimateA=initialXEstimateA,
+                              updateXA=updateXA,
+                              matvtA=basicparamsA$matvt, vecgA=basicparamsA$vecg, matFA=basicparamsA$matF, matwA=basicparamsA$matw,
+                              matatA=matatA, matFXA=matFXA, vecgXA=vecgXA, matxtA=matxtA,
+                              # The parameters of the model B
+                              lagsModelB=basicparamsB$lagsModel, EtypeB=EtypeB, TtypeB=TtypeB, StypeB=StypeB, dampedB=dampedB,
+                              nComponentsAllB=basicparamsB$nComponentsAll, nComponentsNonSeasonalB=basicparamsB$nComponentsNonSeasonal,
+                              nExovarsB=nExovarsB, lagsModelMaxB=basicparamsB$lagsModelMax,
+                              persistenceEstimateB=persistenceEstimateB, initialTypeB=initialTypeB, phiEstimateB=phiEstimateB,
+                              initialSeasonEstimateB=initialSeasonEstimateB, xregEstimateB=xregEstimateB, initialXEstimateB=initialXEstimateB,
+                              updateXB=updateXB,
+                              matvtB=basicparamsB$matvt, vecgB=basicparamsB$vecg, matFB=basicparamsB$matF, matwB=basicparamsB$matw,
+                              matatB=matatB, matFXB=matFXB, vecgXB=vecgXB, matxtB=matxtB);
 
-            B <- res$solution;
+                B <- res$solution;
+            }
+            else{
+                B <- c(BValuesA$B,BValuesB$B);
+            }
         }
 
         ##### Deal with the fitting and the forecasts #####

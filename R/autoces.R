@@ -1,42 +1,4 @@
-utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
-
-#' Complex Exponential Smoothing Auto
-#'
-#' Function estimates CES in state space form with information potential equal
-#' to errors with different seasonality types and chooses the one with the
-#' lowest IC value.
-#'
-#' The function estimates several Complex Exponential Smoothing in the
-#' state space 2 described in Svetunkov, Kourentzes (2015) with the information
-#' potential equal to the approximation error using different types of
-#' seasonality and chooses the one with the lowest value of information
-#' criterion.
-#'
-#' For some more information about the model and its implementation, see the
-#' vignette: \code{vignette("ces","smooth")}
-#'
-#'
-#' @template ssBasicParam
-#' @template ssAdvancedParam
-#' @template ssXregParam
-#' @template ssIntervals
-#' @template ssInitialParam
-#' @template ssAuthor
-#' @template ssKeywords
-#'
-#' @template ssCESRef
-#'
-#' @param models The vector containing several types of seasonality that should
-#' be used in CES selection. See \link[smooth]{ces} for more details about the
-#' possible types of seasonal models.
-#' @param ...  Other non-documented parameters.  For example \code{FI=TRUE}
-#' will make the function produce Fisher Information matrix, which then can be
-#' used to calculated variances of parameters of the model.
-#' @return Object of class "smooth" is returned. See \link[smooth]{ces} for
-#' details.
-#' @seealso \code{\link[smooth]{ces}, \link[smooth]{es},
-#' \link[greybox]{forecast}, \link[stats]{ts}}
-#'
+#' @param ic The information criterion to use in the model selection.
 #' @examples
 #'
 #' y <- ts(rnorm(100,10,3),frequency=12)
@@ -46,195 +8,196 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #'
 #' # Selection between "none" and "full" seasonalities
-#' \donttest{auto.ces(AirPassengers,h=8,holdout=TRUE,
-#'                    models=c("n","f"),interval="p",level=0.8,ic="AIC")}
+#' \donttest{auto.ces(AirPassengers, h=12, holdout=TRUE,
+#'                    seasonality=c("n","f"), ic="AIC")}
 #'
-#' ourModel <- auto.ces(AirPassengers,interval="sp")
+#' ourModel <- auto.ces(AirPassengers)
 #'
-#' summary(ourModel)
-#' forecast(ourModel)
-#' plot(forecast(ourModel))
+#' \donttest{summary(ourModel)}
+#' forecast(ourModel, h=12)
 #'
-#' @export auto.ces
-auto.ces <- function(y, models=c("none","simple","full"),
-                initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
-                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-                h=10, holdout=FALSE, cumulative=FALSE,
-                interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
-                bounds=c("admissible","none"),
-                silent=c("all","graph","legend","output","none"),
-                xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
-# Function estimates several CES models in state space form with sigma = error,
+#' @rdname ces
+#' @export
+auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(frequency(data)),
+                     formula=NULL, regressors=c("use","select","adapt"),
+                     initial=c("backcasting","optimal","complete"),
+                     ic=c("AICc","AIC","BIC","BICc"),
+                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                     h=0, holdout=FALSE,
+                     bounds=c("admissible","none"),
+                     silent=TRUE, ...){
+#  Function estimates several CES models in state space form with sigma = error,
 #  chooses the one with the lowest ic value and returns complex smoothing parameter
 #  value, fitted values, residuals, point and interval forecasts, matrix of CES components
 #  and values of information criteria
 
-#    Copyright (C) 2015  Ivan Svetunkov
+#    Copyright (C) 2015 - Inf Ivan Svetunkov
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    # Record the call and amend it
+    cl <- match.call();
+    cl[[1]] <- substitute(ces);
+    # Make sure that the thing is silent
+    cl$silent <- TRUE;
+
+    # Record the parental environment. Needed for optimal initialisation
+    env <- parent.frame();
+    cl$environment <- env;
+
     ### Depricate the old parameters
-    ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+    ellipsis <- list(...);
 
-    updateX <- FALSE;
-    persistenceX <- transitionX <- NULL;
-    occurrence <- "none";
-    oesmodel <- "MNN";
+    # If this is simulated, extract the actuals
+    if(is.adam.sim(data) || is.smooth.sim(data)){
+        data <- data$data;
+    }
+    # If this is Mdata, use all the available stuff
+    else if(inherits(data,"Mdata")){
+        h <- data$h;
+        holdout <- TRUE;
+        lags <- frequency(data$x);
+        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
+    }
 
-# Add all the variables in ellipsis to current environment
-    list2env(ellipsis,environment());
-
-##### Set environment for ssInput and make all the checks #####
-    environment(ssAutoInput) <- environment();
-    ssAutoInput("auto.ces",ParentEnvironment=environment());
+    # Measure the sample size based on what was provided as data
+    if(!is.null(dim(data)) && length(dim(data))>1){
+        obsInSample <- nrow(data) - holdout*h;
+    }
+    else{
+        obsInSample <- length(data) - holdout*h;
+    }
 
 # If the pool of models is wrong, fall back to default
-    if(length(models)!=1){
-        modelsOk <- rep(FALSE,length(models));
-        for(i in 1:length(models)){
-            modelsOk[i] <- any(models[i]==c("n","s","p","f","none","simple","partial","full"));
-        }
-    }
+    modelsOk <- rep(FALSE,length(seasonality));
+    modelsOk[] <- seasonality %in% c("n","s","p","f","none","simple","partial","full");
 
     if(!all(modelsOk)){
         message("The pool of models includes a strange type of model! Reverting to default pool.");
-        models <- c("n","s","p","f");
+        seasonality <- c("n","s","p","f");
     }
-    models <- substr(models,1,1);
+    seasonality <- substr(seasonality,1,1);
 
-    dataFreq <- frequency(y);
+    ic <- match.arg(ic);
+    IC <- switch(ic,
+                 "AIC"=AIC,
+                 "AICc"=AICc,
+                 "BIC"=BIC,
+                 "BICc"=BICc);
+
+    initial <- match.arg(initial);
+    yFrequency <- max(lags);
 
     # Define maximum needed number of parameters
-    if(any(models=="n")){
+    if(any(seasonality=="n")){
     # 1 is for variance, 2 is for complex smoothing parameter
         nParamMax <- 3;
-        if(initialType=="o"){
+        if(initial=="optimal"){
             nParamMax <- nParamMax + 2;
         }
     }
-    if(any(models=="p")){
+    if(any(seasonality=="p")){
         nParamMax <- 4;
-        if(initialType=="o"){
-            nParamMax <- nParamMax + 2 + dataFreq;
+        if(initial=="optimal"){
+            nParamMax <- nParamMax + 2 + yFrequency;
         }
-        if(obsNonzero <= nParamMax){
+        if(obsInSample <= nParamMax){
             warning("The sample is too small. We cannot use partial seasonal model.",call.=FALSE);
-            models <- models[models!="p"];
+            seasonality <- seasonality[seasonality!="p"];
         }
     }
-    if(any(models=="s")){
+    if(any(seasonality=="s")){
         nParamMax <- 3;
-        if(initialType=="o"){
-            nParamMax <- nParamMax + 2*dataFreq;
+        if(initial=="optimal"){
+            nParamMax <- nParamMax + 2*yFrequency;
         }
-        if(obsNonzero <= nParamMax){
+        if(obsInSample <= nParamMax){
             warning("The sample is too small. We cannot use simple seasonal model.",call.=FALSE);
-            models <- models[models!="s"];
+            seasonality <- seasonality[seasonality!="s"];
         }
     }
-    if(any(models=="f")){
+    if(any(seasonality=="f")){
         nParamMax <- 5;
-        if(initialType=="o"){
-            nParamMax <- nParamMax + 2 + 2*dataFreq;
+        if(initial=="optimal"){
+            nParamMax <- nParamMax + 2 + 2*yFrequency;
         }
-        if(obsNonzero <= nParamMax){
+        if(obsInSample <= nParamMax){
             warning("The sample is too small. We cannot use full seasonal model.",call.=FALSE);
-            models <- models[models!="f"];
+            seasonality <- seasonality[seasonality!="f"];
         }
     }
 
-    if(dataFreq==1){
-        if(!silentText){
+    if(yFrequency==1){
+        if(!silent){
             message("The data is not seasonal. Simple CES was the only solution here.");
         }
-
-        CESModel <- ces(y, seasonality="n",
-                        initial=initialType, ic=ic,
-                        loss=loss,
-                        h=h, holdout=holdout,cumulative=cumulative,
-                        interval=intervalType, level=level,
-                        bounds=bounds, silent=silent,
-                        xreg=xreg, regressors=regressors, initialX=initialX,
-                        FI=FI);
-        return(CESModel);
+        cl$seasonality <- "none";
+        return(eval(cl, envir=env));
+#
+#         CESModel <- ces(y, seasonality="n",
+#                         initial=initialType, ic=ic,
+#                         loss=loss,
+#                         h=h, holdout=holdout,cumulative=cumulative,
+#                         interval=intervalType, level=level,
+#                         bounds=bounds, silent=silent,
+#                         xreg=xreg, regressors=regressors, initialX=initialX,
+#                         FI=FI);
+#         return(CESModel);
     }
 
 # Check the number of observations and number of parameters.
-    if(any(models=="f") & (obsNonzero <= dataFreq*2 + 2 + 4 + 1)){
+    if(any(seasonality=="f") & (obsInSample <= yFrequency*2 + 2 + 4 + 1)){
         warning("Sorry, but you don't have enough observations for CES(f).",call.=FALSE);
-        models <- models[models!="f"];
+        seasonality <- seasonality[seasonality!="f"];
     }
-    if(any(models=="p") & (obsNonzero <= dataFreq + 2 + 3 + 1)){
+    if(any(seasonality=="p") & (obsInSample <= yFrequency + 2 + 3 + 1)){
         warning("Sorry, but you don't have enough observations for CES(p).",call.=FALSE);
-        models <- models[models!="p"];
+        seasonality <- seasonality[seasonality!="p"];
     }
-    if(any(models=="s") & (obsNonzero <= dataFreq*2 + 2 + 1)){
+    if(any(seasonality=="s") & (obsInSample <= yFrequency*2 + 2 + 1)){
         warning("Sorry, but you don't have enough observations for CES(s).",call.=FALSE);
-        models <- models[models!="s"];
+        seasonality <- seasonality[seasonality!="s"];
     }
 
-    CESModel <- as.list(models);
-    ICs <- c(1:length(models));
+    # Get back to the full names
+    seasonalityTypes <- c("none","simple","partial","full");
+    seasonality <- seasonalityTypes[substr(seasonalityTypes,1,1) %in% seasonality];
 
-    j <- 1;
-    if(!silentText){
-        cat("Estimating CES with seasonality: ")
+    CESModel <- vector("list",length(seasonality));
+    names(CESModel) <- seasonality
+    ICs <- vector("numeric", length(seasonality));
+
+    if(!silent){
+        cat("Estimating CES with seasonality: ");
     }
-    for(i in models){
-        if(!silentText){
-            cat(paste0('"',i,'" '));
+    # ivan41 is needed to avoid conflicts with using index i
+    for(ivan41 in 1:length(seasonality)){
+        if(!silent){
+            cat(paste0('"',seasonality[ivan41],'" '));
         }
-        CESModel[[j]] <- ces(y, seasonality=i,
-                             initial=initialType, ic=ic,
-                             loss=loss,
-                             h=h, holdout=holdout,cumulative=cumulative,
-                             interval=intervalType, level=level,
-                             bounds=bounds, silent=TRUE,
-                             xreg=xreg, regressors=regressors, initialX=initialX,
-                             FI=FI);
-        ICs[j] <- CESModel[[j]]$ICs[ic];
-        j <- j+1;
+
+        cl$seasonality <- seasonality[ivan41];
+        CESModel[[ivan41]] <- eval(cl, envir=env);
     }
+    ICs <- sapply(CESModel, IC);
 
     bestModel <- CESModel[[which(ICs==min(ICs))[1]]];
 
-    yFitted <- bestModel$fitted;
-    yForecast <- bestModel$forecast;
-    yUpper <- bestModel$upper;
-    yLower <- bestModel$lower;
     modelname <- bestModel$model;
 
-    if(!silentText){
-        bestModelType <- models[which(ICs==min(ICs))[1]];
+    if(!silent){
+        bestModelType <- seasonality[which(ICs==min(ICs))[1]];
         cat(" \n");
         cat(paste0('The best model is with seasonality = "',bestModelType,'"\n'));
     }
 
 ##### Make a plot #####
-    if(!silentGraph){
-        yForecastNew <- yForecast;
-        yUpperNew <- yUpper;
-        yLowerNew <- yLower;
-        if(cumulative){
-            yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
-            if(interval){
-                yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
-                yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
-            }
-        }
-
-        if(interval){
-            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
-                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
-        }
-        else{
-            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted,
-                       legend=!silentLegend,main=modelname,cumulative=cumulative);
-        }
+    if(!silent){
+        plot(bestModel, 7)
     }
 
+    bestModel$ICs <- ICs;
     bestModel$timeElapsed <- Sys.time()-startTime;
 
     return(bestModel);

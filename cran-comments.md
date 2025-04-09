@@ -1,12 +1,14 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "01 October 2024"
+date: "02 April 2025"
 output: html_document
 ---
 
 ## Version
-This is ``smooth`` package, v4.1.0.
+This is ``smooth`` package, v4.2.0
+
+This is a try to fix the errors on CRAN.
 
 ## Test environments
 * local Ubuntu 24.04.1, R 4.4.1
