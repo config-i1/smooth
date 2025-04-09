@@ -78,7 +78,7 @@ utils::globalVariables(c("silent","silentGraph","silentLegend","initialType","ar
 auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(y)),
                          fast=TRUE, constant=NULL,
                          formula=NULL, regressors=c("use","select","adapt"),
-                         initial=c("optimal","backcasting","complete"),
+                         initial=c("backcasting","optimal","complete"),
                          loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                          ic=c("AICc","AIC","BIC","BICc"),
                          h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
