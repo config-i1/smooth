@@ -936,8 +936,8 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             profilesRecentInitial <- profilesRecentTable <- adamProfiles$recent;
         }
 
+        initialOriginal <- initialType;
         if(initialType=="optimal"){
-            initialOriginal <- initialType;
             initialType <- "provided";
         }
         initialXregEstimateOriginal <- initialXregEstimate;
