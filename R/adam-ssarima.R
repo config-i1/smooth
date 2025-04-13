@@ -947,7 +947,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         elements <- filler(B, matVt, matF, vecG, matWt, arEstimate=arRequired, maEstimate=maRequired);
         matF[] <- elements$matF;
         vecG[] <- elements$vecG;
-        matVt[,1] <- elements$matVt[,1];
+        matVt[,1] <- profilesRecentTable[] <- elements$matVt[,1, drop=FALSE];
         matWt[] <- elements$matWt;
         arimaPolynomials <- elements$arimaPolynomials;
 
