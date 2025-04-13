@@ -6842,10 +6842,6 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     ssarimaModel <- smoothType(object)=="SSARIMA";
 
     method <- match.arg(method);
-    # if(method=="cr"){
-    #     warning("Only dsr is supported as the bootstrap method for adam().",
-    #             call.=FALSE);
-    # }
 
     if(is.numeric(parallel)){
         nCores <- parallel;
@@ -6947,9 +6943,16 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     # This is needed for cases, when lags changed in the function
     newCall$lags <- lags;
     # Number of variables + 2 (for security) or 2 seasonal cycles + 2
-    obsMinimum <- max(c(lags*2,nVariables))+2;
+    obsMinimum <- max(lags*2, nVariables)+2;
 
-    # If this is ARIMA, and the size wasn't specified, make it changable
+    # IF the sample is too small, make a warning and switch to dsr.
+    if(obsMinimum>=obsInsample && method=="cr"){
+        warning("Not enough observations to do Case Resampling bootstrap. Changing method to 'dsr'.",
+                call.=FALSE, immediate.=TRUE);
+        method <- "dsr";
+    }
+
+    # If this is ARIMA, and the size wasn't specified, make it changeable
     if(substr(object$model,1,10)=="Regression"){
         regressionPure <- TRUE;
     }
