@@ -6984,35 +6984,36 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     newCall$data <- object$data;
 
     # Function creates a random sample. Needed for dynamic models
-    # sampler <- function(indices,size,replace,prob,regressionPure=FALSE,changeOrigin=FALSE){
-    #     if(regressionPure){
-    #         return(sample(indices,size=size,replace=replace,prob=prob));
-    #     }
-    #     else{
-    #         indices <- c(1:ceiling(runif(1,obsMinimum,obsInsample)));
-    #         startingIndex <- 0
-    #         if(changeOrigin){
-    #             startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
-    #         }
-    #         # This way we return the continuous sample, starting from the first observation
-    #         return(startingIndex+indices);
-    #     }
-    # }
+    sampler <- function(indices,size,replace,prob,regressionPure=FALSE,changeOrigin=FALSE){
+        if(regressionPure){
+            return(sample(indices,size=size,replace=replace,prob=prob));
+        }
+        else{
+            indices <- c(1:ceiling(runif(1,obsMinimum,obsInsample)));
+            startingIndex <- 0
+            if(changeOrigin){
+                startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
+            }
+            # This way we return the continuous sample, starting from the first observation
+            return(startingIndex+indices);
+        }
+    }
 
-    responseName <- all.vars(formula(object))[1];
+    #### Bootstrap the data using DSR. This is switched off for now, waiting to be fixed
+    # responseName <- all.vars(formula(object))[1];
     # Create a new dataset
-    newData <- replicate(nsim, newCall$data, simplify=FALSE);
-    newCall$formula <- as.formula(paste0(responseName,"~."));
-    type <- "multiplicative";
-    if(any(yInSample<0)){
-        type[] <- "additive";
-    }
-    # Bootstrap the data
+    # newData <- replicate(nsim, newCall$data, simplify=FALSE);
+    # newCall$formula <- as.formula(paste0(responseName,"~."));
+    # type <- "multiplicative";
+    # if(any(yInSample<0)){
+    #     type[] <- "additive";
+    # }
+    #
     # Only bootstrap the response variable
-    dataBoot <- dsrboot(yInSample, nsim=nsim, type=type, intermittent=FALSE);
-    for(i in 1:nsim){
-        newData[[i]][,responseName] <- dataBoot$boot[,i];
-    }
+    # dataBoot <- dsrboot(yInSample, nsim=nsim, type=type, intermittent=FALSE);
+    # for(i in 1:nsim){
+    #     newData[[i]][,responseName] <- dataBoot$boot[,i];
+    # }
     # This chunk of code does the bootstrap for explanatory variables as well
     # dataBoot <- suppressWarnings(apply(newCall$data, 2, dsrboot,
     #                                    nsim=nsim, type=type, intermittent=FALSE));
@@ -7026,9 +7027,9 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
 
     if(!parallel){
         for(i in 1:nsim){
-            # subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
-            # newCall$data <- object$data[subsetValues,,drop=FALSE];
-            newCall$data[] <- newData[[i]];
+            subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+            newCall$data <- object$data[subsetValues,,drop=FALSE];
+            # newCall$data[] <- newData[[i]];
             testModel <- suppressWarnings(eval(newCall));
             coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
         }
@@ -7036,9 +7037,9 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     else{
         # We don't do rbind for security reasons - in order to deal with skipped variables
         coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
-            # subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
-            # newCall$data <- object$data[subsetValues,,drop=FALSE];
-            newCall$data[] <- newData[[i]];
+            subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+            newCall$data <- object$data[subsetValues,,drop=FALSE];
+            # newCall$data[] <- newData[[i]];
             testModel <- eval(newCall);
             return(coef(testModel));
         })
