@@ -6831,7 +6831,7 @@ xtable.summary.adam <- function(x, caption = NULL, label = NULL, align = NULL, d
 #' @export
 coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
                                replace=FALSE, prob=NULL, parallel=FALSE,
-                               method=c("dsr","cr"), ...){
+                               method=c("cr","dsr"), ...){
 
     startTime <- Sys.time();
 
@@ -6842,10 +6842,10 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     ssarimaModel <- smoothType(object)=="SSARIMA";
 
     method <- match.arg(method);
-    if(method=="cr"){
-        warning("Only dsr is supported as the bootstrap method for adam().",
-                call.=FALSE);
-    }
+    # if(method=="cr"){
+    #     warning("Only dsr is supported as the bootstrap method for adam().",
+    #             call.=FALSE);
+    # }
 
     if(is.numeric(parallel)){
         nCores <- parallel;
@@ -6999,53 +6999,77 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
         }
     }
 
-    #### Bootstrap the data using DSR. This is switched off for now, waiting to be fixed
-    # responseName <- all.vars(formula(object))[1];
-    # Create a new dataset
-    # newData <- replicate(nsim, newCall$data, simplify=FALSE);
-    # newCall$formula <- as.formula(paste0(responseName,"~."));
-    # type <- "multiplicative";
-    # if(any(yInSample<0)){
-    #     type[] <- "additive";
-    # }
-    #
-    # Only bootstrap the response variable
-    # dataBoot <- dsrboot(yInSample, nsim=nsim, type=type, intermittent=FALSE);
-    # for(i in 1:nsim){
-    #     newData[[i]][,responseName] <- dataBoot$boot[,i];
-    # }
-    # This chunk of code does the bootstrap for explanatory variables as well
-    # dataBoot <- suppressWarnings(apply(newCall$data, 2, dsrboot,
-    #                                    nsim=nsim, type=type, intermittent=FALSE));
-    # nLevels <- length(dataBoot);
-    # # Fill in the list of data
-    # for(i in 1:nsim){
-    #     for(j in 1:nLevels){
-    #         newData[[i]][,j] <- dataBoot[[j]]$boot[,i];
-    #     }
-    # }
-
-    if(!parallel){
+    #### Bootstrap the data
+    if(method=="dsr"){
+        #### Data Shape Replication bootstrap
+        responseName <- all.vars(formula(object))[1];
+        # Create a new dataset
+        newData <- replicate(nsim, newCall$data, simplify=FALSE);
+        newCall$formula <- as.formula(paste0(responseName,"~."));
+        type <- "multiplicative";
+        if(any(yInSample<0)){
+            type[] <- "additive";
+        }
+        #
+        # Only bootstrap the response variable
+        dataBoot <- dsrboot(yInSample, nsim=nsim, type=type, intermittent=FALSE);
         for(i in 1:nsim){
-            subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
-            newCall$data <- object$data[subsetValues,,drop=FALSE];
-            # newCall$data[] <- newData[[i]];
-            testModel <- suppressWarnings(eval(newCall));
-            coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+            newData[[i]][,responseName] <- dataBoot$boot[,i];
+        }
+        # This chunk of code does the bootstrap for explanatory variables as well
+        # dataBoot <- suppressWarnings(apply(newCall$data, 2, dsrboot,
+        #                                    nsim=nsim, type=type, intermittent=FALSE));
+        # nLevels <- length(dataBoot);
+        # # Fill in the list of data
+        # for(i in 1:nsim){
+        #     for(j in 1:nLevels){
+        #         newData[[i]][,j] <- dataBoot[[j]]$boot[,i];
+        #     }
+        # }
+
+        # Do the bootstrap
+        if(!parallel){
+            for(i in 1:nsim){
+                newCall$data[] <- newData[[i]];
+                testModel <- suppressWarnings(eval(newCall));
+                coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+            }
+        }
+        else{
+            # We don't do rbind for security reasons - in order to deal with skipped variables
+            coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+                newCall$data[] <- newData[[i]];
+                testModel <- eval(newCall);
+                return(coef(testModel));
+            })
+            # Prepare the matrix with parameters
+            for(i in 1:nsim){
+                coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+            }
         }
     }
     else{
-        # We don't do rbind for security reasons - in order to deal with skipped variables
-        coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
-            subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
-            newCall$data <- object$data[subsetValues,,drop=FALSE];
-            # newCall$data[] <- newData[[i]];
-            testModel <- eval(newCall);
-            return(coef(testModel));
-        })
-        # Prepare the matrix with parameters
-        for(i in 1:nsim){
-            coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+        #### Case Resampling bootstrap
+        if(!parallel){
+            for(i in 1:nsim){
+                subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+                newCall$data <- object$data[subsetValues,,drop=FALSE];
+                testModel <- suppressWarnings(eval(newCall));
+                coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+            }
+        }
+        else{
+            # We don't do rbind for security reasons - in order to deal with skipped variables
+            coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+                subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+                newCall$data <- object$data[subsetValues,,drop=FALSE];
+                testModel <- eval(newCall);
+                return(coef(testModel));
+            })
+            # Prepare the matrix with parameters
+            for(i in 1:nsim){
+                coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+            }
         }
     }
 
