@@ -1232,11 +1232,25 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # Fill in the initials for xreg
             if(xregModel){
                 if(Etype=="A" || initialXregProvided || is.null(xregModelInitials[[2]])){
+                    # matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
+                    #       1:lagsModelMax] <- xregModelInitials[[1]]$initialXreg;
+
+                    # This step is needed to address the potential issue with dropped level
+                    # of factor variables or variables due to multicollinearity
                     matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
+                          1:lagsModelMax] <- 0;
+                    matVt[names(xregModelInitials[[1]]$initialXreg),
                           1:lagsModelMax] <- xregModelInitials[[1]]$initialXreg;
                 }
                 else{
+                    # matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
+                    #       1:lagsModelMax] <- xregModelInitials[[2]]$initialXreg;
+
+                    # This step is needed to address the potential issue with dropped level
+                    # of factor variables or variables due to multicollinearity
                     matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
+                          1:lagsModelMax] <- 0;
+                    matVt[names(xregModelInitials[[1]]$initialXreg),
                           1:lagsModelMax] <- xregModelInitials[[2]]$initialXreg;
                 }
             }
@@ -2638,6 +2652,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             clNew$initial <- "complete";
             # Shut things up
             clNew$silent <- TRUE;
+            # If this is an xreg model, we do selection, and there's no formula, create one
+            if(xregModel && !is.null(clNew$regressors) && clNew$regressors=="select"){
+                # Matrix allows to avoid unnecessary data expansions via model.matrix
+                clNew$data <- as.matrix(cbind(as.data.frame(y), xregData));
+                colnames(clNew$data)[[1]] <- responseName;
+                # clNew$formula <- as.formula(paste0(responseName,"~",paste0(xregNames,collapse="+")));
+                # Remove formula - we don't need it for the provided data
+                clNew$formula <- NULL;
+            }
+            clNew$fast <- TRUE;
             # Switch off regressors selection
             if(!is.null(clNew$regressors) && clNew$regressors=="select"){
                 clNew$regressors <- "use";

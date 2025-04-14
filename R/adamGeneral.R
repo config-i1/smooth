@@ -1918,6 +1918,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 }
 
                 #### Drop the variables with no variability and perfectly correlated
+                # This part takes care of explanatory variables potentially dropped by ALM
+                # This is needed to get the correct xregData
                 if(additionalManipulations){
                     xregExpanded <- colnames(model.matrix(xregData,data=xregData));
                     # Remove intercept
@@ -1982,85 +1984,94 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     }
 
                     #### Fix parameters for factors ####
-                    # The indices of the original parameters
-                    xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
-                    # # The indices of the original parameters
-                    xregParametersIncluded <- setNames(vector("numeric",xregNumber),xregNamesModified);
-                    # The vector, marking the same values of smoothing parameters
-                    if(interceptIsPresent){
-                        xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign")[-1],xregNamesModified);
-                    }
-                    else{
-                        xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
-                    }
-                    if(length(xregParametersPersistence)==0){
-                        xregParametersPersistence <- 0;
-                    }
+                    {
+                        # This part of code is terrible! In the nutshell, what it does it keeps
+                        # all levels of categorical variables to make sure that the same
+                        # categorical variable is treated equally inside ETS. This is mainly needed
+                        # for regressors="adapt", so that "colour" changes over time in the same way,
+                        # and not that "blue" reacts to error more than "red"... Why did I do that?!!
+                        #### Potentially, this part can be removed to save some brain cells from destruction
 
-                    # If there are factors not in the alm data, create additional initials
-                    if(any(xregFactors) && any(!(xregNamesModified %in% xregNames))){
-                        xregAbsent <- !(xregNamesModified %in% xregNames);
-                        xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
-                        # If there is stuff for additive error model, fix parameters
-                        if(!is.null(xregModelInitials[[1]])){
-                            xregParametersNew[!xregAbsent] <- xregModelInitials[[1]]$initialXreg;
-                            # Go through new names and find, where they came from. Then get the missing parameters
-                            for(i in which(xregAbsent)){
-                                # Find the name of the original variable
-                                # Use only the last value... hoping that the names like x and x1 are not used.
-                                xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
-                                xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
-                                # Get the indices of all k-1 levels
-                                xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
-                                                                                       xregFactorsLevels[[xregNameFound]])]] <- i;
-                                # Get the index of the absent one
-                                xregParametersMissing[i] <- i;
-                                # Fill in the absent one, add intercept
-                                xregParametersNew[i] <- almIntercept;
-                                xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
-                                    xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
-                                # normalise all of them
-                                xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
-                                    xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
-                                    mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
-
-                            }
-                            # Write down the new parameters
-                            xregModelInitials[[1]]$initialXreg <- xregParametersNew;
+                        # The indices of the original parameters
+                        xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
+                        # # The indices of the original parameters
+                        xregParametersIncluded <- setNames(vector("numeric",xregNumber),xregNamesModified);
+                        # The vector, marking the same values of smoothing parameters
+                        if(interceptIsPresent){
+                            xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign")[-1],xregNamesModified);
                         }
-                        # If there is stuff for multiplicative error model, fix parameters
-                        if(!is.null(xregModelInitials[[2]])){
-                            xregParametersNew[!xregAbsent] <- xregModelInitials[[2]]$initialXreg;
-                            # Go through new names and find, where they came from. Then get the missing parameters
-                            for(i in which(xregAbsent)){
-                                # Find the name of the original variable
-                                # Use only the last value... hoping that the names like x and x1 are not used.
-                                xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
-                                xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
-                                # Get the indices of all k-1 levels
-                                xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
-                                                                                       xregFactorsLevels[[xregNameFound]])]] <- i;
-
-                                # Get the index of the absent one
-                                xregParametersMissing[i] <- i;
-                                # Fill in the absent one, add intercept
-                                xregParametersNew[i] <- almIntercept;
-                                xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
-                                    xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
-                                # normalise all of them
-                                xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
-                                    xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
-                                    mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
-                            }
-                            # Write down the new parameters
-                            xregModelInitials[[2]]$initialXreg <- xregParametersNew;
+                        else{
+                            xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
                         }
-                        xregNames <- xregNamesModified;
+                        if(length(xregParametersPersistence)==0){
+                            xregParametersPersistence <- 0;
+                        }
+
+                        # If there are factors not in the alm data, create additional initials
+                        if(any(xregFactors) && any(!(xregNamesModified %in% xregNames))){
+                            xregAbsent <- !(xregNamesModified %in% xregNames);
+                            xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
+                            # If there is stuff for additive error model, fix parameters
+                            if(!is.null(xregModelInitials[[1]])){
+                                xregParametersNew[!xregAbsent] <- xregModelInitials[[1]]$initialXreg;
+                                # Go through new names and find, where they came from. Then get the missing parameters
+                                for(i in which(xregAbsent)){
+                                    # Find the name of the original variable
+                                    # Use only the last value... hoping that the names like x and x1 are not used.
+                                    xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
+                                    xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
+                                    # Get the indices of all k-1 levels
+                                    xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
+                                                                                           xregFactorsLevels[[xregNameFound]])]] <- i;
+                                    # Get the index of the absent one
+                                    xregParametersMissing[i] <- i;
+                                    # Fill in the absent one, add intercept
+                                    xregParametersNew[i] <- almIntercept;
+                                    xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
+                                        xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
+                                    # normalise all of them
+                                    xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
+                                        xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
+                                        mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
+
+                                }
+                                # Write down the new parameters
+                                xregModelInitials[[1]]$initialXreg <- xregParametersNew;
+                            }
+                            # If there is stuff for multiplicative error model, fix parameters
+                            if(!is.null(xregModelInitials[[2]])){
+                                xregParametersNew[!xregAbsent] <- xregModelInitials[[2]]$initialXreg;
+                                # Go through new names and find, where they came from. Then get the missing parameters
+                                for(i in which(xregAbsent)){
+                                    # Find the name of the original variable
+                                    # Use only the last value... hoping that the names like x and x1 are not used.
+                                    xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
+                                    xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
+                                    # Get the indices of all k-1 levels
+                                    xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
+                                                                                           xregFactorsLevels[[xregNameFound]])]] <- i;
+
+                                    # Get the index of the absent one
+                                    xregParametersMissing[i] <- i;
+                                    # Fill in the absent one, add intercept
+                                    xregParametersNew[i] <- almIntercept;
+                                    xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
+                                        xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
+                                    # normalise all of them
+                                    xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
+                                        xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
+                                        mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
+                                }
+                                # Write down the new parameters
+                                xregModelInitials[[2]]$initialXreg <- xregParametersNew;
+                            }
+                            xregNames <- xregNamesModified;
+                        }
+                        # The vector of parameters that should be estimated (numeric + original levels of factors)
+                        xregParametersEstimated <- xregParametersIncluded
+                        xregParametersEstimated[xregParametersEstimated!=0] <- 1;
+                        xregParametersEstimated[xregParametersMissing==0 & xregParametersIncluded==0] <- 1;
                     }
-                    # The vector of parameters that should be estimated (numeric + original levels of factors)
-                    xregParametersEstimated <- xregParametersIncluded
-                    xregParametersEstimated[xregParametersEstimated!=0] <- 1;
-                    xregParametersEstimated[xregParametersMissing==0 & xregParametersIncluded==0] <- 1;
                 }
                 else{
                     # If there are more obs in xreg than the obsAll cut the thing
