@@ -177,14 +177,15 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
     else{
         yInSampleIndex <- yIndex;
-        yIndexDiff <- diff(tail(yIndex,2));
-        yForecastStart <- yIndex[obsInSample]+yIndexDiff;
         if(any(yClasses=="ts")){
-            yForecastIndex <- yIndex[obsInSample]+deltat(yIndex)*c(1:max(h,1));
-        }
-        else{
+            yIndexDiff <- deltat(yIndex);
             yForecastIndex <- yIndex[obsInSample]+yIndexDiff*c(1:max(h,1));
         }
+        else{
+            yIndexDiff <- diff(tail(yIndex,2));
+            yForecastIndex <- yIndex[obsInSample]+yIndexDiff*c(1:max(h,1));
+        }
+        yForecastStart <- yIndex[obsInSample]+yIndexDiff;
         yHoldout <- NULL;
         yIndexAll <- c(yIndex,yForecastIndex);
     }
