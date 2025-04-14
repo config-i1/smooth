@@ -2638,10 +2638,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             clNew$initial <- "complete";
             # Shut things up
             clNew$silent <- TRUE;
-            # If this is an xreg model, we do selection, and there's no formula, create one
-            if(xregModel && !is.null(clNew$regressors) && clNew$regressors=="select"){
-                clNew$formula <- as.formula(paste0(responseName,"~",paste0(xregNames,collapse="+")));
-            }
             # Switch off regressors selection
             if(!is.null(clNew$regressors) && clNew$regressors=="select"){
                 clNew$regressors <- "use";
@@ -5914,7 +5910,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             x$states <- cbind(actuals(x),x$states,residuals(x));
             colnames(x$states) <- statesNames;
             if(ncol(x$states)>10){
-                message("Too many states. Plotting them one by one on several plots.");
+                message("Too many states. Plotting them on several canvases.");
                 if(is.null(ellipsis$main)){
                     ellipsisMain <- NULL;
                 }
