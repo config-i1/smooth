@@ -8053,7 +8053,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         # ts structure
         yForecastStart <- time(actuals(object))[obsInSample]+deltat(actuals(object));
         yFrequency <- frequency(actuals(object));
-        yForecastIndex <- yIndex[obsInSample]+as.numeric(diff(tail(yIndex,2)))*c(1:h);
+        yForecastIndex <- yIndex[obsInSample]+deltat(yIndex)*c(1:h);
     }
     else{
         # zoo
