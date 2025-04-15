@@ -6913,17 +6913,20 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
         regressionPure <- FALSE;
     }
 
-    if(any(object$distribution==c("dchisq","dt"))){
-        newCall$nu <- object$other$nu;
-    }
-    else if(object$distribution=="dalaplace"){
-        newCall$alpha <- object$other$alpha;
-    }
-    else if(object$distribution=="dbcnorm"){
-        newCall$lambdaBC <- object$other$lambdaBC;
-    }
-    else if(any(object$distribution==c("dgnorm","dlgnorm"))){
-        newCall$shape <- object$other$shape;
+    # If the additional parameter was not estimated, provide it
+    if(all(names(object$B)!="other")){
+        if(any(object$distribution==c("dchisq","dt"))){
+            newCall$nu <- object$other$nu;
+        }
+        else if(object$distribution=="dalaplace"){
+            newCall$alpha <- object$other$alpha;
+        }
+        else if(object$distribution=="dbcnorm"){
+            newCall$lambdaBC <- object$other$lambdaBC;
+        }
+        else if(any(object$distribution==c("dgnorm","dlgnorm"))){
+            newCall$shape <- object$other$shape;
+        }
     }
     newCall$occurrence <- object$occurrence;
 
