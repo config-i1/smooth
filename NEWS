@@ -1,8 +1,12 @@
-smooth v4.2.1 (Release data: 2025-04-08)
+smooth v4.2.1 (Release data: 2025-04-16)
 =======
 
 Changes:
 * ssarima() now uses adam engine.
+* adam() with initial="optimal" now uses "backcasting" to get initial values before the optimisation.
+
+Bugfixes:
+* auto.adam() now allows selecting the best distribution for a user-specified ARIMA.
 
 
 smooth v4.2.0 (Release data: 2025-04-02)
