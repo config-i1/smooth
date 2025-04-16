@@ -17,6 +17,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # If this is simulated, extract the actuals
     if(is.adam.sim(data) || is.smooth.sim(data)){
         data <- data$data;
+        lags <- frequency(data);
     }
     # If this is Mdata, use all the available stuff
     else if(inherits(data,"Mdata")){
