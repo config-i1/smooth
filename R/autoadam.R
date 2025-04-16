@@ -152,11 +152,19 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
     regressors <- match.arg(regressors);
 
     #### Checks of provided parameters for ARIMA selection ####
-    if(arimaModel && is.list(orders)){
-        arimaModelSelect <- orders$select;
-        arMax <- orders$ar;
-        iMax <- orders$i;
-        maMax <- orders$ma;
+    if(arimaModel){
+        arimaModelSelect <- FALSE;
+        if(is.list(orders)){
+            arimaModelSelect <- orders$select;
+            arMax <- orders$ar;
+            iMax <- orders$i;
+            maMax <- orders$ma;
+        }
+        else{
+            arMax <- orders[1];
+            iMax <- orders[2];
+            maMax <- orders[3];
+        }
 
         if(is.null(arimaModelSelect)){
             arimaModelSelect <- FALSE;
@@ -381,7 +389,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                 if(!silent){
                     cat(distribution[i],"\b, ");
                 }
-                if(etsModel || xregModel){
+                if(etsModel || xregModel || (arimaModel && !arimaModelSelect)){
                     selectedModels[[i]] <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
                                                 distribution=distribution[i], formula=formula,
                                                 h=h, holdout=holdout,
