@@ -2689,7 +2689,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(modelIsSeasonal){
                 if(length(lagsModelSeasonal)>1){
                     for(i in 1:length(lagsModelSeasonal)){
-                        adamBack$initial$seasonal[[i]] <-
+                        adamBack$initial$seasonal[[i]][] <-
                             switch(Stype,
                                    "A"=adamBack$initial$seasonal[[i]] - mean(adamBack$initial$seasonal[[i]]),
                                    "M"=adamBack$initial$seasonal[[i]] /
@@ -2698,7 +2698,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                 }
                 else{
-                    adamBack$initial$seasonal <-
+                    adamBack$initial$seasonal[] <-
                         switch(Stype,
                                "A"=adamBack$initial$seasonal - mean(adamBack$initial$seasonal),
                                "M"=adamBack$initial$seasonal /
