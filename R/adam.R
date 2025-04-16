@@ -2685,14 +2685,24 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 B[1:nParametersBack] <- adamBack$B[1:nParametersBack];
             }
 
-            # Remove redundant seasonal initials
+            # Renormalise seasonal initials and then remove the redundant ones
             if(modelIsSeasonal){
                 if(length(lagsModelSeasonal)>1){
                     for(i in 1:length(lagsModelSeasonal)){
+                        adamBack$initial$seasonal[[i]] <-
+                            switch(Stype,
+                                   "A"=adamBack$initial$seasonal[[i]] - mean(adamBack$initial$seasonal[[i]]),
+                                   "M"=adamBack$initial$seasonal[[i]] /
+                                       prod(adamBack$initial$seasonal[[i]])^{1/length(adamBack$initial$seasonal[[i]])});
                         adamBack$initial$seasonal[[i]] <- adamBack$initial$seasonal[[i]][1:(lagsModelSeasonal[i]-1)];
                     }
                 }
                 else{
+                    adamBack$initial$seasonal <-
+                        switch(Stype,
+                               "A"=adamBack$initial$seasonal - mean(adamBack$initial$seasonal),
+                               "M"=adamBack$initial$seasonal /
+                                   prod(adamBack$initial$seasonal)^{1/length(adamBack$initial$seasonal)});
                     adamBack$initial$seasonal <- adamBack$initial$seasonal[1:(lagsModelSeasonal-1)];
                 }
             }
