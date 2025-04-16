@@ -104,18 +104,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
         }
     }
 
-    # If this is non-positive data and positive defined distributions are used, fix this
-    if(any(yInSample<=0) && any(c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution) &&
-       (!is.occurrence(occurrence) && occurrence[1]=="none")){
-        distributionToDrop <- c("dlnorm","dllaplace","dls","dinvgauss","dgamma")[
-            c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution];
-        warning(paste0("The data is not strictly positive, so not all the distributions make sense. ",
-                       "Dropping ",paste0(distributionToDrop,collapse=", "),"."),
-                call.=FALSE);
-        distribution <- distribution[!(distribution %in% distributionToDrop)];
-    }
-    nModels <- length(distribution);
-
     #### Create logical, determining, what we are dealing with ####
     # ETS
     etsModel <- all(model!="NNN");
@@ -151,12 +139,43 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
     }
     regressors <- match.arg(regressors);
 
+    # If this is non-positive data and positive defined distributions are used, fix this
+    if(any(yInSample<=0) && any(c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution) &&
+       (!is.occurrence(occurrence) && occurrence[1]=="none")){
+        distributionToDrop <- c("dlnorm","dllaplace","dls","dinvgauss","dgamma")[
+            c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution];
+        warning(paste0("The data is not strictly positive, so not all distributions make sense. ",
+                       "Dropping ",paste0(distributionToDrop,collapse=", "),"."),
+                call.=FALSE);
+        distribution <- distribution[!(distribution %in% distributionToDrop)];
+    }
+    nModels <- length(distribution);
+
+    # Amend the default list of distributions for the pure ARIMA
+    if(arimaModel && !etsModel &&
+       all(distribution %in% c("dnorm", "dlaplace", "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"))){
+        distributionToDrop <- c("dlnorm","dinvgauss","dgamma")[
+            c("dlnorm","dinvgauss","dgamma") %in% distribution];
+        warning(paste0("Not all distributions make sense for the pure ARIMA. ",
+                       "Dropping ",paste0(distributionToDrop,collapse=", "),"."),
+                call.=FALSE);
+        distribution <- distribution[!(distribution %in% distributionToDrop)];
+    }
+
     #### Checks of provided parameters for ARIMA selection ####
-    if(arimaModel && is.list(orders)){
-        arimaModelSelect <- orders$select;
-        arMax <- orders$ar;
-        iMax <- orders$i;
-        maMax <- orders$ma;
+    if(arimaModel){
+        arimaModelSelect <- FALSE;
+        if(is.list(orders)){
+            arimaModelSelect <- orders$select;
+            arMax <- orders$ar;
+            iMax <- orders$i;
+            maMax <- orders$ma;
+        }
+        else{
+            arMax <- orders[1];
+            iMax <- orders[2];
+            maMax <- orders[3];
+        }
 
         if(is.null(arimaModelSelect)){
             arimaModelSelect <- FALSE;
@@ -381,7 +400,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                 if(!silent){
                     cat(distribution[i],"\b, ");
                 }
-                if(etsModel || xregModel){
+                if(etsModel || xregModel || (arimaModel && !arimaModelSelect)){
                     selectedModels[[i]] <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
                                                 distribution=distribution[i], formula=formula,
                                                 h=h, holdout=holdout,
