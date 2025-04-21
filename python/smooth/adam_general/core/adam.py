@@ -544,7 +544,7 @@ class Adam(object):
         return self
     
 
-    def predict(self):
+    def predict(self, level = 0.95):
         """Make predictions using the fitted model"""
         
         self.prepared_model = preparator(
@@ -592,7 +592,9 @@ class Adam(object):
             model_type_dict=self.model_type_dict,
             explanatory_checked=self.explanatory_dict,
             components_dict=self.components_dict,
-            constants_checked=self.constant_dict
+            constants_checked=self.constant_dict,
+            params_info=self.params_info,
+            level=level
         )
 
         return self.predictions
