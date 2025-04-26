@@ -1208,16 +1208,16 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     initialSeasonalEstimate <- rep(TRUE,componentsNumberETSSeasonal);
 
     # This is an initialisation of the variable
-    initialType <- "optimal"
+    initialType <- "backcasting"
     # initial type can be: "o" - optimal, "b" - backcasting, "p" - provided.
     if(any(is.character(initial))){
-        initialType[] <- match.arg(initial, c("optimal","backcasting","complete"));
+        initialType[] <- match.arg(initial, c("backcasting","optimal","two-stage","complete"));
     }
     else if(is.null(initial)){
         if(!silent){
-            message("Initial value is not selected. Switching to optimal.");
+            message("Initial value is not selected. Switching to backcasting.");
         }
-        initialType[] <- "optimal";
+        initialType[] <- "backcasting";
     }
     else if(!is.null(initial)){
         if(all(modelDo!=c("estimate","use"))){
@@ -1270,8 +1270,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
             else{
                 if(!is.numeric(initial)){
                     warning(paste0("Initial vector is not numeric!\n",
-                                   "Values of initial vector will be estimated."),call.=FALSE);
-                    initialType[] <- "optimal";
+                                   "Values of initial vector will be backcasted."),call.=FALSE);
+                    initialType[] <- "backcasting";
                 }
                 else{
                     # If this is a vector, then it should contain values in the order:
@@ -1545,7 +1545,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     else{
         if(regressors=="select"){
             # If this has not happened by chance, then switch to optimisation
-            if(!is.null(initialXreg) && any(initialType==c("optimal","backcasting"))){
+            if(!is.null(initialXreg) && any(initialType==c("backcasting","optimal","two-stage"))){
                 warning("Variables selection does not work with the provided initials for explantory variables. I will drop them.",
                         call.=FALSE);
                 initialXreg <- NULL;
@@ -2544,13 +2544,14 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                       # ETS model
                       etsModel*(persistenceLevelEstimate + modelIsTrendy*persistenceTrendEstimate +
                                     modelIsSeasonal*sum(persistenceSeasonalEstimate) +
-                                    phiEstimate + (initialType=="optimal") *
+                                    phiEstimate + any(initialType==c("optimal","two-stage")) *
                                     (initialLevelEstimate + initialTrendEstimate + sum(initialSeasonalEstimate*lagsModelSeasonal))) +
                       # ARIMA components: initials + parameters
-                      arimaModel*((initialType=="optimal")*initialArimaNumber +
+                      arimaModel*(any(initialType==c("optimal","two-stage"))*initialArimaNumber +
                                       arRequired*arEstimate*sum(arOrders) + maRequired*maEstimate*sum(maOrders)) +
                       # Xreg initials and smoothing parameters
-                      xregModel*(xregNumber*(any(initialType==c("optimal","backcasting"))*initialXregEstimate+persistenceXregEstimate)));
+                      xregModel*(xregNumber*(any(initialType==c("backcasting","optimal","two-stage"))*
+                                                 initialXregEstimate+persistenceXregEstimate)));
 
     # If the sample is smaller than the number of parameters
     if(obsNonzero <= nParamMax){
@@ -2568,7 +2569,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         }
         else if(arimaModel && !etsModel && !select){
             # If the backacasting helps, switch to it.
-            if(initialType=="optimal" && (obsNonzero > (nParamMax - (initialType=="optimal")*initialArimaNumber))){
+            if(any(initialType==c("optimal","two-stage")) &&
+               (obsNonzero > (nParamMax - any(initialType==c("optimal","two-stage"))*initialArimaNumber))){
                 warning(paste0("The number of parameter to estimate is ",nParamMax,
                             ", while the number of observations is ",obsNonzero,
                             ". Switching initial to 'backcasting' to save some degrees of freedom."), call.=FALSE);
@@ -2593,7 +2595,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         }
     }
 
-    if(arimaModel && obsNonzero < (initialType=="optimal")*initialArimaNumber && !select){
+    if(arimaModel && obsNonzero < any(initialType==c("optimal","two-stage"))*initialArimaNumber && !select){
         warning(paste0("In-sample size is ",obsNonzero,", while number of ARIMA components is ",initialArimaNumber,
                        ". Cannot fit the model."),call.=FALSE)
         stop("Not enough observations for such a complicated model.",call.=FALSE);
@@ -2604,13 +2606,13 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                         # ETS model
                         etsModel*(persistenceLevelEstimate + modelIsTrendy*persistenceTrendEstimate +
                                       modelIsSeasonal*sum(persistenceSeasonalEstimate) +
-                                      phiEstimate + (initialType=="optimal") *
+                                      phiEstimate + any(initialType==c("optimal","two-stage")) *
                                       (initialLevelEstimate + initialTrendEstimate + sum(initialSeasonalEstimate*lagsModelSeasonal))) +
                         # ARIMA components: initials + parameters
-                        arimaModel*((initialType=="optimal")*initialArimaNumber +
+                        arimaModel*(any(initialType==c("optimal","two-stage"))*initialArimaNumber +
                                         arRequired*arEstimate*sum(arOrders) + maRequired*maEstimate*sum(maOrders)) +
                         # Xreg initials and smoothing parameters
-                        xregModel*(xregNumber*(any(initialType==c("optimal","backcasting"))*initialXregEstimate+persistenceXregEstimate)));
+                        xregModel*(xregNumber*(any(initialType==c("backcasting","optimal","two-stage"))*initialXregEstimate+persistenceXregEstimate)));
 
     # If the sample is still smaller than the number of parameters (even after removing ARIMA)
     if(etsModel){
@@ -2890,7 +2892,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     if(is.null(ellipsis$maxeval)){
         maxeval <- NULL;
         # Make a warning if this is a big computational task
-        if(any(lags>24) && arimaModel && initialType=="optimal"){
+        if(any(lags>24) && arimaModel && any(initialType==c("optimal","two-stage"))){
             warning(paste0("The estimation of ARIMA model with initial='optimal' on high frequency data might ",
                            "take more time to converge to the optimum. Consider either setting maxeval parameter ",
                            "to a higher value (e.g. maxeval=10000, which will take ~25 times more than this) ",

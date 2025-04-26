@@ -1,9 +1,10 @@
-smooth v4.2.1 (Release data: 2025-04-16)
+smooth v4.2.1 (Release data: 2025-04-26)
 =======
 
 Changes:
 * ssarima() now uses adam engine.
-* adam() with initial="optimal" now uses "backcasting" to get initial values before the optimisation.
+* New initialisation mechanism called "two-stage" in adam(), where "backcasting" is used to get initial values before the optimisation is done. Slower but leads to better calibrated predictive distributions in ADAM.
+* initial="backcasting" is now the default method. This needs a bit of additional tuning for ARIMA.
 
 Bugfixes:
 * auto.adam() now allows selecting the best distribution for a user-specified ARIMA.

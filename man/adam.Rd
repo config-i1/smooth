@@ -16,9 +16,9 @@ adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
   "TMSE", "GTMSE", "MSCE"), outliers = c("ignore", "use", "select"),
   level = 0.99, h = 0, holdout = FALSE, persistence = NULL,
-  phi = NULL, initial = c("optimal", "backcasting", "complete"),
-  arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual",
-  "admissible", "none"), silent = TRUE, ...)
+  phi = NULL, initial = c("backcasting", "optimal", "two-stage",
+  "complete"), arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
+  bounds = c("usual", "admissible", "none"), silent = TRUE, ...)
 
 \method{simulate}{adam}(object, nsim = 1, seed = NULL,
   obs = nobs(object), ...)
@@ -207,10 +207,11 @@ model, it will be estimated.}
 Only applicable for damped-trend models.}
 
 \item{initial}{Can be either character or a list, or a vector of initial states.
-If it is character, then it can be \code{"optimal"}, meaning that all initial
-states are optimised, or \code{"backcasting"}, meaning that the initials of
+If it is character, then it can be \code{"backcasting"}, meaning that the initials of
 dynamic part of the model are produced using backcasting procedure (advised
-for data with high frequency). In the latter case, the parameters of the
+for data with high frequency), or \code{"optimal"}, meaning that all initial
+states are optimised, or \code{"two-stage"}, meaning that optimisation is done
+after the backcasting, refining the states. In case of backcasting, the parameters of the
 explanatory variables are optimised. This is recommended for ETSX and ARIMAX
 models. Alternatively, you can set \code{initial="complete"} backcasting,
 which means that all states (including explanatory variables) are initialised
@@ -221,7 +222,7 @@ to provide the initial components that are available. For example:
 \code{initial=list(level=1000,trend=10,seasonal=list(c(1,2),c(1,2,3,4)),
 arima=1,xreg=100)}. If some of the components are needed by the model, but are
 not provided in the list, they will be estimated. If the vector is provided,
-then it is expected that the components will be provided inthe same order as above,
+then it is expected that the components will be provided in the same order as above,
 one after another without any gaps.}
 
 \item{arma}{Either the named list or a vector with AR / MA parameters ordered lag-wise.
@@ -321,7 +322,7 @@ in columns,
 and xreg components,
 \item \code{initialEstimated} - the named vector, defining which of the initials were estimated in
 the model,
-\item \code{initialType} - the type of initialisation used ("optimal" / "complete" / "provided"),
+\item \code{initialType} - the type of initialisation used (backcasting/optimal/two-stage/complete/provided),
 \item \code{orders} - the orders of ARIMA used in the estimation,
 \item \code{constant} - the value of the constant (if it was included),
 \item \code{arma} - the list of AR / MA parameters used in the model,
