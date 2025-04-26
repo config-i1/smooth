@@ -83,13 +83,14 @@
 #' \code{lags=c(1,1,12)}. However, the function will also accept \code{lags=c(12)},
 #' assuming that the lags 1 were dropped.
 #' @param phi Value of damping parameter. If \code{NULL} then it is estimated.
-#' @param initial Can be either character or a vector of initial states.
-#' If it is character, then it can be \code{"optimal"}, meaning that all initial
-#' states are optimised, or \code{"backcasting"}, meaning that the initials of
+#' @param initial Can be either character or a list, or a vector of initial states.
+#' If it is character, then it can be \code{"backcasting"}, meaning that the initials of
 #' dynamic part of the model are produced using backcasting procedure (advised
-#' for data with high frequency). In the latter case, the parameters of the
-#' explanatory variables are optimised. This is recommended for ETSX
-#' model. Alternatively, you can set \code{initial="complete"} backcasting,
+#' for data with high frequency), or \code{"optimal"}, meaning that all initial
+#' states are optimised, or \code{"two-stage"}, meaning that optimisation is done
+#' after the backcasting, refining the states. In case of backcasting, the parameters of the
+#' explanatory variables are optimised. This is recommended for ETSX and ARIMAX
+#' models. Alternatively, you can set \code{initial="complete"} backcasting,
 #' which means that all states (including explanatory variables) are initialised
 #' via backcasting. You can also provide a vector with values for level and trend
 #' components.
