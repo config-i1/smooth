@@ -230,7 +230,8 @@
 #' @rdname es
 #' @export
 es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
-               initial=c("optimal","backcasting","complete"), initialSeason=NULL, ic=c("AICc","AIC","BIC","BICc"),
+               initial=c("backcasting","optimal","two-stage","complete"),initialSeason=NULL,
+               ic=c("AICc","AIC","BIC","BICc"),
                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                h=10, holdout=FALSE,
                # cumulative=FALSE,

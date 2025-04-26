@@ -6,8 +6,8 @@
 \title{Exponential Smoothing in SSOE state space model}
 \usage{
 es(y, model = "ZZZ", lags = c(frequency(y)), persistence = NULL,
-  phi = NULL, initial = c("optimal", "backcasting", "complete"),
-  initialSeason = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
+  phi = NULL, initial = c("backcasting", "optimal", "two-stage",
+  "complete"), initialSeason = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
   "MSCE"), h = 10, holdout = FALSE, bounds = c("usual", "admissible",
   "none"), silent = TRUE, xreg = NULL, regressors = c("use", "select"),
