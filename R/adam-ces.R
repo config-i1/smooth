@@ -28,6 +28,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @template ssKeywords
 #'
 #' @template ADAMDataFormulaRegLossSilentHHoldout
+#' @template ADAMInitial
 #'
 #' @template smoothRef
 #' @template ssADAMRef
@@ -54,14 +55,6 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @param formula Formula to use in case of explanatory variables. If \code{NULL},
 #' then all the variables are used as is. Can also include \code{trend}, which would add
 #' the global trend. Only needed if \code{data} is a matrix or if \code{trend} is provided.
-#' @param initial Should be a character, which can be \code{"optimal"},
-#' meaning that all initial states are optimised, or \code{"backcasting"},
-#' meaning that the initials of dynamic part of the model are produced using
-#' backcasting procedure (advised for data with high frequency). In the latter
-#' case, the parameters of the explanatory variables are optimised. This is
-#' recommended for CESX. Alternatively, you can set \code{initial="complete"}
-#' backcasting, which means that all states (including explanatory variables)
-#' are initialised via backcasting.
 #' @param a First complex smoothing parameter. Should be a complex number.
 #'
 #' NOTE! CES is very sensitive to a and b values so it is advised either to
@@ -110,7 +103,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @export
 ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(frequency(data)),
                 formula=NULL, regressors=c("use","select","adapt"),
-                initial=c("backcasting","optimal","complete"), a=NULL, b=NULL,
+                initial=c("backcasting","optimal","two-stage","complete"), a=NULL, b=NULL,
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
                 model=NULL, ...){
@@ -212,9 +205,6 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         initialValueProvided <- initial;
         initial <- "optimal";
     }
-    else{
-        initial <- match.arg(initial);
-    }
 
     ##### Set environment for ssInput and make all the checks #####
     checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
@@ -298,7 +288,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 
         vt <- matVt[,1:lagsModelMax,drop=FALSE];
         j <- 0;
-        if(initialType=="optimal"){
+        if(any(initialType==c("optimal","two-stage"))){
             if(any(seasonality==c("none","simple"))){
                 vt[1:2,1:lagsModelMax] <- B[nCoefficients+(1:(2*lagsModelMax))];
                 nCoefficients[] <- nCoefficients + lagsModelMax*2;
@@ -584,7 +574,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             }
 
             # In case of optimal, get some initials from backcasting
-            if(initialType=="optimal"){
+            if(initialType=="two-stage"){
                 clNew <- cl;
                 # If environment is provided, use it
                 if(!is.null(ellipsis$environment)){
@@ -616,6 +606,23 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                                                    rep(c(1:lagsModelMax), each=2))
                     }
                     B <- c(B, BSeasonal);
+                }
+            }
+            else{
+                # Record the level and potential
+                if(seasonality!="simple"){
+                    B <- c(B, matVt[1:2,1]);
+                }
+
+                # Record seasonal indices
+                if(seasonality=="simple"){
+                    B <- c(B, matVt[1:2,1:lagsModelMax]);
+                }
+                else if(seasonality=="partial"){
+                    B <- c(B, matVt[3,1:lagsModelMax]);
+                }
+                else if(seasonality=="full"){
+                    B <- c(B, matVt[3:4,1:lagsModelMax]);
                 }
             }
 
@@ -733,7 +740,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         # Create index lookup table
         indexLookupTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
                                            lags=lags, yIndex=yIndexAll, yClasses=yClasses)$lookup;
-        if(initialType=="optimal"){
+        if(any(initialType==c("optimal","two-stage"))){
             initialType <- "provided";
         }
         initialValue <- profilesRecentTable;
@@ -843,7 +850,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             initialValue$seasonal <- matVt[lagsModelAll!=1,1:lagsModelMax];
         }
 
-        if(initialType=="optimal"){
+        if(any(initialType==c("optimal","two-stage"))){
             parametersNumber[1,1] <- (parametersNumber[1,1] + 2*(seasonality!="simple") +
                                       lagsModelMax*(seasonality!="none") + lagsModelMax*any(seasonality==c("full","simple")));
         }

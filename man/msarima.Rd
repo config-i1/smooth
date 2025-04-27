@@ -8,19 +8,19 @@
 \usage{
 msarima(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, AR = NULL, MA = NULL, model = NULL,
-  initial = c("optimal", "backcasting", "complete"), ic = c("AICc", "AIC",
-  "BIC", "BICc"), loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE",
-  "GTMSE", "MSCE"), h = 10, holdout = FALSE, bounds = c("usual",
-  "admissible", "none"), silent = TRUE, xreg = NULL,
+  initial = c("backcasting", "optimal", "two-stage", "complete"),
+  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood", "MSE",
+  "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
+  bounds = c("usual", "admissible", "none"), silent = TRUE, xreg = NULL,
   regressors = c("use", "select", "adapt"), initialX = NULL, ...)
 
 auto.msarima(y, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
-  lags = c(1, frequency(y)), initial = c("optimal", "backcasting",
-  "complete"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood",
-  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10,
-  holdout = FALSE, bounds = c("usual", "admissible", "none"),
-  silent = TRUE, xreg = NULL, regressors = c("use", "select", "adapt"),
-  initialX = NULL, ...)
+  lags = c(1, frequency(y)), initial = c("backcasting", "optimal",
+  "two-stage", "complete"), ic = c("AICc", "AIC", "BIC", "BICc"),
+  loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
+  "MSCE"), h = 10, holdout = FALSE, bounds = c("usual", "admissible",
+  "none"), silent = TRUE, xreg = NULL, regressors = c("use", "select",
+  "adapt"), initialX = NULL, ...)
 
 msarima_old(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, AR = NULL, MA = NULL, initial = c("backcasting",

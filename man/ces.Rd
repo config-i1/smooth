@@ -8,17 +8,17 @@
 \usage{
 ces(data, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(data)), formula = NULL, regressors = c("use",
-  "select", "adapt"), initial = c("backcasting", "optimal", "complete"),
-  a = NULL, b = NULL, loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh",
-  "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
+  "select", "adapt"), initial = c("backcasting", "optimal", "two-stage",
+  "complete"), a = NULL, b = NULL, loss = c("likelihood", "MSE", "MAE",
+  "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
   bounds = c("admissible", "none"), silent = TRUE, model = NULL, ...)
 
 auto.ces(data, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(data)), formula = NULL, regressors = c("use",
-  "select", "adapt"), initial = c("backcasting", "optimal", "complete"),
-  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood", "MSE",
-  "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
-  bounds = c("admissible", "none"), silent = TRUE, ...)
+  "select", "adapt"), initial = c("backcasting", "optimal", "two-stage",
+  "complete"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood",
+  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0,
+  holdout = FALSE, bounds = c("admissible", "none"), silent = TRUE, ...)
 
 ces_old(data, seasonality = c("none", "simple", "partial", "full"),
   initial = c("backcasting", "optimal"), a = NULL, b = NULL,
@@ -59,14 +59,15 @@ variables:
 \code{"adapt"} will trigger the mechanism of time varying parameters for the
 explanatory variables.}
 
-\item{initial}{Should be a character, which can be \code{"optimal"},
-meaning that all initial states are optimised, or \code{"backcasting"},
-meaning that the initials of dynamic part of the model are produced using
-backcasting procedure (advised for data with high frequency). In the latter
-case, the parameters of the explanatory variables are optimised. This is
-recommended for CESX. Alternatively, you can set \code{initial="complete"}
-backcasting, which means that all states (including explanatory variables)
-are initialised via backcasting.}
+\item{initial}{Can be either character or a list, or a vector of initial states.
+If it is character, then it can be \code{"backcasting"}, meaning that the initials of
+dynamic part of the model are produced using backcasting procedure (advised
+for data with high frequency), or \code{"optimal"}, meaning that all initial
+states are optimised, or \code{"two-stage"}, meaning that optimisation is done
+after the backcasting, refining the states. In case of backcasting, the parameters of the
+explanatory variables are optimised. Alternatively, you can set \code{initial="complete"}
+backcasting, which means that all states (including explanatory variables) are initialised
+via backcasting.}
 
 \item{a}{First complex smoothing parameter. Should be a complex number.
 

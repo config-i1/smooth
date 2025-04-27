@@ -62,6 +62,8 @@
 #' @template ssGeneralRef
 #' @template ssARIMARef
 #'
+#' @template ADAMInitial
+#'
 #' @param orders List of orders, containing vector variables \code{ar},
 #' \code{i} and \code{ma}. Example:
 #' \code{orders=list(ar=c(1,2),i=c(1),ma=c(1,1,1))}. If a variable is not
@@ -192,7 +194,7 @@
 #' @export
 msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL, model=NULL,
-                    initial=c("optimal","backcasting","complete"), ic=c("AICc","AIC","BIC","BICc"),
+                    initial=c("backcasting","optimal","two-stage","complete"), ic=c("AICc","AIC","BIC","BICc"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE,
                     # cumulative=FALSE,

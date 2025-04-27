@@ -74,13 +74,9 @@ dynamic part of the model are produced using backcasting procedure (advised
 for data with high frequency), or \code{"optimal"}, meaning that all initial
 states are optimised, or \code{"two-stage"}, meaning that optimisation is done
 after the backcasting, refining the states. In case of backcasting, the parameters of the
-explanatory variables are optimised. This is recommended for ETSX and ARIMAX
-models. Alternatively, you can set \code{initial="complete"} backcasting,
-which means that all states (including explanatory variables) are initialised
-via backcasting. You can also provide a vector with values for level and trend
-components.
-If character, then \code{initialSeason} will be estimated in the way defined
-by \code{initial}.}
+explanatory variables are optimised. Alternatively, you can set \code{initial="complete"}
+backcasting, which means that all states (including explanatory variables) are initialised
+via backcasting.}
 
 \item{initialSeason}{Vector of initial values for seasonal components. If
 \code{NULL}, they are estimated during optimisation.}

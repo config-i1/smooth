@@ -152,7 +152,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
     nModels <- length(distribution);
 
     # Amend the default list of distributions for the pure ARIMA
-    if(arimaModel && !etsModel &&
+    if(arimaModel && !etsModel && length(distribution) == 7 &&
        all(distribution %in% c("dnorm", "dlaplace", "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"))){
         distributionToDrop <- c("dlnorm","dinvgauss","dgamma")[
             c("dlnorm","dinvgauss","dgamma") %in% distribution];
