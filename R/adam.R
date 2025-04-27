@@ -1000,7 +1000,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             j <- 1;
                             # level
                             if(initialLevelEstimate){
-                                matVt[j,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
+                                matVt[j,1:lagsModelMax] <- mean(yInSample[1:min(lagsModelMax, obsInSample)]);
                                 if(xregModel){
                                     if(Etype=="A"){
                                         matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
@@ -6907,8 +6907,8 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     lags <- lags(object);
     # This is needed for cases, when lags changed in the function
     newCall$lags <- lags;
-    # Number of variables + 2 (for security) or 2 seasonal cycles + 2
-    obsMinimum <- max(lags*2, nVariables)+2;
+    # Number of variables or a seasonal cycle + 2 (for security)
+    obsMinimum <- max(lags, nVariables) + 2;
 
     # IF the sample is too small, make a warning and switch to dsr.
     if(obsMinimum>=obsInsample && method=="cr"){

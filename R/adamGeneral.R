@@ -510,8 +510,10 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     if(max(lags) >= obsInSample){
         warning("The maximum lags value is ", max(lags),
                 ", while the sample size is ", obsInSample,
-                ". I cannot guarantee that I'll be able to fit the model.",
+                ". I cannot fit the seasonal model in this case. ",
+                "Dropping the highest lag.",
                 call.=FALSE);
+        lags <- lags[-which.max(lags)];
     }
 
     #### ARIMA term ####
@@ -712,7 +714,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         if(all(modelIsSeasonal,lagsModelMax==1)){
             if(all(Stype!=c("Z","X","Y"))){
                 warning(paste0("Cannot build the seasonal model on data with the unity lags.\n",
-                               "Switching to non-seasonal model: ETS(",substr(model,1,nchar(model)-1),"N)"));
+                               "Switching to non-seasonal model: ETS(",substr(model,1,nchar(model)-1),"N)"),
+                        call.=FALSE);
             }
             Stype <- "N";
             modelIsSeasonal <- FALSE;
