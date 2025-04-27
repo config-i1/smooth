@@ -6634,6 +6634,14 @@ summary.adam <- function(object, level=0.95, bootstrap=FALSE, ...){
     parametersValues <- coef(object);
     if(!is.null(parametersValues)){
         parametersConfint <- confint(object, level=level, bootstrap=bootstrap, ...);
+        # Record the type of bootstrap done
+        ellipsis <- list(...);
+        if(!is.null(ellipsis$method)){
+            ourReturn$method <- ellipsis$method;
+        }
+        else{
+            ourReturn$method <- "cr";
+        }
         if(is.null(parametersValues)){
             if(ncol(object$data)>1 && all(object$persistenceXreg!=0)){
                 parametersValues <- c(object$persistence,object$persistenceXreg,object$initial,object$initialXreg);
@@ -6733,7 +6741,11 @@ print.summary.adam <- function(x, ...){
     }
 
     if(x$bootstrap){
-        cat("\nBootstrap was used for the estimation of uncertainty of parameters");
+        cat("\n");
+        cat(switch(x$method,
+                   "cr"="Case Resampling",
+                   "dsr"="Data Shape Replication"),
+            "bootstrap was used for the estimation of uncertainty of parameters");
     }
 
     if(!is.null(x$coefficients)){
