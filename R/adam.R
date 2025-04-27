@@ -2636,11 +2636,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # print(BValues$B);
 
         #### Preheating initial parameters ####
-        # Preheat the initial parameters Do this only for optimal initials and if B is not provided
+        # Preheat the initial parameters Do this only for two-stage initials and if B is not provided
         if(initialType=="two-stage" && is.null(B)){
-        # if(initialType=="optimal" && is.null(B)){
-        # if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
-            # Estimate ARIMA with backcasting first
             clNew <- cl;
             # If environment is provided, use it
             if(!is.null(ellipsis$environment)){
@@ -2760,7 +2757,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             ub <- BValues$Bu;
         }
 
-        # Companion matrices for the polynomials calculation -> stationarity / stability checks
+        # Companion matrices for the polynomials calculation -> stationarity/stability checks
         if(arimaModel){
             # AR polynomials
             arPolynomialMatrix <- matrix(0, arOrders %*% lags, arOrders %*% lags);
