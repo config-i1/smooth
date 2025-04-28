@@ -78,8 +78,7 @@ produced using \link[smooth]{es} function.}
 
 \item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
-\code{"select"} means that a selection using \code{ic} should be done.
-\code{"combine"} will be available at some point in future...}
+\code{"select"} means that a selection using \code{ic} should be done.}
 
 \item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}

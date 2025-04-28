@@ -95,7 +95,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 
 #' @rdname ces
 #' @export
-ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequency(data)),
+ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequency(y)),
                 initial=c("backcasting","optimal","two-stage","complete"), a=NULL, b=NULL,
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
@@ -121,7 +121,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
     loss <- match.arg(loss);
 
     # paste0() is needed in order to get rid of potential issues with names
-    yName <- paste0(deparse(substitute(data)),collapse="");
+    yName <- paste0(deparse(substitute(y)),collapse="");
 
     # Assume that the model is not provided
     profilesRecentProvided <- FALSE;
@@ -213,11 +213,13 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         data <- y;
     }
 
-    #### !!! initialX doesn't do anything at the moment ####
     # If initial was provided, trick parametersChecker
     if(!is.character(initial)){
         initialValueProvided <- initial;
         initial <- "optimal";
+    }
+    if(!is.null(initialX)){
+        initial <- list(xreg=initialX);
     }
 
     ##### Set environment for ssInput and make all the checks #####
@@ -587,42 +589,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                 }
             }
 
-            # In case of optimal, get some initials from backcasting
-            if(initialType=="two-stage"){
-                clNew <- cl;
-                # If environment is provided, use it
-                if(!is.null(ellipsis$environment)){
-                    env <- ellipsis$environment;
-                }
-                # Use complete backcasting
-                clNew$initial <- "complete";
-                # Shut things up
-                clNew$silent <- TRUE;
-                # Switch off regressors selection
-                if(!is.null(clNew$regressors) && clNew$regressors=="select"){
-                    clNew$regressors <- "use";
-                }
-
-                # Call for CES with backcasting
-                cesBack <- suppressWarnings(eval(clNew, envir=env));
-                B <- cesBack$B;
-                # Vector of initial estimates of parameters
-                if(seasonality!="simple"){
-                    B <- c(B, cesBack$initial$nonseasonal);
-                }
-                if(seasonality!="none"){
-                    BSeasonal <- as.vector(cesBack$initial$seasonal);
-                    if(seasonality=="partial"){
-                        names(BSeasonal) <- paste0("seasonal_", c(1:lagsModelMax));
-                    }
-                    else{
-                        names(BSeasonal) <- paste0(rep(c("seasonal 1_","seasonal 2_"), times=lagsModelMax),
-                                                   rep(c(1:lagsModelMax), each=2))
-                    }
-                    B <- c(B, BSeasonal);
-                }
-            }
-            else{
+            if(all(initialType!=c("backcasting","complete"))){
                 # Record the level and potential
                 if(seasonality!="simple"){
                     B <- c(B, matVt[1:2,1]);
@@ -644,6 +611,46 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                 B <- c(B, setNames(matVt[-c(1:componentsNumber),1], xregNames));
             }
             return(B);
+        }
+
+
+        # In case of optimal, get some initials from backcasting
+        if(initialType=="two-stage" && is.null(B)){
+            clNew <- cl;
+            # If environment is provided, use it
+            if(!is.null(ellipsis$environment)){
+                env <- ellipsis$environment;
+            }
+            # Use complete backcasting
+            clNew$initial <- "complete";
+            # Shut things up
+            clNew$silent <- TRUE;
+            # Switch off regressors selection
+            if(!is.null(clNew$regressors) && clNew$regressors=="select"){
+                clNew$regressors <- "use";
+            }
+
+            # Call for CES with backcasting
+            cesBack <- suppressWarnings(eval(clNew, envir=env));
+            B <- cesBack$B;
+            # Vector of initial estimates of parameters
+            if(seasonality!="simple"){
+                B <- c(B, cesBack$initial$nonseasonal);
+            }
+            if(seasonality!="none"){
+                BSeasonal <- as.vector(cesBack$initial$seasonal);
+                if(seasonality=="partial"){
+                    names(BSeasonal) <- paste0("seasonal_", c(1:lagsModelMax));
+                }
+                else{
+                    names(BSeasonal) <- paste0(rep(c("seasonal 1_","seasonal 2_"), times=lagsModelMax),
+                                               rep(c(1:lagsModelMax), each=2))
+                }
+                B <- c(B, BSeasonal);
+            }
+            if(xregModel){
+                B <- c(B, cesBack$initial$xreg);
+            }
         }
 
         if(is.null(B)){

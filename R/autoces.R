@@ -18,14 +18,13 @@
 #'
 #' @rdname ces
 #' @export
-auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(frequency(data)),
-                     formula=NULL, regressors=c("use","select","adapt"),
+auto.ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequency(y)),
                      initial=c("backcasting","optimal","two-stage","complete"),
                      ic=c("AICc","AIC","BIC","BICc"),
                      loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                      h=0, holdout=FALSE,
                      bounds=c("admissible","none"),
-                     silent=TRUE, ...){
+                     silent=TRUE, xreg=NULL, regressors=c("use","select","adapt"), ...){
 #  Function estimates several CES models in state space form with sigma = error,
 #  chooses the one with the lowest ic value and returns complex smoothing parameter
 #  value, fitted values, residuals, point and interval forecasts, matrix of CES components
@@ -50,24 +49,19 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     ellipsis <- list(...);
 
     # If this is simulated, extract the actuals
-    if(is.adam.sim(data) || is.smooth.sim(data)){
-        data <- data$data;
+    if(is.adam.sim(y) || is.smooth.sim(y)){
+        y <- y$data;
     }
     # If this is Mdata, use all the available stuff
-    else if(inherits(data,"Mdata")){
-        h <- data$h;
+    else if(inherits(y,"Mdata")){
+        h <- y$h;
         holdout <- TRUE;
-        lags <- frequency(data$x);
-        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
+        lags <- frequency(y$x);
+        y <- ts(c(y$x,y$xx),start=start(y$x),frequency=frequency(y$x));
     }
 
     # Measure the sample size based on what was provided as data
-    if(!is.null(dim(data)) && length(dim(data))>1){
-        obsInSample <- nrow(data) - holdout*h;
-    }
-    else{
-        obsInSample <- length(data) - holdout*h;
-    }
+    obsInSample <- length(y) - holdout*h;
 
 # If the pool of models is wrong, fall back to default
     modelsOk <- rep(FALSE,length(seasonality));

@@ -75,13 +75,13 @@ utils::globalVariables(c("silent","silentGraph","silentLegend","initialType","ar
 #'
 #' @rdname ssarima
 #' @export
-auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(y)),
+auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(y)),
                          fast=TRUE, constant=NULL,
-                         formula=NULL, regressors=c("use","select","adapt"),
-                         initial=c("backcasting","optimal","complete"),
+                         initial=c("backcasting","optimal","two-stage","complete"),
                          loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                          ic=c("AICc","AIC","BIC","BICc"),
                          h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
+                         xreg=NULL, regressors=c("use","select","adapt"),
                          ...){
 # Function estimates several ssarima models and selects the best one using the selected information criterion.
 #
@@ -104,33 +104,15 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     combine <- FALSE;
 
     # If this is Mcomp data, then take the frequency from it
-    if(any(class(data)=="Mdata") && all(lags==frequency(data))){
-        lags <- unique(c(lags,frequency(data$x)));
-        yInSample <- data$x;
+    if(any(class(y)=="Mdata") && all(lags==frequency(y))){
+        lags <- unique(c(lags,frequency(y$x)));
+        yInSample <- y$x;
         # Measure the sample size based on what was provided as data
-        obsInSample <- length(data$x) - holdout*h;
+        obsInSample <- length(y$x) - holdout*h;
     }
     else{
         # Measure the sample size based on what was provided as data
-        if(!is.null(dim(data)) && length(dim(data))>1){
-            obsInSample <- nrow(data) - holdout*h;
-        }
-        else{
-            obsInSample <- length(data) - holdout*h;
-        }
-
-        if(!is.null(ncol(data)) && ncol(data)>1){
-            if(!is.null(formula)){
-                responseName <- all.vars(formula)[1];
-            }
-            else{
-                responseName <- colnames(data)[1];
-            }
-            y <- data[,responseName];
-        }
-        else{
-            y <- data;
-        }
+        obsInSample <- length(y) - holdout*h;
         yInSample <- y[1:obsInSample];
     }
 
@@ -329,10 +311,11 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 ### If for some reason we have model with zeroes for orders, return it.
     if(all(c(arMax,iMax,maMax)==0)){
         cat("\b\b\b\bDone!\n");
-        bestModel <- ssarima(data, orders=list(ar=arBest,i=(iBest),ma=(maBest)), lags=(lags),
-                             constant=constantValue, formula=formula, regressors=regressors,
+        bestModel <- ssarima(y, orders=list(ar=arBest,i=(iBest),ma=(maBest)), lags=(lags),
+                             constant=constantValue, regressors=regressors,
                              initial=initial, loss=loss,
-                             h=h, holdout=holdout, bounds=bounds, silent=TRUE);
+                             h=h, holdout=holdout, bounds=bounds, silent=TRUE,
+                             xreg=xreg);
         return(bestModel);
     }
 
@@ -360,10 +343,11 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         if(!silent){
             cat("\nI: ");cat(iOrders[d,]);cat(", ");
         }
-        testModel <- ssarima(data, orders=list(ar=0,i=iOrders[d,],ma=0), lags=lags,
-                             constant=constantValue, formula=formula, regressors=regressors,
+        testModel <- ssarima(y, orders=list(ar=0,i=iOrders[d,],ma=0), lags=lags,
+                             constant=constantValue, regressors=regressors,
                              initial=initial, loss=loss,
-                             h=h, holdout=holdout, bounds=bounds, silent=TRUE);
+                             h=h, holdout=holdout, bounds=bounds, silent=TRUE,
+                             xreg=xreg);
         ICValue <- IC(testModel);
         if(combine){
             testForecasts[[m]] <- matrix(NA,h,3);
@@ -607,10 +591,11 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         # }
 
         if(any(c(arBest,iBest,maBest)!=0)){
-            testModel <- ssarima(data, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
-                                 constant=FALSE, formula=formula, regressors=regressors,
+            testModel <- ssarima(y, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
+                                 constant=FALSE, regressors=regressors,
                                  initial=initial, loss=loss,
-                                 h=h, holdout=holdout, bounds=bounds, silent=TRUE);
+                                 h=h, holdout=holdout, bounds=bounds, silent=TRUE,
+                                 xreg=xreg);
             ICValue <- IC(testModel);
             if(combine){
                 testForecasts[[m]] <- matrix(NA,h,3);
@@ -673,7 +658,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         ICs <- c(t(testICs) %*% icWeights);
         names(ICs) <- ic;
 
-        bestModel <- list(data=data, model=modelname, timeElapsed=Sys.time()-startTime,
+        bestModel <- list(data=y, model=modelname, timeElapsed=Sys.time()-startTime,
                           initialType=initialType,
                           fitted=yFitted, forecast=yForecast,
                           lower=yLower, upper=yUpper, residuals=errors,
@@ -685,10 +670,11 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     }
     else{
         #### Reestimate the best model in order to get rid of bias ####
-        bestModel <- ssarima(data, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
-                             constant=constantValue,  formula=formula, regressors=regressors,
+        bestModel <- ssarima(y, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
+                             constant=constantValue, regressors=regressors,
                              initial=initial, loss=loss,
-                             h=h, holdout=holdout, bounds=bounds, silent=TRUE);
+                             h=h, holdout=holdout, bounds=bounds, silent=TRUE,
+                             xreg=xreg);
 
         bestModel$timeElapsed <- Sys.time()-startTime;
     }

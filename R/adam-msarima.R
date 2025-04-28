@@ -59,10 +59,10 @@
 #' @template ssAuthor
 #' @template ssKeywords
 #'
+#' @template ADAMInitial
+#'
 #' @template ssGeneralRef
 #' @template ssARIMARef
-#'
-#' @template ADAMInitial
 #'
 #' @param orders List of orders, containing vector variables \code{ar},
 #' \code{i} and \code{ma}. Example:
@@ -197,11 +197,10 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     initial=c("backcasting","optimal","two-stage","complete"), ic=c("AICc","AIC","BIC","BICc"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE,
-                    # cumulative=FALSE,
-                    # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                     bounds=c("usual","admissible","none"),
                     silent=TRUE,
-                    xreg=NULL, regressors=c("use","select","adapt"), initialX=NULL, ...){
+                    xreg=NULL, regressors=c("use","select","adapt"), initialX=NULL,
+                    ...){
     # Copyright (C) 2022 - Inf  Ivan Svetunkov
 
     # Start measuring the time of calculations
@@ -295,6 +294,7 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
     }
 
+    # Form the data from the provided y and xreg
     if(!is.null(xreg) && is.numeric(y)){
         data <- cbind(y=as.data.frame(y),as.data.frame(xreg));
         data <- as.matrix(data)

@@ -174,13 +174,11 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' @rdname ssarima
 #' @export
-ssarima_old <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
+ssarima_old <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                         constant=FALSE, AR=NULL, MA=NULL,
                         initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                         loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                         h=10, holdout=FALSE,
-                        # cumulative=FALSE,
-                        # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                         bounds=c("admissible","none"),
                         silent=c("all","graph","legend","output","none"),
                         xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
@@ -200,7 +198,6 @@ ssarima_old <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
     oesmodel <- "MNN";
-    y <- data;
     interval <- "none";
     cumulative <- FALSE;
     level <- 0.95;

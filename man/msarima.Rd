@@ -108,16 +108,8 @@ the end of the data.}
 \item{bounds}{What type of bounds to use in the model estimation. The first
 letter can be used instead of the whole word.}
 
-\item{silent}{If \code{silent="none"}, then nothing is silent, everything is
-printed out and drawn. \code{silent="all"} means that nothing is produced or
-drawn (except for warnings). In case of \code{silent="graph"}, no graph is
-produced. If \code{silent="legend"}, then legend of the graph is skipped.
-And finally \code{silent="output"} means that nothing is printed out in the
-console, but the graph is produced. \code{silent} also accepts \code{TRUE}
-and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
-\code{silent="all"}, while \code{silent=FALSE} is equivalent to
-\code{silent="none"}. The parameter also accepts first letter of words ("n",
-"a", "g", "l", "o").}
+\item{silent}{accepts \code{TRUE} and \code{FALSE}. If FALSE, the function
+will print its progress and produce a plot at the end.}
 
 \item{xreg}{The vector (either numeric or time series) or the matrix (or
 data.frame) of exogenous variables that should be included in the model. If
@@ -129,8 +121,7 @@ produced using \link[smooth]{es} function.}
 
 \item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
-\code{"select"} means that a selection using \code{ic} should be done.
-\code{"combine"} will be available at some point in future...}
+\code{"select"} means that a selection using \code{ic} should be done.}
 
 \item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}
