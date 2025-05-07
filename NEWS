@@ -1,4 +1,4 @@
-smooth v4.3.0 (Release data: 2025-04-28)
+smooth v4.3.0 (Release data: 2025-05-07)
 =======
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 
 Bugfixes:
 * auto.adam() now allows selecting the best distribution for a user-specified ARIMA.
+* Fixed vcov() calculation for adam with initial="backcasting".
 
 
 smooth v4.2.0 (Release data: 2025-04-02)

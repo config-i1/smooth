@@ -384,11 +384,21 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         loss <- model$loss;
         persistence <- model$persistence;
         phi <- model$phi;
-        if(model$initialType!="complete"){
-            initial <- model$initial;
+        # If this was complete backcasting, set the basic one
+        if(model$initialType=="complete"){
+            initial <- "b";
+        }
+        # If it was backcasting, but no xreg, set it as one
+        else if(model$initialType=="backcasting"){
+            if(!is.null(model$initial$xreg)){
+                initial <- model$initial;
+            }
+            else{
+                initial <- "backcasting";
+            }
         }
         else{
-            initial <- "b";
+            initial <- model$initial;
         }
         occurrence <- model$occurrence;
         ic <- model$ic;
