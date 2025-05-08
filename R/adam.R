@@ -1261,7 +1261,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     # of factor variables or variables due to multicollinearity
                     matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
                           1:lagsModelMax] <- 0;
-                    matVt[names(xregModelInitials[[1]]$initialXreg),
+                    matVt[names(xregModelInitials[[2]]$initialXreg),
                           1:lagsModelMax] <- xregModelInitials[[2]]$initialXreg;
                 }
             }
@@ -7166,10 +7166,11 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
                      "Try setting stepSize for the hessian to something like stepSize=1e-6 or using the bootstrap.", call.=FALSE);
             }
             if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
-                warning(paste0("Observed Fisher Information is not positive semi-definite, ",
-                               "which means that the likelihood was not maximised properly. ",
-                               "Consider reestimating the model, tuning the optimiser or ",
-                               "using bootstrap via bootstrap=TRUE."), call.=FALSE);
+                warning("Observed Fisher Information is not positive semi-definite, ",
+                        "which might mean that the likelihood was not maximised properly. ",
+                        "There's not much I can do with that. ",
+                        "Just keep in mind that there might be some issues ",
+                        "with the covariance matrix of parameters.", call.=FALSE);
             }
             FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
 

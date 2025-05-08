@@ -1787,6 +1787,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                             xregModelInitials[[1]]$formula <- formulaToUse <- formula(almModel);
                         }
                         xregModelInitials[[1]]$other <- almModel$other;
+                        names(xregModelInitials[[1]]$initialXreg) <-
+                            make.names(names(xregModelInitials[[1]]$initialXreg));
                     }
                     else{
                         # If this is just a regression, include intercept
@@ -1800,6 +1802,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                             xregModelInitials[[2]]$formula <- formulaToUse <- formula(almModel);
                         }
                         xregModelInitials[[2]]$other <- almModel$other;
+                        names(xregModelInitials[[2]]$initialXreg) <-
+                            make.names(names(xregModelInitials[[2]]$initialXreg));
                     }
                 }
                 # If we are selecting the appropriate error, produce two models: for "M" and for "A"
