@@ -18,10 +18,11 @@ gum(y, orders = c(1, 1), lags = c(1, frequency(y)), type = c("additive",
 
 auto.gum(y, orders = 3, lags = frequency(y), type = c("additive",
   "multiplicative", "select"), initial = c("backcasting", "optimal",
-  "complete"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood",
-  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0,
-  holdout = FALSE, bounds = c("admissible", "none"), silent = TRUE,
-  xreg = NULL, regressors = c("use", "select", "adapt", "integrate"), ...)
+  "two-stage", "complete"), ic = c("AICc", "AIC", "BIC", "BICc"),
+  loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
+  "MSCE"), h = 0, holdout = FALSE, bounds = c("admissible", "none"),
+  silent = TRUE, xreg = NULL, regressors = c("use", "select", "adapt",
+  "integrate"), ...)
 
 gum_old(y, orders = c(1, 1), lags = c(1, frequency(y)),
   type = c("additive", "multiplicative"), persistence = NULL,
