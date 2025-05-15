@@ -115,6 +115,8 @@ x <- sim.ssarima(ar.orders=c(1,0,1),i.orders=c(0,1,0),ma.orders=c(2,1,1),lags=c(
 }
 \references{
 \itemize{
+\item Svetunkov, I., 2023. Smooth Forecasting with the Smooth Package in R. arXiv.
+\doi{10.48550/arXiv.2301.01790}
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
