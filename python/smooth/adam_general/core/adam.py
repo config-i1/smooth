@@ -129,11 +129,11 @@ class ADAM:
         regressors : Literal["use", "select", "adapt"], default="use"
             How to handle external regressors.
         distribution : Optional[DISTRIBUTION_OPTIONS], default=None
-            Error distribution.
+            Error distribution. If None, it is selected automatically based on the loss function.
         loss : LOSS_OPTIONS, default="likelihood"
             Loss function for parameter estimation.
         loss_horizon : Optional[int], default=None
-            Number of steps for multi-step loss.
+            Number of steps for multi-step loss functions (e.g., MSEh).
         outliers : Literal["ignore", "detect", "use"], default="ignore"
             Outlier handling method.
         outliers_level : float, default=0.99
@@ -141,49 +141,56 @@ class ADAM:
         ic : Literal["AIC", "AICc", "BIC", "BICc"], default="AICc"
             Information criterion for model selection.
         bounds : Literal["usual", "admissible", "none"], default="usual"
-            Parameter bounds specification.
+            Parameter bounds specification during optimization.
         occurrence : OCCURRENCE_OPTIONS, default="none"
             Occurrence model type for intermittent data.
         persistence : Optional[Dict[str, float]], default=None
-            Persistence parameters (e.g., {"alpha": 0.5, "beta": 0.5}).
+            Fixed persistence parameters (e.g., {"alpha": 0.5, "beta": 0.5}).
+            If None, parameters are estimated.
         phi : Optional[float], default=None
-            Damping parameter for damped trend models.
+            Fixed damping parameter for damped trend models. If None, estimated if applicable.
         initial : INITIAL_OPTIONS, default=None
-            Initial values for states.
+            Method for initializing states or fixed initial states. Can be a string 
+            (e.g., 'optimal', 'backcasting'), a dictionary of initial state values,
+            or a tuple of state names to initialize.
         arma : Optional[Dict[str, Any]], default=None
-            ARMA parameters specification.
+            Fixed ARMA parameters specification. If None, estimated if applicable.
         verbose : int, default=0
-            Verbosity level (0=silent, higher values=more output).
+            Verbosity level (0=silent, higher values indicate more output).
         h : Optional[int], default=None
-            Forecast horizon.
+            Forecast horizon. If None during initialization, can be set in `predict`.
         holdout : bool, default=False
-            Whether to use holdout sample for validation.
+            Whether to use a holdout sample for validation during the fit process.
         model_do : Literal["estimate", "select", "combine"], default="estimate"
-            Model action ('estimate', 'select', or 'combine').
+            Action to perform:
+            - "estimate": Estimate a single specified model.
+            - "select": Select the best model from a pool or based on components.
+            - "combine": Combine forecasts from multiple models (Not Implemented).
         fast : bool, default=False
-            Whether to use fast estimation.
+            Whether to use faster, possibly less accurate, estimation methods.
         models_pool : Optional[List[Dict[str, Any]]], default=None
-            Pool of models for selection.
+            A pool of model configurations for selection or combination.
         lambda_param : Optional[float], default=None
-            Lambda parameter for regularization.
+            Lambda parameter for Box-Cox transformation or regularization.
         frequency : Optional[str], default=None
-            Time series frequency.
+            Time series frequency (e.g., "D", "M", "Y").
+            Inferred if data is pandas Series with DatetimeIndex.
         profiles_recent_provided : bool, default=False
-            Whether recent profiles are provided.
+            Whether recent profiles (e.g., for exogenous variables) are provided.
         profiles_recent_table : Optional[Any], default=None
-            Table of recent profiles.
+            Table containing recent profiles data.
         nlopt_initial : Optional[Dict[str, Any]], default=None
-            Initial values for optimization parameters.
+            Initial values for optimization parameters for NLopt solver.
         nlopt_upper : Optional[Dict[str, Any]], default=None
-            Upper bounds for optimization parameters.
+            Upper bounds for optimization parameters for NLopt solver.
         nlopt_lower : Optional[Dict[str, Any]], default=None
-            Lower bounds for optimization parameters.
+            Lower bounds for optimization parameters for NLopt solver.
         nlopt_kargs : Optional[Dict[str, Any]], default=None
-            Additional keyword arguments for the optimizer.
+            Additional keyword arguments for the NLopt optimizer.
         reg_lambda : Optional[float], default=None
-            Regularization parameter for LASSO/RIDGE losses.
+            Regularization parameter specifically for LASSO/RIDGE losses.
         gnorm_shape : Optional[float], default=None
-            Shape parameter for generalized normal distribution.
+            Shape parameter 's' for the generalized normal distribution.
         """
         # Start measuring the time of calculations
         self.start_time = time.time()
@@ -254,20 +261,24 @@ class ADAM:
         # No need to call _setup_parameters as those parameters are now instance attributes
 
         # Use X if provided
-        ts = y
         if X is not None:
-            # Here we would handle X, but implementation details depend on
-            # how exogenous variables are handled in the original code
+            # Exogenous variables X are passed to _check_parameters and handled downstream.
             pass
 
         # Check parameters and prepare data
-        self._check_parameters(ts)
-
+        self._check_parameters(y)
         # Execute model estimation or selection based on model_do
         if self.model_type_dict["model_do"] == "estimate":
             self._execute_estimation()
         elif self.model_type_dict["model_do"] == "select":
+            # get the best model
             self._execute_selection()
+            # Execute estimation for the selected model with calling the estimator
+            self._execute_estimation(estimation=False)
+
+        elif self.model_type_dict["model_do"] == "combine":
+            ... # I need to implement this
+            raise NotImplementedError("Combine is not implemented yet")
         else:
             warnings.warn(
                 f"Unknown model_do value: {self.model_type_dict['model_do']}. Expected one of: 'estimate', 'select', 'combine'"
@@ -318,9 +329,17 @@ class ADAM:
         self,
         h: int,
         X: Optional[NDArray] = None,
+        calculate_intervals: bool = True,
+        interval_method: Optional[Literal['parametric', 'simulation', 'bootstrap']] = 'parametric',
+        level: Optional[Union[float, List[float]]] = 0.95,
+        side: Literal['both', 'upper', 'lower'] = 'both',
     ) -> NDArray:
         """
         Generate point forecasts using the fitted ADAM model.
+
+        If `calculate_intervals` is True, prediction intervals are also computed
+        and stored in `self.forecast_results` but only point forecasts are returned by this method.
+        Use `predict_intervals` to get the intervals directly.
 
         Parameters
         ----------
@@ -328,23 +347,54 @@ class ADAM:
             Forecast horizon (number of steps to forecast).
         X : Optional[NDArray], default=None
             Exogenous variables for the forecast period.
+            Ensure that X covers the entire forecast horizon `h`.
+        calculate_intervals : bool, default=True
+            Whether to calculate prediction intervals along with point forecasts.
+            The intervals are stored in `self.forecast_results`.
+        interval_method : Optional[Literal['parametric', 'simulation', 'bootstrap']], default='parametric'
+            Method to calculate prediction intervals:
+            - 'parametric': Assumes a known distribution for errors.
+            - 'simulation': Simulates future paths to derive intervals.
+            - 'bootstrap': Uses bootstrapping techniques.
+            This parameter is used if `calculate_intervals` is True.
+        level : Optional[Union[float, List[float]]], default=0.95
+            Confidence level(s) for prediction intervals (e.g., 0.95 for 95% interval,
+            or [0.8, 0.95] for 80% and 95% intervals).
+            Used if `calculate_intervals` is True.
+        side : Literal['both', 'upper', 'lower'], default='both'
+            Which side(s) of the intervals to compute:
+            - 'both': Both lower and upper bounds.
+            - 'lower': Only the lower bound.
+            - 'upper': Only the upper bound.
+            Used if `calculate_intervals` is True.
 
         Returns
         -------
         NDArray
-            Point forecasts for the next h periods.
+            Point forecasts for the next `h` periods.
 
         Raises
         ------
         ValueError
-            If the model has not been fitted yet.
+            If the model has not been fitted yet or `h` is not set.
         """
         # Set forecast horizon
-        self.h = h
+        if h is not None:
+            self.h = h
+            self.general["h"] = self.h
+        else:
+            if self.general["h"] is None:
+                raise ValueError("Forecast horizon is not set.")
+        
+        # add interval methods
+        self.calculate_intervals = calculate_intervals
+        self.interval_method = interval_method
+        self.level = level
+        self.side = side
 
         # Handle exogenous variables if provided
         if X is not None:
-            # Implementation would depend on how X is used in the original code
+            # Exogenous variables X are handled by _prepare_prediction_data and forecaster.
             pass
 
         # Validate prediction inputs and prepare data for forecasting
@@ -352,12 +402,12 @@ class ADAM:
 
         # Prepare data for prediction
         self._prepare_prediction_data()
-
         # Execute the prediction
-        self._execute_prediction()
+        predictions = self._execute_prediction()
 
+        
         # Return the point forecasts
-        return self.forecast_results["forecast"]
+        return predictions
 
     def predict_intervals(
         self,
@@ -383,7 +433,8 @@ class ADAM:
         Returns
         -------
         Dict[str, NDArray]
-            Dictionary containing forecast and prediction intervals.
+            Dictionary containing point forecasts and prediction intervals.
+            Keys include 'forecast', and 'lower'/'upper' depending on `side`.
 
         Raises
         ------
@@ -399,7 +450,7 @@ class ADAM:
 
         # Handle exogenous variables if provided
         if X is not None:
-            # Implementation would depend on how X is used in the original code
+            # Exogenous variables X are handled by _prepare_prediction_data and forecaster.
             pass
 
         # Validate prediction inputs and prepare data for forecasting
@@ -525,7 +576,7 @@ class ADAM:
                 arma_parameters.extend([0] * self.arima_results["ma_orders"][i])
         self.arima_results["arma_parameters"] = arma_parameters
 
-    def _execute_estimation(self):
+    def _execute_estimation(self, estimation = True):
         """
         Execute model estimation when model_do is 'estimate'.
 
@@ -535,22 +586,23 @@ class ADAM:
         self._handle_lasso_ridge_special_case()
 
         # Estimate the model
-        self.adam_estimated = estimator(
-            general_dict=self.general,
-            model_type_dict=self.model_type_dict,
-            lags_dict=self.lags_dict,
-            observations_dict=self.observations_dict,
-            arima_dict=self.arima_results,
-            constant_dict=self.constant_dict,
-            explanatory_dict=self.explanatory_dict,
-            profiles_recent_table=self.profiles_recent_table,
-            profiles_recent_provided=self.profiles_recent_provided,
-            persistence_dict=self.persistence_results,
-            initials_dict=self.initials_results,
-            occurrence_dict=self.occurrence_dict,
-            phi_dict=self.phi_dict,
-            components_dict=self.components_dict,
-        )
+        if estimation:
+            self.adam_estimated = estimator(
+                general_dict=self.general,
+                model_type_dict=self.model_type_dict,
+                lags_dict=self.lags_dict,
+                observations_dict=self.observations_dict,
+                arima_dict=self.arima_results,
+                constant_dict=self.constant_dict,
+                explanatory_dict=self.explanatory_dict,
+                profiles_recent_table=self.profiles_recent_table,
+                profiles_recent_provided=self.profiles_recent_provided,
+                persistence_dict=self.persistence_results,
+                initials_dict=self.initials_results,
+                occurrence_dict=self.occurrence_dict,
+                phi_dict=self.phi_dict,
+                components_dict=self.components_dict,
+            )
 
         # Build the model structure
         (
@@ -569,7 +621,7 @@ class ADAM:
             profiles_recent_table=self.profiles_recent_table,
             profiles_recent_provided=self.profiles_recent_provided,
         )
-
+        #print(self.components_dict)
         # Create the model matrices
         self.adam_created = creator(
             model_type_dict=self.model_type_dict,
@@ -586,9 +638,10 @@ class ADAM:
         )
 
         # Calculate information criterion
-        self.ic_selection = ic_function(
-            self.general["ic"], self.adam_estimated["log_lik_adam_value"]
-        )
+        if estimation:
+            self.ic_selection = ic_function(
+                self.general["ic"], self.adam_estimated["log_lik_adam_value"]
+            )
 
         # Update parameters number
         self._update_parameters_number(self.adam_estimated["n_param_estimated"])
@@ -608,7 +661,6 @@ class ADAM:
         # Initialize parameters_number if not present
         if "parameters_number" not in self.general:
             self.general["parameters_number"] = self.params_info["parameters_number"]
-
         self.general["parameters_number"][0][0] = self.n_param_estimated
 
         # Handle likelihood loss case
@@ -644,22 +696,62 @@ class ADAM:
         self.adam_selected = selector(
             model_type_dict=self.model_type_dict,
             phi_dict=self.phi_dict,
+            general_dict=self.general,
             lags_dict=self.lags_dict,
             observations_dict=self.observations_dict,
-            general_dict=self.general,
-            models_pool=self.models_pool,
+            arima_dict=self.arima_results,
+            constant_dict=self.constant_dict,
+            explanatory_dict=self.explanatory_dict,
+            occurrence_dict=self.occurrence_dict,
+            components_dict=self.components_dict,
+            profiles_recent_table=self.profiles_recent_table,
+            profiles_recent_provided=self.profiles_recent_provided,
+            persistence_results=self.persistence_results,
+            initials_results=self.initials_results,
+            criterion=self.general["ic"],
+            silent=self.verbose == 0,
         )
+        #print(self.adam_selected)
+        #print(self.adam_selected["ic_selection"])
+        
+        # Updates parametes wit hthe selected model and updates adam_estimated
+        self.select_best_model()
 
+        
+        #print(self.adam_selected["ic_selection"])
         # Process each selected model
-        for i, result in enumerate(self.adam_selected["results"]):
-            # Update model parameters with the selected model
-            self._update_model_from_selection(i, result)
+        # The following commented-out loop and its associated helper method calls
+        # (_update_model_from_selection, _create_matrices_for_selected_model, 
+        # _update_parameters_for_selected_model) appear to be placeholders
+        # or remnants of a "combine" functionality that is not fully implemented yet,
+        # as indicated by the NotImplementedError in the fit method for model_do="combine".
+        # These will be kept for now as they might be relevant for future development.
+        # for i, result in enumerate(self.adam_selected["results"]):
+        #     # Update model parameters with the selected model
+        #     self._update_model_from_selection(i, result)
+        #
+        #     # Create matrices for this model
+        #     self._create_matrices_for_selected_model(i)
+        #
+        #     # Update parameters number for this model
+        #     self._update_parameters_for_selected_model(i, result)
 
-            # Create matrices for this model
-            self._create_matrices_for_selected_model(i)
 
-            # Update parameters number for this model
-            self._update_parameters_for_selected_model(i, result)
+    def select_best_model(self):
+        """
+        Select the best model based on information criteria and update model parameters.
+        """
+        self.ic_selection = self.adam_selected['ic_selection']
+        self.results = self.adam_selected['results']
+        # Find best model
+        self.best_model = min(self.ic_selection.items(), key=lambda x: x[1])[0]
+        self.best_id = next(i for i, result in enumerate(self.results)
+                            if result['model'] == self.best_model)
+        # Update dictionaries with best model results
+        self.model_type_dict = self.results[self.best_id]['model_type_dict']
+        self.phi_dict = self.results[self.best_id]['phi_dict']
+        self.adam_estimated = self.results[self.best_id]['adam_estimated']
+
 
     def _update_model_from_selection(self, index, result):
         """
@@ -668,9 +760,9 @@ class ADAM:
         Parameters
         ----------
         index : int
-            Index of the selected model
+            Index of the selected model in the results list from model selection.
         result : dict
-            Selected model result
+            The dictionary containing all parameters and estimation results for the selected model.
         """
         # Update global dictionaries with the selected model info
         self.general.update(result["general"])
@@ -696,12 +788,13 @@ class ADAM:
 
     def _create_matrices_for_selected_model(self, index):
         """
-        Create matrices for a selected model.
+        Create matrices for a selected model. This is typically used when iterating
+        through models in a selection process, particularly for a "combine" feature.
 
         Parameters
         ----------
         index : int
-            Index of the selected model
+            Index of the selected model.
         """
         # Create matrices for this model
         self.adam_created = creator(
@@ -723,14 +816,15 @@ class ADAM:
 
     def _update_parameters_for_selected_model(self, index, result):
         """
-        Update parameters number for a selected model.
+        Update parameters number for a selected model. This is typically used when
+        iterating through models in a selection process, particularly for a "combine" feature.
 
         Parameters
         ----------
         index : int
-            Index of the selected model
+            Index of the selected model.
         result : dict
-            Selected model result
+            Selected model result containing `adam_estimated` which has `n_param_estimated`.
         """
         # Update parameters number
         n_param_estimated = result["adam_estimated"]["n_param_estimated"]
@@ -855,10 +949,13 @@ class ADAM:
         """
         # If h wasn't provided, use default h
         if self.h is None:
+
             if self.lags_dict and len(self.lags_dict["lags"]) > 0:
                 self.h = max(self.lags_dict["lags"])
+                
             else:
                 self.h = 10
+                self.general["h"] = self.h
 
         # Prepare necessary data for forecasting
         self.prepared_model = preparator(
@@ -892,6 +989,17 @@ class ADAM:
     def _execute_prediction(self):
         """
         Execute the forecasting process based on the prepared data.
+
+        This method calls the core `forecaster` function with all necessary
+        prepared data structures and parameters to generate point forecasts
+        and, if requested, prediction intervals.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the forecast results, including point forecasts
+            and potentially prediction intervals (e.g., 'forecast', 'lower', 'upper').
+            This dictionary is also stored in `self.forecast_results`.
         """
         # Generate forecasts using the forecaster function
         self.forecast_results = forecaster(
@@ -904,11 +1012,22 @@ class ADAM:
             explanatory_checked=self.explanatory_dict,
             components_dict=self.components_dict,
             constants_checked=self.constant_dict,
+            params_info=self.params_info,
+            calculate_intervals=self.calculate_intervals,
+            interval_method=self.interval_method,
+            level=self.level,
+            side=self.side,
         )
+        return self.forecast_results
 
     def _format_prediction_results(self):
         """
         Format the prediction results into a more user-friendly structure.
+        Currently, this method primarily adds the elapsed time to the forecast results.
+
+        Note: This method is defined but not explicitly called within the ADAM class's
+        current public interface (fit, predict, predict_intervals).
+        It might be intended for internal use or future extensions.
 
         Returns
         -------

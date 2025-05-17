@@ -11,179 +11,9 @@ from smooth.adam_general.core.utils.utils import scaler
 from smooth.adam_general._adam_general import adam_fitter, adam_forecaster
 
 
-def _setup_model_structure(
-    model_type_dict,
-    lags_dict,
-    observations_dict,
-    arima_dict,
-    constant_dict,
-    explanatory_dict,
-    profiles_recent_table,
-    profiles_recent_provided,
-):
-    """
-    Set up the basic model structure using architector.
-
-    Parameters
-    ----------
-    model_type_dict : dict
-        Model type specification
-    lags_dict : dict
-        Lags information
-    observations_dict : dict
-        Observations information
-    arima_dict : dict
-        ARIMA components specification
-    constant_dict : dict
-        Constant term specification
-    explanatory_dict : dict
-        Explanatory variables specification
-    profiles_recent_table : array-like
-        Recent profiles table
-    profiles_recent_provided : bool
-        Whether profiles were provided by user
-
-    Returns
-    -------
-    tuple
-        Updated model_type_dict, components_dict, lags_dict, observations_dict, profile_dict
-    """
-    return architector(
-        model_type_dict=model_type_dict,
-        lags_dict=lags_dict,
-        observations_dict=observations_dict,
-        arima_checked=arima_dict,
-        constants_checked=constant_dict,
-        explanatory_checked=explanatory_dict,
-        profiles_recent_table=profiles_recent_table,
-        profiles_recent_provided=profiles_recent_provided,
-    )
 
 
-def _create_model_matrices(
-    model_type_dict,
-    lags_dict,
-    profiles_dict,
-    observations_dict,
-    persistence_dict,
-    initials_dict,
-    arima_dict,
-    constant_dict,
-    phi_dict,
-    components_dict,
-    explanatory_dict,
-):
-    """
-    Create the matrices for the specific ETS model using creator.
 
-    Parameters
-    ----------
-    model_type_dict : dict
-        Model type specification
-    lags_dict : dict
-        Lags information
-    profiles_dict : dict
-        Profiles information
-    observations_dict : dict
-        Observations information
-    persistence_dict : dict
-        Persistence parameters
-    initials_dict : dict
-        Initial values
-    arima_dict : dict
-        ARIMA components specification
-    constant_dict : dict
-        Constant term specification
-    phi_dict : dict
-        Damping parameter information
-    components_dict : dict
-        Components information
-    explanatory_dict : dict
-        Explanatory variables specification
-
-    Returns
-    -------
-    dict
-        Model matrices
-    """
-    return creator(
-        model_type_dict=model_type_dict,
-        lags_dict=lags_dict,
-        profiles_dict=profiles_dict,
-        observations_dict=observations_dict,
-        persistence_checked=persistence_dict,
-        initials_checked=initials_dict,
-        arima_checked=arima_dict,
-        constants_checked=constant_dict,
-        phi_dict=phi_dict,
-        components_dict=components_dict,
-        explanatory_checked=explanatory_dict,
-    )
-
-
-def _initialize_parameters(
-    model_type_dict,
-    components_dict,
-    lags_dict,
-    adam_created,
-    persistence_dict,
-    initials_dict,
-    arima_dict,
-    constant_dict,
-    explanatory_dict,
-    observations_dict,
-    general_dict,
-    phi_dict,
-):
-    """
-    Initialize parameters for optimization using initialiser.
-
-    Parameters
-    ----------
-    model_type_dict : dict
-        Model type specification
-    components_dict : dict
-        Components information
-    lags_dict : dict
-        Lags information
-    adam_created : dict
-        Model matrices created by creator
-    persistence_dict : dict
-        Persistence parameters
-    initials_dict : dict
-        Initial values
-    arima_dict : dict
-        ARIMA components specification
-    constant_dict : dict
-        Constant term specification
-    explanatory_dict : dict
-        Explanatory variables specification
-    observations_dict : dict
-        Observations information
-    general_dict : dict
-        General model parameters
-    phi_dict : dict
-        Damping parameter information
-
-    Returns
-    -------
-    dict
-        Initialized parameter values, including bounds
-    """
-    return initialiser(
-        model_type_dict=model_type_dict,
-        components_dict=components_dict,
-        lags_dict=lags_dict,
-        adam_created=adam_created,
-        persistence_checked=persistence_dict,
-        initials_checked=initials_dict,
-        arima_checked=arima_dict,
-        constants_checked=constant_dict,
-        explanatory_checked=explanatory_dict,
-        observations_dict=observations_dict,
-        bounds=general_dict["bounds"],
-        phi_dict=phi_dict,
-    )
 
 
 def _setup_arima_polynomials(model_type_dict, arima_dict, lags_dict):
@@ -335,7 +165,7 @@ def _setup_optimization_parameters(
     return maxeval_used, general_dict_updated
 
 
-def _configure_optimizer(opt, lb, ub, maxeval_used, maxtime):
+def _configure_optimizer(opt, lb, ub, maxeval_used, maxtime, B, explanatory_dict, maxeval=None):
     """
     Configure NLopt optimizer with appropriate settings.
 
@@ -358,9 +188,9 @@ def _configure_optimizer(opt, lb, ub, maxeval_used, maxtime):
         Configured optimizer
     """
     # Set bounds
+
     opt.set_lower_bounds(lb)
     opt.set_upper_bounds(ub)
-
     # Set tolerances
     opt.set_xtol_rel(1e-6)  # Match R's tolerance
     opt.set_ftol_rel(1e-8)  # Match R's tolerance
@@ -370,13 +200,23 @@ def _configure_optimizer(opt, lb, ub, maxeval_used, maxtime):
     # Set maximum evaluations
     opt.set_maxeval(maxeval_used)
 
-    # Set timeout
+    # Increase maxeval to match or exceed R's value
+    if maxeval is None:
+        # Increase the default multiplier to ensure we run at least as many iterations as R
+        maxeval_used = len(B) * 40  # Increased from 120 to 200
+        
+        # If xreg model, do more iterations
+        if explanatory_dict['xreg_model']:
+            maxeval_used = len(B) * 150  # Increased from 100 to 150
+            maxeval_used = max(1500, maxeval_used)  # Increased from 1000 to 1500
+    opt.set_maxeval(maxeval_used)
+
+    # Remove the default timeout to allow the optimizer to run until maxeval is reached
     if maxtime is not None:
         opt.set_maxtime(maxtime)
     else:
-        # Set a longer default timeout
+        # Set a much longer timeout (30 minutes instead of 5)
         opt.set_maxtime(1800)  # 30 minutes default timeout
-
     return opt
 
 
@@ -433,13 +273,11 @@ def _create_objective_function(
         Objective function for optimizer
     """
     iteration_count = [0]
-
     def objective_wrapper(x, grad):
         """
         Wrapper for the objective function.
         """
         iteration_count[0] += 1
-
         # Calculate the cost function
         cf_value = CF(
             B=x,
@@ -458,11 +296,11 @@ def _create_objective_function(
             general=general_dict,
             bounds="usual",
         )
+        
 
         # Limit extreme values to prevent numerical instability
         if not np.isfinite(cf_value) or cf_value > 1e10:
             return 1e10
-
         return cf_value
 
     return objective_wrapper
@@ -487,9 +325,11 @@ def _run_optimization(opt, B):
     try:
         # Run optimization
         x = opt.optimize(B)
+        #print(x)
         res_fun = opt.last_optimum_value()
         res = type("OptimizeResult", (), {"x": x, "fun": res_fun, "success": True})
-    except Exception:
+    except Exception as e:
+        print(e)
         # Log error if needed, but don't use the variable 'e' if not needed
         res = type("OptimizeResult", (), {"x": B, "fun": 1e300, "success": False})
 
@@ -665,8 +505,9 @@ def estimator(
         Dictionary containing estimated parameters and model information
     """
     # Step 1: Set up model structure
+    # Simple call of the architector
     model_type_dict, components_dict, lags_dict, observations_dict, profile_dict = (
-        _setup_model_structure(
+        architector(
             model_type_dict,
             lags_dict,
             observations_dict,
@@ -678,8 +519,10 @@ def estimator(
         )
     )
 
+
     # Step 2: Create model matrices
-    adam_created = _create_model_matrices(
+    # Simple call of the creator
+    adam_created = creator(
         model_type_dict,
         lags_dict,
         profile_dict,
@@ -692,23 +535,21 @@ def estimator(
         components_dict,
         explanatory_dict,
     )
-
     # Step 3: Initialize parameters
-    b_values = _initialize_parameters(
-        model_type_dict,
-        components_dict,
-        lags_dict,
-        adam_created,
-        persistence_dict,
-        initials_dict,
-        arima_dict,
-        constant_dict,
-        explanatory_dict,
-        observations_dict,
-        general_dict,
-        phi_dict,
+    b_values = initialiser(
+        model_type_dict=model_type_dict,
+        components_dict=components_dict,
+        lags_dict=lags_dict,
+        adam_created=adam_created,
+        persistence_checked=persistence_dict,
+        initials_checked=initials_dict,
+        arima_checked=arima_dict,
+        constants_checked=constant_dict,
+        explanatory_checked=explanatory_dict,
+        observations_dict=observations_dict,
+        bounds=general_dict["bounds"],
+        phi_dict=phi_dict,
     )
-
     # Get initial parameter vector and bounds
     B = b_values["B"]
     if lb is None:
@@ -723,6 +564,7 @@ def estimator(
 
     # Step 5: Set appropriate distribution
     general_dict = _set_distribution(general_dict, model_type_dict)
+
 
     # Step 6: Configure optimization parameters
     print_level_hidden = print_level
@@ -741,8 +583,10 @@ def estimator(
 
     # Step 7: Create and configure optimizer
     opt = nlopt.opt(nlopt.LN_NELDERMEAD, len(B))
-    opt = _configure_optimizer(opt, lb, ub, maxeval_used, maxtime)
-
+    opt = _configure_optimizer(opt, lb, ub, maxeval_used, maxtime, B, explanatory_dict)
+    
+    # start counting
+    iteration_count = [0]  
     # Step 8: Create objective function
     objective_wrapper = _create_objective_function(
         model_type_dict,
@@ -762,14 +606,12 @@ def estimator(
 
     # Set objective function
     opt.set_min_objective(objective_wrapper)
-
     # Step 9: Run optimization
     res = _run_optimization(opt, B)
-
+    #print(res.fun)
     # Step 10: Process results
     B[:] = res.x
     CF_value = res.fun
-
     # A fix for the special case of LASSO/RIDGE with lambda==1
     if (
         any(general_dict["loss"] == loss_type for loss_type in ["LASSO", "RIDGE"])
@@ -1275,8 +1117,7 @@ def _estimate_all_models(
             print(f"{round((j+1)/models_number * 100)}%", end="")
 
         model_current = models_pool[j]
-
-        # Create copies for this model
+            # Create copies for this model
         model_type_dict_temp = model_type_dict.copy()
         phi_dict_temp = phi_dict.copy()
 
@@ -1292,25 +1133,29 @@ def _estimate_all_models(
             phi_dict_temp["phi"] = 1
             model_type_dict_temp["season_type"] = model_current[2]
             phi_dict_temp["phi_estimate"] = False
-
+        
         # Estimate the model
-        results[j] = _estimate_model(
-            model_type_dict_temp,
-            phi_dict_temp,
-            general_dict,
-            lags_dict,
-            observations_dict,
-            arima_dict,
-            constant_dict,
-            explanatory_dict,
-            profiles_recent_table,
-            profiles_recent_provided,
-            persistence_results,
-            initials_results,
-            occurrence_dict,
-            components_dict,
-        )
-
+        results[j] = {}
+        results[j]['adam_estimated'] = estimator(
+                general_dict=general_dict,
+                model_type_dict=model_type_dict_temp,
+                lags_dict=lags_dict,
+                observations_dict=observations_dict,
+                arima_dict=arima_dict,
+                constant_dict=constant_dict,
+                explanatory_dict=explanatory_dict,
+                profiles_recent_table=profiles_recent_table,
+                profiles_recent_provided=profiles_recent_provided,
+                persistence_dict=persistence_results,
+                initials_dict=initials_results,
+                occurrence_dict=occurrence_dict,
+                phi_dict=phi_dict_temp,
+                components_dict=components_dict,
+            )
+        results[j]["IC"] = ic_function(general_dict['ic'],loglik=results[j]['adam_estimated']["log_lik_adam_value"])
+        results[j]['model_type_dict'] = model_type_dict_temp
+        results[j]['phi_dict'] = phi_dict_temp
+        results[j]['model'] = model_current
     if not silent:
         print("... Done!")
 
@@ -1380,7 +1225,6 @@ def selector(
     """
     # Set the information criterion in general_dict
     general_dict["ic"] = criterion
-
     # Step 1: Form the model pool
     (
         pool_small,
@@ -1390,8 +1234,8 @@ def selector(
         check_trend,
         check_seasonal,
     ) = _form_model_pool(model_type_dict, silent)
-
     # Step 2: Run branch and bound if pool was not provided
+
     if model_type_dict["models_pool"] is None:
         # Run branch and bound to select models
         results, models_tested = _run_branch_and_bound(
@@ -1448,14 +1292,13 @@ def selector(
         components_dict,
         silent,
     )
+    #print(results)
 
     # Step 4: Extract ICs and find the best model
     models_number = len(model_type_dict["models_pool"])
     ic_selection = [results[j]["IC"] for j in range(models_number)]
-
     # Create dictionary with model names and ICs
     ic_selection_dict = dict(zip(model_type_dict["models_pool"], ic_selection))
-
     # Replace NaN values with large number
     ic_selection = [1e100 if math.isnan(x) else x for x in ic_selection]
 

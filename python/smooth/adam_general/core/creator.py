@@ -2,23 +2,10 @@ import numpy as np
 from typing import List, Dict, Union, Any
 from scipy.optimize import minimize
 
-from smooth.adam_general.core.utils.utils import msdecompose
+from smooth.adam_general.core.utils.utils import msdecompose, calculate_acf, calculate_pacf
 from smooth.adam_general.core.utils.polynomials import adam_polynomialiser
 
-"""
-Model creation module for ADAM (Augmented Dynamic Adaptive Model) forecasting.
 
-This module contains functions for creating model matrices, initializing parameters,
-and handling the model architecture for various time series forecasting models 
-including ETS, ARIMA, and their combinations.
-
-The main functions are:
-- creator: Creates model matrices for ADAM
-- initialiser: Initializes parameters for the model
-- filler: Fills in model matrices with optimized parameters
-- architector: Sets up the model architecture
-- adam_profile_creator: Creates profile matrices for ADAM
-"""
 
 
 def creator(
@@ -87,13 +74,13 @@ def creator(
         constants_checked,
         explanatory_checked,
     )
+    
 
     # Setup measurement vector and handle damping
     matrices = _setup_measurement_vector(matrices, model_params, explanatory_checked)
-
+    
     # Handle ARIMA polynomials if needed
     matrices = _handle_polynomial_setup(matrices, model_params, arima_checked)
-
     # Initialize states
     matrices = _initialize_states(
         matrices,
@@ -105,6 +92,8 @@ def creator(
         explanatory_checked,
         constants_checked,
     )
+
+
 
     # Return created matrices
     return {
@@ -503,7 +492,6 @@ def _initialize_states(
     e_type = model_params["e_type"]
     lags_model_max = model_params["lags_model_max"]
     profiles_recent_table = model_params["profiles_recent_table"]
-
     # If recent profiles are not provided, initialize states
     if not profiles_recent_provided:
         # ETS model initialization
@@ -581,7 +569,7 @@ def _initialize_ets_states(
     components_number_ets_seasonal = model_params["components_number_ets_seasonal"]
     y_in_sample = model_params["y_in_sample"]
     ot_logical = model_params["ot_logical"]
-    obs_nonzero = model_params["obs_nonzero"]
+    obs_nonzero = observations_dict['obs_nonzero']
 
     # If initials need to be estimated
     if initials_checked["initial_estimate"]:
@@ -592,16 +580,17 @@ def _initialize_ets_states(
                 mat_vt = _initialize_ets_seasonal_states_with_decomp(
                     mat_vt, model_params, initials_checked, explanatory_checked
                 )
+                
             else:
                 mat_vt = _initialize_ets_seasonal_states_small_sample(
                     mat_vt, model_params, initials_checked, explanatory_checked
                 )
+               
         else:
             # Handle non-seasonal model initialization
             mat_vt = _initialize_ets_nonseasonal_states(
                 mat_vt, model_params, initials_checked
             )
-
         # Handle special case for multiplicative models
         if (
             initials_checked["initial_level_estimate"]
@@ -662,7 +651,7 @@ def _initialize_ets_seasonal_states_with_decomp(
         "multiplicative" if any(x == "M" for x in [e_type, s_type]) else "additive"
     )
     y_decomposition = msdecompose(
-        y_in_sample.values.ravel(),
+        y_in_sample.ravel(),
         [lag for lag in lags if lag != 1],
         type=decomposition_type,
     )
@@ -901,12 +890,9 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
 
     # level
     if initials_checked["initial_level_estimate"]:
-        mat_vt[0, :lags_model_max] = np.mean(
-            y_in_sample[: max(lags_model_max, int(obs_in_sample * 0.2))]
-        )
+        mat_vt[0, :lags_model_max] = np.mean(y_in_sample[:max(lags_model_max, int(np.ceil(obs_in_sample * 0.2)))])
     else:
         mat_vt[0, :lags_model_max] = initials_checked["initial_level"]
-
     # trend
     if model_is_trendy:
         if initials_checked["initial_trend_estimate"]:
@@ -1177,7 +1163,8 @@ def initialiser(
     other=None,
 ):
     """
-    Initialize parameters for the ADAM model.
+    Initialize parameters for the ADAM model. Determines initial parameter
+    values (B) and their bounds (Bl, Bu) for optimization.
 
     Args:
         model_type_dict: Dictionary containing model type information
@@ -1192,37 +1179,264 @@ def initialiser(
         phi_dict: Dictionary containing phi parameters
         observations_dict: Dictionary containing observation information
         bounds: Bounds specification for optimization
-        other: Other parameters
+        other: Other parameters (currently unused)
 
     Returns:
-        Dict: Dictionary containing initialized parameters
+        Dict: Dictionary containing initialized parameters B, Bl, Bu and names.
+              Example: {'B': B, 'Bl': Bl, 'Bu': Bu, 'names': names}
     """
-    # Extract model parameters
-    model_params = _extract_initialiser_params(
-        model_type_dict, components_dict, lags_dict, adam_created, observations_dict
+    persistence_estimate_vector = [
+        persistence_checked['persistence_level_estimate'],
+        model_type_dict["model_is_trendy"] and persistence_checked['persistence_trend_estimate'],
+        model_type_dict["model_is_seasonal"] and any(persistence_checked['persistence_seasonal_estimate'])
+    ]
+    total_params = (
+        model_type_dict["ets_model"] * (sum(persistence_estimate_vector) + phi_dict['phi_estimate']) +
+        explanatory_checked['xreg_model'] * persistence_checked['persistence_xreg_estimate'] * max(explanatory_checked['xreg_parameters_persistence'] or [0]) +
+        arima_checked['arima_model'] * (arima_checked['ar_estimate'] * sum(arima_checked['ar_orders'] or []) + arima_checked['ma_estimate'] * sum(arima_checked['ma_orders'] or [])) +
+        model_type_dict["ets_model"] * (initials_checked['initial_type'] not in ["complete", "backcasting"]) * (
+            initials_checked['initial_level_estimate'] +
+            (model_type_dict["model_is_trendy"] * initials_checked['initial_trend_estimate']) +
+            (model_type_dict["model_is_seasonal"] * sum(initials_checked['initial_seasonal_estimate'] * (np.array(lags_dict["lags_model_seasonal"] or []) - 1)))
+        ) +
+        (initials_checked['initial_type'] not in ["complete", "backcasting"]) * arima_checked['arima_model'] * (initials_checked['initial_arima_number'] or 0) * initials_checked['initial_arima_estimate'] +
+        (initials_checked['initial_type'] != "complete") * explanatory_checked['xreg_model'] * initials_checked['initial_xreg_estimate'] * sum(explanatory_checked['xreg_parameters_estimated'] or []) +
+        constants_checked['constant_estimate']
     )
 
-    # Prepare inputs for optimization
-    optimization_inputs = _prepare_optimization_inputs(
-        model_params,
-        persistence_checked,
-        initials_checked,
-        arima_checked,
-        constants_checked,
-        explanatory_checked,
-        phi_dict,
-        bounds,
-    )
+    B = np.zeros(total_params)
+    Bl = np.zeros(total_params)
+    Bu = np.zeros(total_params)
+    names = []
 
-    # Perform optimization
-    optimization_result = _optimize_parameters(optimization_inputs, model_params)
+    j = 0
 
-    # Extract and format results
-    result = _extract_optimization_results(
-        optimization_result, optimization_inputs, model_params
-    )
+    if model_type_dict["ets_model"]:
+        if persistence_checked['persistence_estimate'] and any(persistence_estimate_vector):
+            if any(ptype == "M" for ptype in [model_type_dict["error_type"], model_type_dict["trend_type"], model_type_dict["season_type"]]):
+                if ((model_type_dict["error_type"] == "A" and model_type_dict["trend_type"] == "A" and model_type_dict["season_type"] == "M") or
+                    (model_type_dict["error_type"] == "A" and model_type_dict["trend_type"] == "M" and model_type_dict["season_type"] == "A") or
+                    (initials_checked['initial_type'] in ["complete", "backcasting"] and
+                     ((model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "A" and model_type_dict["season_type"] == "A") or
+                      (model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "A" and model_type_dict["season_type"] == "M")))):
+                    B[j:j+sum(persistence_estimate_vector)] = [0.01, 0] + [0] * components_dict["components_number_ets_seasonal"]
+                elif model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "M" and model_type_dict["season_type"] == "A":
+                    B[j:j+sum(persistence_estimate_vector)] = [0, 0] + [0] * components_dict["components_number_ets_seasonal"]
+                elif model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "A":
+                    if initials_checked['initial_type'] in ["complete", "backcasting"]:
+                        B[j:j+sum(persistence_estimate_vector)] = [0.1, 0] + [0.3] * components_dict["components_number_ets_seasonal"]
+                    else:
+                        B[j:j+sum(persistence_estimate_vector)] = [0.2, 0.01] + [0.3] * components_dict["components_number_ets_seasonal"]
+                elif model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "M":
+                    B[j:j+sum(persistence_estimate_vector)] = [0.1, 0.05] + [0.3] * components_dict["components_number_ets_seasonal"]
+                else:
+                    initial_values = [0.1]
+                    if model_type_dict["model_is_trendy"]:
+                        initial_values.append(0.05)
+                    if model_type_dict["model_is_seasonal"]:
+                        initial_values.extend([0.3] * components_dict["components_number_ets_seasonal"])
+                    
+                    B[j:j+sum(persistence_estimate_vector)] = [val for val, estimate in zip(initial_values, persistence_estimate_vector) if estimate]
+            
+            else:
+                
+                initial_values = [0.1]
+                if model_type_dict["model_is_trendy"]:
+                    initial_values.append(0.05)
+                if model_type_dict["model_is_seasonal"]:
+                    initial_values.extend([0.3] * components_dict["components_number_ets_seasonal"])
+                
+                B[j:j+sum(persistence_estimate_vector)] = [val for val, estimate in zip(initial_values, persistence_estimate_vector) if estimate]
 
-    return result
+            if bounds == "usual":
+                Bl[j:j+sum(persistence_estimate_vector)] = 0
+                Bu[j:j+sum(persistence_estimate_vector)] = 1
+            else:
+                Bl[j:j+sum(persistence_estimate_vector)] = -5
+                Bu[j:j+sum(persistence_estimate_vector)] = 5
+
+            # Names for B
+            if persistence_checked['persistence_level_estimate']:
+                names.append("alpha")
+                j += 1
+            if model_type_dict["model_is_trendy"] and persistence_checked['persistence_trend_estimate']:
+                names.append("beta")
+                j += 1
+            if model_type_dict["model_is_seasonal"] and any(persistence_checked['persistence_seasonal_estimate']):
+                if components_dict["components_number_ets_seasonal"] > 1:
+                    names.extend([f"gamma{i}" for i in range(1, components_dict["components_number_ets_seasonal"]+1)])
+                else:
+                    names.append("gamma")
+                j += sum(persistence_checked['persistence_seasonal_estimate'])
+
+    if explanatory_checked['xreg_model'] and persistence_checked['persistence_xreg_estimate']:
+        xreg_persistence_number = max(explanatory_checked['xreg_parameters_persistence'])
+        B[j:j+xreg_persistence_number] = 0.01 if model_type_dict["error_type"] == "A" else 0
+        Bl[j:j+xreg_persistence_number] = -5
+        Bu[j:j+xreg_persistence_number] = 5
+        names.extend([f"delta{i+1}" for i in range(xreg_persistence_number)])
+        j += xreg_persistence_number
+
+    if model_type_dict["ets_model"] and phi_dict['phi_estimate']:
+        B[j] = 0.95
+        names.append("phi")
+        Bl[j] = 0
+        Bu[j] = 1
+        j += 1
+
+    if arima_checked['arima_model']:
+        if any([arima_checked['ar_estimate'], arima_checked['ma_estimate']]):
+            acf_values = [-0.1] * sum(arima_checked['ma_orders'] * lags_dict["lags"])
+            pacf_values = [0.1] * sum(arima_checked['ar_orders'] * lags_dict["lags"])
+            
+            if not (model_type_dict["ets_model"] or all(arima_checked['i_orders'] == 0)):
+                y_differenced = observations_dict['y_in_sample'].copy()
+                # Implement differencing if needed
+                if any(arima_checked['i_orders'] > 0):
+                    for i, order in enumerate(arima_checked['i_orders']):
+                        if order > 0:
+                            y_differenced = np.diff(y_differenced, n=order, axis=0)
+                
+                # ACF/PACF calculation for non-seasonal models
+                if all(np.array(lags_dict["lags"]) <= 1):
+                    if arima_checked['ma_required'] and arima_checked['ma_estimate']:
+                        acf_values[:min(sum(arima_checked['ma_orders'] * lags_dict["lags"]), len(y_differenced) - 1)] = calculate_acf(y_differenced, nlags=max(1, sum(arima_checked['ma_orders'] * lags_dict["lags"])))[1:]
+                    if arima_checked['ar_required'] and arima_checked['ar_estimate']:
+                        pacf_values[:min(sum(arima_checked['ar_orders'] * lags_dict["lags"]), len(y_differenced) - 1)] = calculate_pacf(y_differenced, nlags=max(1, sum(arima_checked['ar_orders'] * lags_dict["lags"])))
+            
+            for i, lag in enumerate(lags_dict["lags"]):
+                if arima_checked['ar_required'] and arima_checked['ar_estimate'] and arima_checked['ar_orders'][i] > 0:
+                    B[j:j+arima_checked['ar_orders'][i]] = pacf_values[i*lag:(i+1)*lag][:arima_checked['ar_orders'][i]]
+                    if sum(B[j:j+arima_checked['ar_orders'][i]]) > 1:
+                        B[j:j+arima_checked['ar_orders'][i]] = B[j:j+arima_checked['ar_orders'][i]] / sum(B[j:j+arima_checked['ar_orders'][i]]) - 0.01
+                    Bl[j:j+arima_checked['ar_orders'][i]] = -5
+                    Bu[j:j+arima_checked['ar_orders'][i]] = 5
+                    names.extend([f"phi{k+1}[{lag}]" for k in range(arima_checked['ar_orders'][i])])
+                    j += arima_checked['ar_orders'][i]
+                
+                if arima_checked['ma_required'] and arima_checked['ma_estimate'] and arima_checked['ma_orders'][i] > 0:
+                    B[j:j+arima_checked['ma_orders'][i]] = acf_values[i*lag:(i+1)*lag][:arima_checked['ma_orders'][i]]
+                    if sum(B[j:j+arima_checked['ma_orders'][i]]) > 1:
+                        B[j:j+arima_checked['ma_orders'][i]] = B[j:j+arima_checked['ma_orders'][i]] / sum(B[j:j+arima_checked['ma_orders'][i]]) - 0.01
+                    Bl[j:j+arima_checked['ma_orders'][i]] = -5
+                    Bu[j:j+arima_checked['ma_orders'][i]] = 5
+                    names.extend([f"theta{k+1}[{lag}]" for k in range(arima_checked['ma_orders'][i])])
+                    j += arima_checked['ma_orders'][i]
+
+    if model_type_dict["ets_model"] and initials_checked['initial_type'] not in ["complete", "backcasting"] and initials_checked['initial_estimate']:
+        if initials_checked['initial_level_estimate']:
+            B[j] = adam_created['mat_vt'][0, 0]
+            Bl[j] = -np.inf if model_type_dict["error_type"] == "A" else 0
+            Bu[j] = np.inf
+            names.append("level")
+            j += 1
+        if model_type_dict["model_is_trendy"] and initials_checked['initial_trend_estimate']:
+            B[j] = adam_created['mat_vt'][1, 0]
+            Bl[j] = -np.inf if model_type_dict["trend_type"] == "A" else 0
+            Bu[j] = np.inf
+            names.append("trend")
+            j += 1
+
+        
+        if model_type_dict["model_is_seasonal"] and (isinstance(initials_checked['initial_seasonal_estimate'], bool) and initials_checked['initial_seasonal_estimate'] or isinstance(initials_checked['initial_seasonal_estimate'], list) and any(initials_checked['initial_seasonal_estimate'])):
+            if components_dict['components_number_ets_seasonal'] > 1:
+                for k in range(components_dict['components_number_ets_seasonal']):
+                    if initials_checked['initial_seasonal_estimate'][k]:
+                        # Get the correct seasonal component index and lag
+                        seasonal_index = components_dict['components_number_ets'] - components_dict['components_number_ets_seasonal'] + k
+                        lag = lags_dict['lags'][seasonal_index]
+
+                        # Get the values from mat_vt (make sure dimensions match)
+                        seasonal_values = adam_created['mat_vt'][seasonal_index, :lag-1]
+
+                        # Assign to B with matching dimensions
+                        B[j:j+lag-1] = seasonal_values
+                        
+                        if model_type_dict['season_type'] == "A":
+                            Bl[j:j+lag-1] = -np.inf
+                            Bu[j:j+lag-1] = np.inf
+                        else:
+                            Bl[j:j+lag-1] = 0
+                            Bu[j:j+lag-1] = np.inf
+                        names.extend([f"seasonal_{m}" for m in range(2, lag)])
+                        j += lag - 1
+            else:
+                
+                # Get the correct seasonal component index and lag
+                seasonal_index = components_dict["components_number_ets"] - 1
+                temp_lag = lags_dict["lags_model"][seasonal_index]
+                seasonal_values = adam_created['mat_vt'][seasonal_index, :temp_lag-1]
+                # Assign to B with matching dimensions
+                B[j:j+temp_lag-1] = seasonal_values
+                if model_type_dict['season_type'] == "A":
+                    Bl[j:j+temp_lag-1] = -np.inf
+                    Bu[j:j+temp_lag-1] = np.inf
+                else:
+                    Bl[j:j+temp_lag-1] = 0
+                    Bu[j:j+temp_lag-1] = np.inf
+                #names.extend([f"seasonal_{m}" for m in range(2, temp_lag)])
+                j += temp_lag - 1
+    if initials_checked['initial_type'] not in ["complete", "backcasting"] and arima_checked['arima_model'] and initials_checked['initial_arima_estimate']:
+        B[j:j+initials_checked['initial_arima_number']] = adam_created['mat_vt'][components_dict["components_number_ets"] + components_dict["components_number_arima"], :initials_checked['initial_arima_number']]
+        names.extend([f"ARIMAState{n}" for n in range(1, initials_checked['initial_arima_number']+1)])
+        if model_type_dict["error_type"] == "A":
+            Bl[j:j+initials_checked['initial_arima_number']] = -np.inf
+            Bu[j:j+initials_checked['initial_arima_number']] = np.inf
+        else:
+            B[j:j+initials_checked['initial_arima_number']] = np.abs(B[j:j+initials_checked['initial_arima_number']])
+            Bl[j:j+initials_checked['initial_arima_number']] = 0
+            Bu[j:j+initials_checked['initial_arima_number']] = np.inf
+        j += initials_checked['initial_arima_number']
+
+    if initials_checked['initial_type'] != "complete" and initials_checked['initial_xreg_estimate'] and explanatory_checked['xreg_model']:
+        xreg_number_to_estimate = sum(explanatory_checked['xreg_parameters_estimated'])
+        if xreg_number_to_estimate > 0:
+            B[j:j+xreg_number_to_estimate] = adam_created['mat_vt'][components_dict["components_number_ets"] + components_dict["components_number_arima"], 0]
+            names.extend([f"xreg{idx+1}" for idx in range(xreg_number_to_estimate)])
+            Bl[j:j+xreg_number_to_estimate] = -np.inf
+            Bu[j:j+xreg_number_to_estimate] = np.inf
+            j += xreg_number_to_estimate
+
+    if constants_checked['constant_estimate']:
+        j += 1
+        if adam_created['mat_vt'].shape[0] > components_dict["components_number_ets"] + components_dict["components_number_arima"] + explanatory_checked['xreg_number']:
+            B[j-1] = adam_created['mat_vt'][components_dict["components_number_ets"] + components_dict["components_number_arima"] + explanatory_checked['xreg_number'], 0]
+        else:
+            B[j-1] = 0  # or some other default value
+        names.append(constants_checked['constant_name'] or "constant")
+        if model_type_dict["ets_model"] or (arima_checked['i_orders'] is not None and sum(arima_checked['i_orders']) != 0):
+            if model_type_dict["error_type"] == "A":
+                Bu[j-1] = np.quantile(np.diff(observations_dict['y_in_sample'][observations_dict['ot_logical']], axis=0), 0.6)
+                Bl[j-1] = -Bu[j-1]
+            else:
+                Bu[j-1] = np.exp(np.quantile(np.diff(np.log(observations_dict['y_in_sample'][observations_dict['ot_logical']]), axis=0), 0.6))
+                Bl[j-1] = np.exp(np.quantile(np.diff(np.log(observations_dict['y_in_sample'][observations_dict['ot_logical']]), axis=0), 0.4))
+            
+            if Bu[j-1] <= Bl[j-1]:
+                Bu[j-1] = np.inf
+                Bl[j-1] = -np.inf if model_type_dict["error_type"] == "A" else 0
+            
+            if B[j-1] <= Bl[j-1]:
+                Bl[j-1] = -np.inf if model_type_dict["error_type"] == "A" else 0
+            if B[j-1] >= Bu[j-1]:
+                Bu[j-1] = np.inf
+        else:
+            Bu[j-1] = max(abs(observations_dict['y_in_sample'][observations_dict['ot_logical']]), abs(B[j-1]) * 1.01)
+            Bl[j-1] = -Bu[j-1]
+
+    # assuming no other parameters for now
+    #if initials_checked['other_parameter_estimate']:
+    #    j += 1
+    #    B[j-1] = other
+    #    names.append("other")
+    #    Bl[j-1] = 1e-10
+    #    Bu[j-1] = np.inf
+    return {
+        "B": B,
+        "Bl": Bl,
+        "Bu": Bu,
+        "names": names
+    }
 
 
 def _extract_initialiser_params(
@@ -1297,7 +1511,7 @@ def _extract_initialiser_params(
     }
 
 
-def _prepare_optimization_inputs(
+def _calculate_initial_parameters_and_bounds(
     model_params,
     persistence_checked,
     initials_checked,
@@ -1306,880 +1520,450 @@ def _prepare_optimization_inputs(
     explanatory_checked,
     phi_dict,
     bounds,
+    adam_created, # Added
+    observations_dict # Added
 ):
     """
-    Prepare inputs for parameter optimization.
-
-    Args:
-        model_params: Dictionary containing model parameters
-        persistence_checked: Dictionary of persistence parameters
-        initials_checked: Dictionary of initial values
-        arima_checked: Dictionary of ARIMA parameters
-        constants_checked: Dictionary of constant parameters
-        explanatory_checked: Dictionary of explanatory variables parameters
-        phi_dict: Dictionary containing phi parameters
-        bounds: Bounds specification for optimization
-
-    Returns:
-        Dict: Dictionary containing prepared optimization inputs
+    Calculate initial parameter vector B, bounds Bl and Bu, and names.
+    Combines logic from old initialiser and _prepare_optimization_inputs.
     """
-    # Extract relevant parameters
-    ets_model = model_params["ets_model"]
-    model_is_trendy = model_params["model_is_trendy"]
-    model_is_seasonal = model_params["model_is_seasonal"]
-    components_number_ets = model_params["components_number_ets"]
-    components_number_ets_seasonal = model_params["components_number_ets_seasonal"]
-    error_type = model_params["error_type"]
+    # Extract relevant parameters from model_params and dicts
+    ets_model = model_params['ets_model']
+    model_is_trendy = model_params['model_is_trendy']
+    model_is_seasonal = model_params['model_is_seasonal']
+    error_type = model_params['error_type']
+    trend_type = model_params['trend_type']
+    season_type = model_params['season_type']
+    components_number_ets = model_params['components_number_ets']
+    components_number_ets_seasonal = model_params['components_number_ets_seasonal']
+    lags_dict = {
+        'lags': model_params['lags'],
+        'lags_model': model_params['lags_model'],
+        'lags_model_max': model_params['lags_model_max'],
+        #'lags_model_seasonal': model_params.get('lags_model_seasonal') # Needs to be passed correctly
+    }
+    mat_vt = adam_created['mat_vt'] # Used for initial state estimates
+    y_in_sample = observations_dict['y_in_sample']
+    ot_logical = observations_dict['ot_logical']
 
-    # Determine bounds
-    bound_min = []
-    bound_max = []
+    # Calculate the total number of parameters to estimate
+    # --- Calculate persistence params ---
+    est_level = persistence_checked.get('persistence_level_estimate', False)
+    est_trend = model_is_trendy and persistence_checked.get('persistence_trend_estimate', False)
+    seas_est_val = persistence_checked.get('persistence_seasonal_estimate', False)
+    num_seasonal_persistence_params = 0 # Initialize
+    if isinstance(seas_est_val, bool):
+        est_seasonal = model_is_seasonal and seas_est_val
+        # num_seasonal_persistence_params = 1 if est_seasonal else 0 # Old logic was sum of components
+        if est_seasonal: # if est_seasonal is True, it means all seasonal components are estimated
+            num_seasonal_persistence_params = components_number_ets_seasonal if components_number_ets_seasonal > 0 else 1 if model_is_seasonal else 0
+    elif isinstance(seas_est_val, (list, np.ndarray)):
+        est_seasonal = model_is_seasonal and any(seas_est_val)
+        num_seasonal_persistence_params = sum(p for p in seas_est_val if p)
+    else:
+        est_seasonal = False
+        num_seasonal_persistence_params = 0
 
-    # ETS model
+    num_ets_persistence_params = sum([est_level, est_trend, num_seasonal_persistence_params if isinstance(seas_est_val, bool) and seas_est_val else num_seasonal_persistence_params])
+
+
+    # --- Xreg persistence parameters (deltas) ---
+    est_xreg_persistence = explanatory_checked.get('xreg_model', False) and persistence_checked.get('persistence_xreg_estimate', False)
+    num_xreg_persistence_params = 0
+    if est_xreg_persistence:
+        # The old code used max(explanatory_checked['xreg_parameters_persistence'] or [0])
+        # This implies xreg_parameters_persistence is a list of integers indicating which xreg variables have persistence
+        # and the number of delta parameters is the max value in that list.
+        # For simplicity, if persistence_xreg_estimate is True, we might assume one delta per xreg, or follow old logic if xreg_parameters_persistence is available.
+        # The old code's logic for xreg_parameters_persistence was:
+        # max(explanatory_checked['xreg_parameters_persistence'] or [0])
+        # This suggests 'xreg_parameters_persistence' is a list like [1, 2] if 2 delta params
+        # Let's assume for now if est_xreg_persistence is true, it's for all xreg components.
+        # A more robust way would be to use explanatory_checked['xreg_parameters_persistence'] if available.
+        # Given the old code: max(explanatory_checked['xreg_parameters_persistence'] or [0])
+        # If 'xreg_parameters_persistence' is not in explanatory_checked or is empty, this defaults to 0.
+        # This needs careful check against how 'xreg_parameters_persistence' is defined.
+        # Let's assume xreg_parameters_persistence is a list like [1,1,0] for 3 xregs, 2 have persistence estimates
+        if explanatory_checked.get('xreg_parameters_persistence'):
+             num_xreg_persistence_params = sum(explanatory_checked.get('xreg_parameters_persistence', [])) # Number of true flags
+        else: # Fallback if not defined, assume one per xreg if main flag is true
+             num_xreg_persistence_params = explanatory_checked.get('xreg_number', 0)
+
+
+    num_persistence_params = num_ets_persistence_params # This will be expanded
+
+    # --- Calculate ARIMA params ---
+    est_ar = arima_checked.get('ar_estimate', False)
+    est_ma = arima_checked.get('ma_estimate', False)
+    num_ar_params = sum(arima_checked.get('ar_orders', [])) if est_ar else 0
+    num_ma_params = sum(arima_checked.get('ma_orders', [])) if est_ma else 0
+    num_arima_params = num_ar_params + num_ma_params
+
+    # --- Calculate Xreg params ---
+    est_xreg = explanatory_checked.get('xreg_model', False) and explanatory_checked.get('xreg_estimate', False)
+    num_xreg_params = explanatory_checked.get('xreg_number', 0) if est_xreg else 0
+
+    # --- Calculate Phi param ---
+    est_phi = ets_model and model_is_trendy and phi_dict.get('phi_estimate', False)
+
+    # --- Calculate Initial state params ---
+    initials_active = initials_checked.get('initial_type') not in ["complete", "backcasting"]
+    est_init_level = ets_model and initials_active and initials_checked.get('initial_level_estimate', False)
+    est_init_trend = ets_model and model_is_trendy and initials_active and initials_checked.get('initial_trend_estimate', False)
+
+    est_init_seasonal_val = initials_checked.get('initial_seasonal_estimate', False)
+    num_initial_seasonal_params = 0
+    est_init_seasonal = False
+    if model_is_seasonal and initials_active:
+        if isinstance(est_init_seasonal_val, bool):
+            if est_init_seasonal_val:
+                 est_init_seasonal = True
+                 # Needs lags_model to be accurate, using approximation
+                 num_initial_seasonal_params = sum(lag - 1 for lag in model_params['lags_model'][1+int(model_is_trendy):])
+        elif isinstance(est_init_seasonal_val, (list, np.ndarray)):
+            if any(est_init_seasonal_val):
+                 est_init_seasonal = True
+                 lags_seasonal = model_params['lags_model'][1+int(model_is_trendy):]
+                 num_initial_seasonal_params = sum(lags_seasonal[i] - 1 for i, est in enumerate(est_init_seasonal_val) if est)
+
+    est_init_arima = initials_active and arima_checked.get('arima_model', False) and initials_checked.get('initial_arima_estimate', False)
+    num_init_arima_params = initials_checked.get('initial_arima_number', 0) if est_init_arima else 0
+
+    # --- Calculate Constant param ---
+    est_constant = constants_checked.get('constant_estimate', False)
+
+    # --- Summing up ---
+    total_params = int(
+        num_ets_persistence_params + # Changed from num_persistence_params
+        num_xreg_persistence_params + # Added for delta
+        num_arima_params +
+        num_xreg_params +
+        est_phi +
+        est_init_level +
+        est_init_trend +
+        num_initial_seasonal_params +
+        num_init_arima_params +
+        est_constant
+    )
+
+    # Initialize arrays
+    B = np.zeros(total_params)
+    Bl = np.zeros(total_params)
+    Bu = np.zeros(total_params)
+    names = []
+    param_idx = 0
+
+    # --- Populate B, Bl, Bu, names based on old initialiser logic ---
+
+    # ETS Persistence Parameters
     if ets_model:
-        # Smoothing parameter for level
-        if persistence_checked["persistence_level_estimate"]:
+        # Level Persistence (alpha)
+        if est_level:
+            B[param_idx] = 0.1 # Default initial value
+            if bounds == "usual": Bl[param_idx], Bu[param_idx] = 0, 1
+            else: Bl[param_idx], Bu[param_idx] = -5, 5 # Old code's else
+            names.append("alpha")
+            param_idx += 1
+
+        # Trend Persistence (beta)
+        if est_trend:
+            B[param_idx] = 0.05 # Default initial value
+            if bounds == "usual": Bl[param_idx], Bu[param_idx] = 0, 1
+            else: Bl[param_idx], Bu[param_idx] = -5, 5 # Old code's else
+            names.append("beta")
+            param_idx += 1
+
+        # Seasonal Persistence (gamma)
+        if est_seasonal:
+            B[param_idx:param_idx + num_seasonal_persistence_params] = 0.05 # Default initial value (approximation)
+            # Old code had more complex B init for seasonal persistence based on model types
+            # For Bl, Bu:
             if bounds == "usual":
-                bound_min.append(0)
-                bound_max.append(1)
-            elif bounds == "admissible":
-                bound_min.append(0)
-                bound_max.append(2)
-            elif bounds == "none":
-                bound_min.append(-np.inf)
-                bound_max.append(np.inf)
-
-        # Smoothing parameter for trend
-        if model_is_trendy and persistence_checked["persistence_trend_estimate"]:
-            if bounds == "usual":
-                bound_min.append(0)
-                bound_max.append(1)
-            elif bounds == "admissible":
-                bound_min.append(0)
-                bound_max.append(2)
-            elif bounds == "none":
-                bound_min.append(-np.inf)
-                bound_max.append(np.inf)
-
-        # Smoothing parameters for seasonality
-        if model_is_seasonal:
-            for i in range(components_number_ets_seasonal):
-                if persistence_checked["persistence_seasonal_estimate"][i]:
-                    if bounds == "usual":
-                        bound_min.append(0)
-                        bound_max.append(1)
-                    elif bounds == "admissible":
-                        bound_min.append(0)
-                        bound_max.append(2)
-                    elif bounds == "none":
-                        bound_min.append(-np.inf)
-                        bound_max.append(np.inf)
-
-    # ARIMA parameters
-    if arima_checked["arima_model"]:
-        # AR parameters
-        if arima_checked["ar_estimate"]:
-            for i in range(sum(arima_checked["ar_orders"])):
-                if bounds == "usual":
-                    bound_min.append(-0.99)
-                    bound_max.append(0.99)
-                elif bounds == "admissible":
-                    bound_min.append(-0.999)
-                    bound_max.append(0.999)
-                elif bounds == "none":
-                    bound_min.append(-np.inf)
-                    bound_max.append(np.inf)
-
-        # MA parameters
-        if arima_checked["ma_estimate"]:
-            for i in range(sum(arima_checked["ma_orders"])):
-                if bounds == "usual":
-                    bound_min.append(-0.99)
-                    bound_max.append(0.99)
-                elif bounds == "admissible":
-                    bound_min.append(-0.999)
-                    bound_max.append(0.999)
-                elif bounds == "none":
-                    bound_min.append(-np.inf)
-                    bound_max.append(np.inf)
-
-    # Regression parameters
-    if explanatory_checked["xreg_model"] and explanatory_checked["xreg_estimate"]:
-        for i in range(explanatory_checked["xreg_number"]):
-            if bounds == "none":
-                bound_min.append(-np.inf)
-                bound_max.append(np.inf)
+                Bl[param_idx:param_idx + num_seasonal_persistence_params] = 0
+                Bu[param_idx:param_idx + num_seasonal_persistence_params] = 1
             else:
-                bound_min.append(-1000)
-                bound_max.append(1000)
+                Bl[param_idx:param_idx + num_seasonal_persistence_params] = -5
+                Bu[param_idx:param_idx + num_seasonal_persistence_params] = 5 # Old code's else
 
-    # Damping parameter
-    if ets_model and model_is_trendy and phi_dict["phi_estimate"]:
-        if bounds == "usual":
-            bound_min.append(0.8)
-            bound_max.append(0.98)
-        elif bounds == "admissible":
-            bound_min.append(0.5)
-            bound_max.append(0.999)
-        elif bounds == "none":
-            bound_min.append(-np.inf)
-            bound_max.append(np.inf)
-
-    # Initial values for ETS components
-    if ets_model:
-        # Initial level
-        if initials_checked["initial_level_estimate"]:
-            if error_type == "A" or bounds == "none":
-                bound_min.append(-np.inf)
-                bound_max.append(np.inf)
-            else:
-                bound_min.append(1e-10)
-                bound_max.append(np.inf)
-
-        # Initial trend
-        if model_is_trendy and initials_checked["initial_trend_estimate"]:
-            if error_type == "A" or bounds == "none":
-                bound_min.append(-np.inf)
-                bound_max.append(np.inf)
-            else:
-                if bounds == "usual":
-                    bound_min.append(0.9)
-                    bound_max.append(1.1)
+            if isinstance(seas_est_val, bool) and seas_est_val: # Single gamma if all estimated together
+                 if components_number_ets_seasonal > 1 :
+                     names.extend([f"gamma{k+1}" for k in range(num_seasonal_persistence_params)])
+                 elif num_seasonal_persistence_params ==1 : # handles single seasonal component
+                     names.append("gamma")
+            elif isinstance(seas_est_val, (list, np.ndarray)): # individual gammas
+                true_indices = [i + 1 for i, est in enumerate(seas_est_val) if est]
+                if len(true_indices) == 1 and num_seasonal_persistence_params ==1 :
+                     names.append("gamma")
                 else:
-                    bound_min.append(0.5)
-                    bound_max.append(2)
-        else:
-            # This else matches with "if model_is_trendy and initials_checked["initial_trend_estimate"]:"
-            if bounds == "usual":
-                bound_min.append(0.9)
-                bound_max.append(1.1)
-            else:
-                bound_min.append(0.5)
-                bound_max.append(2)
+                     names.extend([f"gamma{k}" for k in true_indices])
+            elif num_seasonal_persistence_params == 1: # Catch single seasonal from components_number_ets_seasonal
+                 names.append("gamma")
 
-        # Initial seasonal
-        if model_is_seasonal and initials_checked["initial_seasonal_estimate"]:
-            for i in range(components_number_ets_seasonal):
-                for j in range(
-                    model_params["lags_model"][i + 1 + int(model_is_trendy)]
-                ):
-                    if error_type == "A" or bounds == "none":
-                        bound_min.append(-np.inf)
-                        bound_max.append(np.inf)
+
+            param_idx += num_seasonal_persistence_params
+
+    # Xreg Persistence Parameters (delta) - ADDED SECTION
+    if est_xreg_persistence and num_xreg_persistence_params > 0:
+        # Default B values from old code (0.01 for A, 0 for M error type)
+        # This depends on how xreg_parameters_persistence is structured.
+        # Assuming one delta per estimated xreg persistence.
+        B[param_idx:param_idx + num_xreg_persistence_params] = 0.01 if error_type == "A" else 0
+        Bl[param_idx:param_idx + num_xreg_persistence_params] = -5
+        Bu[param_idx:param_idx + num_xreg_persistence_params] = 5
+        # Naming based on the number of such parameters. Old code used "delta1", "delta2"...
+        # This relies on num_xreg_persistence_params correctly reflecting count of deltas
+        xreg_pers_indices = []
+        if explanatory_checked.get('xreg_parameters_persistence'):
+            xreg_pers_indices = [i + 1 for i, est_flag in enumerate(explanatory_checked['xreg_parameters_persistence']) if est_flag]
+        
+        if len(xreg_pers_indices) == num_xreg_persistence_params and num_xreg_persistence_params > 0:
+            if len(xreg_pers_indices) == 1:
+                 names.append(f"delta{xreg_pers_indices[0]}") # Or just "delta" if only one possible
+            else:
+                 names.extend([f"delta{k}" for k in xreg_pers_indices])
+        else: # Fallback naming if mismatch
+            names.extend([f"delta{k+1}" for k in range(num_xreg_persistence_params)])
+        param_idx += num_xreg_persistence_params
+
+
+    # ARIMA Parameters
+    if arima_checked.get('arima_model', False):
+        if est_ar:
+            # Initial AR values using PACF (simplified from old code)
+            try:
+                # Ensure nlags is at least 1
+                nlags_ar = max(1, num_ar_params)
+                pacf_values = calculate_pacf(y_in_sample[ot_logical], nlags=nlags_ar)
+                # Ensure pacf_values has the correct length
+                if len(pacf_values) >= num_ar_params:
+                    B[param_idx:param_idx + num_ar_params] = pacf_values[:num_ar_params]
+                else:
+                    # Handle cases where PACF calculation returns fewer values than expected
+                    B[param_idx:param_idx + len(pacf_values)] = pacf_values
+                    B[param_idx + len(pacf_values):param_idx + num_ar_params] = 0.1 # Pad with fallback
+
+            except Exception as e:
+                 # print(f"PACF calculation failed: {e}") # Optional debug print
+                 B[param_idx:param_idx + num_ar_params] = 0.1 # Fallback
+
+            # Old code: Bl=-5, Bu=5
+            Bl[param_idx:param_idx + num_ar_params] = -5
+            Bu[param_idx:param_idx + num_ar_params] = 5
+            # Naming needs refinement based on orders and lags
+            names.extend([f"ar_{k+1}" for k in range(num_ar_params)]) # Simplified, old code had per-lag naming
+            param_idx += num_ar_params
+
+        if est_ma:
+             # Initial MA values using ACF (simplified from old code)
+            try:
+                # Ensure nlags is at least 1
+                nlags_ma = max(1, num_ma_params)
+                acf_values = calculate_acf(y_in_sample[ot_logical], nlags=nlags_ma)[1:] # Exclude lag 0
+                # Ensure acf_values has the correct length
+                if len(acf_values) >= num_ma_params:
+                     B[param_idx:param_idx + num_ma_params] = acf_values[:num_ma_params]
+                else:
+                    # Handle cases where ACF calculation returns fewer values than expected
+                    B[param_idx:param_idx + len(acf_values)] = acf_values
+                    B[param_idx + len(acf_values):param_idx + num_ma_params] = -0.1 # Pad with fallback
+            except Exception as e:
+                 # print(f"ACF calculation failed: {e}") # Optional debug print
+                 B[param_idx:param_idx + num_ma_params] = -0.1 # Fallback
+
+            # Old code: Bl=-5, Bu=5
+            Bl[param_idx:param_idx + num_ma_params] = -5
+            Bu[param_idx:param_idx + num_ma_params] = 5
+            # Naming needs refinement based on orders and lags
+            names.extend([f"ma_{k+1}" for k in range(num_ma_params)]) # Simplified, old code had per-lag naming
+            param_idx += num_ma_params
+
+    # Explanatory Variable Parameters
+    if est_xreg:
+        # Use initial values if available from _initialize_xreg_states, otherwise 0
+        try:
+            initial_xreg_vals = mat_vt[components_number_ets + model_params['components_number_arima'] : components_number_ets + model_params['components_number_arima'] + num_xreg_params, 0]
+            B[param_idx:param_idx + num_xreg_params] = initial_xreg_vals
+        except IndexError:
+            B[param_idx:param_idx + num_xreg_params] = 0 # Fallback if mat_vt shape is unexpected
+
+        # Old code: Bl=-inf, Bu=inf
+        Bl[param_idx:param_idx + num_xreg_params] = -np.inf
+        Bu[param_idx:param_idx + num_xreg_params] = np.inf
+        names.extend([f"xreg_{k+1}" for k in range(num_xreg_params)])
+        param_idx += num_xreg_params
+
+    # Phi (Damping) Parameter
+    if est_phi:
+        B[param_idx] = 0.95 # Default initial value
+        # Old code: Bl=0, Bu=1
+        Bl[param_idx], Bu[param_idx] = 0, 1
+        names.append("phi")
+        param_idx += 1
+
+    # Initial ETS States
+    if ets_model and initials_active:
+        # Initial Level
+        if est_init_level:
+            B[param_idx] = mat_vt[0, 0] # Use value from creator initialization
+            # Old code: Bl = -np.inf if error_type == "A" else 0
+            if error_type == "A":
+                Bl[param_idx], Bu[param_idx] = -np.inf, np.inf
+            else:
+                Bl[param_idx], Bu[param_idx] = 0, np.inf
+            names.append("init_level")
+            param_idx += 1
+
+        # Initial Trend
+        if est_init_trend:
+            B[param_idx] = mat_vt[1, 0] # Use value from creator initialization
+            # Old code: Bl = -np.inf if trend_type == "A" else 0
+            if trend_type == "A":
+                Bl[param_idx], Bu[param_idx] = -np.inf, np.inf
+            else: # Multiplicative trend
+                Bl[param_idx], Bu[param_idx] = 0, np.inf
+            names.append("init_trend")
+            param_idx += 1
+
+        # Initial Seasonal
+        if est_init_seasonal:
+             seasonal_comp_start_idx = 1 + int(model_is_trendy)
+             param_count_seasonal = 0
+             name_idx_seasonal = 1
+
+             current_est_init_seas_val = est_init_seasonal_val
+             # Ensure it's a list for iteration if it was a single True boolean
+             if isinstance(current_est_init_seas_val, bool):
+                 current_est_init_seas_val = [current_est_init_seas_val] * components_number_ets_seasonal
+
+             for i in range(components_number_ets_seasonal):
+                 if current_est_init_seas_val[i]:
+                     try:
+                         current_lag = model_params['lags_model'][seasonal_comp_start_idx + i]
+                         num_params_this_comp = current_lag - 1
+                         if num_params_this_comp > 0:
+                             # Get initial values from mat_vt (calculated in creator)
+                             initial_vals_seas = mat_vt[seasonal_comp_start_idx + i, :num_params_this_comp]
+                             B[param_idx + param_count_seasonal : param_idx + param_count_seasonal + num_params_this_comp] = initial_vals_seas
+
+                             # Old code: Bl = -np.inf if season_type == "A" else 0
+                             if season_type == "A":
+                                 Bl[param_idx + param_count_seasonal : param_idx + param_count_seasonal + num_params_this_comp] = -np.inf
+                                 Bu[param_idx + param_count_seasonal : param_idx + param_count_seasonal + num_params_this_comp] = np.inf
+                             else: # Multiplicative seasonality
+                                 Bl[param_idx + param_count_seasonal : param_idx + param_count_seasonal + num_params_this_comp] = 0
+                                 Bu[param_idx + param_count_seasonal : param_idx + param_count_seasonal + num_params_this_comp] = np.inf
+                             
+                             season_suffix = f"_{name_idx_seasonal}" if components_number_ets_seasonal > 1 and isinstance(est_init_seasonal_val, list) and len(est_init_seasonal_val) >1 else "" # check if est_init_seasonal_val implies multiple distinct seasonalities
+                             names.extend([f"init_seas{season_suffix}_{k+1}" for k in range(num_params_this_comp)])
+                             param_count_seasonal += num_params_this_comp
+                     except IndexError:
+                         # Handle potential index errors if lags_model is incorrect
+                         print(f"Warning: Could not determine initial seasonal parameters for component {i+1}.")
+                         pass # Skip this component's parameters
+
+                     name_idx_seasonal += 1
+             param_idx += param_count_seasonal
+
+    # Initial ARIMA States
+    if est_init_arima:
+        if num_init_arima_params > 0:
+            arima_state_start_idx = components_number_ets
+            # Get initial values from mat_vt
+            try:
+                # Calculate expected shape and slice
+                num_arima_components = model_params['components_number_arima']
+                expected_len = num_arima_components * num_init_arima_params
+                if mat_vt.shape[1] >= num_init_arima_params:
+                    initial_arima_flat = mat_vt[arima_state_start_idx : arima_state_start_idx + num_arima_components, :num_init_arima_params].flatten()
+                    # Ensure we don't exceed the length of B array slice
+                    slice_len = min(len(initial_arima_flat), len(B[param_idx:param_idx + num_init_arima_params]))
+                    B[param_idx:param_idx + slice_len] = initial_arima_flat[:slice_len]
+                else:
+                     B[param_idx:param_idx + num_init_arima_params] = 0 if error_type == "A" else 1 # Fallback
+            except IndexError:
+                 B[param_idx:param_idx + num_init_arima_params] = 0 if error_type == "A" else 1 # Fallback
+
+            # Old code: Bl = -np.inf if error_type == "A" else 0
+            if error_type == "A":
+                Bl[param_idx:param_idx + num_init_arima_params] = -np.inf
+                Bu[param_idx:param_idx + num_init_arima_params] = np.inf
+            else:
+                # Ensure initial values are non-negative for multiplicative errors as per old logic (implicitly by Bl=0)
+                B[param_idx:param_idx + num_init_arima_params] = np.maximum(B[param_idx:param_idx + num_init_arima_params], 0) # Old used abs() then Bl=0
+                Bl[param_idx:param_idx + num_init_arima_params] = 0
+                Bu[param_idx:param_idx + num_init_arima_params] = np.inf
+            names.extend([f"init_arima_{k+1}" for k in range(num_init_arima_params)])
+            param_idx += num_init_arima_params
+
+    # Constant Parameter
+    if est_constant:
+        try:
+            constant_idx_in_vt = components_number_ets + model_params['components_number_arima'] + explanatory_checked.get('xreg_number', 0)
+            B[param_idx] = mat_vt[constant_idx_in_vt, 0] # Use value from creator initialization
+        except IndexError:
+             B[param_idx] = 0 # Fallback
+
+        # Bounds calculation similar to old code
+        if (arima_checked.get('i_orders') and sum(arima_checked.get('i_orders',[])) != 0) or ets_model:
+            try:
+                valid_ot_logical = ot_logical & np.isfinite(y_in_sample)
+                if np.sum(valid_ot_logical) > 1:
+                    # Ensure y has positive values for log
+                    log_y_valid = y_in_sample[valid_ot_logical]
+                    if error_type != "A":
+                         log_y_valid = log_y_valid[log_y_valid > 1e-10]
+                         if len(log_y_valid) < 2: raise ValueError("Not enough positive values for log diff")
+                         diff_log_y = np.diff(np.log(log_y_valid))
                     else:
-                        if bounds == "usual":
-                            bound_min.append(0.9)
-                            bound_max.append(1.1)
+                         # diff_log_y = np.array([]) # Not needed for Additive
+                         pass # Not needed for Additive case for old bounds
+
+                    diff_y = np.diff(y_in_sample[valid_ot_logical])
+
+                    if error_type == "A": # Old code direct logic
+                        bound_val = np.quantile(diff_y, 0.6) # Old: not abs()
+                        # Ensure bound_val is not NaN if diff_y is empty or all same
+                        if not np.isfinite(bound_val) or (len(diff_y) > 0 and np.all(diff_y == diff_y[0])): # if diff_y results in non-finite quantile
+                             Bl[param_idx], Bu[param_idx] = -np.inf, np.inf
                         else:
-                            bound_min.append(0.5)
-                            bound_max.append(2)
-
-    # ARIMA initial values
-    if arima_checked["arima_model"] and initials_checked["initial_arima_estimate"]:
-        for i in range(initials_checked["initial_arima_number"]):
-            if error_type == "A" or bounds == "none":
-                bound_min.append(-np.inf)
-                bound_max.append(np.inf)
-            else:
-                if bounds == "usual":
-                    bound_min.append(0.9)
-                    bound_max.append(1.1)
+                             Bl[param_idx] = -np.abs(bound_val) # ensure symmetry around 0 if bound_val can be negative
+                             Bu[param_idx] = np.abs(bound_val)
+                             if Bu[param_idx] <= Bl[param_idx]: Bl[param_idx], Bu[param_idx] = -np.inf, np.inf
+                    elif bounds == "none": # New code path, keep for flexibility, though old didn't have it
+                        Bl[param_idx], Bu[param_idx] = -np.inf, np.inf
+                    else: # Multiplicative or Mixed from old logic
+                        Bl[param_idx] = np.exp(np.quantile(diff_log_y, 0.4))
+                        Bu[param_idx] = np.exp(np.quantile(diff_log_y, 0.6))
+                        if Bu[param_idx] <= Bl[param_idx] or not np.isfinite(Bu[param_idx]): Bl[param_idx], Bu[param_idx] = 0, np.inf # Old: 0, not 1e-10
                 else:
-                    bound_min.append(0.5)
-                    bound_max.append(2)
-
-    # Constant
-    if (
-        constants_checked["constant_required"]
-        and constants_checked["constant_estimate"]
-    ):
-        if error_type == "A" or bounds == "none":
-            bound_min.append(-np.inf)
-            bound_max.append(np.inf)
-        else:
-            if bounds == "usual":
-                bound_min.append(0.9)
-                bound_max.append(1.1)
-            else:
-                bound_min.append(0.5)
-                bound_max.append(2)
-
-    return {
-        "bound_min": bound_min,
-        "bound_max": bound_max,
-        "persistence_checked": persistence_checked,
-        "initials_checked": initials_checked,
-        "arima_checked": arima_checked,
-        "constants_checked": constants_checked,
-        "explanatory_checked": explanatory_checked,
-        "phi_dict": phi_dict,
-    }
-
-
-def _optimize_parameters(optimization_inputs, model_params):
-    """
-    Optimize model parameters using minimization.
-
-    Args:
-        optimization_inputs: Dictionary containing optimization inputs
-        model_params: Dictionary containing model parameters
-
-    Returns:
-        Dict: Optimization result
-    """
-    bound_min = optimization_inputs["bound_min"]
-    bound_max = optimization_inputs["bound_max"]
-
-    # If no parameters to optimize, return empty result
-    if len(bound_min) == 0:
-        return {"x": [], "success": True}
-
-    # Form initial vector
-    B0 = np.zeros(len(bound_min))
-
-    # Create optimization bounds
-    bounds = [(bound_min[i], bound_max[i]) for i in range(len(bound_min))]
-
-    # Define objective function
-    def objective(b):
-        # Create filled matrices
-        filled_matrices = filler(
-            b,
-            model_type_dict={
-                "ets_model": model_params["ets_model"],
-                "error_type": model_params["error_type"],
-                "trend_type": model_params["trend_type"],
-                "season_type": model_params["season_type"],
-                "model_is_trendy": model_params["model_is_trendy"],
-                "model_is_seasonal": model_params["model_is_seasonal"],
-            },
-            components_dict={
-                "components_number_ets": model_params["components_number_ets"],
-                "components_number_ets_seasonal": model_params[
-                    "components_number_ets_seasonal"
-                ],
-                "components_number_arima": model_params["components_number_arima"],
-            },
-            lags_dict={
-                "lags": model_params["lags"],
-                "lags_model": model_params["lags_model"],
-                "lags_model_max": model_params["lags_model_max"],
-            },
-            matrices_dict={
-                "mat_vt": model_params["mat_vt"].copy(),
-                "mat_wt": model_params["mat_wt"].copy(),
-                "mat_f": model_params["mat_f"].copy(),
-                "vec_g": model_params["vec_g"].copy(),
-            },
-            persistence_checked=optimization_inputs["persistence_checked"],
-            initials_checked=optimization_inputs["initials_checked"],
-            arima_checked=optimization_inputs["arima_checked"],
-            explanatory_checked=optimization_inputs["explanatory_checked"],
-            phi_dict=optimization_inputs["phi_dict"],
-            constants_checked=optimization_inputs["constants_checked"],
-        )
-
-        # Calculate error using filled matrices
-        error = np.zeros(model_params["obs_in_sample"])
-        xt = filled_matrices["mat_vt"][:, 0:1]
-
-        for t in range(model_params["obs_in_sample"]):
-            # Measurement
-            if model_params["error_type"] == "A":
-                error[t] = (
-                    model_params["y_in_sample"][t]
-                    - np.dot(filled_matrices["mat_wt"][t, :], xt).ravel()[0]
-                )
-            else:
-                error[t] = (
-                    model_params["y_in_sample"][t]
-                    / np.dot(filled_matrices["mat_wt"][t, :], xt).ravel()[0]
-                    - 1
-                )
-
-            # Transition
-            if t < model_params["obs_in_sample"] - 1:
-                xt = (
-                    np.dot(filled_matrices["mat_f"], xt)
-                    + filled_matrices["vec_g"] * error[t]
-                )
-
-        # Calculate cost
-        return np.mean(error**2)
-
-    # Run optimization
-    result = minimize(objective, B0, method="L-BFGS-B", bounds=bounds)
-
-    return result
-
-
-def _extract_optimization_results(
-    optimization_result, optimization_inputs, model_params
-):
-    """
-    Extract and format optimization results.
-
-    Args:
-        optimization_result: Result from optimization
-        optimization_inputs: Dictionary containing optimization inputs
-        model_params: Dictionary containing model parameters
-
-    Returns:
-        Dict: Formatted optimization results
-    """
-    # Fill matrices with optimized parameters
-    filled_matrices = filler(
-        optimization_result["x"] if len(optimization_result["x"]) > 0 else [],
-        model_type_dict={
-            "ets_model": model_params["ets_model"],
-            "error_type": model_params["error_type"],
-            "trend_type": model_params["trend_type"],
-            "season_type": model_params["season_type"],
-            "model_is_trendy": model_params["model_is_trendy"],
-            "model_is_seasonal": model_params["model_is_seasonal"],
-        },
-        components_dict={
-            "components_number_ets": model_params["components_number_ets"],
-            "components_number_ets_seasonal": model_params[
-                "components_number_ets_seasonal"
-            ],
-            "components_number_arima": model_params["components_number_arima"],
-        },
-        lags_dict={
-            "lags": model_params["lags"],
-            "lags_model": model_params["lags_model"],
-            "lags_model_max": model_params["lags_model_max"],
-        },
-        matrices_dict={
-            "mat_vt": model_params["mat_vt"].copy(),
-            "mat_wt": model_params["mat_wt"].copy(),
-            "mat_f": model_params["mat_f"].copy(),
-            "vec_g": model_params["vec_g"].copy(),
-        },
-        persistence_checked=optimization_inputs["persistence_checked"],
-        initials_checked=optimization_inputs["initials_checked"],
-        arima_checked=optimization_inputs["arima_checked"],
-        explanatory_checked=optimization_inputs["explanatory_checked"],
-        phi_dict=optimization_inputs["phi_dict"],
-        constants_checked=optimization_inputs["constants_checked"],
-    )
-
-    # Return results
-    return {
-        "mat_vt": filled_matrices["mat_vt"],
-        "mat_wt": filled_matrices["mat_wt"],
-        "mat_f": filled_matrices["mat_f"],
-        "vec_g": filled_matrices["vec_g"],
-        "optimization_result": optimization_result,
-        "parameters": (
-            optimization_result["x"] if len(optimization_result["x"]) > 0 else []
-        ),
-    }
-
-
-def filler(
-    B,
-    model_type_dict,
-    components_dict,
-    lags_dict,
-    matrices_dict,
-    persistence_checked,
-    initials_checked,
-    arima_checked,
-    explanatory_checked,
-    phi_dict,
-    constants_checked,
-):
-    """
-    Fill model matrices with parameter values.
-
-    Args:
-        B: Vector of parameters to fill
-        model_type_dict: Dictionary containing model type information
-        components_dict: Dictionary containing component information
-        lags_dict: Dictionary containing lags information
-        matrices_dict: Dictionary containing model matrices
-        persistence_checked: Dictionary of persistence parameters
-        initials_checked: Dictionary of initial values
-        arima_checked: Dictionary of ARIMA parameters
-        explanatory_checked: Dictionary of explanatory variables parameters
-        phi_dict: Dictionary containing phi parameters
-        constants_checked: Dictionary containing constant parameters
-
-    Returns:
-        Dict: Dictionary containing filled matrices
-    """
-    # Extract matrices
-    mat_vt = matrices_dict["mat_vt"].copy()
-    mat_wt = matrices_dict["mat_wt"].copy()
-    mat_f = matrices_dict["mat_f"].copy()
-    vec_g = matrices_dict["vec_g"].copy()
-
-    # Copy model parameters to avoid modifying original
-    persistence = persistence_checked.copy()
-    initials = initials_checked.copy()
-    arima = arima_checked.copy()
-    explanatory = explanatory_checked.copy()
-    phi = phi_dict.copy()
-    constants = constants_checked.copy()
-
-    # Get model parameters
-    ets_model = model_type_dict["ets_model"]
-    model_is_trendy = model_type_dict["model_is_trendy"]
-    model_is_seasonal = model_type_dict["model_is_seasonal"]
-    components_number_ets = components_dict["components_number_ets"]
-    components_number_ets_seasonal = components_dict["components_number_ets_seasonal"]
-    components_number_arima = components_dict.get("components_number_arima", 0)
-
-    # If no parameters to fill, return original matrices
-    if len(B) == 0:
-        return matrices_dict
-
-    # Keep track of parameter index
-    param_index = 0
-
-    # Fill parameters in sequence
-    param_index = _fill_persistence_parameters(
-        B, param_index, persistence, ets_model, model_is_trendy, model_is_seasonal
-    )
-
-    param_index = _fill_arima_parameters(B, param_index, arima)
-
-    param_index = _fill_explanatory_parameters(B, param_index, explanatory)
-
-    param_index = _fill_phi_parameter(B, param_index, phi, ets_model, model_is_trendy)
-
-    param_index = _fill_initial_states(
-        B,
-        param_index,
-        initials,
-        ets_model,
-        model_is_trendy,
-        model_is_seasonal,
-        components_number_ets_seasonal,
-        lags_dict,
-    )
-
-    param_index = _fill_arima_initial_states(B, param_index, initials, arima)
-
-    param_index = _fill_constant_parameter(B, param_index, constants)
-
-    # Update matrices with filled parameters
-    matrices = _update_matrices_with_parameters(
-        mat_vt,
-        mat_wt,
-        mat_f,
-        vec_g,
-        model_type_dict,
-        components_dict,
-        persistence,
-        initials,
-        arima,
-        explanatory,
-        phi,
-        constants,
-        lags_dict,
-    )
-
-    return matrices
-
-
-def _fill_persistence_parameters(
-    B, param_index, persistence, ets_model, model_is_trendy, model_is_seasonal
-):
-    """
-    Fill persistence parameters from parameter vector.
-
-    Args:
-        B: Parameter vector
-        param_index: Current parameter index
-        persistence: Persistence parameters dictionary
-        ets_model: Boolean indicating if ETS model is used
-        model_is_trendy: Boolean indicating if model has trend
-        model_is_seasonal: Boolean indicating if model has seasonality
-
-    Returns:
-        int: Updated parameter index
-    """
-    if ets_model:
-        # Persistence for level
-        if persistence["persistence_level_estimate"]:
-            persistence["persistence_level"] = B[param_index]
-            param_index += 1
-
-        # Persistence for trend
-        if model_is_trendy and persistence["persistence_trend_estimate"]:
-            persistence["persistence_trend"] = B[param_index]
-            param_index += 1
-
-        # Persistence for seasonality
-        if model_is_seasonal:
-            for i in range(len(persistence["persistence_seasonal"])):
-                if persistence["persistence_seasonal_estimate"][i]:
-                    persistence["persistence_seasonal"][i] = B[param_index]
-                    param_index += 1
-
-    return param_index
-
-
-def _fill_arima_parameters(B, param_index, arima):
-    """
-    Fill ARIMA parameters from parameter vector.
-
-    Args:
-        B: Parameter vector
-        param_index: Current parameter index
-        arima: ARIMA parameters dictionary
-
-    Returns:
-        int: Updated parameter index
-    """
-    if arima["arima_model"]:
-        # AR parameters
-        if arima["ar_estimate"]:
-            # Check if we already have parameters
-            if "arma_parameters" not in arima:
-                arima["arma_parameters"] = []
-
-            # Get total AR parameters
-            ar_params_count = sum(arima["ar_orders"])
-
-            # Fill AR parameters
-            for i in range(ar_params_count):
-                if param_index < len(B):
-                    arima["arma_parameters"].append(B[param_index])
-                    param_index += 1
-
-        # MA parameters
-        if arima["ma_estimate"]:
-            # If no AR parameters were estimated, initialize the array
-            if "arma_parameters" not in arima:
-                arima["arma_parameters"] = []
-
-            # Get total MA parameters
-            ma_params_count = sum(arima["ma_orders"])
-
-            # Fill MA parameters
-            for i in range(ma_params_count):
-                if param_index < len(B):
-                    arima["arma_parameters"].append(B[param_index])
-                    param_index += 1
-
-    return param_index
-
-
-def _fill_explanatory_parameters(B, param_index, explanatory):
-    """
-    Fill explanatory variable parameters from parameter vector.
-
-    Args:
-        B: Parameter vector
-        param_index: Current parameter index
-        explanatory: Explanatory variables parameters dictionary
-
-    Returns:
-        int: Updated parameter index
-    """
-    if explanatory["xreg_model"] and explanatory["xreg_estimate"]:
-        if "xreg_parameters" not in explanatory:
-            explanatory["xreg_parameters"] = []
-
-        for i in range(explanatory["xreg_number"]):
-            if param_index < len(B):
-                explanatory["xreg_parameters"].append(B[param_index])
-                param_index += 1
-
-    return param_index
-
-
-def _fill_phi_parameter(B, param_index, phi, ets_model, model_is_trendy):
-    """
-    Fill phi (damping) parameter from parameter vector.
-
-    Args:
-        B: Parameter vector
-        param_index: Current parameter index
-        phi: Phi parameters dictionary
-        ets_model: Boolean indicating if ETS model is used
-        model_is_trendy: Boolean indicating if model has trend
-
-    Returns:
-        int: Updated parameter index
-    """
-    if ets_model and model_is_trendy and phi["phi_estimate"]:
-        if param_index < len(B):
-            phi["phi"] = B[param_index]
-            param_index += 1
-
-    return param_index
-
-
-def _fill_initial_states(
-    B,
-    param_index,
-    initials,
-    ets_model,
-    model_is_trendy,
-    model_is_seasonal,
-    components_number_ets_seasonal,
-    lags_dict,
-):
-    """
-    Fill initial states from parameter vector.
-
-    Args:
-        B: Parameter vector
-        param_index: Current parameter index
-        initials: Initial values dictionary
-        ets_model: Boolean indicating if ETS model is used
-        model_is_trendy: Boolean indicating if model has trend
-        model_is_seasonal: Boolean indicating if model has seasonality
-        components_number_ets_seasonal: Number of seasonal components in ETS model
-        lags_dict: Dictionary containing lags information
-
-    Returns:
-        int: Updated parameter index
-    """
-    if ets_model:
-        # Initial level
-        if initials["initial_level_estimate"]:
-            if param_index < len(B):
-                initials["initial_level"] = B[param_index]
-                param_index += 1
-
-        # Initial trend
-        if model_is_trendy and initials["initial_trend_estimate"]:
-            if param_index < len(B):
-                initials["initial_trend"] = B[param_index]
-                param_index += 1
-
-        # Initial seasonal
-        if model_is_seasonal and initials["initial_seasonal_estimate"]:
-            if "initial_seasonal" not in initials:
-                initials["initial_seasonal"] = [None] * components_number_ets_seasonal
-
-            for i in range(components_number_ets_seasonal):
-                seasonal_i = []
-                for j in range(lags_dict["lags_model"][i + 1 + int(model_is_trendy)]):
-                    if param_index < len(B):
-                        seasonal_i.append(B[param_index])
-                        param_index += 1
-
-                if len(seasonal_i) > 0:
-                    initials["initial_seasonal"][i] = seasonal_i
-
-    return param_index
-
-
-def _fill_arima_initial_states(B, param_index, initials, arima):
-    """
-    Fill ARIMA initial states from parameter vector.
-
-    Args:
-        B: Parameter vector
-        param_index: Current parameter index
-        initials: Initial values dictionary
-        arima: ARIMA parameters dictionary
-
-    Returns:
-        int: Updated parameter index
-    """
-    if arima["arima_model"] and initials["initial_arima_estimate"]:
-        initial_arima_values = []
-
-        for i in range(initials["initial_arima_number"]):
-            if param_index < len(B):
-                initial_arima_values.append(B[param_index])
-                param_index += 1
-
-        if len(initial_arima_values) > 0:
-            initials["initial_arima"] = initial_arima_values
-
-    return param_index
-
-
-def _fill_constant_parameter(B, param_index, constants):
-    """
-    Fill constant parameter from parameter vector.
-
-    Args:
-        B: Parameter vector
-        param_index: Current parameter index
-        constants: Constants parameters dictionary
-
-    Returns:
-        int: Updated parameter index
-    """
-    if constants["constant_required"] and constants["constant_estimate"]:
-        if param_index < len(B):
-            constants["constant_value"] = B[param_index]
-            param_index += 1
-
-    return param_index
-
-
-def _update_matrices_with_parameters(
-    mat_vt,
-    mat_wt,
-    mat_f,
-    vec_g,
-    model_type_dict,
-    components_dict,
-    persistence,
-    initials,
-    arima,
-    explanatory,
-    phi,
-    constants,
-    lags_dict,
-):
-    """
-    Update matrices with filled parameters.
-
-    Args:
-        mat_vt: State matrix
-        mat_wt: Measurement matrix
-        mat_f: Transition matrix
-        vec_g: Persistence vector
-        model_type_dict: Dictionary containing model type information
-        components_dict: Dictionary containing component information
-        persistence: Filled persistence parameters dictionary
-        initials: Filled initial values dictionary
-        arima: Filled ARIMA parameters dictionary
-        explanatory: Filled explanatory variables parameters dictionary
-        phi: Filled phi parameters dictionary
-        constants: Filled constants parameters dictionary
-        lags_dict: Dictionary containing lags information
-
-    Returns:
-        Dict: Dictionary containing updated matrices
-    """
-    # Get model parameters
-    ets_model = model_type_dict["ets_model"]
-    model_is_trendy = model_type_dict["model_is_trendy"]
-    error_type = model_type_dict["error_type"]
-    components_number_ets = components_dict["components_number_ets"]
-    components_number_arima = components_dict.get("components_number_arima", 0)
-    lags = lags_dict["lags"]
-    lags_model_max = lags_dict["lags_model_max"]
-
-    # Update with persistence parameters
-    if ets_model:
-        j = 0
-        # Level persistence
-        vec_g[j, 0] = persistence["persistence_level"]
-        j += 1
-
-        # Trend persistence
-        if model_is_trendy:
-            vec_g[j, 0] = persistence["persistence_trend"]
-            j += 1
-
-        # Seasonal persistence
-        for gamma in persistence["persistence_seasonal"]:
-            vec_g[j, 0] = gamma
-            j += 1
-
-        # Damping parameter
-        if model_is_trendy:
-            mat_f[0, 1] = phi["phi"]
-            mat_f[1, 1] = phi["phi"]
-            mat_wt[:, 1] = phi["phi"]
-
-        # Initial states
-        j = 0
-        mat_vt[j, 0:lags_model_max] = initials["initial_level"]
-        j += 1
-
-        if model_is_trendy:
-            mat_vt[j, 0:lags_model_max] = initials["initial_trend"]
-            j += 1
-
-        if model_type_dict["model_is_seasonal"]:
-            for i, seasonal in enumerate(initials["initial_seasonal"]):
-                if seasonal is not None:
-                    mat_vt[j + i, 0 : len(seasonal)] = seasonal
-
-    # Update with ARIMA parameters
-    if arima["arima_model"]:
-        # Handle ARIMA parameters
-        if "arma_parameters" in arima and len(arima["arma_parameters"]) > 0:
-            # Generate polynomials from parameters
-            arima_polynomials = {
-                key: np.array(value)
-                for key, value in adam_polynomialiser(
-                    0,
-                    arima["ar_orders"],
-                    arima["i_orders"],
-                    arima["ma_orders"],
-                    arima["ar_estimate"],
-                    arima["ma_estimate"],
-                    arima["arma_parameters"],
-                    lags,
-                ).items()
-            }
-
-            # Fill in the transition matrix
-            if len(arima["non_zero_ari"]) > 0:
-                non_zero_ari = np.array(arima["non_zero_ari"])
-                mat_f[
-                    components_number_ets + non_zero_ari[:, 1],
-                    components_number_ets + non_zero_ari[:, 1],
-                ] = -arima_polynomials["ari_polynomial"][non_zero_ari[:, 0]]
-
-            # Fill in the persistence vector
-            if len(arima["non_zero_ari"]) > 0:
-                non_zero_ari = np.array(arima["non_zero_ari"])
-                vec_g[components_number_ets + non_zero_ari[:, 1], 0] = (
-                    -arima_polynomials["ari_polynomial"][non_zero_ari[:, 0]]
-                )
-
-            if len(arima["non_zero_ma"]) > 0:
-                non_zero_ma = np.array(arima["non_zero_ma"])
-                vec_g[
-                    components_number_ets + non_zero_ma[:, 1], 0
-                ] += arima_polynomials["ma_polynomial"][non_zero_ma[:, 0]]
-
-        # Initial ARIMA states
-        if "initial_arima" in initials and initials["initial_arima"] is not None:
-            mat_vt[
-                components_number_ets : components_number_ets + components_number_arima,
-                0 : min(
-                    len(initials["initial_arima"]), initials["initial_arima_number"]
-                ),
-            ] = np.array(
-                initials["initial_arima"][: initials["initial_arima_number"]]
-            ).reshape(
-                1, -1
-            )
-
-    # Update with explanatory variables parameters
-    if (
-        explanatory["xreg_model"]
-        and "xreg_parameters" in explanatory
-        and len(explanatory["xreg_parameters"]) > 0
-    ):
-        # Fill in the persistence vector
-        for i, beta in enumerate(explanatory["xreg_parameters"]):
-            if i < explanatory["xreg_number"]:
-                vec_g[components_number_ets + components_number_arima + i, 0] = beta
-
-    # Update with constant parameter
-    if constants["constant_required"]:
-        # Fill in constant value
-        if "constant_value" in constants:
-            mat_vt[
-                components_number_ets
-                + components_number_arima
-                + explanatory["xreg_number"],
-                :,
-            ] = constants["constant_value"]
-
-        # Modify transition for drift
-        if not arima["arima_model"]:
-            mat_f[0, -1] = 1
-
-    return {"mat_vt": mat_vt, "mat_wt": mat_wt, "mat_f": mat_f, "vec_g": vec_g}
+                     raise ValueError("Not enough valid observations for diff")
+            except Exception as e:
+                 # print(f"Constant bounds calculation failed: {e}") # Optional debug
+                 Bl[param_idx], Bu[param_idx] = (-np.inf, np.inf) if error_type == "A" else (0, np.inf) # Old: 0, not 1e-10
+        else: # Not ETS and no differencing
+             y_abs_max = np.abs(y_in_sample[ot_logical]).max() if np.sum(ot_logical)>0 else 1
+             current_B_val = B[param_idx] # Value already set or default 0
+             Bl[param_idx] = -max(y_abs_max, abs(current_B_val) * 1.01 if np.isfinite(current_B_val) else y_abs_max) # handle non-finite B
+             Bu[param_idx] = -Bl[param_idx]
+             if not (np.isfinite(Bl[param_idx]) and np.isfinite(Bu[param_idx])): # Fallback if calculation fails
+                Bl[param_idx], Bu[param_idx] = -np.inf, np.inf
+
+
+        # Ensure B is within bounds
+        B[param_idx] = np.clip(B[param_idx], Bl[param_idx], Bu[param_idx])
+
+        names.append(constants_checked.get('constant_name', "constant"))
+        param_idx += 1
+
+    # Final check for parameter count consistency
+    if param_idx != total_params:
+        #print(f"Warning: Parameter count mismatch! Expected {total_params}, got {param_idx}. Adjusting arrays.")
+        # Attempt to resize arrays - this might indicate logic error elsewhere
+        B = B[:param_idx]
+        Bl = Bl[:param_idx]
+        Bu = Bu[:param_idx]
+    # Return the dictionary in the expected format
+    return {"B": B, "Bl": Bl, "Bu": Bu, "names": names}
 
 
 def architector(
@@ -2213,9 +1997,14 @@ def architector(
     Returns:
         Tuple: Updated model dictionaries
     """
-    # Set up components for the model
-    components_dict = _setup_components(model_type_dict, arima_checked)
+    # Ensure model_is_trendy and model_is_seasonal flags are consistently set.
+    # A trend_type of "N" means no trend.
+    model_type_dict["model_is_trendy"] = model_type_dict.get("trend_type", "N") != "N"
+    # A season_type of "N" means no seasonality.
+    model_type_dict["model_is_seasonal"] = model_type_dict.get("season_type", "N") != "N"
 
+    # Set up components for the model
+    components_dict = _setup_components(model_type_dict, arima_checked, lags_dict)
     # Set up lags
     lags_dict = _setup_lags(lags_dict, model_type_dict, components_dict)
 
@@ -2224,10 +2013,13 @@ def architector(
         profiles_recent_provided, profiles_recent_table, lags_dict, observations_dict
     )
 
+    # Update obs states
+    observations_dict["obs_states"] = observations_dict["obs_in_sample"] + lags_dict["lags_model_max"]
+
     return model_type_dict, components_dict, lags_dict, observations_dict, profiles_dict
 
 
-def _setup_components(model_type_dict, arima_checked):
+def _setup_components(model_type_dict, arima_checked, lags_dict):
     """
     Set up components for the model architecture.
 
@@ -2249,25 +2041,28 @@ def _setup_components(model_type_dict, arima_checked):
         # Add trend component if needed
         if model_type_dict["model_is_trendy"]:
             components_number_ets += 1
-
         # Add seasonal components if needed
         components_number_ets_seasonal = 0
+        
         if model_type_dict["model_is_seasonal"]:
-            # Count number of seasonal components
-            components_number_ets_seasonal = len(
-                [lag for lag in model_type_dict.get("seasonal_periods", []) if lag > 1]
-            )
+            # Count number of seasonal components based on the original lags provided.
+            # A seasonal lag is any lag > 1 in the original lags list for the model.
+            original_lags = lags_dict.get("lags", []) 
+            components_number_ets_seasonal = sum(1 for lag_period in original_lags if lag_period > 1)
             components_number_ets += components_number_ets_seasonal
-
         # Store in dictionary
         components_dict["components_number_ets"] = components_number_ets
         components_dict["components_number_ets_seasonal"] = (
             components_number_ets_seasonal
         )
+        components_dict["components_number_ets_non_seasonal"] = (
+            components_number_ets - components_number_ets_seasonal
+        )
     else:
         # No ETS components
         components_dict["components_number_ets"] = 0
         components_dict["components_number_ets_seasonal"] = 0
+        components_dict["components_number_ets_non_seasonal"] = 0
 
     # Determine ARIMA components
     if arima_checked and arima_checked["arima_model"]:
@@ -2311,6 +2106,8 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
 
         # Seasonal components have lags corresponding to seasonal periods
         if model_type_dict["model_is_seasonal"]:
+            lags_model_seasonal = []
+            
             for lag in lags:
                 if lag > 1:
                     lags_model.append(lag)
@@ -2326,17 +2123,16 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
 
     # Combine all lags
     lags_model_all = lags_model + lags_model_arima
-
     # Find maximum lag
     lags_model_max = max(lags_model_all) if lags_model_all else 1
 
     # Update lags dictionary
     lags_dict_updated = lags_dict.copy()
     lags_dict_updated["lags_model"] = lags_model
+    lags_dict_updated["lags"] = lags_model
     lags_dict_updated["lags_model_arima"] = lags_model_arima
     lags_dict_updated["lags_model_all"] = lags_model_all
     lags_dict_updated["lags_model_max"] = lags_model_max
-
     return lags_dict_updated
 
 
@@ -2375,7 +2171,7 @@ def _create_profiles(
 
         # Store profiles in dictionary
         profiles_dict["profiles_recent_table"] = profiles["profiles_recent_table"]
-
+        profiles_dict["index_lookup_table"] = profiles["index_lookup_table"]
     return profiles_dict
 
 
@@ -2385,160 +2181,247 @@ def adam_profile_creator(
     obs_all: int,
     lags: Union[List[int], None] = None,
     y_index: Union[List, None] = None,
-    y_classes: Union[List, None] = None,
+    y_classes: Union[List, None] = None
 ) -> Dict[str, np.ndarray]:
     """
-    Create profile matrices for ADAM.
+    Creates recent profile and the lookup table for ADAM.
 
     Args:
-        lags_model_all: List of all model lags
-        lags_model_max: Maximum lag in the model
-        obs_all: Total number of observations
-        lags: List of seasonal periods
-        y_index: Index for time series
-        y_classes: Classes for time series
+        lags_model_all: All lags used in the model for ETS + ARIMA + xreg.
+        lags_model_max: The maximum lag used in the model.
+        obs_all: Number of observations to create.
+        lags: The original lags provided by user (optional).
+        y_index: The indices needed to get the specific dates (optional).
+        y_classes: The class used for the actual data (optional).
 
     Returns:
-        Dict: Dictionary containing profile matrices
+        A dictionary with 'recent' (profiles_recent_table) and 'lookup'
+        (index_lookup_table) as keys.
     """
-    # Determine profile dimensions
-    profile_dims = _determine_profile_dimensions(lags_model_all, obs_all)
-
-    # Initialize profile matrices
-    profiles = _initialize_profile_matrices(profile_dims)
-
-    # Fill profile matrices
-    profiles = _fill_profile_matrices(
-        profiles, lags_model_all, lags_model_max, obs_all, lags, y_index, y_classes
+    # Initialize matrices
+    # Flatten lags_model_all to handle it properly
+    # This is needed because in R, the lagsModelAll is a flat vector, but in Python it's a list of lists
+    
+    profiles_recent_table = np.zeros((len(lags_model_all), lags_model_max))
+    index_lookup_table = np.ones((len(lags_model_all), obs_all + lags_model_max))
+    profile_indices = (
+        np.arange(1, lags_model_max * len(lags_model_all) + 1)
+        .reshape(-1, len(lags_model_all))
+        .T
     )
 
-    return profiles
+    # Update matrices based on lagsModelAll
+    # Update matrices based on lagsModelAll
+    for i, lag in enumerate(lags_model_all):
+        # Create the matrix with profiles based on the provided lags.
+        # For every row, fill the first 'lag' elements from 1 to lag
+        profiles_recent_table[i, : lag] = np.arange(1, lag + 1)
 
+        # For the i-th row in indexLookupTable, fill with a repeated sequence starting
+        # from lagsModelMax to the end of the row.
+        # The repeated sequence is the i-th row of profileIndices, repeated enough times
+        # to cover 'obsAll' observations.
+        # '- 1' at the end adjusts these values to Python's zero-based indexing.
+        # Fix the array size mismatch - ensure we're using the correct range
+        index_lookup_table[i, lags_model_max:(lags_model_max+obs_all)] = (
+            np.tile(
+                profile_indices[i, :lags_model_all[i]],
+                int(np.ceil((obs_all) / lags_model_all[i]))
+            )[0:(obs_all)] - 1
+        )
+        
+        # Fix the head of the data, before the sample starts
+        # (equivalent to the tail() operation in R code)
+        unique_indices = np.unique(index_lookup_table[i, lags_model_max:(lags_model_max+obs_all-1)])
+        index_lookup_table[i, :lags_model_max] = np.tile(unique_indices, lags_model_max)[:lags_model_max]
+    # Convert to int!
+    index_lookup_table = index_lookup_table.astype(int)
 
-def _determine_profile_dimensions(lags_model_all, obs_all):
-    """
-    Determine dimensions for profile matrices.
-
-    Args:
-        lags_model_all: List of all model lags
-        obs_all: Total number of observations
-
-    Returns:
-        Dict: Dictionary containing profile dimensions
-    """
-    # Get number of components from the lags
-    n_components = len(lags_model_all)
-
-    # Calculate total number of lagged components
-    n_lagged_components = sum(lags_model_all)
-
-    # Calculate total observation space
-    n_obs_all = obs_all
-
-    return {
-        "n_components": n_components,
-        "n_lagged_components": n_lagged_components,
-        "n_obs_all": n_obs_all,
+    # Note: I skip handling of special cases (e.g., daylight saving time, leap years)
+    profiles = {
+        "profiles_recent_table": np.array(profiles_recent_table, dtype="float64"),
+        "index_lookup_table": np.array(index_lookup_table, dtype="int64"),
     }
-
-
-def _initialize_profile_matrices(profile_dims):
-    """
-    Initialize profile matrices.
-
-    Args:
-        profile_dims: Dictionary containing profile dimensions
-
-    Returns:
-        Dict: Dictionary containing initialized profile matrices
-    """
-    n_components = profile_dims["n_components"]
-    n_lagged_components = profile_dims["n_lagged_components"]
-    n_obs_all = profile_dims["n_obs_all"]
-
-    # Initialize recent profiles table
-    # Using dimensions consistent with original implementation (n_components x lags_model_max)
-    profiles_recent_table = np.zeros((n_components, n_lagged_components))
-
-    return {"profiles_recent_table": profiles_recent_table}
-
-
-def _fill_profile_matrices(
-    profiles, lags_model_all, lags_model_max, obs_all, lags, y_index, y_classes
-):
-    """
-    Fill profile matrices with proper values.
-
-    Args:
-        profiles: Dictionary containing profile matrices
-        lags_model_all: List of all model lags
-        lags_model_max: Maximum lag in the model
-        obs_all: Total number of observations
-        lags: List of seasonal periods
-        y_index: Index for time series
-        y_classes: Classes for time series
-
-    Returns:
-        Dict: Dictionary containing filled profile matrices
-    """
-    # Initialize column counter
-    col = 0
-
-    # Loop through each component
-    for i, component_lags in enumerate(lags_model_all):
-        # Loop through lags for this component
-        for j in range(component_lags):
-            # Generate index values for this lag
-            idx_values = _generate_lagged_indexes(
-                i, j, lags_model_all, lags_model_max, obs_all, lags, y_index, y_classes
-            )
-
-            # Fill the profile table with these values
-            profiles["profiles_recent_table"][:, col] = idx_values
-
-            # Update column counter
-            col += 1
-
     return profiles
 
 
-def _generate_lagged_indexes(
-    i, j, lags_model_all, lags_model_max, obs_all, lags, y_index, y_classes
-):
+def filler(B, 
+           model_type_dict,
+           components_dict,
+           lags_dict,
+           matrices_dict,
+           persistence_checked,
+           initials_checked,
+           arima_checked,
+           explanatory_checked,
+           phi_dict,
+           constants_checked):
     """
-    Generate lagged indexes for a specific component and lag.
-
-    Args:
-        i: Component index
-        j: Lag index
-        lags_model_all: List of all model lags
-        lags_model_max: Maximum lag in the model
-        obs_all: Total number of observations
-        lags: List of seasonal periods
-        y_index: Index for time series
-        y_classes: Classes for time series
-
-    Returns:
-        np.ndarray: Array of lagged indexes
+    Updates model matrices based on parameter values.
     """
-    # Initialize index values
-    idx_values = np.zeros(obs_all)
+    j = 0
+    # Fill in persistence
+    if persistence_checked['persistence_estimate']:
+        # Persistence of ETS
+        if model_type_dict['ets_model']:
+            i = 0
+            # alpha
+            if persistence_checked['persistence_level_estimate']:
+                j += 1
+                matrices_dict['vec_g'][i] = B[j-1]
+            # beta
+            if model_type_dict['model_is_trendy']:
+                i = 1
+                if persistence_checked['persistence_trend_estimate']:
+                    j += 1
+                    matrices_dict['vec_g'][i] = B[j-1]
+                    
+            
+            # gamma1, gamma2, ...
+            if model_type_dict['model_is_seasonal']:
+                if any(persistence_checked['persistence_seasonal_estimate']):
+                    seasonal_indices = i + np.where(persistence_checked['persistence_seasonal_estimate'])[0] + 1
+                    matrices_dict['vec_g'][seasonal_indices] = B[j:j+sum(persistence_checked['persistence_seasonal_estimate'])]
+                    j += sum(persistence_checked['persistence_seasonal_estimate'])
+                i = components_dict['components_number_ets'] - 1
+        
+        # Persistence of xreg
+        if explanatory_checked['xreg_model'] and persistence_checked['persistence_xreg_estimate']:
+            xreg_persistence_number = max(explanatory_checked['xreg_parameters_persistence'])
+            xreg_indices = slice(j + components_dict['components_number_arima'], j + components_dict['components_number_arima'] + len(explanatory_checked['xreg_parameters_persistence']))
+            matrices_dict['vec_g'][xreg_indices] = B[j:j+xreg_persistence_number][np.array(explanatory_checked['xreg_parameters_persistence']) - 1]
+            j += xreg_persistence_number
+    
+    # Damping parameter
+    if model_type_dict['ets_model'] and phi_dict['phi_estimate']:
+        j += 1
+        matrices_dict['mat_wt'][:, 1] = B[j-1]
+        matrices_dict['mat_f'][0:2, 1] = B[j-1]
+    
+    # ARMA parameters
+    if arima_checked['arima_model']:
+        # Call the function returning ARI and MA polynomials
+        try:
+            arima_polynomials = adam_polynomialiser(
+                B[j:j+sum(np.array(arima_checked['ar_orders'])*arima_checked['ar_estimate'] + 
+                         np.array(arima_checked['ma_orders'])*arima_checked['ma_estimate'])],
+                arima_checked['ar_orders'],
+                arima_checked['ma_orders'],
+                arima_checked['i_orders'],
+                arima_checked['ar_estimate'],
+                arima_checked['ma_estimate'],
+                arima_checked['arma_parameters'],
+                lags_dict['lags']
+            )
+            arima_polynomials = {k: np.array(v) for k, v in arima_polynomials.items()}
+            
+            # Fill in the transition matrix
+            if len(arima_checked['non_zero_ari']) > 0:
+                matrices_dict['mat_f'][components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1], 
+                       components_dict['components_number_ets']:components_dict['components_number_ets'] + components_dict['components_number_arima'] + constants_checked['constant_estimate']] = \
+                     -arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]]
+            
+            # Fill in the persistence vector
+            if len(arima_checked['non_zero_ari']) > 0:
+                matrices_dict['vec_g'][components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1]] = -arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]]
+            if len(arima_checked['non_zero_ma']) > 0:
+                matrices_dict['vec_g'][components_dict['components_number_ets'] + arima_checked['non_zero_ma'][:, 1]] += arima_polynomials['maPolynomial'][arima_checked['non_zero_ma'][:, 0]]
+        except Exception as e:
+            print(f"DEBUG - Error in ARIMA processing: {e}")
+        
+        j += sum(np.array(arima_checked['ar_orders'])*arima_checked['ar_estimate'] + 
+                np.array(arima_checked['ma_orders'])*arima_checked['ma_estimate'])
+    
+    # Initials of ETS
+    if model_type_dict['ets_model'] and initials_checked['initial_type'] not in ['complete', 'backcasting'] and initials_checked['initial_estimate']:
+        i = 0
+        if initials_checked['initial_level_estimate']:
+            j += 1
+            matrices_dict['mat_vt'][i, :lags_dict['lags_model_max']] = B[j-1]
+            
+        i += 1
+        if model_type_dict['model_is_trendy'] and initials_checked['initial_trend_estimate']:
+            j += 1
+            matrices_dict['mat_vt'][i, :lags_dict['lags_model_max']] = B[j-1]
+            i += 1
+        
+        if model_type_dict["model_is_seasonal"] and (isinstance(initials_checked['initial_seasonal_estimate'], bool) and initials_checked['initial_seasonal_estimate'] or isinstance(initials_checked['initial_seasonal_estimate'], list) and any(initials_checked['initial_seasonal_estimate'])):
+            for k in range(components_dict['components_number_ets_seasonal']):
+                # Convert initial_seasonal_estimate to a list if it's not already
+                # This is for handling single seasonalities
+                if isinstance(initials_checked['initial_seasonal_estimate'], bool):
+                    initials_checked['initial_seasonal_estimate'] = [initials_checked['initial_seasonal_estimate']] * components_dict['components_number_ets_seasonal']
 
-    # Calculate lag
-    if i < len(lags_model_all) and lags_model_all[i] > 0:
-        lag = j + 1
-    else:
-        lag = 1
+                if initials_checked['initial_seasonal_estimate'][k]:
+                    # added a -1 because the seasonal index is 0-based in R
+                    seasonal_index = components_dict['components_number_ets'] - components_dict['components_number_ets_seasonal'] + k
+                    lag = lags_dict['lags'][seasonal_index]
 
-    # Fill index values
-    for t in range(obs_all):
-        if t >= lags_model_max - lag:
-            t_lag = t - lag
-            if t_lag >= 0:
-                idx_values[t] = t_lag + 1
-            else:
-                idx_values[t] = 0
-        else:
-            idx_values[t] = 0
+                    matrices_dict['mat_vt'][seasonal_index, :lag - 1] = B[j:j+lag]
+                    
+                    if model_type_dict['season_type'] == "A":
+                        matrices_dict['mat_vt'][seasonal_index, lag-1] = -np.sum(B[j:j+lag])
+                    else:  # "M"
+                        matrices_dict['mat_vt'][seasonal_index, lag-1] = 1 / np.prod(B[j:j+lag])
 
-    return idx_values
+                    j += lag - 1
+    
+    # Initials of ARIMA
+    if arima_checked['arima_model']:
+        if initials_checked['initial_type'] not in ['complete', 'backcasting'] and initials_checked['initial_arima_estimate']:
+            #print(f"DEBUG - Processing ARIMA initial values starting at index {j}")
+            arima_index = components_dict['components_number_ets'] + components_dict['components_number_arima'] - 1
+            
+
+            matrices_dict['mat_vt'][arima_index, :initials_checked['initial_arima_number']] = B[j:j+initials_checked['initial_arima_number']]
+            
+            if model_type_dict['error_type'] == "A":
+                ari_indices = components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1]
+                matrices_dict['mat_vt'][ari_indices, :initials_checked['initial_arima_number']] = \
+                    np.dot(arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]], 
+                            B[j:j+initials_checked['initial_arima_number']].reshape(1, -1)) / arima_polynomials['ariPolynomial'][-1]
+            else:  # "M"
+                ari_indices = components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1]
+                matrices_dict['mat_vt'][ari_indices, :initials_checked['initial_arima_number']] = \
+                    np.exp(np.dot(arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]], 
+                                    np.log(B[j:j+initials_checked['initial_arima_number']]).reshape(1, -1)) / arima_polynomials['ariPolynomial'][-1])
+            
+        
+            j += initials_checked['initial_arima_number']
+        elif any([arima_checked['ar_estimate'], arima_checked['ma_estimate']]):
+            if model_type_dict['error_type'] == "A":
+                matrices_dict['mat_vt'][components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1], 
+                                        :initials_checked['initial_arima_number']] = \
+                    np.dot(arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]], 
+                            matrices_dict['mat_vt'][components_dict['components_number_ets'] + components_dict['components_number_arima'] - 1, 
+                                                    :initials_checked['initial_arima_number']].reshape(1, -1)) / \
+                    arima_polynomials['ariPolynomial'][-1]
+            else:  # "M"
+                matrices_dict['mat_vt'][components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1], 
+                                        :initials_checked['initial_arima_number']] = \
+                    np.exp(np.dot(arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]], 
+                                    np.log(matrices_dict['mat_vt'][components_dict['components_number_ets'] + components_dict['components_number_arima'] - 1, 
+                                                                :initials_checked['initial_arima_number']]).reshape(1, -1)) / \
+                            arima_polynomials['ariPolynomial'][-1])
+            
+    # Xreg initial values
+    if explanatory_checked['xreg_model'] and (initials_checked['initial_type'] != "complete") and initials_checked['initial_estimate'] and initials_checked['initial_xreg_estimate']:
+        xreg_number_to_estimate = sum(explanatory_checked['xreg_parameters_estimated'])
+        xreg_indices = components_dict['components_number_ets'] + components_dict['components_number_arima'] + np.where(explanatory_checked['xreg_parameters_estimated'] == 1)[0]
+    
+        matrices_dict['mat_vt'][xreg_indices, :lags_dict['lags_model_max']] = B[j:j+xreg_number_to_estimate]
+
+        j += xreg_number_to_estimate
+    
+    # Constant
+    if constants_checked['constant_estimate']:
+        constant_index = components_dict['components_number_ets'] + components_dict['components_number_arima'] + explanatory_checked['xreg_number']
+        
+        matrices_dict['mat_vt'][constant_index, :] = B[j]
+    return {
+        'mat_vt': matrices_dict['mat_vt'],
+        'mat_wt': matrices_dict['mat_wt'],
+        'mat_f': matrices_dict['mat_f'],
+        'vec_g': matrices_dict['vec_g'],
+        'arima_polynomials': matrices_dict['arima_polynomials']
+    }
