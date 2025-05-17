@@ -5,7 +5,9 @@ from scipy.optimize import minimize
 from smooth.adam_general.core.utils.utils import msdecompose, calculate_acf, calculate_pacf
 from smooth.adam_general.core.utils.polynomials import adam_polynomialiser
 
-
+import warnings
+# Suppress divide by zero warnings
+warnings.filterwarnings('ignore', category=RuntimeWarning, message='divide by zero encountered')
 
 
 def creator(
