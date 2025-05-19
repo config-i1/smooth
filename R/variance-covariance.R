@@ -111,6 +111,7 @@ adamVarAnal <- function(lagsModel, h, measurement, transition, persistence, s2){
     # The vector of variances
     varMat <- rep(0, h);
 
+
     if(h>1){
         # Start the loop for varMat
         for(i in 2:h){

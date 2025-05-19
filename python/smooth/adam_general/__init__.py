@@ -1,3 +1,3 @@
-from smooth.adam_general.core.adam import Adam
+from ._adam_general import adam_fitter
 
-__all__ = ["Adam"]
+__all__ = ["adam_fitter"]
