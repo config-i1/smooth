@@ -6,35 +6,32 @@
 \alias{ssarima_old}
 \title{State Space ARIMA}
 \usage{
-ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
-  constant = FALSE, arma = NULL, formula = NULL, regressors = c("use",
-  "select", "adapt"), initial = c("backcasting", "optimal", "complete"),
+ssarima(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
+  constant = FALSE, arma = NULL, model = NULL,
+  initial = c("backcasting", "optimal", "two-stage", "complete"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
   "MSCE"), h = 0, holdout = FALSE, bounds = c("admissible", "usual",
-  "none"), silent = TRUE, model = NULL, ...)
+  "none"), silent = TRUE, xreg = NULL, regressors = c("use", "select",
+  "adapt"), initialX = NULL, ...)
 
-auto.ssarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
+auto.ssarima(y, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   lags = c(1, frequency(y)), fast = TRUE, constant = NULL,
-  formula = NULL, regressors = c("use", "select", "adapt"),
-  initial = c("backcasting", "optimal", "complete"), loss = c("likelihood",
-  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), ic = c("AICc",
-  "AIC", "BIC", "BICc"), h = 0, holdout = FALSE, bounds = c("admissible",
-  "none"), silent = TRUE, ...)
+  initial = c("backcasting", "optimal", "two-stage", "complete"),
+  loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
+  "MSCE"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 0, holdout = FALSE,
+  bounds = c("admissible", "none"), silent = TRUE, xreg = NULL,
+  regressors = c("use", "select", "adapt"), ...)
 
-ssarima_old(data, orders = list(ar = c(0), i = c(1), ma = c(1)),
-  lags = c(1), constant = FALSE, AR = NULL, MA = NULL,
-  initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC",
-  "BICc"), loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE",
-  "GTMSE", "MSCE"), h = 10, holdout = FALSE, bounds = c("admissible",
-  "none"), silent = c("all", "graph", "legend", "output", "none"),
-  xreg = NULL, regressors = c("use", "select"), initialX = NULL, ...)
+ssarima_old(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
+  constant = FALSE, AR = NULL, MA = NULL, initial = c("backcasting",
+  "optimal"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood",
+  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10,
+  holdout = FALSE, bounds = c("admissible", "none"), silent = c("all",
+  "graph", "legend", "output", "none"), xreg = NULL, regressors = c("use",
+  "select"), initialX = NULL, ...)
 }
 \arguments{
-\item{data}{Vector, containing data needed to be forecasted. If a matrix (or
-data.frame / data.table) is provided, then the first column is used as a
-response variable, while the rest of the matrix is used as a set of explanatory
-variables. \code{formula} can be used in the latter case in order to define what
-relation to have.}
+\item{y}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{orders}{List of orders, containing vector variables \code{ar},
 \code{i} and \code{ma}. Example:
@@ -59,14 +56,8 @@ also be a number (constant value).}
 The number of elements should correspond to the specified orders e.g.
 \code{orders=list(ar=c(1,1),ma=c(1,1)), lags=c(1,4), arma=list(ar=c(0.9,0.8),ma=c(-0.3,0.3))}}
 
-\item{formula}{Formula to use in case of explanatory variables. If \code{NULL},
-then all the variables are used as is. Can also include \code{trend}, which would add
-the global trend. Only needed if \code{data} is a matrix or if \code{trend} is provided.}
-
-\item{regressors}{The variable defines what to do with the provided xreg:
-\code{"use"} means that all of the data should be used, while
-\code{"select"} means that a selection using \code{ic} should be done.
-\code{"combine"} will be available at some point in future...}
+\item{model}{A previously estimated ssarima model, if provided, the function
+will not estimate anything and will use all its parameters.}
 
 \item{initial}{Can be either character or a vector of initial states. If it
 is character, then it can be \code{"optimal"}, meaning that the initial
@@ -98,19 +89,23 @@ the end of the data.}
 \item{bounds}{What type of bounds to use in the model estimation. The first
 letter can be used instead of the whole word.}
 
-\item{silent}{If \code{silent="none"}, then nothing is silent, everything is
-printed out and drawn. \code{silent="all"} means that nothing is produced or
-drawn (except for warnings). In case of \code{silent="graph"}, no graph is
-produced. If \code{silent="legend"}, then legend of the graph is skipped.
-And finally \code{silent="output"} means that nothing is printed out in the
-console, but the graph is produced. \code{silent} also accepts \code{TRUE}
-and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
-\code{silent="all"}, while \code{silent=FALSE} is equivalent to
-\code{silent="none"}. The parameter also accepts first letter of words ("n",
-"a", "g", "l", "o").}
+\item{silent}{accepts \code{TRUE} and \code{FALSE}. If FALSE, the function
+will print its progress and produce a plot at the end.}
 
-\item{model}{A previously estimated ssarima model, if provided, the function
-will not estimate anything and will use all its parameters.}
+\item{xreg}{The vector (either numeric or time series) or the matrix (or
+data.frame) of exogenous variables that should be included in the model. If
+matrix included than columns should contain variables and rows - observations.
+Note that \code{xreg} should have number of observations equal either to
+in-sample or to the whole series. If the number of observations in
+\code{xreg} is equal to in-sample, then values for the holdout sample are
+produced using \link[smooth]{es} function.}
+
+\item{regressors}{The variable defines what to do with the provided xreg:
+\code{"use"} means that all of the data should be used, while
+\code{"select"} means that a selection using \code{ic} should be done.}
+
+\item{initialX}{The vector of initial parameters for exogenous variables.
+Ignored if \code{xreg} is NULL.}
 
 \item{...}{Other non-documented parameters.
 
@@ -134,19 +129,6 @@ passed here.}
 be lag-wise. This means that first all the MA parameters of the firs lag
 should be passed, then for the second etc. MA of another ssarima can be
 passed here.}
-
-\item{xreg}{The vector (either numeric or time series) or the matrix (or
-data.frame) of exogenous variables that should be included in the model. If
-matrix included than columns should contain variables and rows - observations.
-Note that \code{xreg} should have number of observations equal either to
-in-sample or to the whole series. If the number of observations in
-\code{xreg} is equal to in-sample, then values for the holdout sample are
-produced using \link[smooth]{es} function.}
-
-\item{initialX}{The vector of initial parameters for exogenous variables.
-Ignored if \code{xreg} is NULL.}
-
-\item{y}{Vector or ts object, containing data needed to be forecasted.}
 }
 \value{
 Object of class "adam" is returned with similar elements to the
@@ -377,6 +359,8 @@ models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}
 }
 
 \itemize{
+\item Svetunkov, I., 2023. Smooth Forecasting with the Smooth Package in R. arXiv.
+\doi{10.48550/arXiv.2301.01790}
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
@@ -385,6 +369,8 @@ Springer-Verlag. \doi{10.1007/978-3-540-71918-2}.
 }
 
 \itemize{
+\item Svetunkov, I., 2023. Smooth Forecasting with the Smooth Package in R. arXiv.
+\doi{10.48550/arXiv.2301.01790}
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
@@ -393,16 +379,14 @@ Springer-Verlag. \doi{10.1007/978-3-540-71918-2}.
 }
 
 \itemize{
-\item Svetunkov Ivan and Boylan John E. (2017). Multiplicative
-State-Space Models for Intermittent Time Series. Working Paper of
-Department of Management Science, Lancaster University, 2017:4 , 1-43.
+\item Svetunkov, I., Boylan, J.E., 2023a. iETS: State Space Model for
+Intermittent Demand Forecastings. International Journal of Production
+Economics. 109013. \doi{10.1016/j.ijpe.2023.109013}
 \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
 Linking forecasting to inventory obsolescence. European Journal of
 Operational Research, 214, 606-615.
 \item Croston, J. (1972) Forecasting and stock control for intermittent
 demands. Operational Research Quarterly, 23(3), 289-303.
-\item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
-estimates. International Journal of Forecasting, 21(2), 303-314.
 }
 
 \itemize{
@@ -412,6 +396,8 @@ International Journal of Production Research, 0(0), 1–10.
 }
 
 \itemize{
+\item Svetunkov, I., 2023. Smooth Forecasting with the Smooth Package in R. arXiv.
+\doi{10.48550/arXiv.2301.01790}
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)

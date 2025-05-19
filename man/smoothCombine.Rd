@@ -92,16 +92,8 @@ quantile-wise (\code{"quantile"}) or probability-wise
 \item{bounds}{What type of bounds to use in the model estimation. The first
 letter can be used instead of the whole word.}
 
-\item{silent}{If \code{silent="none"}, then nothing is silent, everything is
-printed out and drawn. \code{silent="all"} means that nothing is produced or
-drawn (except for warnings). In case of \code{silent="graph"}, no graph is
-produced. If \code{silent="legend"}, then legend of the graph is skipped.
-And finally \code{silent="output"} means that nothing is printed out in the
-console, but the graph is produced. \code{silent} also accepts \code{TRUE}
-and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
-\code{silent="all"}, while \code{silent=FALSE} is equivalent to
-\code{silent="none"}. The parameter also accepts first letter of words ("n",
-"a", "g", "l", "o").}
+\item{silent}{accepts \code{TRUE} and \code{FALSE}. If FALSE, the function
+will print its progress and produce a plot at the end.}
 
 \item{xreg}{The vector (either numeric or time series) or the matrix (or
 data.frame) of exogenous variables that should be included in the model. If
@@ -113,8 +105,7 @@ produced using \link[smooth]{es} function.}
 
 \item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
-\code{"select"} means that a selection using \code{ic} should be done.
-\code{"combine"} will be available at some point in future...}
+\code{"select"} means that a selection using \code{ic} should be done.}
 
 \item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}
@@ -180,6 +171,8 @@ smoothCombine(BJsales,models=models)}
 }
 \references{
 \itemize{
+\item Svetunkov, I., 2023. Smooth Forecasting with the Smooth Package in R. arXiv.
+\doi{10.48550/arXiv.2301.01790}
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
@@ -190,6 +183,9 @@ Springer-Verlag. \doi{10.1007/978-3-540-71918-2}.
 \itemize{
 \item Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike
 weights. International Journal of Forecasting, 27, pp 238 - 251.
+\item Svetunkov, I., Boylan, J.E., 2023b. Staying Positive: Challenges and
+ Solutions in Using Pure Multiplicative ETS Models. IMA Journal of
+ Management Mathematics. p. 403-425. \doi{10.1093/imaman/dpad028}
 }
 
 \itemize{

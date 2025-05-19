@@ -22,8 +22,7 @@ test_that("Test if crazy order SSARIMA was estimated on AirPassengers", {
 # Test selection of exogenous with Auto.SSARIMA
 test_that("Use exogenous variables for auto SSARIMAX on BJsales with selection", {
     skip_on_cran()
-    xregData <- data.frame(y=BJsales, x=xregExpander(BJsales.lead))
-    testModel <- auto.ssarima(xregData, orders=list(ar=3,i=2,ma=3), lags=1, h=18, holdout=TRUE,
-                              regressors="use", silent=TRUE)
+    testModel <- auto.ssarima(BJsales, orders=list(ar=3,i=2,ma=3), lags=1, h=18, holdout=TRUE,
+                              regressors="use", silent=TRUE, xreg=xregExpander(BJsales.lead))
     expect_equal(length(testModel$initial$xreg),3)
 })

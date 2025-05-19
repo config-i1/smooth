@@ -3,14 +3,13 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @rdname ces
 #' @export
-ces_old <- function(data, seasonality=c("none","simple","partial","full"),
+ces_old <- function(y, seasonality=c("none","simple","partial","full"),
                     initial=c("backcasting","optimal"), a=NULL, b=NULL, ic=c("AICc","AIC","BIC","BICc"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE,
-                    # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                     bounds=c("admissible","none"),
                     silent=c("all","graph","legend","output","none"),
-                    # xreg=NULL, regressors=c("use","select"), initialX=NULL,
+                    xreg=NULL, regressors=c("use","select"), initialX=NULL,
                     ...){
 # Function estimates CES in state space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
@@ -25,7 +24,6 @@ ces_old <- function(data, seasonality=c("none","simple","partial","full"),
     ### Depricate the old parameters
     ellipsis <- list(...);
 
-    y <- data;
     cumulative <- FALSE;
     interval <- ifelse(!is.null(ellipsis$interval),ellipsis$interval,"none");
     level <- ifelse(!is.null(ellipsis$level),ellipsis$level,0.95);

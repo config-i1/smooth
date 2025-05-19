@@ -23,7 +23,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                       distribution=c("dnorm","dlaplace","ds","dgnorm","dlnorm","dinvgauss","dgamma"),
                       outliers=c("ignore","use","select"), level=0.99,
                       h=0, holdout=FALSE,
-                      persistence=NULL, phi=NULL, initial=c("optimal","backcasting","complete"), arma=NULL,
+                      persistence=NULL, phi=NULL, initial=c("backcasting","optimal","two-stage","complete"), arma=NULL,
                       ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
                       silent=TRUE, parallel=FALSE, ...){
     # Copyright (C) 2020 - Inf  Ivan Svetunkov
@@ -152,7 +152,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
     nModels <- length(distribution);
 
     # Amend the default list of distributions for the pure ARIMA
-    if(arimaModel && !etsModel &&
+    if(arimaModel && !etsModel && length(distribution) == 7 &&
        all(distribution %in% c("dnorm", "dlaplace", "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"))){
         distributionToDrop <- c("dlnorm","dinvgauss","dgamma")[
             c("dlnorm","dinvgauss","dgamma") %in% distribution];
@@ -255,7 +255,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
     nParamMax <- (1 +
                       # ETS model
                       etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
-                                    (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
+                                    any(initial==c("optimal","two-stage")) * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                       # ARIMA components: initials + parameters
                       arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                       # Xreg initials and smoothing parameters
@@ -277,7 +277,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                         nParamMax[] <- (1 +
                                             # ETS model
                                             etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
-                                                          (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
+                                                          any(initial==c("optimal","two-stage")) *
+                                                          ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                                             # ARIMA components: initials + parameters
                                             arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                                             # Xreg initials and smoothing parameters
@@ -291,7 +292,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                         nParamMax[] <- (1 +
                                             # ETS model
                                             etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
-                                                          (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
+                                                          any(initial==c("optimal","two-stage")) *
+                                                          ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                                             # ARIMA components: initials + parameters
                                             arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                                             # Xreg initials and smoothing parameters
@@ -305,7 +307,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                         nParamMax[] <- (1 +
                                             # ETS model
                                             etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
-                                                          (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
+                                                          any(initial==c("optimal","two-stage")) *
+                                                          ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                                             # ARIMA components: initials + parameters
                                             arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                                             # Xreg initials and smoothing parameters

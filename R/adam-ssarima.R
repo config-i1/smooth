@@ -44,10 +44,13 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' For some more information about the model and its implementation, see the
 #' vignette: \code{vignette("ssarima","smooth")}
 #'
+#' @template ssBasicParam
+#' @template ssAdvancedParam
+#' @template ssXregParam
 #' @template ssAuthor
 #' @template ssKeywords
 #'
-#' @template ADAMDataFormulaRegLossSilentHHoldout
+#' @template ADAMInitial
 #'
 #' @template smoothRef
 #' @template ssGeneralRef
@@ -75,14 +78,6 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @param arma Either the named list or a vector with AR / MA parameters ordered lag-wise.
 #' The number of elements should correspond to the specified orders e.g.
 #' \code{orders=list(ar=c(1,1),ma=c(1,1)), lags=c(1,4), arma=list(ar=c(0.9,0.8),ma=c(-0.3,0.3))}
-#' @param initial Can be either character or a vector of initial states. If it
-#' is character, then it can be \code{"optimal"}, meaning that the initial
-#' states are optimised, \code{"backcasting"}, meaning that the initials are
-#' produced using backcasting procedure (still estimating initials for explanatory
-#' variables), or \code{"complete"}, meaning backcasting for all states.
-#' @param bounds The type of bounds for parameters to use in the model
-#' estimation. Can be either \code{admissible} - guaranteeing the stability of the
-#' model, or \code{none} - no restrictions (potentially dangerous).
 #' @param model A previously estimated ssarima model, if provided, the function
 #' will not estimate anything and will use all its parameters.
 #' @param ...  Other non-documented parameters. See \link[smooth]{adam} for
@@ -113,13 +108,13 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #'
 #' @rdname ssarima
 #' @export
-ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
-                    constant=FALSE, arma=NULL,
-                    formula=NULL, regressors=c("use","select","adapt"),
-                    initial=c("backcasting","optimal","complete"),
+ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
+                    constant=FALSE, arma=NULL, model=NULL,
+                    initial=c("backcasting","optimal","two-stage","complete"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=0, holdout=FALSE, bounds=c("admissible","usual","none"), silent=TRUE,
-                    model=NULL, ...){
+                    xreg=NULL, regressors=c("use","select","adapt"), initialX=NULL,
+                    ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state space approach
 #
 #    Copyright (C) 2016 - Inf Ivan Svetunkov
@@ -134,7 +129,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     loss <- match.arg(loss);
 
     # paste0() is needed in order to get rid of potential issues with names
-    yName <- paste0(deparse(substitute(data)),collapse="");
+    yName <- paste0(deparse(substitute(y)),collapse="");
 
     # Assume that the model is not provided
     profilesRecentProvided <- FALSE;
@@ -183,17 +178,37 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     # SSARIMA is checked as ADAM ARIMA
     model <- "NNN";
 
+    # Form the data from the provided y and xreg
+    if(!is.null(xreg) && is.numeric(y)){
+        data <- cbind(y=as.data.frame(y),as.data.frame(xreg));
+        data <- as.matrix(data)
+        data <- ts(data, start=start(y), frequency=frequency(y));
+        colnames(data)[1] <- "y";
+        # Give name to the explanatory variables if they do not have them
+        if(is.null(names(xreg))){
+            if(!is.null(ncol(xreg))){
+                colnames(data)[-1] <- paste0("x",c(1:ncol(xreg)));
+            }
+            else{
+                colnames(data)[-1] <- "x";
+            }
+        }
+    }
+    else{
+        data <- y;
+    }
+
     # If initial was provided, trick parametersChecker
     if(!is.character(initial)){
         initialValueProvided <- initial;
         initial <- "optimal";
     }
-    else{
-        initial <- match.arg(initial);
+    if(!is.null(initialX)){
+        initial <- list(xreg=initialX);
     }
 
     ##### Make all the checks #####
-    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
+    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=NULL,
                                        orders=orders,
                                        constant=constant, arma=arma,
                                        outliers="ignore", level=0.99,
@@ -252,7 +267,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
 
         # Initials of ARIMA
-        if(arimaModel && initialArimaEstimate && (initialType=="optimal")){
+        if(arimaModel && initialArimaEstimate && (any(initialType==c("optimal","two-stage")))){
             matVt[1:initialArimaNumber, 1] <- B[j+1:initialArimaNumber];
 
             j[] <- j+initialArimaNumber;
@@ -528,7 +543,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     # initialValue <- initialValueProvided;
     initial <- initialOriginal;
 
-    if(initialType=="optimal"){
+    if(any(initialType==c("optimal","two-stage"))){
         initialArimaNumber <- componentsNumberARIMA;
     }
 
@@ -780,12 +795,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         BValues <- initialiser();
 
         ##### Pre-heat initial parameters by doing the backcasted ARIMA ####
-        if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
-            B <- BValues$B;
-            # Parameter bounds
-            lb <- BValues$Bl;
-            ub <- BValues$Bu;
-
+        if(arimaModel && initialType=="two-stage" && is.null(B)){
             # Estimate ARIMA with backcasting first
             clNew <- cl;
             # If environment is provided, use it
@@ -837,26 +847,26 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             }
 
             # Make sure that the bounds are reasonable
-            if(any(is.na(lb))){
-                lb[is.na(lb)] <- -Inf;
-            }
-            if(any(lb>B)){
-                lb[lb>B] <- -Inf;
-            }
-            if(any(is.na(ub))){
-                ub[is.na(ub)] <- Inf;
-            }
-            if(any(ub<B)){
-                ub[ub<B] <- Inf;
-            }
+            # if(any(is.na(lb))){
+            #     lb[is.na(lb)] <- -Inf;
+            # }
+            # if(any(lb>B)){
+            #     lb[lb>B] <- -Inf;
+            # }
+            # if(any(is.na(ub))){
+            #     ub[is.na(ub)] <- Inf;
+            # }
+            # if(any(ub<B)){
+            #     ub[ub<B] <- Inf;
+            # }
         }
 
         if(is.null(B)){
             B <- BValues$B;
             # Parameter bounds.
             # Not used in the estimation because they lead to wrong estimates
-            lb <- BValues$Bl;
-            ub <- BValues$Bu;
+            # lb <- BValues$Bl;
+            # ub <- BValues$Bu;
         }
 
         # Companion matrices for the polynomials calculation -> stationarity / stability checks
@@ -937,7 +947,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
 
         initialOriginal <- initialType;
-        if(initialType=="optimal"){
+        if(any(initialType==c("optimal","two-stage"))){
             initialType <- "provided";
         }
         initialXregEstimateOriginal <- initialXregEstimate;
