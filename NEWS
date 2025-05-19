@@ -12,6 +12,7 @@ Bugfixes:
 * auto.adam() now allows selecting the best distribution for a user-specified ARIMA.
 * Fixed vcov() calculation for adam with initial="backcasting".
 * Furthre fixes in vcov() for adam with initial="backcasting".
+* A fix for auto.ces() not working properly, when called without loading the full package.
 
 
 smooth v4.2.0 (Release data: 2025-04-02)

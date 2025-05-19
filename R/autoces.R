@@ -37,7 +37,7 @@ auto.ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(
 
     # Record the call and amend it
     cl <- match.call();
-    cl[[1]] <- substitute(ces);
+    cl[[1]] <- substitute(smooth::ces);
     # Make sure that the thing is silent
     cl$silent <- TRUE;
 
