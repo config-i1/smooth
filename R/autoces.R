@@ -18,14 +18,13 @@
 #'
 #' @rdname ces
 #' @export
-auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(frequency(data)),
-                     formula=NULL, regressors=c("use","select","adapt"),
-                     initial=c("backcasting","optimal","complete"),
+auto.ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequency(y)),
+                     initial=c("backcasting","optimal","two-stage","complete"),
                      ic=c("AICc","AIC","BIC","BICc"),
                      loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                      h=0, holdout=FALSE,
                      bounds=c("admissible","none"),
-                     silent=TRUE, ...){
+                     silent=TRUE, xreg=NULL, regressors=c("use","select","adapt"), ...){
 #  Function estimates several CES models in state space form with sigma = error,
 #  chooses the one with the lowest ic value and returns complex smoothing parameter
 #  value, fitted values, residuals, point and interval forecasts, matrix of CES components
@@ -38,7 +37,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
 
     # Record the call and amend it
     cl <- match.call();
-    cl[[1]] <- substitute(ces);
+    cl[[1]] <- substitute(smooth::ces);
     # Make sure that the thing is silent
     cl$silent <- TRUE;
 
@@ -50,24 +49,19 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     ellipsis <- list(...);
 
     # If this is simulated, extract the actuals
-    if(is.adam.sim(data) || is.smooth.sim(data)){
-        data <- data$data;
+    if(is.adam.sim(y) || is.smooth.sim(y)){
+        y <- y$data;
     }
     # If this is Mdata, use all the available stuff
-    else if(inherits(data,"Mdata")){
-        h <- data$h;
+    else if(inherits(y,"Mdata")){
+        h <- y$h;
         holdout <- TRUE;
-        lags <- frequency(data$x);
-        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
+        lags <- frequency(y$x);
+        y <- ts(c(y$x,y$xx),start=start(y$x),frequency=frequency(y$x));
     }
 
     # Measure the sample size based on what was provided as data
-    if(!is.null(dim(data)) && length(dim(data))>1){
-        obsInSample <- nrow(data) - holdout*h;
-    }
-    else{
-        obsInSample <- length(data) - holdout*h;
-    }
+    obsInSample <- length(y) - holdout*h;
 
 # If the pool of models is wrong, fall back to default
     modelsOk <- rep(FALSE,length(seasonality));
@@ -93,13 +87,13 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     if(any(seasonality=="n")){
     # 1 is for variance, 2 is for complex smoothing parameter
         nParamMax <- 3;
-        if(initial=="optimal"){
+        if(any(initial==c("optimal","two-stage"))){
             nParamMax <- nParamMax + 2;
         }
     }
     if(any(seasonality=="p")){
         nParamMax <- 4;
-        if(initial=="optimal"){
+        if(any(initial==c("optimal","two-stage"))){
             nParamMax <- nParamMax + 2 + yFrequency;
         }
         if(obsInSample <= nParamMax){
@@ -109,7 +103,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     }
     if(any(seasonality=="s")){
         nParamMax <- 3;
-        if(initial=="optimal"){
+        if(any(initial==c("optimal","two-stage"))){
             nParamMax <- nParamMax + 2*yFrequency;
         }
         if(obsInSample <= nParamMax){
@@ -119,7 +113,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     }
     if(any(seasonality=="f")){
         nParamMax <- 5;
-        if(initial=="optimal"){
+        if(any(initial==c("optimal","two-stage"))){
             nParamMax <- nParamMax + 2 + 2*yFrequency;
         }
         if(obsInSample <= nParamMax){
@@ -134,16 +128,6 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
         }
         cl$seasonality <- "none";
         return(eval(cl, envir=env));
-#
-#         CESModel <- ces(y, seasonality="n",
-#                         initial=initialType, ic=ic,
-#                         loss=loss,
-#                         h=h, holdout=holdout,cumulative=cumulative,
-#                         interval=intervalType, level=level,
-#                         bounds=bounds, silent=silent,
-#                         xreg=xreg, regressors=regressors, initialX=initialX,
-#                         FI=FI);
-#         return(CESModel);
     }
 
 # Check the number of observations and number of parameters.

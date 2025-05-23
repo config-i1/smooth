@@ -16,9 +16,9 @@ adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
   "TMSE", "GTMSE", "MSCE"), outliers = c("ignore", "use", "select"),
   level = 0.99, h = 0, holdout = FALSE, persistence = NULL,
-  phi = NULL, initial = c("optimal", "backcasting", "complete"),
-  arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual",
-  "admissible", "none"), silent = TRUE, ...)
+  phi = NULL, initial = c("backcasting", "optimal", "two-stage",
+  "complete"), arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
+  bounds = c("usual", "admissible", "none"), silent = TRUE, ...)
 
 \method{simulate}{adam}(object, nsim = 1, seed = NULL,
   obs = nobs(object), ...)
@@ -30,9 +30,9 @@ auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   "inverse-odds-ratio", "direct"), distribution = c("dnorm", "dlaplace",
   "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"), outliers = c("ignore",
   "use", "select"), level = 0.99, h = 0, holdout = FALSE,
-  persistence = NULL, phi = NULL, initial = c("optimal", "backcasting",
-  "complete"), arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
-  bounds = c("usual", "admissible", "none"), silent = TRUE,
+  persistence = NULL, phi = NULL, initial = c("backcasting", "optimal",
+  "two-stage", "complete"), arma = NULL, ic = c("AICc", "AIC", "BIC",
+  "BICc"), bounds = c("usual", "admissible", "none"), silent = TRUE,
   parallel = FALSE, ...)
 
 \method{sm}{adam}(object, model = "YYY", lags = NULL, orders = list(ar =
@@ -207,10 +207,11 @@ model, it will be estimated.}
 Only applicable for damped-trend models.}
 
 \item{initial}{Can be either character or a list, or a vector of initial states.
-If it is character, then it can be \code{"optimal"}, meaning that all initial
-states are optimised, or \code{"backcasting"}, meaning that the initials of
+If it is character, then it can be \code{"backcasting"}, meaning that the initials of
 dynamic part of the model are produced using backcasting procedure (advised
-for data with high frequency). In the latter case, the parameters of the
+for data with high frequency), or \code{"optimal"}, meaning that all initial
+states are optimised, or \code{"two-stage"}, meaning that optimisation is done
+after the backcasting, refining the states. In case of backcasting, the parameters of the
 explanatory variables are optimised. This is recommended for ETSX and ARIMAX
 models. Alternatively, you can set \code{initial="complete"} backcasting,
 which means that all states (including explanatory variables) are initialised
@@ -221,7 +222,7 @@ to provide the initial components that are available. For example:
 \code{initial=list(level=1000,trend=10,seasonal=list(c(1,2),c(1,2,3,4)),
 arima=1,xreg=100)}. If some of the components are needed by the model, but are
 not provided in the list, they will be estimated. If the vector is provided,
-then it is expected that the components will be provided inthe same order as above,
+then it is expected that the components will be provided in the same order as above,
 one after another without any gaps.}
 
 \item{arma}{Either the named list or a vector with AR / MA parameters ordered lag-wise.
@@ -321,7 +322,7 @@ in columns,
 and xreg components,
 \item \code{initialEstimated} - the named vector, defining which of the initials were estimated in
 the model,
-\item \code{initialType} - the type of initialisation used ("optimal" / "complete" / "provided"),
+\item \code{initialType} - the type of initialisation used (backcasting/optimal/two-stage/complete/provided),
 \item \code{orders} - the orders of ARIMA used in the estimation,
 \item \code{constant} - the value of the constant (if it was included),
 \item \code{arma} - the list of AR / MA parameters used in the model,
@@ -444,6 +445,8 @@ Dynamic Adaptive Model (ADAM) (1st ed.). Chapman and Hall/CRC.
 }
 
 \itemize{
+\item Svetunkov, I., 2023. Smooth Forecasting with the Smooth Package in R. arXiv.
+\doi{10.48550/arXiv.2301.01790}
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
@@ -452,21 +455,22 @@ Springer-Verlag. \doi{10.1007/978-3-540-71918-2}.
 }
 
 \itemize{
-\item Svetunkov Ivan and Boylan John E. (2017). Multiplicative
-State-Space Models for Intermittent Time Series. Working Paper of
-Department of Management Science, Lancaster University, 2017:4 , 1-43.
+\item Svetunkov, I., Boylan, J.E., 2023a. iETS: State Space Model for
+Intermittent Demand Forecastings. International Journal of Production
+Economics. 109013. \doi{10.1016/j.ijpe.2023.109013}
 \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
 Linking forecasting to inventory obsolescence. European Journal of
 Operational Research, 214, 606-615.
 \item Croston, J. (1972) Forecasting and stock control for intermittent
 demands. Operational Research Quarterly, 23(3), 289-303.
-\item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
-estimates. International Journal of Forecasting, 21(2), 303-314.
 }
 
 \itemize{
 \item Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike
 weights. International Journal of Forecasting, 27, pp 238 - 251.
+\item Svetunkov, I., Boylan, J.E., 2023b. Staying Positive: Challenges and
+ Solutions in Using Pure Multiplicative ETS Models. IMA Journal of
+ Management Mathematics. p. 403-425. \doi{10.1093/imaman/dpad028}
 }
 
 \itemize{

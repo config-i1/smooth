@@ -7,38 +7,36 @@
 \alias{ges}
 \title{Generalised Univariate Model}
 \usage{
-gum(data, orders = c(1, 1), lags = c(1, frequency(data)),
-  type = c("additive", "multiplicative"), formula = NULL,
-  regressors = c("use", "select", "adapt", "integrate"),
-  initial = c("backcasting", "optimal", "complete"), persistence = NULL,
-  transition = NULL, measurement = rep(1, sum(orders)),
+gum(y, orders = c(1, 1), lags = c(1, frequency(y)), type = c("additive",
+  "multiplicative"), initial = c("backcasting", "optimal", "two-stage",
+  "complete"), persistence = NULL, transition = NULL,
+  measurement = rep(1, sum(orders)), loss = c("likelihood", "MSE", "MAE",
+  "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
+  bounds = c("admissible", "none"), silent = TRUE, model = NULL,
+  xreg = NULL, regressors = c("use", "select", "adapt", "integrate"),
+  initialX = NULL, ...)
+
+auto.gum(y, orders = 3, lags = frequency(y), type = c("additive",
+  "multiplicative", "select"), initial = c("backcasting", "optimal",
+  "two-stage", "complete"), ic = c("AICc", "AIC", "BIC", "BICc"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
   "MSCE"), h = 0, holdout = FALSE, bounds = c("admissible", "none"),
-  silent = TRUE, model = NULL, ...)
+  silent = TRUE, xreg = NULL, regressors = c("use", "select", "adapt",
+  "integrate"), ...)
 
-auto.gum(data, orders = 3, lags = frequency(data), type = c("additive",
-  "multiplicative", "select"), formula = NULL, regressors = c("use",
-  "select", "adapt", "integrate"), initial = c("backcasting", "optimal",
-  "complete"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood",
-  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0,
-  holdout = FALSE, bounds = c("admissible", "none"), silent = TRUE, ...)
-
-gum_old(data, orders = c(1, 1), lags = c(1, frequency(y)),
+gum_old(y, orders = c(1, 1), lags = c(1, frequency(y)),
   type = c("additive", "multiplicative"), persistence = NULL,
   transition = NULL, measurement = rep(1, sum(orders)),
   initial = c("optimal", "backcasting"), loss = c("likelihood", "MSE",
   "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
   bounds = c("restricted", "admissible", "none"), silent = c("all",
-  "graph", "legend", "output", "none"), ...)
+  "graph", "legend", "output", "none"), xreg = NULL, regressors = c("use",
+  "select"), initialX = NULL, ...)
 
 ges(...)
 }
 \arguments{
-\item{data}{Vector, containing data needed to be forecasted. If a matrix (or
-data.frame / data.table) is provided, then the first column is used as a
-response variable, while the rest of the matrix is used as a set of explanatory
-variables. \code{formula} can be used in the latter case in order to define what
-relation to have.}
+\item{y}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{orders}{Order of the model. Specified as vector of number of states
 with different lags. For example, \code{orders=c(1,1)} means that there are
@@ -58,22 +56,15 @@ lag to check. This should usually be a maximum frequency of the data.}
 log-transformed data. In case of \code{auto.gum()}, can also be \code{"select"},
 implying automatic selection of the type.}
 
-\item{formula}{Formula to use in case of explanatory variables. If \code{NULL},
-then all the variables are used as is. Can also include \code{trend}, which would add
-the global trend. Only needed if \code{data} is a matrix or if \code{trend} is provided.}
-
-\item{regressors}{The variable defines what to do with the provided explanatory
-variables:
-\code{"use"} means that all of the data should be used, while
-\code{"select"} means that a selection using \code{ic} should be done,
-\code{"adapt"} will trigger the mechanism of time varying parameters for the
-explanatory variables.}
-
-\item{initial}{Can be either character or a vector of initial states. If it
-is character, then it can be \code{"optimal"}, meaning that the initial
-states are optimised, \code{"backcasting"}, meaning that the initials are
-produced using backcasting procedure (still estimating initials for explanatory
-variables), or \code{"complete"}, meaning backcasting for all states.}
+\item{initial}{Can be either character or a list, or a vector of initial states.
+If it is character, then it can be \code{"backcasting"}, meaning that the initials of
+dynamic part of the model are produced using backcasting procedure (advised
+for data with high frequency), or \code{"optimal"}, meaning that all initial
+states are optimised, or \code{"two-stage"}, meaning that optimisation is done
+after the backcasting, refining the states. In case of backcasting, the parameters of the
+explanatory variables are optimised. Alternatively, you can set \code{initial="complete"}
+backcasting, which means that all states (including explanatory variables) are initialised
+via backcasting.}
 
 \item{persistence}{Persistence vector \eqn{g}, containing smoothing
 parameters. If \code{NULL}, then estimated.}
@@ -87,53 +78,51 @@ where \code{nc} is the number of components in the state vector. If
 estimated.}
 
 \item{loss}{The type of Loss Function used in optimization. \code{loss} can
-be:
-\itemize{
-\item \code{likelihood} - the model is estimated via the maximisation of the
-likelihood of the function specified in \code{distribution};
-\item \code{MSE} (Mean Squared Error),
-\item \code{MAE} (Mean Absolute Error),
-\item \code{HAM} (Half Absolute Moment),
-\item \code{LASSO} - use LASSO to shrink the parameters of the model;
-\item \code{RIDGE} - use RIDGE to shrink the parameters of the model;
-\item \code{TMSE} - Trace Mean Squared Error,
-\item \code{GTMSE} - Geometric Trace Mean Squared Error,
-\item \code{MSEh} - optimisation using only h-steps ahead error,
-\item \code{MSCE} - Mean Squared Cumulative Error.
-}
-In case of LASSO / RIDGE, the variables are not normalised prior to the estimation,
-but the parameters are divided by the mean values of explanatory variables.
+be: \code{likelihood} (assuming Normal distribution of error term),
+\code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
+\code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
+\code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
+using only h-steps ahead error, \code{MSCE} - Mean Squared Cumulative Error.
+If \code{loss!="MSE"}, then likelihood and model selection is done based
+on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
 
-Note that model selection and combination works properly only for the default
-\code{loss="likelihood"}.
+There are also available analytical approximations for multistep functions:
+\code{aMSEh}, \code{aTMSE} and \code{aGTMSE}. These can be useful in cases
+of small samples.
 
-Furthermore, just for fun the absolute and half analogues of multistep estimators
-are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE},
-\code{HAMh}, \code{THAM}, \code{GTHAM}, \code{CHAM}.
+Finally, just for fun the absolute and half analogues of multistep estimators
+are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
+\code{HAMh}, \code{THAM}, \code{GTHAM}, \code{CHAM}.}
 
-Last but not least, user can provide their own function here as well, making sure
-that it accepts parameters \code{actual}, \code{fitted} and \code{B}. Here is an
-example:
+\item{h}{Length of forecasting horizon.}
 
-\code{lossFunction <- function(actual, fitted, B) return(mean(abs(actual-fitted)))}
-
-\code{loss=lossFunction}}
-
-\item{h}{The forecast horizon. Mainly needed for the multistep loss functions.}
-
-\item{holdout}{Logical. If \code{TRUE}, then the holdout of the size \code{h}
-is taken from the data (can be used for the model testing purposes).}
+\item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
+the end of the data.}
 
 \item{bounds}{The type of bounds for the parameters to use in the model
 estimation. Can be either \code{admissible} - guaranteeing the stability of the
 model, or \code{none} - no restrictions (potentially dangerous).}
 
-\item{silent}{Specifies, whether to provide the progress of the function or not.
-If \code{TRUE}, then the function will print what it does and how much it has
-already done.}
+\item{silent}{accepts \code{TRUE} and \code{FALSE}. If FALSE, the function
+will print its progress and produce a plot at the end.}
 
 \item{model}{A previously estimated GUM model, if provided, the function
 will not estimate anything and will use all its parameters.}
+
+\item{xreg}{The vector (either numeric or time series) or the matrix (or
+data.frame) of exogenous variables that should be included in the model. If
+matrix included than columns should contain variables and rows - observations.
+Note that \code{xreg} should have number of observations equal either to
+in-sample or to the whole series. If the number of observations in
+\code{xreg} is equal to in-sample, then values for the holdout sample are
+produced using \link[smooth]{es} function.}
+
+\item{regressors}{The variable defines what to do with the provided xreg:
+\code{"use"} means that all of the data should be used, while
+\code{"select"} means that a selection using \code{ic} should be done.}
+
+\item{initialX}{The vector of initial parameters for exogenous variables.
+Ignored if \code{xreg} is NULL.}
 
 \item{...}{Other non-documented parameters. See \link[smooth]{adam} for
 details.  However, there are several unique parameters passed to the optimiser
@@ -143,13 +132,13 @@ optimisation. By default, this is "NLOPT_LN_BOBYQA".
 2. \code{algorithm} determines the second optimiser. By default this is
 "NLOPT_LN_NELDERMEAD".
 3. maxeval0 and maxeval, that determine the number of iterations for the two
-optimisers. By default, \code{maxeval0=1000}, \code{maxeval=40*k}, where
+optimisers. By default, \code{maxeval0=maxeval=40*k}, where
 k is the number of estimated parameters.
 4. xtol_rel0 and xtol_rel, which are 1e-8 and 1e-6 respectively.
 There are also ftol_rel0, ftol_rel, ftol_abs0 and ftol_abs, which by default
 are set to values explained in the \code{nloptr.print.options()} function.}
 
-\item{ic}{The information criterion to use in the model selection.}
+\item{ic}{The information criterion used in the model selection procedure.}
 }
 \value{
 Object of class "adam" is returned with similar elements to the
@@ -209,6 +198,8 @@ models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}
 }
 
 \itemize{
+\item Svetunkov, I., 2023. Smooth Forecasting with the Smooth Package in R. arXiv.
+\doi{10.48550/arXiv.2301.01790}
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)

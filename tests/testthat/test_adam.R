@@ -23,8 +23,8 @@ test_that("ADAM ETS(PPP) selection on BJsales", {
 # ADAM with specified pool
 test_that("ADAM selection with a pool on BJsales", {
     skip_on_cran()
-    testModel <- adam(BJsales, c("AAA","ANN","MAN","MAM"))
-    expect_match(modelType(testModel), "MAN")
+    testModel <- adam(BJsales, c("ANN","MNN","AAN","MAN"))
+    expect_match(modelType(testModel), "AAN")
 })
 
 # ADAM forecasts with simulated interval

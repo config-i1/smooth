@@ -167,10 +167,11 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @param phi Value of damping parameter. If \code{NULL} then it is estimated.
 #' Only applicable for damped-trend models.
 #' @param initial Can be either character or a list, or a vector of initial states.
-#' If it is character, then it can be \code{"optimal"}, meaning that all initial
-#' states are optimised, or \code{"backcasting"}, meaning that the initials of
+#' If it is character, then it can be \code{"backcasting"}, meaning that the initials of
 #' dynamic part of the model are produced using backcasting procedure (advised
-#' for data with high frequency). In the latter case, the parameters of the
+#' for data with high frequency), or \code{"optimal"}, meaning that all initial
+#' states are optimised, or \code{"two-stage"}, meaning that optimisation is done
+#' after the backcasting, refining the states. In case of backcasting, the parameters of the
 #' explanatory variables are optimised. This is recommended for ETSX and ARIMAX
 #' models. Alternatively, you can set \code{initial="complete"} backcasting,
 #' which means that all states (including explanatory variables) are initialised
@@ -181,7 +182,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \code{initial=list(level=1000,trend=10,seasonal=list(c(1,2),c(1,2,3,4)),
 #' arima=1,xreg=100)}. If some of the components are needed by the model, but are
 #' not provided in the list, they will be estimated. If the vector is provided,
-#' then it is expected that the components will be provided inthe same order as above,
+#' then it is expected that the components will be provided in the same order as above,
 #' one after another without any gaps.
 #' @param arma Either the named list or a vector with AR / MA parameters ordered lag-wise.
 #' The number of elements should correspond to the specified orders e.g.
@@ -274,7 +275,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' and xreg components,
 #' \item \code{initialEstimated} - the named vector, defining which of the initials were estimated in
 #' the model,
-#' \item \code{initialType} - the type of initialisation used ("optimal" / "complete" / "provided"),
+#' \item \code{initialType} - the type of initialisation used (backcasting/optimal/two-stage/complete/provided),
 #' \item \code{orders} - the orders of ARIMA used in the estimation,
 #' \item \code{constant} - the value of the constant (if it was included),
 #' \item \code{arma} - the list of AR / MA parameters used in the model,
@@ -344,7 +345,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                  loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
                  outliers=c("ignore","use","select"), level=0.99,
                  h=0, holdout=FALSE,
-                 persistence=NULL, phi=NULL, initial=c("optimal","backcasting","complete"), arma=NULL,
+                 persistence=NULL, phi=NULL, initial=c("backcasting","optimal","two-stage","complete"), arma=NULL,
                  ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
                  silent=TRUE, ...){
     # Copyright (C) 2019 - Inf  Ivan Svetunkov
@@ -383,11 +384,21 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         loss <- model$loss;
         persistence <- model$persistence;
         phi <- model$phi;
-        if(model$initialType!="complete"){
-            initial <- model$initial;
+        # If this was complete backcasting, set the basic one
+        if(model$initialType=="complete"){
+            initial <- "complete";
+        }
+        # If it was backcasting, but no xreg, set it as one
+        else if(model$initialType=="backcasting"){
+            if(!is.null(model$initial$xreg)){
+                initial <- model$initial;
+            }
+            else{
+                initial <- "backcasting";
+            }
         }
         else{
-            initial <- "b";
+            initial <- model$initial;
         }
         occurrence <- model$occurrence;
         ic <- model$ic;
@@ -999,7 +1010,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             j <- 1;
                             # level
                             if(initialLevelEstimate){
-                                matVt[j,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
+                                matVt[j,1:lagsModelMax] <- mean(yInSample[1:min(lagsModelMax, obsInSample)]);
                                 if(xregModel){
                                     if(Etype=="A"){
                                         matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
@@ -1232,11 +1243,25 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # Fill in the initials for xreg
             if(xregModel){
                 if(Etype=="A" || initialXregProvided || is.null(xregModelInitials[[2]])){
+                    # matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
+                    #       1:lagsModelMax] <- xregModelInitials[[1]]$initialXreg;
+
+                    # This step is needed to address the potential issue with dropped level
+                    # of factor variables or variables due to multicollinearity
                     matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
+                          1:lagsModelMax] <- 0;
+                    matVt[names(xregModelInitials[[1]]$initialXreg),
                           1:lagsModelMax] <- xregModelInitials[[1]]$initialXreg;
                 }
                 else{
+                    # matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
+                    #       1:lagsModelMax] <- xregModelInitials[[2]]$initialXreg;
+
+                    # This step is needed to address the potential issue with dropped level
+                    # of factor variables or variables due to multicollinearity
                     matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
+                          1:lagsModelMax] <- 0;
+                    matVt[names(xregModelInitials[[2]]$initialXreg),
                           1:lagsModelMax] <- xregModelInitials[[2]]$initialXreg;
                 }
             }
@@ -1368,8 +1393,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # ARMA parameters. This goes before xreg in persistence
         if(arimaModel){
             # Call the function returning ARI and MA polynomials
-            # arimaPolynomials <- polynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))], arOrders, iOrders, maOrders,
-            #                                    arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
             arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                           arOrders, iOrders, maOrders,
                                                           arEstimate, maEstimate, armaParameters, lags), as.vector);
@@ -1637,6 +1660,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         # ARIMA parameters (AR / MA)
         if(arimaModel){
+            # This index is needed to get the correct polynomials
+            k <- j
             # These are filled in lags-wise
             if(any(c(arEstimate,maEstimate))){
                 acfValues <- rep(-0.1, maOrders %*% lags);
@@ -1704,7 +1729,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
             }
 
-            arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+            arimaPolynomials <- lapply(adamPolynomialiser(B[k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                           arOrders, iOrders, maOrders,
                                                           arEstimate, maEstimate, armaParameters, lags), as.vector)
         }
@@ -1985,7 +2010,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # Stationarity and invertibility conditions for ARIMA
             if(arimaModel && any(c(arEstimate,maEstimate))){
                 # Calculate the polynomial roots for AR
-                if(arEstimate && sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1){
+                if(arEstimate &&
+                   (all(-adamElements$arimaPolynomials$arPolynomial[-1]>0) &
+                    sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1)){
                     arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
                     arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(arPolyroots>1)){
@@ -2042,8 +2069,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # Stationarity condition of ARIMA
             if(arimaModel){
                 # Calculate the polynomial roots for AR
-                if(arEstimate && (sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1 |
-                                  sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))<0)){
+                if(arEstimate &&
+                   (all(-adamElements$arimaPolynomials$arPolynomial[-1]>0) &
+                    sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1)){
                     arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
                     eigenValues <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(eigenValues>1)){
@@ -2244,7 +2272,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
 
                 # Don't do anything with the initial states of ETS and ARIMA. Just drop them (don't shrink)
-                if(any(initialType==c("optimal","backcasting"))){
+                if(any(initialType==c("backcasting","optimal","two-stage"))){
                     # If there are explanatory variables, shrink their parameters
                     if(xregNumber>0){
                         # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
@@ -2617,10 +2645,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
         # print(BValues$B);
 
-        #### Preheating initials for ARIMA ####
-        # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
-        if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
-            # Estimate ARIMA with backcasting first
+        #### Preheating initial parameters ####
+        # Preheat the initial parameters Do this only for two-stage initials and if B is not provided
+        if(initialType=="two-stage" && is.null(B)){
             clNew <- cl;
             # If environment is provided, use it
             if(!is.null(ellipsis$environment)){
@@ -2636,8 +2663,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             clNew$silent <- TRUE;
             # If this is an xreg model, we do selection, and there's no formula, create one
             if(xregModel && !is.null(clNew$regressors) && clNew$regressors=="select"){
-                clNew$formula <- as.formula(paste0(responseName,"~",paste0(xregNames,collapse="+")));
+                # Matrix allows to avoid unnecessary data expansions via model.matrix
+                clNew$data <- as.matrix(cbind(as.data.frame(y), xregData));
+                colnames(clNew$data)[[1]] <- responseName;
+                # clNew$formula <- as.formula(paste0(responseName,"~",paste0(xregNames,collapse="+")));
+                # Remove formula - we don't need it for the provided data
+                clNew$formula <- NULL;
             }
+            clNew$fast <- TRUE;
             # Switch off regressors selection
             if(!is.null(clNew$regressors) && clNew$regressors=="select"){
                 clNew$regressors <- "use";
@@ -2661,14 +2694,24 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 B[1:nParametersBack] <- adamBack$B[1:nParametersBack];
             }
 
-            # Remove redundant seasonal initials
+            # Renormalise seasonal initials and then remove the redundant ones
             if(modelIsSeasonal){
                 if(length(lagsModelSeasonal)>1){
                     for(i in 1:length(lagsModelSeasonal)){
+                        adamBack$initial$seasonal[[i]][] <-
+                            switch(Stype,
+                                   "A"=adamBack$initial$seasonal[[i]] - mean(adamBack$initial$seasonal[[i]]),
+                                   "M"=adamBack$initial$seasonal[[i]] /
+                                       prod(adamBack$initial$seasonal[[i]])^{1/length(adamBack$initial$seasonal[[i]])});
                         adamBack$initial$seasonal[[i]] <- adamBack$initial$seasonal[[i]][1:(lagsModelSeasonal[i]-1)];
                     }
                 }
                 else{
+                    adamBack$initial$seasonal[] <-
+                        switch(Stype,
+                               "A"=adamBack$initial$seasonal - mean(adamBack$initial$seasonal),
+                               "M"=adamBack$initial$seasonal /
+                                   prod(adamBack$initial$seasonal)^{1/length(adamBack$initial$seasonal)});
                     adamBack$initial$seasonal <- adamBack$initial$seasonal[1:(lagsModelSeasonal-1)];
                 }
             }
@@ -2711,74 +2754,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(any(ub<B)){
                 ub[ub<B] <- Inf;
             }
-
-#             adamCreatedARIMA <- filler(BValues$B,
-#                                        etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-#                                        componentsNumberETS, componentsNumberETSNonSeasonal,
-#                                        componentsNumberETSSeasonal, componentsNumberARIMA,
-#                                        lags, lagsModel, lagsModelMax,
-#                                        adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-#                                        persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-#                                        persistenceSeasonalEstimate, persistenceXregEstimate,
-#                                        phiEstimate,
-#                                        initialType, initialEstimate,
-#                                        initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-#                                        initialArimaEstimate, initialXregEstimate,
-#                                        arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
-#                                        arRequired, maRequired, armaParameters,
-#                                        nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
-#                                        xregModel, xregNumber,
-#                                        xregParametersMissing, xregParametersIncluded,
-#                                        xregParametersEstimated, xregParametersPersistence, constantEstimate);
-#
-#             # Write down the initials in the recent profile
-#             profilesRecentTable[] <- adamCreatedARIMA$matVt[,1:lagsModelMax];
-#
-#             # Do initial fit to get the state values from the backcasting
-#             adamFitted <- adamFitterWrap(adamCreatedARIMA$matVt, adamCreatedARIMA$matWt, adamCreatedARIMA$matF, adamCreatedARIMA$vecG,
-#                                          lagsModelAll, indexLookupTable, profilesRecentTable,
-#                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-#                                          componentsNumberARIMA, xregNumber, constantRequired,
-#                                          yInSample, ot, TRUE, nIterations, refineHead);
-#
-#             adamCreated$matVt[,1:lagsModelMax] <- adamFitted$matVt[,1:lagsModelMax];
-#             # Produce new initials
-#             BValuesNew <- initialiser(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-#                                       componentsNumberETSNonSeasonal, componentsNumberETSSeasonal, componentsNumberETS,
-#                                       lags, lagsModel, lagsModelSeasonal, lagsModelARIMA, lagsModelMax,
-#                                       adamCreated$matVt,
-#                                       persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-#                                       persistenceSeasonalEstimate, persistenceXregEstimate,
-#                                       phiEstimate, initialType, initialEstimate,
-#                                       initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-#                                       initialArimaEstimate, initialXregEstimate,
-#                                       arimaModel, arRequired, maRequired, arEstimate, maEstimate, arOrders, maOrders,
-#                                       componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
-#                                       xregModel, xregNumber,
-#                                       xregParametersEstimated, xregParametersPersistence,
-#                                       constantEstimate, constantName, otherParameterEstimate);
-#             B <- BValuesNew$B;
-#             # Failsafe, just in case if the initial values contain NA / NaN
-#             if(any(is.na(B))){
-#                 B[is.na(B)] <- BValues$B[is.na(B)];
-#             }
-#             if(any(is.nan(B))){
-#                 B[is.nan(B)] <- BValues$B[is.nan(B)];
-#             }
-#             # Fix for mixed ETS models producing negative values
-#             if(Etype=="M" & any(c(Ttype,Stype)=="A") ||
-#                Ttype=="M" & any(c(Etype,Stype)=="A") ||
-#                Stype=="M" & any(c(Etype,Ttype)=="A")){
-#                 if(Etype=="M" && (!is.null(B["level"]) && B["level"]<=0)){
-#                     B["level"] <- yInSample[1];
-#                 }
-#                 if(Ttype=="M" && B["trend"]<=0){
-#                     B["trend"] <- 1;
-#                 }
-#                 if(Stype=="M" && any(B[substr(names(B),1,8)=="seasonal"]<=0)){
-#                     B[B[substr(names(B),1,8)=="seasonal"]<=0] <- 1;
-#                 }
-#             }
         }
 
         # Create the vector of initials for the optimisation
@@ -2792,7 +2767,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             ub <- BValues$Bu;
         }
 
-        # Companion matrices for the polynomials calculation -> stationarity / stability checks
+        # Companion matrices for the polynomials calculation -> stationarity/stability checks
         if(arimaModel){
             # AR polynomials
             arPolynomialMatrix <- matrix(0, arOrders %*% lags, arOrders %*% lags);
@@ -4544,10 +4519,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # Reset persistence, just to make sure that there are no duplicates
             vecG[] <- 0;
 
-            initialTypeFI <- switch(initialType,
-                                    "complete"=,
-                                    "backcasting"="provided",
-                                    initialType);
+            initialTypeFI <- initialType;
+            # initialTypeFI <- switch(initialType,
+            #                         "complete"=,
+            #                         "backcasting"="provided",
+            #                         initialType);
             initialEstimateFI <- FALSE;
             # Define parameters just for FI calculation
             if(initialTypeFI=="provided"){
@@ -5910,7 +5886,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             x$states <- cbind(actuals(x),x$states,residuals(x));
             colnames(x$states) <- statesNames;
             if(ncol(x$states)>10){
-                message("Too many states. Plotting them one by one on several plots.");
+                message("Too many states. Plotting them on several canvases.");
                 if(is.null(ellipsis$main)){
                     ellipsisMain <- NULL;
                 }
@@ -6671,6 +6647,14 @@ summary.adam <- function(object, level=0.95, bootstrap=FALSE, ...){
     parametersValues <- coef(object);
     if(!is.null(parametersValues)){
         parametersConfint <- confint(object, level=level, bootstrap=bootstrap, ...);
+        # Record the type of bootstrap done
+        ellipsis <- list(...);
+        if(!is.null(ellipsis$method)){
+            ourReturn$method <- ellipsis$method;
+        }
+        else{
+            ourReturn$method <- "cr";
+        }
         if(is.null(parametersValues)){
             if(ncol(object$data)>1 && all(object$persistenceXreg!=0)){
                 parametersValues <- c(object$persistence,object$persistenceXreg,object$initial,object$initialXreg);
@@ -6770,7 +6754,11 @@ print.summary.adam <- function(x, ...){
     }
 
     if(x$bootstrap){
-        cat("\nBootstrap was used for the estimation of uncertainty of parameters");
+        cat("\n");
+        cat(switch(x$method,
+                   "cr"="Case Resampling",
+                   "dsr"="Data Shape Replication"),
+            "bootstrap was used for the estimation of uncertainty of parameters");
     }
 
     if(!is.null(x$coefficients)){
@@ -6833,7 +6821,7 @@ xtable.summary.adam <- function(x, caption = NULL, label = NULL, align = NULL, d
 #' @export
 coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
                                replace=FALSE, prob=NULL, parallel=FALSE,
-                               method=c("dsr","cr"), ...){
+                               method=c("cr","dsr"), ...){
 
     startTime <- Sys.time();
 
@@ -6841,12 +6829,9 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     yInSample <- actuals(object);
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     method <- match.arg(method);
-    if(method=="cr"){
-        warning("Only dsr is supported as the bootstrap method for adam().",
-                call.=FALSE);
-    }
 
     if(is.numeric(parallel)){
         nCores <- parallel;
@@ -6931,7 +6916,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
         newCall$loss <- object$loss;
     }
     # If ETS was selected
-    if(!any(c(cesModel,gumModel)) && any(object$call!=modelType(object))){
+    if(!any(c(cesModel,gumModel,ssarimaModel)) && any(object$call!=modelType(object))){
         newCall$model <- modelType(object);
     }
     # If ARIMA was selected
@@ -6947,10 +6932,17 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     lags <- lags(object);
     # This is needed for cases, when lags changed in the function
     newCall$lags <- lags;
-    # Number of variables + 2 (for security) or 2 seasonal cycles + 2
-    obsMinimum <- max(c(lags*2,nVariables))+2;
+    # Number of variables or a seasonal cycle + 2 (for security)
+    obsMinimum <- max(lags, nVariables) + 2;
 
-    # If this is ARIMA, and the size wasn't specified, make it changable
+    # IF the sample is too small, make a warning and switch to dsr.
+    if(obsMinimum>=obsInsample && method=="cr"){
+        warning("Not enough observations to do Case Resampling bootstrap. Changing method to 'dsr'.",
+                call.=FALSE, immediate.=TRUE);
+        method <- "dsr";
+    }
+
+    # If this is ARIMA, and the size wasn't specified, make it changeable
     if(substr(object$model,1,10)=="Regression"){
         regressionPure <- TRUE;
     }
@@ -6958,17 +6950,20 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
         regressionPure <- FALSE;
     }
 
-    if(any(object$distribution==c("dchisq","dt"))){
-        newCall$nu <- object$other$nu;
-    }
-    else if(object$distribution=="dalaplace"){
-        newCall$alpha <- object$other$alpha;
-    }
-    else if(object$distribution=="dbcnorm"){
-        newCall$lambdaBC <- object$other$lambdaBC;
-    }
-    else if(any(object$distribution==c("dgnorm","dlgnorm"))){
-        newCall$shape <- object$other$shape;
+    # If the additional parameter was not estimated, provide it
+    if(all(names(object$B)!="other")){
+        if(any(object$distribution==c("dchisq","dt"))){
+            newCall$nu <- object$other$nu;
+        }
+        else if(object$distribution=="dalaplace"){
+            newCall$alpha <- object$other$alpha;
+        }
+        else if(object$distribution=="dbcnorm"){
+            newCall$lambdaBC <- object$other$lambdaBC;
+        }
+        else if(any(object$distribution==c("dgnorm","dlgnorm"))){
+            newCall$shape <- object$other$shape;
+        }
     }
     newCall$occurrence <- object$occurrence;
 
@@ -6985,67 +6980,92 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     newCall$data <- object$data;
 
     # Function creates a random sample. Needed for dynamic models
-    # sampler <- function(indices,size,replace,prob,regressionPure=FALSE,changeOrigin=FALSE){
-    #     if(regressionPure){
-    #         return(sample(indices,size=size,replace=replace,prob=prob));
-    #     }
-    #     else{
-    #         indices <- c(1:ceiling(runif(1,obsMinimum,obsInsample)));
-    #         startingIndex <- 0
-    #         if(changeOrigin){
-    #             startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
-    #         }
-    #         # This way we return the continuous sample, starting from the first observation
-    #         return(startingIndex+indices);
-    #     }
-    # }
-
-    responseName <- all.vars(formula(object))[1];
-    # Create a new dataset
-    newData <- replicate(nsim, newCall$data, simplify=FALSE);
-    newCall$formula <- as.formula(paste0(responseName,"~."));
-    type <- "multiplicative";
-    if(any(yInSample<0)){
-        type[] <- "additive";
+    sampler <- function(indices,size,replace,prob,regressionPure=FALSE,changeOrigin=FALSE){
+        if(regressionPure){
+            return(sample(indices,size=size,replace=replace,prob=prob));
+        }
+        else{
+            indices <- c(1:ceiling(runif(1,obsMinimum,obsInsample)));
+            startingIndex <- 0
+            if(changeOrigin){
+                startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
+            }
+            # This way we return the continuous sample, starting from the first observation
+            return(startingIndex+indices);
+        }
     }
-    # Bootstrap the data
-    # Only bootstrap the response variable
-    dataBoot <- dsrboot(yInSample, nsim=nsim, type=type, intermittent=FALSE);
-    for(i in 1:nsim){
-        newData[[i]][,responseName] <- dataBoot$boot[,i];
-    }
-    # This chunk of code does the bootstrap for explanatory variables as well
-    # dataBoot <- suppressWarnings(apply(newCall$data, 2, dsrboot,
-    #                                    nsim=nsim, type=type, intermittent=FALSE));
-    # nLevels <- length(dataBoot);
-    # # Fill in the list of data
-    # for(i in 1:nsim){
-    #     for(j in 1:nLevels){
-    #         newData[[i]][,j] <- dataBoot[[j]]$boot[,i];
-    #     }
-    # }
 
-    if(!parallel){
+    #### Bootstrap the data
+    if(method=="dsr"){
+        #### Data Shape Replication bootstrap
+        responseName <- all.vars(formula(object))[1];
+        # Create a new dataset
+        newData <- replicate(nsim, newCall$data, simplify=FALSE);
+        newCall$formula <- as.formula(paste0(responseName,"~."));
+        type <- "multiplicative";
+        if(any(yInSample<0)){
+            type[] <- "additive";
+        }
+        #
+        # Only bootstrap the response variable
+        dataBoot <- dsrboot(yInSample, nsim=nsim, type=type, intermittent=FALSE);
         for(i in 1:nsim){
-            # subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
-            # newCall$data <- object$data[subsetValues,,drop=FALSE];
-            newCall$data[] <- newData[[i]];
-            testModel <- suppressWarnings(eval(newCall));
-            coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+            newData[[i]][,responseName] <- dataBoot$boot[,i];
+        }
+        # This chunk of code does the bootstrap for explanatory variables as well
+        # dataBoot <- suppressWarnings(apply(newCall$data, 2, dsrboot,
+        #                                    nsim=nsim, type=type, intermittent=FALSE));
+        # nLevels <- length(dataBoot);
+        # # Fill in the list of data
+        # for(i in 1:nsim){
+        #     for(j in 1:nLevels){
+        #         newData[[i]][,j] <- dataBoot[[j]]$boot[,i];
+        #     }
+        # }
+
+        # Do the bootstrap
+        if(!parallel){
+            for(i in 1:nsim){
+                newCall$data[] <- newData[[i]];
+                testModel <- suppressWarnings(eval(newCall));
+                coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+            }
+        }
+        else{
+            # We don't do rbind for security reasons - in order to deal with skipped variables
+            coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+                newCall$data[] <- newData[[i]];
+                testModel <- eval(newCall);
+                return(coef(testModel));
+            })
+            # Prepare the matrix with parameters
+            for(i in 1:nsim){
+                coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+            }
         }
     }
     else{
-        # We don't do rbind for security reasons - in order to deal with skipped variables
-        coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
-            # subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
-            # newCall$data <- object$data[subsetValues,,drop=FALSE];
-            newCall$data[] <- newData[[i]];
-            testModel <- eval(newCall);
-            return(coef(testModel));
-        })
-        # Prepare the matrix with parameters
-        for(i in 1:nsim){
-            coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+        #### Case Resampling bootstrap
+        if(!parallel){
+            for(i in 1:nsim){
+                subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+                newCall$data <- object$data[subsetValues,,drop=FALSE];
+                testModel <- suppressWarnings(eval(newCall));
+                coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+            }
+        }
+        else{
+            # We don't do rbind for security reasons - in order to deal with skipped variables
+            coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+                subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+                newCall$data <- object$data[subsetValues,,drop=FALSE];
+                testModel <- eval(newCall);
+                return(coef(testModel));
+            })
+            # Prepare the matrix with parameters
+            for(i in 1:nsim){
+                coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+            }
         }
     }
 
@@ -7103,52 +7123,10 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             colnames(testModel$data)[1] <- all.vars(modelFormula)[1];
             return(vcov(testModel));
         }
-        else if(smoothType(object)=="CES"){
-            modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
-                                                FI=TRUE, stepSize=ellipsis$stepSize));
-            # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
-            brokenVariables <- apply(modelReturn$FI==0,1,all) | apply(is.nan(modelReturn$FI),1,any);
-            # If there are issues, try the same stuff, but with a different step size for hessian
-            if(any(brokenVariables)){
-                modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
-                                                     FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
-                brokenVariables <- apply(modelReturn$FI==0,1,all);
-            }
-            # If there are NaNs, then this has not been estimated well
-            if(any(is.nan(modelReturn$FI))){
-                stop("The Fisher Information cannot be calculated numerically with provided parameters - it contains NaNs.",
-                     "Try setting stepSize for the hessian to something like stepSize=1e-6 or using the bootstrap.", call.=FALSE);
-            }
-            if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
-                warning(paste0("Observed Fisher Information is not positive semi-definite, ",
-                               "which means that the likelihood was not maximised properly. ",
-                               "Consider reestimating the model, tuning the optimiser or ",
-                               "using bootstrap via bootstrap=TRUE."), call.=FALSE);
-            }
-            FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
-
-            vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
-            if(inherits(vcovMatrix,"try-error")){
-                vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
-                if(inherits(vcovMatrix,"try-error")){
-                    warning(paste0("Sorry, but the hessian is singular, so I could not invert it.\n",
-                                   "I failed to produce the covariance matrix of parameters. Shame on me!"),
-                            call.=FALSE);
-                    vcovMatrix <- diag(1e+100,ncol(FIMatrix));
-                }
-            }
-            # If there were broken variables, reproduce the zero elements.
-            # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
-            modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
-            modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
-
-            # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
-            diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
-            return(modelReturn$FI);
-        }
         else{
             cesModel <- smoothType(object)=="CES";
             gumModel <- smoothType(object)=="GUM";
+            ssarimaModel <- smoothType(object)=="SSARIMA";
             if(cesModel){
                 modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
                                                 FI=TRUE, stepSize=ellipsis$stepSize));
@@ -7156,6 +7134,10 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             else if(gumModel){
                 modelReturn <- suppressWarnings(gum(object$data, h=0, model=object, formula=formula(object),
                                                 FI=TRUE, stepSize=ellipsis$stepSize));
+            }
+            else if(ssarimaModel){
+                modelReturn <- suppressWarnings(ssarima(object$data, h=0, model=object, formula=formula(object),
+                                                        FI=TRUE, stepSize=ellipsis$stepSize));
             }
             else{
                 modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
@@ -7173,6 +7155,10 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
                     modelReturn <- suppressWarnings(gum(object$data, h=0, model=object, formula=formula(object),
                                                         FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
                 }
+                else if(ssarimaModel){
+                    modelReturn <- suppressWarnings(ssarima(object$data, h=0, model=object, formula=formula(object),
+                                                            FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+                }
                 else{
                     modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
                                                          FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
@@ -7185,10 +7171,11 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
                      "Try setting stepSize for the hessian to something like stepSize=1e-6 or using the bootstrap.", call.=FALSE);
             }
             if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
-                warning(paste0("Observed Fisher Information is not positive semi-definite, ",
-                               "which means that the likelihood was not maximised properly. ",
-                               "Consider reestimating the model, tuning the optimiser or ",
-                               "using bootstrap via bootstrap=TRUE."), call.=FALSE);
+                warning("Observed Fisher Information is not positive semi-definite, ",
+                        "which might mean that the likelihood was not maximised properly. ",
+                        "There's not much I can do with that. ",
+                        "Just keep in mind that there might be some issues ",
+                        "with the covariance matrix of parameters.", call.=FALSE);
             }
             FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
 
@@ -7937,6 +7924,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     # Technical parameters
     lagsModelAll <- modelLags(object);
@@ -7958,12 +7946,16 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
             componentsNumberARIMA[] <- componentsNumberARIMA+1;
         }
-        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     }
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
     }
     else{
         if(!is.null(object$initial$seasonal)){
@@ -7991,7 +7983,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         # ts structure
         yForecastStart <- time(actuals(object))[obsInSample]+deltat(actuals(object));
         yFrequency <- frequency(actuals(object));
-        yForecastIndex <- yIndex[obsInSample]+as.numeric(diff(tail(yIndex,2)))*c(1:h);
+        yForecastIndex <- yIndex[obsInSample]+deltat(yIndex)*c(1:h);
     }
     else{
         # zoo
@@ -9224,6 +9216,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
 
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
@@ -9236,6 +9229,12 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
     }
     else{
         if(!is.null(object$initial$seasonal)){
@@ -9629,7 +9628,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     # Fill in the profile values
     # profilesRecentArray <- array(t(object$states[1:lagsModelMax,]),c(dim(object$profile),nsim));
     profilesRecentArray <- array(object$profileInitial,c(dim(object$profile),nsim));
-    if(etsModel && object$initialType=="optimal"){
+    if(etsModel && any(object$initialType==c("optimal","two-stage"))){
         if(any(parametersNames=="level")){
             j <- j+1;
             profilesRecentArray[j,1,] <- randomParameters[,"level"];
@@ -9672,7 +9671,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
         initialArimaNumber <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
 
         # This is needed in order to propagate initials of ARIMA to all components
-        if(object$initialType=="optimal" && any(c(arEstimate,maEstimate))){
+        if(any(object$initialType==c("optimal","two-stage")) && any(c(arEstimate,maEstimate))){
             if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
                 for(i in 1:nsim){
                     # Call the function returning ARI and MA polynomials
@@ -10751,6 +10750,7 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
 
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
@@ -10759,12 +10759,16 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
         if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
             componentsNumberARIMA[] <- componentsNumberARIMA+1;
         }
-        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     }
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
     }
     else{
         if(!is.null(object$initial$seasonal)){
