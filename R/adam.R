@@ -9611,9 +9611,9 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     # Fill in the profile values
     # profilesRecentArray <- array(t(object$states[1:lagsModelMax,]),c(dim(object$profile),nsim));
     profilesRecentArray <- array(object$profileInitial,c(dim(object$profile),nsim));
-    if(etsModel && any(object$initialType==c("optimal","two-stage"))){
+    if(etsModel){
+        j <- j+1;
         if(any(parametersNames=="level")){
-            j <- j+1;
             profilesRecentArray[j,1,] <- randomParameters[,"level"];
             k <- k+1;
         }
