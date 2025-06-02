@@ -226,7 +226,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. SSARIMA doesn't need that.
-    refineHead <- FALSE;
+    refineHead <- TRUE;
 
     ##### Elements of SSARIMA #####
     filler <- function(B, matVt, matF, vecG, matWt, arRequired=TRUE, maRequired=TRUE, arEstimate=TRUE, maEstimate=TRUE){
@@ -542,7 +542,10 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     lagsModelAll <- matrix(rep(1,componentsNumberAll+xregNumber),ncol=1);
     lagsModelMax <- 1;
 
-    # initialValue <- initialValueProvided;
+    if(!is.null(initialValueProvided)){
+        initialType <- "provided";
+    }
+    initialValue <- initialValueProvided;
     initial <- initialOriginal;
 
     if(any(initialType==c("optimal","two-stage"))){
@@ -569,7 +572,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             matWt[,2:componentsNumberARIMA] <- 0;
         }
         if(initialType=="provided"){
-            matVt[1:componentsNumberARIMA,1] <- initialArima;
+            matVt[1:componentsNumberARIMA,1] <- initialValue;
+            initialArimaEstimate <- FALSE;
         }
         else{
             yDifferenced <- yInSample;
@@ -642,12 +646,24 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     # Scale value
     parametersNumber[1,4] <- 1;
 
+    # Fix modelDo based on everything that needs to be estimated
+    modelDo <- c("use","estimate")[any(arEstimate, maEstimate, initialArimaEstimate, persistenceEstimate,
+                                       persistenceXregEstimate, initialXregEstimate, constantEstimate)+1];
+
+    # Don't refine the head if the initials were provided
+    if(initialType=="provided"){
+        refineHead[] <- FALSE;
+    }
+
     #### If we need to estimate the model ####
     if(modelDo=="estimate"){
         # Create ADAM profiles for correct treatment of seasonality
         adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
                                            lags=lags, yIndex=yIndexAll, yClasses=yClasses);
         profilesRecentTable <- adamProfiles$recent;
+        if(initialType=="provided"){
+            profilesRecentTable[1:componentsNumberARIMA,1] <- matVt[1:componentsNumberARIMA,1];
+        }
         indexLookupTable <- adamProfiles$lookup;
 
         #### Initialise vector B ####
@@ -948,6 +964,10 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         indexLookupTable <- adamProfiles$lookup;
         if(is.null(profilesRecentTable)){
             profilesRecentInitial <- profilesRecentTable <- adamProfiles$recent;
+        }
+
+        if(initialType=="provided"){
+            profilesRecentInitial[,1] <- profilesRecentTable[,1] <- matVt[,1];
         }
 
         initialOriginal <- initialType;
