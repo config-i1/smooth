@@ -225,11 +225,11 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
-    # refined. GUM doesn't need that.
+    # refined. SSARIMA doesn't need that.
     refineHead <- FALSE;
 
     ##### Elements of SSARIMA #####
-    filler <- function(B, matVt, matF, vecG, matWt, arEstimate=TRUE, maEstimate=TRUE){
+    filler <- function(B, matVt, matF, vecG, matWt, arRequired=TRUE, maRequired=TRUE, arEstimate=TRUE, maEstimate=TRUE){
 
         j <- 0;
         # ARMA parameters. This goes before xreg in persistence
@@ -239,18 +239,18 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                                           arOrders, iOrders, maOrders,
                                                           arEstimate, maEstimate, armaParameters, lags), as.vector);
 
-            if(arEstimate || any(iOrders>0)){
+            if(arRequired || any(iOrders>0)){
                 # Fill in the transition matrix
                 matF[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
                 # Fill in the persistence vector
                 vecG[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
-                if(maEstimate){
+                if(maRequired){
                     vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] <- vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] +
                         arimaPolynomials$maPolynomial[-1];
                 }
             }
             else{
-                if(maEstimate){
+                if(maRequired){
                     vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] <- arimaPolynomials$maPolynomial[-1];
                 }
             }
@@ -302,9 +302,11 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     ##### Cost function #####
-    CF <- function(B, matVt, matF, vecG, matWt, arEstimate=TRUE, maEstimate=TRUE){
+    CF <- function(B, matVt, matF, vecG, matWt, arRequired=TRUE, maRequired=TRUE,
+                   arEstimate=TRUE, maEstimate=TRUE){
         # Obtain the main elements
-        elements <- filler(B, matVt, matF, vecG, matWt, arEstimate=arEstimate, maEstimate=maEstimate);
+        elements <- filler(B, matVt, matF, vecG, matWt, arRequired=arRequired, maRequired=maRequired,
+                           arEstimate=arEstimate, maEstimate=maEstimate);
 
         #### The usual bounds ####
         if(bounds=="usual"){
@@ -907,6 +909,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                                  ftol_rel=ftol_rel, ftol_abs=ftol_abs,
                                                  maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level),
                                        matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                                       arRequired=arRequired, maRequired=maRequired,
                                        arEstimate=arEstimate, maEstimate=maEstimate));
 
         if(print_level_hidden>0){
@@ -920,7 +923,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         nParamEstimated <- length(B) + (loss=="likelihood")*1;
 
         # Prepare for fitting
-        elements <- filler(B, matVt, matF, vecG, matWt, arEstimate=arEstimate, maEstimate=maEstimate);
+        elements <- filler(B, matVt, matF, vecG, matWt, arRequired=arRequired, maRequired=maRequired,
+                           arEstimate=arEstimate, maEstimate=maEstimate);
         matF[] <- elements$matF;
         vecG[] <- elements$vecG;
         matVt[,1] <- elements$matVt[,1];
@@ -954,14 +958,17 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         initialXregEstimate <- FALSE;
 
         # Prepare for fitting
-        elements <- filler(B, matVt, matF, vecG, matWt, arEstimate=arRequired, maEstimate=maRequired);
+        elements <- filler(armaParameters, matVt, matF, vecG, matWt, arRequired=arRequired, maRequired=maRequired,
+                           arEstimate=arEstimate, maEstimate=maEstimate);
         matF[] <- elements$matF;
         vecG[] <- elements$vecG;
         matVt[,1] <- profilesRecentTable[] <- elements$matVt[,1, drop=FALSE];
         matWt[] <- elements$matWt;
         arimaPolynomials <- elements$arimaPolynomials;
 
-        CFValue <- CF(B, matVt, matF, vecG, matWt, arEstimate=arRequired, maEstimate=maRequired);
+        CFValue <- CF(B, matVt, matF, vecG, matWt,
+                      arRequired=arRequired, maRequired=maRequired,
+                      arEstimate=arEstimate, maEstimate=maEstimate);
         res <- NULL;
 
         # Only variance is estimated
