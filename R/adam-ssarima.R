@@ -202,6 +202,13 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     if(!is.character(initial)){
         initialValueProvided <- initial;
         initial <- "optimal";
+
+        if(is.list(initialValueProvided)){
+            initialX <- initialValueProvided$xreg;
+        }
+    }
+    else{
+        initialOriginal <- match.arg(initial);
     }
     if(!is.null(initialX)){
         initial <- list(xreg=initialX);
@@ -550,6 +557,13 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         initialType <- "provided";
     }
     initialValue <- initialValueProvided;
+
+    initialValueARIMA <- initialValue;
+    if(is.list(initialValue)){
+        xregModelInitials[[1]][[1]] <- initialValue$xreg;
+        initialValueARIMA <- initialValue$arima;
+    }
+
     initial <- initialOriginal;
 
     if(any(initialType==c("optimal","two-stage"))){
@@ -576,7 +590,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             matWt[,2:componentsNumberARIMA] <- 0;
         }
         if(initialType=="provided"){
-            matVt[1:componentsNumberARIMA,1] <- initialValue;
+            matVt[1:componentsNumberARIMA,1] <- initialValueARIMA;
             initialArimaEstimate <- FALSE;
         }
         else{
@@ -970,7 +984,6 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             profilesRecentInitial[,1] <- profilesRecentTable[,1] <- matVt[,1];
         }
 
-        initialOriginal <- initialType;
         if(any(initialType==c("optimal","two-stage"))){
             initialType <- "provided";
         }
@@ -1009,12 +1022,13 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
         if(any(substr(names(B),1,5)=="theta")){
             maEstimateOriginal <- maEstimate;
-            maEstimate <- arRequired;
+            maEstimate <- maRequired;
         }
         if(any(substr(names(B),1,10)=="ARIMAState")){
             initialArimaEstimateOriginal <- initialArimaEstimate;
             initialArimaEstimate <- TRUE;
         }
+
         initialTypeOriginal <- initialType;
         initialType <- switch(initialType,
                               "complete"=,
@@ -1106,7 +1120,10 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     ##### Do final check and make some preparations for output #####
     # Write down initials of states vector and exogenous
     if(initialType!="provided"){
-        initialValue <- list(arima=matVt[1:componentsNumberARIMA,1]);
+        initialValue <- list();
+        if(arimaModel){
+            initialValue$arima <- matVt[1:componentsNumberARIMA,1];
+        }
     }
     if(xregModel){
         initialValue$xreg <- matVt[componentsNumberARIMA+1:xregNumber,1];

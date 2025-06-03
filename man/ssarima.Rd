@@ -317,15 +317,16 @@ ssarima(rnorm(118,100,3),model=ourModel)
         lags=c(1,4),h=18,holdout=TRUE,initial="backcasting")}
 
 
+\donttest{set.seed(41)}
 \donttest{x <- rnorm(118,100,3)}
 
 # The best ARIMA for the data
 \donttest{ourModel <- auto.ssarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12),
-                                   h=18,holdout=TRUE,interval="np")}
+                                   h=18,holdout=TRUE)}
 
 # The other one using optimised states
 \donttest{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
-                       initial="o",h=18,holdout=TRUE)}
+                       initial="two",h=18,holdout=TRUE)}
 
 \donttest{summary(ourModel)
 forecast(ourModel)
