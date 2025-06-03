@@ -104,8 +104,10 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
     combine <- FALSE;
 
     # If this is Mcomp data, then take the frequency from it
-    if(any(class(y)=="Mdata") && all(lags==frequency(y))){
-        lags <- unique(c(lags,frequency(y$x)));
+    if(any(class(y)=="Mdata")){
+        if(all(lags %in% c(1,frequency(y)))){
+            lags <- unique(c(lags,frequency(y$x)));
+        }
         yInSample <- y$x;
         # Measure the sample size based on what was provided as data
         obsInSample <- length(y$x) - holdout*h;
