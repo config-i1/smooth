@@ -1,4 +1,4 @@
-smooth v4.3.0 (Release data: 2025-05-07)
+smooth v4.3.0 (Release data: 2025-06-03)
 =======
 
 Changes:
@@ -13,6 +13,7 @@ Bugfixes:
 * Fixed vcov() calculation for adam with initial="backcasting".
 * Furthre fixes in vcov() for adam with initial="backcasting".
 * A fix for auto.ces() not working properly, when called without loading the full package.
+* Some bugfixes for SSARIMA + more consistency in "refine head".
 
 
 smooth v4.2.0 (Release data: 2025-04-02)

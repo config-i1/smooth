@@ -225,11 +225,11 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
-    # refined. GUM doesn't need that.
+    # refined. In case of SSARIMA this only creates a mess
     refineHead <- FALSE;
 
     ##### Elements of SSARIMA #####
-    filler <- function(B, matVt, matF, vecG, matWt, arEstimate=TRUE, maEstimate=TRUE){
+    filler <- function(B, matVt, matF, vecG, matWt, arRequired=TRUE, maRequired=TRUE, arEstimate=TRUE, maEstimate=TRUE){
 
         j <- 0;
         # ARMA parameters. This goes before xreg in persistence
@@ -239,18 +239,18 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                                           arOrders, iOrders, maOrders,
                                                           arEstimate, maEstimate, armaParameters, lags), as.vector);
 
-            if(arEstimate || any(iOrders>0)){
+            if(arRequired || any(iOrders>0)){
                 # Fill in the transition matrix
                 matF[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
                 # Fill in the persistence vector
                 vecG[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
-                if(maEstimate){
+                if(maRequired){
                     vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] <- vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] +
                         arimaPolynomials$maPolynomial[-1];
                 }
             }
             else{
-                if(maEstimate){
+                if(maRequired){
                     vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] <- arimaPolynomials$maPolynomial[-1];
                 }
             }
@@ -302,9 +302,11 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     ##### Cost function #####
-    CF <- function(B, matVt, matF, vecG, matWt, arEstimate=TRUE, maEstimate=TRUE){
+    CF <- function(B, matVt, matF, vecG, matWt, arRequired=TRUE, maRequired=TRUE,
+                   arEstimate=TRUE, maEstimate=TRUE){
         # Obtain the main elements
-        elements <- filler(B, matVt, matF, vecG, matWt, arEstimate=arEstimate, maEstimate=maEstimate);
+        elements <- filler(B, matVt, matF, vecG, matWt, arRequired=arRequired, maRequired=maRequired,
+                           arEstimate=arEstimate, maEstimate=maEstimate);
 
         #### The usual bounds ####
         if(bounds=="usual"){
@@ -457,8 +459,12 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     #### Likelihood function ####
-    logLikFunction <- function(B, matVt, matF, vecG, matWt, arEstimate=TRUE, maEstimate=TRUE){
-        return(-CF(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt, arEstimate=arEstimate, maEstimate=maEstimate));
+    logLikFunction <- function(B, matVt, matF, vecG, matWt,
+                               arRequired=TRUE, maRequired=TRUE,
+                               arEstimate=TRUE, maEstimate=TRUE){
+        return(-CF(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                   arRequired=arRequired, maRequired=maRequired,
+                   arEstimate=arEstimate, maEstimate=maEstimate));
     }
 
     #### Basic ARIMA parameters ####
@@ -540,7 +546,10 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     lagsModelAll <- matrix(rep(1,componentsNumberAll+xregNumber),ncol=1);
     lagsModelMax <- 1;
 
-    # initialValue <- initialValueProvided;
+    if(!is.null(initialValueProvided)){
+        initialType <- "provided";
+    }
+    initialValue <- initialValueProvided;
     initial <- initialOriginal;
 
     if(any(initialType==c("optimal","two-stage"))){
@@ -567,7 +576,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             matWt[,2:componentsNumberARIMA] <- 0;
         }
         if(initialType=="provided"){
-            matVt[1:componentsNumberARIMA,1] <- initialArima;
+            matVt[1:componentsNumberARIMA,1] <- initialValue;
+            initialArimaEstimate <- FALSE;
         }
         else{
             yDifferenced <- yInSample;
@@ -580,6 +590,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                 }
             }
             obsDiff <- length(yDifferenced)
+            # If the number of components is larger than the sample size (after taking differences)
             if(obsDiff<componentsNumberARIMA){
                 matVt[1:componentsNumberARIMA,1] <- mean(yDifferenced[obsDiff:1]);
             }
@@ -592,7 +603,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                 # matVt[1:componentsNumberARIMA,1] <- yDifferenced[1:componentsNumberARIMA + as.vector(iOrders %*% lags)-1];
                 matVt[1:componentsNumberARIMA,1] <- yDifferenced[1:componentsNumberARIMA];
             }
-            matVt[1,1] <- yDifferenced[1];
+            matVt[1,1] <- yInSample[1];
         }
     }
 
@@ -640,12 +651,19 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     # Scale value
     parametersNumber[1,4] <- 1;
 
+    # Fix modelDo based on everything that needs to be estimated
+    modelDo <- c("use","estimate")[any(arEstimate, maEstimate, initialArimaEstimate, persistenceEstimate,
+                                       persistenceXregEstimate, initialXregEstimate, constantEstimate)+1];
+
     #### If we need to estimate the model ####
     if(modelDo=="estimate"){
         # Create ADAM profiles for correct treatment of seasonality
         adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
                                            lags=lags, yIndex=yIndexAll, yClasses=yClasses);
         profilesRecentTable <- adamProfiles$recent;
+        if(initialType=="provided"){
+            profilesRecentTable[1:componentsNumberARIMA,1] <- matVt[1:componentsNumberARIMA,1];
+        }
         indexLookupTable <- adamProfiles$lookup;
 
         #### Initialise vector B ####
@@ -907,6 +925,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                                  ftol_rel=ftol_rel, ftol_abs=ftol_abs,
                                                  maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level),
                                        matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                                       arRequired=arRequired, maRequired=maRequired,
                                        arEstimate=arEstimate, maEstimate=maEstimate));
 
         if(print_level_hidden>0){
@@ -920,7 +939,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         nParamEstimated <- length(B) + (loss=="likelihood")*1;
 
         # Prepare for fitting
-        elements <- filler(B, matVt, matF, vecG, matWt, arEstimate=arEstimate, maEstimate=maEstimate);
+        elements <- filler(B, matVt, matF, vecG, matWt, arRequired=arRequired, maRequired=maRequired,
+                           arEstimate=arEstimate, maEstimate=maEstimate);
         matF[] <- elements$matF;
         vecG[] <- elements$vecG;
         matVt[,1] <- elements$matVt[,1];
@@ -946,6 +966,10 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             profilesRecentInitial <- profilesRecentTable <- adamProfiles$recent;
         }
 
+        if(initialType=="provided"){
+            profilesRecentInitial[,1] <- profilesRecentTable[,1] <- matVt[,1];
+        }
+
         initialOriginal <- initialType;
         if(any(initialType==c("optimal","two-stage"))){
             initialType <- "provided";
@@ -954,14 +978,18 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         initialXregEstimate <- FALSE;
 
         # Prepare for fitting
-        elements <- filler(B, matVt, matF, vecG, matWt, arEstimate=arRequired, maEstimate=maRequired);
+        elements <- filler(armaParameters, matVt, matF, vecG, matWt,
+                           arRequired=arRequired, maRequired=maRequired,
+                           arEstimate=arEstimate, maEstimate=maEstimate);
         matF[] <- elements$matF;
         vecG[] <- elements$vecG;
         matVt[,1] <- profilesRecentTable[] <- elements$matVt[,1, drop=FALSE];
         matWt[] <- elements$matWt;
         arimaPolynomials <- elements$arimaPolynomials;
 
-        CFValue <- CF(B, matVt, matF, vecG, matWt, arEstimate=arRequired, maEstimate=maRequired);
+        CFValue <- CF(B, matVt, matF, vecG, matWt,
+                      arRequired=arRequired, maRequired=maRequired,
+                      arEstimate=arEstimate, maEstimate=maEstimate);
         res <- NULL;
 
         # Only variance is estimated
@@ -1005,6 +1033,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
         # Calculate hessian
         FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                       arRequired=arRequired, maRequired=maRequired,
                        arEstimate=arEstimate, maEstimate=maEstimate);
         colnames(FI) <- rownames(FI) <- names(B);
 
@@ -1032,6 +1061,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     # In case of likelihood, we typically have one more parameter to estimate - scale.
     logLikValue <- structure(logLikFunction(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                                            arRequired=arRequired, maRequired=maRequired,
                                             arEstimate=arEstimate, maEstimate=maEstimate),
                              nobs=obsInSample, df=nParamEstimated, class="logLik");
 
