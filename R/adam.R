@@ -9207,6 +9207,11 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     gumModel <- smoothType(object)=="GUM";
     ssarimaModel <- smoothType(object)=="SSARIMA";
 
+    refineHead <- TRUE;
+    if(any(arimaModel,ssarimaModel)){
+        refineHead[] <- FALSE;
+    }
+
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
@@ -9740,7 +9745,8 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                                      Etype, Ttype, Stype,
                                      lagsModelAll, indexLookupTable, profilesRecentArray,
                                      componentsNumberETSSeasonal, componentsNumberETS,
-                                     componentsNumberARIMA, xregNumber, constantRequired);
+                                     componentsNumberARIMA, xregNumber, constantRequired,
+                                     object$initialType=="backcasting", refineHead);
     arrVt[] <- adamRefitted$states;
     fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
     profilesRecentArray[] <- adamRefitted$profilesRecent;

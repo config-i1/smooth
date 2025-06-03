@@ -111,8 +111,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // adamRefitterWrap
-RcppExport SEXP adamRefitterWrap(arma::mat matrixYt, arma::mat matrixOt, arma::cube arrayVt, arma::cube arrayF, arma::cube arrayWt, arma::mat matrixG, char const& E, char const& T, char const& S, arma::uvec lags, arma::umat indexLookupTable, arma::cube arrayProfilesRecent, unsigned int const& nSeasonal, unsigned int const& componentsNumberETS, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant);
-RcppExport SEXP _smooth_adamRefitterWrap(SEXP matrixYtSEXP, SEXP matrixOtSEXP, SEXP arrayVtSEXP, SEXP arrayFSEXP, SEXP arrayWtSEXP, SEXP matrixGSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP lagsSEXP, SEXP indexLookupTableSEXP, SEXP arrayProfilesRecentSEXP, SEXP nSeasonalSEXP, SEXP componentsNumberETSSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP) {
+RcppExport SEXP adamRefitterWrap(arma::mat matrixYt, arma::mat matrixOt, arma::cube arrayVt, arma::cube arrayF, arma::cube arrayWt, arma::mat matrixG, char const& E, char const& T, char const& S, arma::uvec lags, arma::umat indexLookupTable, arma::cube arrayProfilesRecent, unsigned int const& nSeasonal, unsigned int const& componentsNumberETS, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant, bool const& backcast, bool const& refineHead);
+RcppExport SEXP _smooth_adamRefitterWrap(SEXP matrixYtSEXP, SEXP matrixOtSEXP, SEXP arrayVtSEXP, SEXP arrayFSEXP, SEXP arrayWtSEXP, SEXP matrixGSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP lagsSEXP, SEXP indexLookupTableSEXP, SEXP arrayProfilesRecentSEXP, SEXP nSeasonalSEXP, SEXP componentsNumberETSSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP backcastSEXP, SEXP refineHeadSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -133,7 +133,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< unsigned int const& >::type nArima(nArimaSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nXreg(nXregSEXP);
     Rcpp::traits::input_parameter< bool const& >::type constant(constantSEXP);
-    rcpp_result_gen = Rcpp::wrap(adamRefitterWrap(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG, E, T, S, lags, indexLookupTable, arrayProfilesRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant));
+    Rcpp::traits::input_parameter< bool const& >::type backcast(backcastSEXP);
+    Rcpp::traits::input_parameter< bool const& >::type refineHead(refineHeadSEXP);
+    rcpp_result_gen = Rcpp::wrap(adamRefitterWrap(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG, E, T, S, lags, indexLookupTable, arrayProfilesRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant, backcast, refineHead));
     return rcpp_result_gen;
 END_RCPP
 }

@@ -17,8 +17,8 @@ adamPolynomialiser <- function(B, arOrders, iOrders, maOrders, arEstimate, maEst
     .Call('_smooth_adamPolynomialiser', PACKAGE = 'smooth', B, arOrders, iOrders, maOrders, arEstimate, maEstimate, armaParameters, lags)
 }
 
-adamRefitterWrap <- function(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG, E, T, S, lags, indexLookupTable, arrayProfilesRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant) {
-    .Call('_smooth_adamRefitterWrap', PACKAGE = 'smooth', matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG, E, T, S, lags, indexLookupTable, arrayProfilesRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant)
+adamRefitterWrap <- function(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG, E, T, S, lags, indexLookupTable, arrayProfilesRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant, backcast, refineHead) {
+    .Call('_smooth_adamRefitterWrap', PACKAGE = 'smooth', matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG, E, T, S, lags, indexLookupTable, arrayProfilesRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant, backcast, refineHead)
 }
 
 adamReforecasterWrap <- function(arrayErrors, arrayOt, arrayF, arrayWt, matrixG, E, T, S, lags, indexLookupTable, arrayProfileRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant) {
