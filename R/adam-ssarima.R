@@ -202,6 +202,10 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     if(!is.character(initial)){
         initialValueProvided <- initial;
         initial <- "optimal";
+
+        if(is.list(initialValueProvided)){
+            initialX <- initialValueProvided$xreg;
+        }
     }
     if(!is.null(initialX)){
         initial <- list(xreg=initialX);
@@ -977,7 +981,6 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             profilesRecentInitial[,1] <- profilesRecentTable[,1] <- matVt[,1];
         }
 
-        initialOriginal <- initialType;
         if(any(initialType==c("optimal","two-stage"))){
             initialType <- "provided";
         }
@@ -1016,12 +1019,13 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
         if(any(substr(names(B),1,5)=="theta")){
             maEstimateOriginal <- maEstimate;
-            maEstimate <- arRequired;
+            maEstimate <- maRequired;
         }
         if(any(substr(names(B),1,10)=="ARIMAState")){
             initialArimaEstimateOriginal <- initialArimaEstimate;
             initialArimaEstimate <- TRUE;
         }
+
         initialTypeOriginal <- initialType;
         initialType <- switch(initialType,
                               "complete"=,
