@@ -550,6 +550,13 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         initialType <- "provided";
     }
     initialValue <- initialValueProvided;
+
+    initialValueARIMA <- initialValue;
+    if(is.list(initialValue)){
+        xregModelInitials[[1]][[1]] <- initialValue$xreg;
+        initialValueARIMA <- initialValue$arima;
+    }
+
     initial <- initialOriginal;
 
     if(any(initialType==c("optimal","two-stage"))){
@@ -576,7 +583,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             matWt[,2:componentsNumberARIMA] <- 0;
         }
         if(initialType=="provided"){
-            matVt[1:componentsNumberARIMA,1] <- initialValue;
+            matVt[1:componentsNumberARIMA,1] <- initialValueARIMA;
             initialArimaEstimate <- FALSE;
         }
         else{
