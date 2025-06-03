@@ -278,7 +278,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
     }
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
-    # refined. GUM doesn't need that.
+    # refined.
     refineHead <- TRUE;
 
     ##### Elements of GUM #####
@@ -422,6 +422,10 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
     if(!is.null(initialValue)){
         initialType <- "provided";
     }
+
+    # if(initialType=="provided"){
+    #     refineHead[] <- FALSE;
+    # }
 
     orders <- ordersOriginal;
     lags <- lagsOriginal;
