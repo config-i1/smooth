@@ -207,6 +207,9 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             initialX <- initialValueProvided$xreg;
         }
     }
+    else{
+        initialOriginal <- match.arg(initial);
+    }
     if(!is.null(initialX)){
         initial <- list(xreg=initialX);
     }
