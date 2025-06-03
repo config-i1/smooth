@@ -317,6 +317,7 @@ ssarima(rnorm(118,100,3),model=ourModel)
         lags=c(1,4),h=18,holdout=TRUE,initial="backcasting")}
 
 
+\donttest{set.seed(41)}
 \donttest{x <- rnorm(118,100,3)}
 
 # The best ARIMA for the data

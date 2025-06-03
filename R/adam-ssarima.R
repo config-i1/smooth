@@ -1120,7 +1120,10 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     ##### Do final check and make some preparations for output #####
     # Write down initials of states vector and exogenous
     if(initialType!="provided"){
-        initialValue <- list(arima=matVt[1:componentsNumberARIMA,1]);
+        initialValue <- list();
+        if(arimaModel){
+            initialValue$arima <- matVt[1:componentsNumberARIMA,1];
+        }
     }
     if(xregModel){
         initialValue$xreg <- matVt[componentsNumberARIMA+1:xregNumber,1];

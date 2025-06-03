@@ -59,6 +59,7 @@ utils::globalVariables(c("silent","silentGraph","silentLegend","initialType","ar
 #'
 #' @examples
 #'
+#' \donttest{set.seed(41)}
 #' \donttest{x <- rnorm(118,100,3)}
 #'
 #' # The best ARIMA for the data
