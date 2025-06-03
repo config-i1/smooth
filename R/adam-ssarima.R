@@ -241,10 +241,18 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         j <- 0;
         # ARMA parameters. This goes before xreg in persistence
         if(arimaModel){
-            # Call the function returning ARI and MA polynomials
-            arimaPolynomials <- lapply(adamPolynomialiser(B[1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                          arOrders, iOrders, maOrders,
-                                                          arEstimate, maEstimate, armaParameters, lags), as.vector);
+            # This is a failsafe for cases, when model doesn't have any parameters (e.g. I(d) with backcasting)
+            if(is.null(B)){
+                arimaPolynomials <- lapply(adamPolynomialiser(0,
+                                                              arOrders, iOrders, maOrders,
+                                                              arEstimate, maEstimate, armaParameters, lags), as.vector);
+            }
+            else{
+                # Call the function returning ARI and MA polynomials
+                arimaPolynomials <- lapply(adamPolynomialiser(B[1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                              arOrders, iOrders, maOrders,
+                                                              arEstimate, maEstimate, armaParameters, lags), as.vector);
+            }
 
             if(arRequired || any(iOrders>0)){
                 # Fill in the transition matrix
@@ -666,8 +674,10 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     parametersNumber[1,4] <- 1;
 
     # Fix modelDo based on everything that needs to be estimated
-    modelDo <- c("use","estimate")[any(arEstimate, maEstimate, initialArimaEstimate, persistenceEstimate,
-                                       persistenceXregEstimate, initialXregEstimate, constantEstimate)+1];
+    modelDo <- c("use","estimate")[any(arEstimate, maEstimate,
+                                       initialArimaEstimate & any(initialType==c("optimal","two-stage")),
+                                       persistenceEstimate, persistenceXregEstimate,
+                                       initialXregEstimate, constantEstimate)+1];
 
     #### If we need to estimate the model ####
     if(modelDo=="estimate"){
