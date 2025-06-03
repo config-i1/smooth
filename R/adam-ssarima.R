@@ -225,8 +225,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
-    # refined. SSARIMA doesn't need that.
-    refineHead <- TRUE;
+    # refined. In case of SSARIMA this only creates a mess
+    refineHead <- FALSE;
 
     ##### Elements of SSARIMA #####
     filler <- function(B, matVt, matF, vecG, matWt, arRequired=TRUE, maRequired=TRUE, arEstimate=TRUE, maEstimate=TRUE){
@@ -459,8 +459,12 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     #### Likelihood function ####
-    logLikFunction <- function(B, matVt, matF, vecG, matWt, arEstimate=TRUE, maEstimate=TRUE){
-        return(-CF(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt, arEstimate=arEstimate, maEstimate=maEstimate));
+    logLikFunction <- function(B, matVt, matF, vecG, matWt,
+                               arRequired=TRUE, maRequired=TRUE,
+                               arEstimate=TRUE, maEstimate=TRUE){
+        return(-CF(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                   arRequired=arRequired, maRequired=maRequired,
+                   arEstimate=arEstimate, maEstimate=maEstimate));
     }
 
     #### Basic ARIMA parameters ####
@@ -586,6 +590,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                 }
             }
             obsDiff <- length(yDifferenced)
+            # If the number of components is larger than the sample size (after taking differences)
             if(obsDiff<componentsNumberARIMA){
                 matVt[1:componentsNumberARIMA,1] <- mean(yDifferenced[obsDiff:1]);
             }
@@ -598,7 +603,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                 # matVt[1:componentsNumberARIMA,1] <- yDifferenced[1:componentsNumberARIMA + as.vector(iOrders %*% lags)-1];
                 matVt[1:componentsNumberARIMA,1] <- yDifferenced[1:componentsNumberARIMA];
             }
-            matVt[1,1] <- yDifferenced[1];
+            matVt[1,1] <- yInSample[1];
         }
     }
 
@@ -649,11 +654,6 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     # Fix modelDo based on everything that needs to be estimated
     modelDo <- c("use","estimate")[any(arEstimate, maEstimate, initialArimaEstimate, persistenceEstimate,
                                        persistenceXregEstimate, initialXregEstimate, constantEstimate)+1];
-
-    # Don't refine the head if the initials were provided
-    if(initialType=="provided"){
-        refineHead[] <- FALSE;
-    }
 
     #### If we need to estimate the model ####
     if(modelDo=="estimate"){
@@ -978,7 +978,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         initialXregEstimate <- FALSE;
 
         # Prepare for fitting
-        elements <- filler(armaParameters, matVt, matF, vecG, matWt, arRequired=arRequired, maRequired=maRequired,
+        elements <- filler(armaParameters, matVt, matF, vecG, matWt,
+                           arRequired=arRequired, maRequired=maRequired,
                            arEstimate=arEstimate, maEstimate=maEstimate);
         matF[] <- elements$matF;
         vecG[] <- elements$vecG;
@@ -1032,6 +1033,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
         # Calculate hessian
         FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                       arRequired=arRequired, maRequired=maRequired,
                        arEstimate=arEstimate, maEstimate=maEstimate);
         colnames(FI) <- rownames(FI) <- names(B);
 
@@ -1059,6 +1061,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     # In case of likelihood, we typically have one more parameter to estimate - scale.
     logLikValue <- structure(logLikFunction(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                                            arRequired=arRequired, maRequired=maRequired,
                                             arEstimate=arEstimate, maEstimate=maEstimate),
                              nobs=obsInSample, df=nParamEstimated, class="logLik");
 
