@@ -31,6 +31,10 @@
 #' @param initial Can be \code{"optimal"}, meaning that the initial
 #' states are optimised, or \code{"backcasting"}, meaning that the
 #' initials are produced using backcasting procedure.
+#' @param bounds What type of bounds to use in the model estimation. The first
+#' letter can be used instead of the whole word. \code{"usual"} implies restrictions on
+#' the smoothing parameter, guaranteeing that the exponential smoothing behaves
+#' as an averaging model. \code{"admissible"} guarantee that the model is stable.
 #' @param bins The number of bins for the prediction interval.
 #' The lower value means faster work of the function, but less
 #' precise estimates of the quantiles. This needs to be an even
