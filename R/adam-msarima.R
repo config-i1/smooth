@@ -82,12 +82,16 @@
 #' ascending.
 #' The orders are set by a user. If you want the automatic order selection,
 #' then use \link[smooth]{auto.msarima} function instead.
+#' @param bounds What type of bounds to use in the model estimation. The first
+#' letter can be used instead of the whole word. \code{"admissible"} guarantee
+#' that the model is stable. \code{"usual"} are not supported due to restrictions
+#' in \code{adam()}.
 #' @param constant If \code{TRUE}, constant term is included in the model. Can
 #' also be a number (constant value). For \code{auto.msarima}, if \code{NULL},
 #' then the function will check if constant is needed.
 #' @param AR Vector or matrix of AR parameters. The order of parameters should
 #' be lag-wise. This means that first all the AR parameters of the firs lag
-#' should be passed, then for the second etc. AR of another msarima can be
+#' should be passed, then for the second etc. AR of another \code{msarima()} can be
 #' passed here.
 #' @param MA Vector or matrix of MA parameters. The order of parameters should
 #' be lag-wise. This means that first all the MA parameters of the firs lag

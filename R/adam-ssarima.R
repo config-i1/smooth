@@ -80,6 +80,9 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' \code{orders=list(ar=c(1,1),ma=c(1,1)), lags=c(1,4), arma=list(ar=c(0.9,0.8),ma=c(-0.3,0.3))}
 #' @param model A previously estimated ssarima model, if provided, the function
 #' will not estimate anything and will use all its parameters.
+#' @param bounds What type of bounds to use in the model estimation. The first
+#' letter can be used instead of the whole word. In case of \code{ssarima()}, the
+#' "usual" means restricting AR and MA parameters to lie between -1 and 1.
 #' @param ...  Other non-documented parameters. See \link[smooth]{adam} for
 #' details.
 #'
@@ -214,6 +217,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         initial <- list(xreg=initialX);
     }
 
+    boundsOriginal <- match.arg(bounds);
+
     ##### Make all the checks #####
     checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=NULL,
                                        orders=orders,
@@ -222,9 +227,12 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                        persistence=NULL, phi=NULL, initial,
                                        distribution="dnorm", loss, h, holdout, occurrence="none",
                                        # This is not needed by the gum() function
-                                       ic="AICc", bounds=bounds[1],
+                                       ic="AICc", bounds=boundsOriginal,
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
+
+    # A fix to make sure that usual bounds are possible
+    bounds <- boundsOriginal;
 
     # If the regression was returned, just return it
     if(is.alm(checkerReturn)){
@@ -233,7 +241,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. In case of SSARIMA this only creates a mess
-    refineHead <- FALSE;
+    refineHead <- TRUE;
 
     ##### Elements of SSARIMA #####
     filler <- function(B, matVt, matF, vecG, matWt, arRequired=TRUE, maRequired=TRUE, arEstimate=TRUE, maEstimate=TRUE){
@@ -241,10 +249,18 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         j <- 0;
         # ARMA parameters. This goes before xreg in persistence
         if(arimaModel){
-            # Call the function returning ARI and MA polynomials
-            arimaPolynomials <- lapply(adamPolynomialiser(B[1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                          arOrders, iOrders, maOrders,
-                                                          arEstimate, maEstimate, armaParameters, lags), as.vector);
+            # This is a failsafe for cases, when model doesn't have any parameters (e.g. I(d) with backcasting)
+            if(is.null(B)){
+                arimaPolynomials <- lapply(adamPolynomialiser(0,
+                                                              arOrders, iOrders, maOrders,
+                                                              arEstimate, maEstimate, armaParameters, lags), as.vector);
+            }
+            else{
+                # Call the function returning ARI and MA polynomials
+                arimaPolynomials <- lapply(adamPolynomialiser(B[1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                              arOrders, iOrders, maOrders,
+                                                              arEstimate, maEstimate, armaParameters, lags), as.vector);
+            }
 
             if(arRequired || any(iOrders>0)){
                 # Fill in the transition matrix
@@ -321,21 +337,25 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             if(arimaModel && any(c(arEstimate,maEstimate))){
                 # Calculate the polynomial roots for AR
                 if(arEstimate &&
-                   all(elements$arimaPolynomials$arPolynomial[-1]>0) &&
-                   sum(-(elements$arimaPolynomials$arPolynomial[-1]))>=1){
-                    arPolynomialMatrix[,1] <- -elements$arimaPolynomials$arPolynomial[-1];
-                    arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
-                    if(any(arPolyroots>1)){
-                        return(1E+100*max(arPolyroots));
-                    }
+                   any(abs(elements$arimaPolynomials$maPolynomial[-1])>=1)){
+                   # all(elements$arimaPolynomials$arPolynomial[-1]>0) &&
+                   # sum(-(elements$arimaPolynomials$arPolynomial[-1]))>=1){
+                    # arPolynomialMatrix[,1] <- -elements$arimaPolynomials$arPolynomial[-1];
+                    # arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
+                    # if(any(arPolyroots>1)){
+                        return(1E+100);
+                    # }
                 }
                 # Calculate the polynomial roots of MA
-                if(maEstimate && sum(elements$arimaPolynomials$maPolynomial[-1])>=1){
-                    maPolynomialMatrix[,1] <- elements$arimaPolynomials$maPolynomial[-1];
-                    maPolyroots <- abs(eigen(maPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
-                    if(any(maPolyroots>1)){
-                        return(1E+100*max(abs(maPolyroots)));
-                    }
+                if(maEstimate &&
+                   any(abs(elements$arimaPolynomials$maPolynomial[-1])>=1)){
+                   # sum(elements$arimaPolynomials$maPolynomial[-1])>=1){
+                    # maPolynomialMatrix[,1] <- elements$arimaPolynomials$maPolynomial[-1];
+                    # maPolyroots <- abs(eigen(maPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
+                    # if(any(maPolyroots>1)){
+                    #     return(1E+100*max(abs(maPolyroots)));
+                    # }
+                    return(1E+100);
                 }
             }
 
@@ -666,8 +686,10 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     parametersNumber[1,4] <- 1;
 
     # Fix modelDo based on everything that needs to be estimated
-    modelDo <- c("use","estimate")[any(arEstimate, maEstimate, initialArimaEstimate, persistenceEstimate,
-                                       persistenceXregEstimate, initialXregEstimate, constantEstimate)+1];
+    modelDo <- c("use","estimate")[any(arEstimate, maEstimate,
+                                       initialArimaEstimate & any(initialType==c("optimal","two-stage")),
+                                       persistenceEstimate, persistenceXregEstimate,
+                                       initialXregEstimate, constantEstimate)+1];
 
     #### If we need to estimate the model ####
     if(modelDo=="estimate"){

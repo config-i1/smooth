@@ -89,9 +89,6 @@ number.}
 quantile-wise (\code{"quantile"}) or probability-wise
 (\code{"probability"}).}
 
-\item{bounds}{What type of bounds to use in the model estimation. The first
-letter can be used instead of the whole word.}
-
 \item{silent}{accepts \code{TRUE} and \code{FALSE}. If FALSE, the function
 will print its progress and produce a plot at the end.}
 

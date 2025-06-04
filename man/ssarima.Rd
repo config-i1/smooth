@@ -19,7 +19,7 @@ auto.ssarima(y, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   initial = c("backcasting", "optimal", "two-stage", "complete"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
   "MSCE"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 0, holdout = FALSE,
-  bounds = c("admissible", "none"), silent = TRUE, xreg = NULL,
+  bounds = c("admissible", "usual", "none"), silent = TRUE, xreg = NULL,
   regressors = c("use", "select", "adapt"), ...)
 
 ssarima_old(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
@@ -87,7 +87,8 @@ are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
 the end of the data.}
 
 \item{bounds}{What type of bounds to use in the model estimation. The first
-letter can be used instead of the whole word.}
+letter can be used instead of the whole word. In case of \code{ssarima()}, the
+"usual" means restricting AR and MA parameters to lie between -1 and 1.}
 
 \item{silent}{accepts \code{TRUE} and \code{FALSE}. If FALSE, the function
 will print its progress and produce a plot at the end.}

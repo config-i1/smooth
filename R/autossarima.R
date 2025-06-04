@@ -81,7 +81,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                          initial=c("backcasting","optimal","two-stage","complete"),
                          loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                          ic=c("AICc","AIC","BIC","BICc"),
-                         h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
+                         h=0, holdout=FALSE, bounds=c("admissible","usual","none"), silent=TRUE,
                          xreg=NULL, regressors=c("use","select","adapt"),
                          ...){
 # Function estimates several ssarima models and selects the best one using the selected information criterion.
