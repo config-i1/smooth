@@ -80,6 +80,9 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' \code{orders=list(ar=c(1,1),ma=c(1,1)), lags=c(1,4), arma=list(ar=c(0.9,0.8),ma=c(-0.3,0.3))}
 #' @param model A previously estimated ssarima model, if provided, the function
 #' will not estimate anything and will use all its parameters.
+#' @param bounds What type of bounds to use in the model estimation. The first
+#' letter can be used instead of the whole word. In case of \code{ssarima()}, the
+#' "usual" means restricting AR and MA parameters to lie between -1 and 1.
 #' @param ...  Other non-documented parameters. See \link[smooth]{adam} for
 #' details.
 #'

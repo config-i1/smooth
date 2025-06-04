@@ -87,7 +87,8 @@ are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
 the end of the data.}
 
 \item{bounds}{What type of bounds to use in the model estimation. The first
-letter can be used instead of the whole word.}
+letter can be used instead of the whole word. In case of \code{ssarima()}, the
+"usual" means restricting AR and MA parameters to lie between -1 and 1.}
 
 \item{silent}{accepts \code{TRUE} and \code{FALSE}. If FALSE, the function
 will print its progress and produce a plot at the end.}
