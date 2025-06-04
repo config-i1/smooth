@@ -19,7 +19,7 @@ auto.ssarima(y, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   initial = c("backcasting", "optimal", "two-stage", "complete"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
   "MSCE"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 0, holdout = FALSE,
-  bounds = c("admissible", "none"), silent = TRUE, xreg = NULL,
+  bounds = c("admissible", "usual", "none"), silent = TRUE, xreg = NULL,
   regressors = c("use", "select", "adapt"), ...)
 
 ssarima_old(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
