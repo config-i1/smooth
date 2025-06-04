@@ -4,14 +4,15 @@
 \alias{smoothCombine}
 \title{Combination of forecasts of state space models}
 \usage{
-smoothCombine(y, models = NULL, initial = c("optimal", "backcasting"),
-  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE", "MAE", "HAM",
-  "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
-  cumulative = FALSE, interval = c("none", "parametric", "likelihood",
-  "semiparametric", "nonparametric"), level = 0.95, bins = 200,
-  intervalCombine = c("quantile", "probability"), bounds = c("admissible",
-  "none"), silent = c("all", "graph", "legend", "output", "none"),
-  xreg = NULL, regressors = c("use", "select"), initialX = NULL, ...)
+smoothCombine(y, models = NULL, initial = c("backcasting", "optimal",
+  "two-stage", "complete"), ic = c("AICc", "AIC", "BIC", "BICc"),
+  loss = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10,
+  holdout = FALSE, cumulative = FALSE, interval = c("none", "prediction",
+  "confidence", "simulated", "approximate", "semiparametric", "nonparametric",
+  "empirical", "complete"), level = 0.95, bins = 200,
+  intervalCombine = c("quantile", "probability"), bounds = c("usual",
+  "admissible", "none"), silent = TRUE, xreg = NULL,
+  regressors = c("use", "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}
