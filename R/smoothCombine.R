@@ -189,7 +189,7 @@ smoothCombine <- function(y, models=NULL,
         names(models) <- c("ETS","CES","SSARIMA","GUM","SMA");
     }
 
-    yForecastTest <- forecast(models[[1]],h=h,interval="none",holdout=holdout);
+    yForecastTest <- forecast(models[[1]],h=h,interval="none");
     yHoldout <- yForecastTest$model$holdout;
     yInSample <- actuals(yForecastTest$model);
     yStart <- start(yInSample);
@@ -206,9 +206,8 @@ smoothCombine <- function(y, models=NULL,
     icBest <- min(ICs);
     icWeights <- exp(-0.5*(ICs-icBest)) / sum(exp(-0.5*(ICs-icBest)));
 
-    modelsForecasts <- lapply(models,forecast,h=h,interval=intervalType,
-                              level=0,holdout=holdout,cumulative=cumulative,
-                              xreg=xreg);
+    modelsForecasts <- lapply(models, forecast, h=h, interval=intervalType,
+                              level=0, cumulative=cumulative, newdata=xreg);
 
     yForecast <- as.matrix(as.data.frame(lapply(modelsForecasts,`[[`,"mean")));
     yForecast <- ts(c(yForecast %*% icWeights),start=yForecastStart,frequency=yFrequency);
