@@ -533,16 +533,16 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     # If zeroes are defined for some orders, drop them.
-    if(any((arOrders + iOrders + maOrders)==0)){
-        orders2leave <- (arOrders + iOrders + maOrders)!=0;
-        if(all(!orders2leave)){
-            orders2leave <- lags==min(lags);
-        }
-        arOrders <- arOrders[orders2leave];
-        iOrders <- iOrders[orders2leave];
-        maOrders <- maOrders[orders2leave];
-        lags <- lags[orders2leave];
-    }
+    # if(any((arOrders + iOrders + maOrders)==0)){
+    #     orders2leave <- (arOrders + iOrders + maOrders)!=0;
+    #     if(all(!orders2leave)){
+    #         orders2leave <- lags==min(lags);
+    #     }
+    #     arOrders <- arOrders[orders2leave];
+    #     iOrders <- iOrders[orders2leave];
+    #     maOrders <- maOrders[orders2leave];
+    #     lags <- lags[orders2leave];
+    # }
 
     # Get rid of duplicates in lags
     if(length(unique(lags))!=length(lags)){
