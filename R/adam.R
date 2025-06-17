@@ -3219,7 +3219,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     xregFactors <- FALSE;
                     xregParametersPersistence <- setNames(c(1:xregNumber),xregNames);
                     xregParametersEstimated <- setNames(rep(1,xregNumber),xregNames);
-                    xregParametersMissing <- setNames(c(1:xregNumber),xregNames);
+                    xregParametersMissing <- setNames(rep(0,xregNumber),xregNames);
                     xregParametersIncluded <- setNames(c(1:xregNumber),xregNames);
                 }
 
