@@ -1,4 +1,4 @@
-smooth v4.3.0 (Release data: 2025-06-03)
+smooth v4.3.0 (Release data: 2025-06-17)
 =======
 
 Changes:
@@ -7,6 +7,7 @@ Changes:
 * New initialisation mechanism called "two-stage" in adam(), where "backcasting" is used to get initial values before the optimisation is done. Slower but leads to better calibrated predictive distributions in ADAM.
 * initial="backcasting" is now the default method. This needs a bit of additional tuning for ARIMA.
 * All smooth functions now have the same initialisation mechanism.
+* We no longer renormalise the initial parameters of xreg in case of models with factors. This is to avoid weird disalignment between the estimated parameters and states.
 
 Bugfixes:
 * auto.adam() now allows selecting the best distribution for a user-specified ARIMA.

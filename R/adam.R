@@ -1515,12 +1515,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                   1:lagsModelMax] <- B[j+1:xregNumberToEstimate];
             j[] <- j+xregNumberToEstimate;
             # Normalise initials
-            for(i in which(xregParametersMissing!=0)){
-                matVt[componentsNumberETS+componentsNumberARIMA+i,
-                      1:lagsModelMax] <- -sum(matVt[componentsNumberETS+componentsNumberARIMA+
-                                                        which(xregParametersIncluded==xregParametersMissing[i]),
-                                                    1:lagsModelMax]);
-            }
+            # for(i in which(xregParametersMissing!=0)){
+            #     matVt[componentsNumberETS+componentsNumberARIMA+i,
+            #           1:lagsModelMax] <- -sum(matVt[componentsNumberETS+componentsNumberARIMA+
+            #                                             which(xregParametersIncluded==xregParametersMissing[i]),
+            #                                         1:lagsModelMax]);
+            # }
         }
 
         # Constant
@@ -2592,7 +2592,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                           constantRequired, constantEstimate, constantValue, constantName,
                           ot, otLogical, occurrenceModel, pFitted,
                           bounds, loss, lossFunction, distribution,
-                          horizon, multisteps, other, otherParameterEstimate, lambda){
+                          horizon, multisteps, other, otherParameterEstimate, lambda, B){
 
         # Create the basic variables
         adamArchitect <- architector(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal,
@@ -3131,6 +3131,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 almIntercept <- almModel$coefficients["(Intercept)"];
                 xregModelInitials[[xregIndex]]$initialXreg <- coef(almModel)[-1];
 
+                # Create the B vector to speed up the calculation
+                B <- c(B, xregModelInitials[[xregIndex]]$initialXreg);
+
                 #### Fix xreg vectors based on the selected stuff ####
                 xregNames <- colnames(almModel$data)[-1];
 
@@ -3240,7 +3243,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                  constantRequired, constantEstimate, constantValue, constantName,
                                  ot, otLogical, occurrenceModel, pFitted,
                                  bounds, loss, lossFunction, distribution,
-                                 horizon, multisteps, other, otherParameterEstimate, lambda));
+                                 horizon, multisteps, other, otherParameterEstimate, lambda, B));
             }
         }
 
@@ -3418,7 +3421,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                           constantRequired, constantEstimate, constantValue, constantName,
                                           ot, otLogical, occurrenceModel, pFitted,
                                           bounds, loss, lossFunction, distribution,
-                                          horizon, multisteps, other, otherParameterEstimate, lambda);
+                                          horizon, multisteps, other, otherParameterEstimate, lambda, B);
                 results[[i]]$IC <- icFunction(results[[i]]$logLikADAMValue);
                 results[[i]]$Etype <- Etype;
                 results[[i]]$Ttype <- Ttype;
@@ -3558,7 +3561,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                       constantRequired, constantEstimate, constantValue, constantName,
                                       ot, otLogical, occurrenceModel, pFitted,
                                       bounds, loss, lossFunction, distribution,
-                                      horizon, multisteps, other, otherParameterEstimate, lambda);
+                                      horizon, multisteps, other, otherParameterEstimate, lambda, B);
             results[[j]]$IC <- icFunction(results[[j]]$logLikADAMValue);
             results[[j]]$Etype <- Etype;
             results[[j]]$Ttype <- Ttype;
@@ -4100,7 +4103,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                    constantRequired, constantEstimate, constantValue, constantName,
                                    ot, otLogical, occurrenceModel, pFitted,
                                    bounds, loss, lossFunction, distribution,
-                                   horizon, multisteps, other, otherParameterEstimate, lambda);
+                                   horizon, multisteps, other, otherParameterEstimate, lambda, B);
         list2env(adamEstimated, environment());
 
         # A fix for the special case of lambda==1
@@ -5891,6 +5894,10 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             statesNames <- c("actuals",colnames(x$states),"residuals");
             x$states <- cbind(actuals(x),x$states,residuals(x));
             colnames(x$states) <- statesNames;
+            # If we have the xts class, remove it. This is a bugfix
+            if(inherits(x$states,"xts")){
+                class(x$states) <- "zoo";
+            }
             if(ncol(x$states)>10){
                 message("Too many states. Plotting them on several canvases.");
                 if(is.null(ellipsis$main)){
@@ -5909,13 +5916,13 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
                 }
             }
             else{
+                ellipsis$x <- x$states;
                 if(ncol(x$states)<=5){
                     ellipsis$nc <- 1;
                 }
                 if(is.null(ellipsis$main)){
                     ellipsis$main <- paste0("States of ",x$model);
                 }
-                ellipsis$x <- x$states;
                 do.call(plot, ellipsis);
             }
         }
