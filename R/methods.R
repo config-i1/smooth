@@ -2728,3 +2728,19 @@ accuracy.smooth.forecast <- function(object, holdout=NULL, ...){
         return(measures(holdout, object$mean, actuals(object)));
     }
 }
+
+# Function detects the palette and sets its own colours if the default one is used
+paletteDetector <- function(colours){
+    # If the default palette is used, define the new one in the provided colours
+    paletteBasic <- palette();
+    palette("default");
+    paletteDefault <- palette();
+    if(all(paletteBasic %in% paletteDefault) &&
+       all(paletteBasic==paletteDefault)){
+        paletteBasic <- colours;
+    }
+    else{
+        palette(paletteBasic);
+    }
+    return(paletteBasic);
+}

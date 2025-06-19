@@ -5324,7 +5324,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         do.call(plot,ellipsis);
         abline(a=0,b=1,col="grey",lwd=2,lty=2)
         if(lowess){
-            lines(lowess(ellipsis$x, ellipsis$y), col="red");
+            lines(lowess(ellipsis$x, ellipsis$y), col=2);
         }
     }
 
@@ -5420,25 +5420,25 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         abline(h=0, col="grey", lty=2);
         polygon(c(xRange,rev(xRange)),c(statistic[1],statistic[1],statistic[2],statistic[2]),
                 col="lightgrey", border=NA, density=10);
-        abline(h=statistic, col="red", lty=2);
+        abline(h=statistic, col=2, lty=2);
         if(length(outliers)>0){
             points(ellipsis$x[outliers], ellipsis$y[outliers], pch=16);
             text(ellipsis$x[outliers], ellipsis$y[outliers], labels=outliers, pos=(ellipsis$y[outliers]>0)*2+1);
         }
         if(lowess){
-            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col="red");
+            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col=2);
         }
 
         if(legend){
             if(lowess){
                 legend(legendPosition,
                        legend=c(paste0(round(level,3)*100,"% bounds"),"outside the bounds","LOWESS line"),
-                       col=c("red", "black","red"), lwd=c(1,NA,1), lty=c(2,1,1), pch=c(NA,16,NA));
+                       col=c(2, 1, 2), lwd=c(1,NA,1), lty=c(2,1,1), pch=c(NA,16,NA));
             }
             else{
                 legend(legendPosition,
                        legend=c(paste0(round(level,3)*100,"% bounds"),"outside the bounds"),
-                       col=c("red", "black"), lwd=c(1,NA), lty=c(2,1), pch=c(NA,16));
+                       col=c(2, 1), lwd=c(1,NA), lty=c(2,1), pch=c(NA,16));
             }
         }
     }
@@ -5508,7 +5508,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         do.call(plot,ellipsis);
         abline(h=0, col="grey", lty=2);
         if(lowess){
-            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col="red");
+            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col=2);
         }
     }
 
@@ -5800,17 +5800,17 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             if(any(is.na(ellipsis$x))){
                 ellipsis$x[is.na(ellipsis$x)] <- mean(ellipsis$x, na.rm=TRUE);
             }
-            lines(lowess(c(1:length(ellipsis$x)),ellipsis$x), col="red");
+            lines(lowess(c(1:length(ellipsis$x)),ellipsis$x), col=2);
         }
         abline(h=0, col="grey", lty=2);
-        abline(h=statistic[1], col="red", lty=2);
-        abline(h=statistic[2], col="red", lty=2);
+        abline(h=statistic[1], col=2, lty=2);
+        abline(h=statistic[2], col=2, lty=2);
         polygon(c(1:nobs(x), c(nobs(x):1)),
                 c(rep(statistic[1],nobs(x)), rep(statistic[2],nobs(x))),
                 col="lightgrey", border=NA, density=10);
         if(legend){
             legend(legendPosition,legend=c("Residuals",paste0(level*100,"% prediction interval")),
-                   col=c("black","red"), lwd=rep(1,3), lty=c(1,1,2));
+                   col=c(1,2), lwd=rep(1,3), lty=c(1,1,2));
         }
     }
 
@@ -5877,8 +5877,8 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         ellipsis$type <- "h"
 
         do.call(plot,ellipsis);
-        abline(h=0, col="black", lty=1);
-        abline(h=statistic, col="red", lty=2);
+        abline(h=0, col=1, lty=1);
+        abline(h=statistic, col=2, lty=2);
         if(any(ellipsis$x>statistic[2] | ellipsis$x<statistic[1])){
             outliers <- which(ellipsis$x >statistic[2] | ellipsis$x <statistic[1]);
             points(outliers, ellipsis$x[outliers], pch=16);
@@ -6007,7 +6007,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         do.call(plot,ellipsis);
         abline(h=0, col="grey", lty=2);
         if(lowess){
-            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col="red");
+            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col=2);
         }
     }
 
@@ -7821,16 +7821,18 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
 
 #' @export
 plot.adam.predict <- function(x, ...){
+    paletteBasic <- paletteDetector(c("black","red","purple","blue","darkgrey"));
+
     ellipsis <- list(...);
     if(is.null(ellipsis$ylim)){
         ellipsis$ylim <- range(c(actuals(x$model),x$mean,x$lower,x$upper),na.rm=TRUE);
     }
     ellipsis$x <- actuals(x$model);
     do.call(plot, ellipsis);
-    lines(x$mean,col="purple",lwd=2,lty=2);
+    lines(x$mean,col=paletteBasic[3],lwd=2,lty=2);
     if(x$interval!="none"){
-        lines(x$lower,col="grey",lwd=3,lty=2);
-        lines(x$upper,col="grey",lwd=3,lty=2);
+        lines(x$lower,col=paletteBasic[5],lwd=3,lty=2);
+        lines(x$upper,col=paletteBasic[5],lwd=3,lty=2);
     }
 }
 
@@ -9063,7 +9065,7 @@ plot.adam.forecast <- function(x, ...){
     # A fix for weird frequencies for the cumulative forecasts
     if(x$cumulative){
         points(ellipsis$actuals);
-        abline(v=tail(time(ellipsis$fitted),1),col="red2",lwd=2);
+        abline(v=tail(time(ellipsis$fitted),1),col=2,lwd=2);
     }
 }
 
@@ -9767,7 +9769,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                           y=actuals(object), states=arrVt, refitted=fittedMatrix,
                           fitted=fitted(object), model=object$model,
                           transition=arrF, measurement=arrWt, persistence=matG,
-                          profile=profilesRecentArray),
+                          profile=profilesRecentArray, randomParameters=randomParameters),
                      class="reapply"));
 }
 
@@ -9808,6 +9810,12 @@ reapply.adamCombined <- function(object, nsim=1000, bootstrap=FALSE, ...){
 #' @importFrom grDevices rgb
 #' @export
 plot.reapply <- function(x, ...){
+    paletteBasic <- paletteDetector(c("black","red","purple","blue","darkgrey","grey95"));
+
+    nLevels <- 5
+    cols <- colorRampPalette(c(paletteBasic[6],paletteBasic[5]))(nLevels)[findInterval(1:nLevels,
+                                                                           seq(1, nLevels, length.out=nLevels))];
+
     ellipsis <- list(...);
     ellipsis$x <- actuals(x);
 
@@ -9835,22 +9843,23 @@ plot.reapply <- function(x, ...){
     }
 
     do.call(plot, ellipsis);
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,1]),rev(as.vector(yQuantiles[,11]))),
-            col=rgb(0.8,0.8,0.8,0.4), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,2]),rev(as.vector(yQuantiles[,10]))),
-            col=rgb(0.8,0.8,0.8,0.5), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,3]),rev(as.vector(yQuantiles[,9]))),
-            col=rgb(0.8,0.8,0.8,0.6), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,4]),rev(as.vector(yQuantiles[,8]))),
-            col=rgb(0.8,0.8,0.8,0.7), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,5]),as.vector(rev(yQuantiles[,7]))),
-            col=rgb(0.8,0.8,0.8,0.8), border="grey")
-    lines(ellipsis$x,col="black",lwd=1);
-    lines(fitted(x),col="purple",lwd=2,lty=2);
+    for(i in 1:nLevels){
+        polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,i]),
+                                                             rev(as.vector(yQuantiles[,11-i+1]))),
+                col=cols[i], border=paletteBasic[5])
+    }
+    lines(ellipsis$x,col=paletteBasic[1],lwd=1);
+    lines(fitted(x),col=paletteBasic[3],lwd=2,lty=2);
 }
 
 #' @export
 plot.reapplyCombined <- function(x, ...){
+    paletteBasic <- paletteDetector(c("black","red","purple","blue","darkgrey","grey95"));
+
+    nLevels <- 5
+    cols <- colorRampPalette(c(paletteBasic[6],paletteBasic[5]))(nLevels)[findInterval(1:nLevels,
+                                                                           seq(1, nLevels, length.out=nLevels))];
+
     ellipsis <- list(...);
     ellipsis$x <- actuals(x);
 
@@ -9880,18 +9889,13 @@ plot.reapplyCombined <- function(x, ...){
     }
 
     do.call(plot, ellipsis);
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,1]),rev(as.vector(yQuantiles[,11]))),
-            col=rgb(0.8,0.8,0.8,0.4), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,2]),rev(as.vector(yQuantiles[,10]))),
-            col=rgb(0.8,0.8,0.8,0.5), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,3]),rev(as.vector(yQuantiles[,9]))),
-            col=rgb(0.8,0.8,0.8,0.6), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,4]),rev(as.vector(yQuantiles[,8]))),
-            col=rgb(0.8,0.8,0.8,0.7), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,5]),as.vector(rev(yQuantiles[,7]))),
-            col=rgb(0.8,0.8,0.8,0.8), border="grey")
-    lines(ellipsis$x,col="black",lwd=1);
-    lines(fitted(x),col="purple",lwd=2,lty=2);
+    for(i in 1:nLevels){
+        polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,i]),
+                                                             rev(as.vector(yQuantiles[,11-i+1]))),
+                col=cols[i], border=paletteBasic[5])
+    }
+    lines(ellipsis$x,col=paletteBasic[1],lwd=1);
+    lines(fitted(x),col=paletteBasic[3],lwd=2,lty=2);
 }
 
 #' @export

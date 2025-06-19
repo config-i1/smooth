@@ -21,7 +21,10 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
 
     // nIterations=1 means that we don't do backcasting
     // It doesn't seem to matter anyway...
-    unsigned int nIterations = 2;
+    unsigned int nIterations = 1;
+    if(backcast){
+        nIterations = 2;
+    }
 
     int lagsModelMax = max(lags);
     unsigned int nETS = nNonSeasonal + nSeasonal;
