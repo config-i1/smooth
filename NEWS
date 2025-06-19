@@ -1,4 +1,4 @@
-smooth v4.3.0 (Release data: 2025-06-17)
+smooth v4.3.0 (Release data: 2025-06-19)
 =======
 
 Changes:
@@ -8,6 +8,7 @@ Changes:
 * initial="backcasting" is now the default method. This needs a bit of additional tuning for ARIMA.
 * All smooth functions now have the same initialisation mechanism.
 * We no longer renormalise the initial parameters of xreg in case of models with factors. This is to avoid weird disalignment between the estimated parameters and states.
+* The colours are now selected from the used palette instead of being hard coded. This is to make things consistent with greybox.
 
 Bugfixes:
 * auto.adam() now allows selecting the best distribution for a user-specified ARIMA.
@@ -15,6 +16,7 @@ Bugfixes:
 * Furthre fixes in vcov() for adam with initial="backcasting".
 * A fix for auto.ces() not working properly, when called without loading the full package.
 * Some bugfixes for SSARIMA + more consistency in "refine head".
+* A bugfix in reapply() for the initial!="backcasting".
 
 
 smooth v4.2.0 (Release data: 2025-04-02)
