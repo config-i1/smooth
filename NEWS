@@ -1,4 +1,4 @@
-smooth v4.3.0 (Release data: 2025-06-19)
+smooth v4.3.0 (Release data: 2025-06-25)
 =======
 
 Changes:
@@ -17,6 +17,7 @@ Bugfixes:
 * A fix for auto.ces() not working properly, when called without loading the full package.
 * Some bugfixes for SSARIMA + more consistency in "refine head".
 * A bugfix in reapply() for the initial!="backcasting".
+* Fixes of bugs in adam() with explanatory variables, which are dropped by alm().
 
 
 smooth v4.2.0 (Release data: 2025-04-02)

@@ -9807,7 +9807,7 @@ reapply.adamCombined <- function(object, nsim=1000, bootstrap=FALSE, ...){
 }
 
 
-#' @importFrom grDevices rgb
+#' @importFrom grDevices rgb colorRampPalette palette
 #' @export
 plot.reapply <- function(x, ...){
     paletteBasic <- paletteDetector(c("black","red","purple","blue","darkgrey","grey95"));
