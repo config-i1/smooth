@@ -87,6 +87,10 @@
 #' @param phi Value of damping parameter. If \code{NULL} then it is estimated.
 #' @param initialSeason Vector of initial values for seasonal components. If
 #' \code{NULL}, they are estimated during optimisation.
+#' @param bounds What type of bounds to use in the model estimation. The first
+#' letter can be used instead of the whole word. \code{"usual"} implies restrictions on
+#' the smoothing parameter, guaranteeing that the exponential smoothing behaves
+#' as an averaging model. \code{"admissible"} guarantee that the model is stable.
 #' @param ...  Other non-documented parameters. For example \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of

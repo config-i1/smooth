@@ -59,15 +59,16 @@ utils::globalVariables(c("silent","silentGraph","silentLegend","initialType","ar
 #'
 #' @examples
 #'
+#' \donttest{set.seed(41)}
 #' \donttest{x <- rnorm(118,100,3)}
 #'
 #' # The best ARIMA for the data
 #' \donttest{ourModel <- auto.ssarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12),
-#'                                    h=18,holdout=TRUE,interval="np")}
+#'                                    h=18,holdout=TRUE)}
 #'
 #' # The other one using optimised states
 #' \donttest{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
-#'                        initial="o",h=18,holdout=TRUE)}
+#'                        initial="two",h=18,holdout=TRUE)}
 #'
 #' \donttest{summary(ourModel)
 #' forecast(ourModel)
@@ -80,7 +81,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                          initial=c("backcasting","optimal","two-stage","complete"),
                          loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                          ic=c("AICc","AIC","BIC","BICc"),
-                         h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
+                         h=0, holdout=FALSE, bounds=c("admissible","usual","none"), silent=TRUE,
                          xreg=NULL, regressors=c("use","select","adapt"),
                          ...){
 # Function estimates several ssarima models and selects the best one using the selected information criterion.
@@ -104,8 +105,10 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
     combine <- FALSE;
 
     # If this is Mcomp data, then take the frequency from it
-    if(any(class(y)=="Mdata") && all(lags==frequency(y))){
-        lags <- unique(c(lags,frequency(y$x)));
+    if(any(class(y)=="Mdata")){
+        if(all(lags %in% c(1,frequency(y)))){
+            lags <- unique(c(lags,frequency(y$x)));
+        }
         yInSample <- y$x;
         # Measure the sample size based on what was provided as data
         obsInSample <- length(y$x) - holdout*h;

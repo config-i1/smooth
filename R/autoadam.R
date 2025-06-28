@@ -636,7 +636,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                         if(silentDebug){
                             cat("\nTested MA:", maTest, "IC:", ICValue);
                         }
-                        if(ICValue < bestIC){
+                        if(!is.na(ICValue) && ICValue < bestIC){
                             maBest[i] <- maTest[i];
                             bestIC <- ICValue;
                             bestModel <- testModel;
@@ -673,7 +673,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                             cat("\nTested AR:", arTest, "IC:", ICValue);
                         }
 
-                        if(ICValue < bestIC){
+                        if(!is.na(ICValue) && ICValue < bestIC){
                             arBest[i] <- arTest[i];
                             bestIC <- ICValue;
                             bestModel <- testModel;

@@ -14,5 +14,3 @@
 #' Finally, just for fun the absolute and half analogues of multistep estimators
 #' are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
 #' \code{HAMh}, \code{THAM}, \code{GTHAM}, \code{CHAM}.
-#' @param bounds What type of bounds to use in the model estimation. The first
-#' letter can be used instead of the whole word.

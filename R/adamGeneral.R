@@ -1871,12 +1871,16 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                                                              collapse="+")));
                 }
 
-                # Remove variables without variability
+                # Remove variables without variability and amend the formula
                 noVariability <- setNames(vector("logical",ncol(xreg)),colnames(xreg));
                 noVariability[] <- apply((as.matrix(xreg[1:obsInSample,])==matrix(xreg[1,],obsInSample,ncol(xreg),byrow=TRUE)),2,all);
                 noVariabilityNames <- names(noVariability)[noVariability];
-                if(any(noVariability) && any(all.vars(formulaToUse) %in% names(noVariability))){
-                    formulaToUse <- update.formula(formulaToUse,paste0(".~.-",paste0(noVariabilityNames,collapse="-")));
+                # If there are variables with no variability, their nams are in the formula, and the formula is not "y~.",
+                # update the formula
+                if(any(noVariability) && any(all.vars(formulaToUse) %in% names(noVariability)) &&
+                   all.vars(formulaToUse)[2]!="."){
+                    formulaToUse <- update.formula(formulaToUse,
+                                                   paste0(".~.-",paste0(noVariabilityNames,collapse="-")));
                 }
 
                 # Robustify the names of variables
@@ -1896,7 +1900,13 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
                 }
                 else{
-                    xregData <- as.matrix(xreg)[,c(names(noVariability)[!noVariability]),drop=FALSE][,-1,drop=FALSE];
+                    # If there was no formula, use the alm variable names
+                    if(!formulaProvided){
+                        formulaToUse <- as.formula(paste0("`",responseName,"`~",
+                                                      paste0(xregNames, collapse="+")));
+                    }
+                    # Use the matrix with the xregNames - all the others are dropped by alm().
+                    xregData <- as.matrix(xreg)[,xregNames,drop=FALSE];
                     xregNumber <- ncol(xregData);
                     xregNames <- colnames(xregData);
                 }

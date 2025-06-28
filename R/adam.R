@@ -652,10 +652,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. Only needed for the ETS(*,Z,*) models
-    refineHead <- FALSE;
-    if(initialType!="backcasting" | componentsNumberARIMA==0){
-        refineHead[] <- TRUE;
+    refineHead <- TRUE;
+    if(arimaModel){
+        refineHead[] <- FALSE;
     }
+    # if(initialType!="backcasting" | componentsNumberARIMA==0){
+    #     refineHead[] <- TRUE;
+    # }
+    # if(initialType=="provided"){
+    #     refineHead[] <- FALSE;
+    # }
 
     #### The function creates the technical variables (lags etc) based on the type of the model ####
     architector <- function(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal,
@@ -1509,12 +1515,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                   1:lagsModelMax] <- B[j+1:xregNumberToEstimate];
             j[] <- j+xregNumberToEstimate;
             # Normalise initials
-            for(i in which(xregParametersMissing!=0)){
-                matVt[componentsNumberETS+componentsNumberARIMA+i,
-                      1:lagsModelMax] <- -sum(matVt[componentsNumberETS+componentsNumberARIMA+
-                                                        which(xregParametersIncluded==xregParametersMissing[i]),
-                                                    1:lagsModelMax]);
-            }
+            # for(i in which(xregParametersMissing!=0)){
+            #     matVt[componentsNumberETS+componentsNumberARIMA+i,
+            #           1:lagsModelMax] <- -sum(matVt[componentsNumberETS+componentsNumberARIMA+
+            #                                             which(xregParametersIncluded==xregParametersMissing[i]),
+            #                                         1:lagsModelMax]);
+            # }
         }
 
         # Constant
@@ -2586,7 +2592,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                           constantRequired, constantEstimate, constantValue, constantName,
                           ot, otLogical, occurrenceModel, pFitted,
                           bounds, loss, lossFunction, distribution,
-                          horizon, multisteps, other, otherParameterEstimate, lambda){
+                          horizon, multisteps, other, otherParameterEstimate, lambda, B){
 
         # Create the basic variables
         adamArchitect <- architector(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal,
@@ -3125,6 +3131,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 almIntercept <- almModel$coefficients["(Intercept)"];
                 xregModelInitials[[xregIndex]]$initialXreg <- coef(almModel)[-1];
 
+                # Create the B vector to speed up the calculation
+                B <- c(B, xregModelInitials[[xregIndex]]$initialXreg);
+
                 #### Fix xreg vectors based on the selected stuff ####
                 xregNames <- colnames(almModel$data)[-1];
 
@@ -3210,7 +3219,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     xregFactors <- FALSE;
                     xregParametersPersistence <- setNames(c(1:xregNumber),xregNames);
                     xregParametersEstimated <- setNames(rep(1,xregNumber),xregNames);
-                    xregParametersMissing <- setNames(c(1:xregNumber),xregNames);
+                    xregParametersMissing <- setNames(rep(0,xregNumber),xregNames);
                     xregParametersIncluded <- setNames(c(1:xregNumber),xregNames);
                 }
 
@@ -3234,7 +3243,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                  constantRequired, constantEstimate, constantValue, constantName,
                                  ot, otLogical, occurrenceModel, pFitted,
                                  bounds, loss, lossFunction, distribution,
-                                 horizon, multisteps, other, otherParameterEstimate, lambda));
+                                 horizon, multisteps, other, otherParameterEstimate, lambda, B));
             }
         }
 
@@ -3412,7 +3421,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                           constantRequired, constantEstimate, constantValue, constantName,
                                           ot, otLogical, occurrenceModel, pFitted,
                                           bounds, loss, lossFunction, distribution,
-                                          horizon, multisteps, other, otherParameterEstimate, lambda);
+                                          horizon, multisteps, other, otherParameterEstimate, lambda, B);
                 results[[i]]$IC <- icFunction(results[[i]]$logLikADAMValue);
                 results[[i]]$Etype <- Etype;
                 results[[i]]$Ttype <- Ttype;
@@ -3552,7 +3561,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                       constantRequired, constantEstimate, constantValue, constantName,
                                       ot, otLogical, occurrenceModel, pFitted,
                                       bounds, loss, lossFunction, distribution,
-                                      horizon, multisteps, other, otherParameterEstimate, lambda);
+                                      horizon, multisteps, other, otherParameterEstimate, lambda, B);
             results[[j]]$IC <- icFunction(results[[j]]$logLikADAMValue);
             results[[j]]$Etype <- Etype;
             results[[j]]$Ttype <- Ttype;
@@ -4094,7 +4103,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                    constantRequired, constantEstimate, constantValue, constantName,
                                    ot, otLogical, occurrenceModel, pFitted,
                                    bounds, loss, lossFunction, distribution,
-                                   horizon, multisteps, other, otherParameterEstimate, lambda);
+                                   horizon, multisteps, other, otherParameterEstimate, lambda, B);
         list2env(adamEstimated, environment());
 
         # A fix for the special case of lambda==1
@@ -5315,7 +5324,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         do.call(plot,ellipsis);
         abline(a=0,b=1,col="grey",lwd=2,lty=2)
         if(lowess){
-            lines(lowess(ellipsis$x, ellipsis$y), col="red");
+            lines(lowess(ellipsis$x, ellipsis$y), col=2);
         }
     }
 
@@ -5411,25 +5420,25 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         abline(h=0, col="grey", lty=2);
         polygon(c(xRange,rev(xRange)),c(statistic[1],statistic[1],statistic[2],statistic[2]),
                 col="lightgrey", border=NA, density=10);
-        abline(h=statistic, col="red", lty=2);
+        abline(h=statistic, col=2, lty=2);
         if(length(outliers)>0){
             points(ellipsis$x[outliers], ellipsis$y[outliers], pch=16);
             text(ellipsis$x[outliers], ellipsis$y[outliers], labels=outliers, pos=(ellipsis$y[outliers]>0)*2+1);
         }
         if(lowess){
-            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col="red");
+            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col=2);
         }
 
         if(legend){
             if(lowess){
                 legend(legendPosition,
                        legend=c(paste0(round(level,3)*100,"% bounds"),"outside the bounds","LOWESS line"),
-                       col=c("red", "black","red"), lwd=c(1,NA,1), lty=c(2,1,1), pch=c(NA,16,NA));
+                       col=c(2, 1, 2), lwd=c(1,NA,1), lty=c(2,1,1), pch=c(NA,16,NA));
             }
             else{
                 legend(legendPosition,
                        legend=c(paste0(round(level,3)*100,"% bounds"),"outside the bounds"),
-                       col=c("red", "black"), lwd=c(1,NA), lty=c(2,1), pch=c(NA,16));
+                       col=c(2, 1), lwd=c(1,NA), lty=c(2,1), pch=c(NA,16));
             }
         }
     }
@@ -5499,7 +5508,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         do.call(plot,ellipsis);
         abline(h=0, col="grey", lty=2);
         if(lowess){
-            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col="red");
+            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col=2);
         }
     }
 
@@ -5791,17 +5800,17 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             if(any(is.na(ellipsis$x))){
                 ellipsis$x[is.na(ellipsis$x)] <- mean(ellipsis$x, na.rm=TRUE);
             }
-            lines(lowess(c(1:length(ellipsis$x)),ellipsis$x), col="red");
+            lines(lowess(c(1:length(ellipsis$x)),ellipsis$x), col=2);
         }
         abline(h=0, col="grey", lty=2);
-        abline(h=statistic[1], col="red", lty=2);
-        abline(h=statistic[2], col="red", lty=2);
+        abline(h=statistic[1], col=2, lty=2);
+        abline(h=statistic[2], col=2, lty=2);
         polygon(c(1:nobs(x), c(nobs(x):1)),
                 c(rep(statistic[1],nobs(x)), rep(statistic[2],nobs(x))),
                 col="lightgrey", border=NA, density=10);
         if(legend){
             legend(legendPosition,legend=c("Residuals",paste0(level*100,"% prediction interval")),
-                   col=c("black","red"), lwd=rep(1,3), lty=c(1,1,2));
+                   col=c(1,2), lwd=rep(1,3), lty=c(1,1,2));
         }
     }
 
@@ -5868,8 +5877,8 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         ellipsis$type <- "h"
 
         do.call(plot,ellipsis);
-        abline(h=0, col="black", lty=1);
-        abline(h=statistic, col="red", lty=2);
+        abline(h=0, col=1, lty=1);
+        abline(h=statistic, col=2, lty=2);
         if(any(ellipsis$x>statistic[2] | ellipsis$x<statistic[1])){
             outliers <- which(ellipsis$x >statistic[2] | ellipsis$x <statistic[1]);
             points(outliers, ellipsis$x[outliers], pch=16);
@@ -5885,6 +5894,10 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             statesNames <- c("actuals",colnames(x$states),"residuals");
             x$states <- cbind(actuals(x),x$states,residuals(x));
             colnames(x$states) <- statesNames;
+            # If we have the xts class, remove it. This is a bugfix
+            if(inherits(x$states,"xts")){
+                class(x$states) <- "zoo";
+            }
             if(ncol(x$states)>10){
                 message("Too many states. Plotting them on several canvases.");
                 if(is.null(ellipsis$main)){
@@ -5903,13 +5916,13 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
                 }
             }
             else{
+                ellipsis$x <- x$states;
                 if(ncol(x$states)<=5){
                     ellipsis$nc <- 1;
                 }
                 if(is.null(ellipsis$main)){
                     ellipsis$main <- paste0("States of ",x$model);
                 }
-                ellipsis$x <- x$states;
                 do.call(plot, ellipsis);
             }
         }
@@ -5994,7 +6007,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         do.call(plot,ellipsis);
         abline(h=0, col="grey", lty=2);
         if(lowess){
-            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col="red");
+            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col=2);
         }
     }
 
@@ -7813,16 +7826,18 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
 
 #' @export
 plot.adam.predict <- function(x, ...){
+    paletteBasic <- paletteDetector(c("black","red","purple","blue","darkgrey"));
+
     ellipsis <- list(...);
     if(is.null(ellipsis$ylim)){
         ellipsis$ylim <- range(c(actuals(x$model),x$mean,x$lower,x$upper),na.rm=TRUE);
     }
     ellipsis$x <- actuals(x$model);
     do.call(plot, ellipsis);
-    lines(x$mean,col="purple",lwd=2,lty=2);
+    lines(x$mean,col=paletteBasic[3],lwd=2,lty=2);
     if(x$interval!="none"){
-        lines(x$lower,col="grey",lwd=3,lty=2);
-        lines(x$upper,col="grey",lwd=3,lty=2);
+        lines(x$lower,col=paletteBasic[5],lwd=3,lty=2);
+        lines(x$upper,col=paletteBasic[5],lwd=3,lty=2);
     }
 }
 
@@ -9067,7 +9082,7 @@ plot.adam.forecast <- function(x, ...){
     # A fix for weird frequencies for the cumulative forecasts
     if(x$cumulative){
         points(ellipsis$actuals);
-        abline(v=tail(time(ellipsis$fitted),1),col="red2",lwd=2);
+        abline(v=tail(time(ellipsis$fitted),1),col=2,lwd=2);
     }
 }
 
@@ -9217,6 +9232,11 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
     ssarimaModel <- smoothType(object)=="SSARIMA";
+
+    refineHead <- TRUE;
+    if(any(arimaModel,ssarimaModel)){
+        refineHead[] <- FALSE;
+    }
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
@@ -9628,9 +9648,9 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     # Fill in the profile values
     # profilesRecentArray <- array(t(object$states[1:lagsModelMax,]),c(dim(object$profile),nsim));
     profilesRecentArray <- array(object$profileInitial,c(dim(object$profile),nsim));
-    if(etsModel && any(object$initialType==c("optimal","two-stage"))){
+    if(etsModel){
+        j <- j+1;
         if(any(parametersNames=="level")){
-            j <- j+1;
             profilesRecentArray[j,1,] <- randomParameters[,"level"];
             k <- k+1;
         }
@@ -9751,7 +9771,8 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                                      Etype, Ttype, Stype,
                                      lagsModelAll, indexLookupTable, profilesRecentArray,
                                      componentsNumberETSSeasonal, componentsNumberETS,
-                                     componentsNumberARIMA, xregNumber, constantRequired);
+                                     componentsNumberARIMA, xregNumber, constantRequired,
+                                     object$initialType=="backcasting", refineHead);
     arrVt[] <- adamRefitted$states;
     fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
     profilesRecentArray[] <- adamRefitted$profilesRecent;
@@ -9765,7 +9786,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                           y=actuals(object), states=arrVt, refitted=fittedMatrix,
                           fitted=fitted(object), model=object$model,
                           transition=arrF, measurement=arrWt, persistence=matG,
-                          profile=profilesRecentArray),
+                          profile=profilesRecentArray, randomParameters=randomParameters),
                      class="reapply"));
 }
 
@@ -9803,9 +9824,15 @@ reapply.adamCombined <- function(object, nsim=1000, bootstrap=FALSE, ...){
 }
 
 
-#' @importFrom grDevices rgb
+#' @importFrom grDevices rgb colorRampPalette palette
 #' @export
 plot.reapply <- function(x, ...){
+    paletteBasic <- paletteDetector(c("black","red","purple","blue","darkgrey","grey95"));
+
+    nLevels <- 5
+    cols <- colorRampPalette(c(paletteBasic[6],paletteBasic[5]))(nLevels)[findInterval(1:nLevels,
+                                                                           seq(1, nLevels, length.out=nLevels))];
+
     ellipsis <- list(...);
     ellipsis$x <- actuals(x);
 
@@ -9833,22 +9860,23 @@ plot.reapply <- function(x, ...){
     }
 
     do.call(plot, ellipsis);
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,1]),rev(as.vector(yQuantiles[,11]))),
-            col=rgb(0.8,0.8,0.8,0.4), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,2]),rev(as.vector(yQuantiles[,10]))),
-            col=rgb(0.8,0.8,0.8,0.5), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,3]),rev(as.vector(yQuantiles[,9]))),
-            col=rgb(0.8,0.8,0.8,0.6), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,4]),rev(as.vector(yQuantiles[,8]))),
-            col=rgb(0.8,0.8,0.8,0.7), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,5]),as.vector(rev(yQuantiles[,7]))),
-            col=rgb(0.8,0.8,0.8,0.8), border="grey")
-    lines(ellipsis$x,col="black",lwd=1);
-    lines(fitted(x),col="purple",lwd=2,lty=2);
+    for(i in 1:nLevels){
+        polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,i]),
+                                                             rev(as.vector(yQuantiles[,11-i+1]))),
+                col=cols[i], border=paletteBasic[5])
+    }
+    lines(ellipsis$x,col=paletteBasic[1],lwd=1);
+    lines(fitted(x),col=paletteBasic[3],lwd=2,lty=2);
 }
 
 #' @export
 plot.reapplyCombined <- function(x, ...){
+    paletteBasic <- paletteDetector(c("black","red","purple","blue","darkgrey","grey95"));
+
+    nLevels <- 5
+    cols <- colorRampPalette(c(paletteBasic[6],paletteBasic[5]))(nLevels)[findInterval(1:nLevels,
+                                                                           seq(1, nLevels, length.out=nLevels))];
+
     ellipsis <- list(...);
     ellipsis$x <- actuals(x);
 
@@ -9878,18 +9906,13 @@ plot.reapplyCombined <- function(x, ...){
     }
 
     do.call(plot, ellipsis);
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,1]),rev(as.vector(yQuantiles[,11]))),
-            col=rgb(0.8,0.8,0.8,0.4), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,2]),rev(as.vector(yQuantiles[,10]))),
-            col=rgb(0.8,0.8,0.8,0.5), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,3]),rev(as.vector(yQuantiles[,9]))),
-            col=rgb(0.8,0.8,0.8,0.6), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,4]),rev(as.vector(yQuantiles[,8]))),
-            col=rgb(0.8,0.8,0.8,0.7), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,5]),as.vector(rev(yQuantiles[,7]))),
-            col=rgb(0.8,0.8,0.8,0.8), border="grey")
-    lines(ellipsis$x,col="black",lwd=1);
-    lines(fitted(x),col="purple",lwd=2,lty=2);
+    for(i in 1:nLevels){
+        polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,i]),
+                                                             rev(as.vector(yQuantiles[,11-i+1]))),
+                col=cols[i], border=paletteBasic[5])
+    }
+    lines(ellipsis$x,col=paletteBasic[1],lwd=1);
+    lines(fitted(x),col=paletteBasic[3],lwd=2,lty=2);
 }
 
 #' @export

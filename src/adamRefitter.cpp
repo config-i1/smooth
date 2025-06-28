@@ -13,56 +13,126 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
                   char const &E, char const &T, char const &S, arma::uvec &lags,
                   arma::umat const &indexLookupTable, arma::cube arrayProfilesRecent,
                   unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                  unsigned int const &nArima, unsigned int const &nXreg, bool const &constant) {
+                  unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                  bool const &backcast, bool const &refineHead) {
 
-    unsigned int obs = matrixYt.n_rows;
+    int obs = matrixYt.n_rows;
     unsigned int nSeries = matrixG.n_cols;
 
-    unsigned int lagsModelMax = max(lags);
+    // nIterations=1 means that we don't do backcasting
+    // It doesn't seem to matter anyway...
+    unsigned int nIterations = 1;
+    if(backcast){
+        nIterations = 2;
+    }
+
+    int lagsModelMax = max(lags);
     unsigned int nETS = nNonSeasonal + nSeasonal;
     int nComponents = lags.n_rows;
 
     arma::mat matYfit(obs, nSeries, arma::fill::zeros);
     arma::vec vecErrors(obs, arma::fill::zeros);
 
-    for(unsigned int i=0; i<nSeries; i=i+1){
-        // Refine the head (in order for it to make sense)
-        for(unsigned int j=0; j<lagsModelMax; j=j+1) {
-            arrayVt.slice(i).col(j) = arrayProfilesRecent.slice(i).elem(indexLookupTable.col(j));
-            arrayProfilesRecent.slice(i).elem(indexLookupTable.col(j)) = adamFvalue(arrayProfilesRecent.slice(i).elem(indexLookupTable.col(j)),
-                                      arrayF.slice(i), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
-        }
-        // Loop for the model construction
-        for(unsigned int j=lagsModelMax; j<obs+lagsModelMax; j=j+1) {
+    for(unsigned int k=0; k<nSeries; k=k+1){
+        // Loop for the backcasting
+        for (unsigned int j=1; j<=nIterations; j=j+1) {
+            // Refine the head (in order for it to make sense)
+            if(refineHead){
+                for(int i=0; i<lagsModelMax; i=i+1) {
+                    arrayVt.slice(k).col(i) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i));
+                    arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)) =
+                        adamFvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
+                                   arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                }
+            }
+            // Loop for the model construction
+            for(int i=lagsModelMax; i<obs+lagsModelMax; i=i+1) {
+                /* # Measurement equation and the error term */
+                matYfit(i-lagsModelMax,k) = adamWvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
+                        arrayWt.slice(k).row(i-lagsModelMax), E, T, S,
+                        nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
 
-            /* # Measurement equation and the error term */
-            matYfit(j-lagsModelMax,i) = adamWvalue(arrayProfilesRecent.slice(i).elem(indexLookupTable.col(j)),
-                    arrayWt.slice(i).row(j-lagsModelMax), E, T, S,
-                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
+                // Fix potential issue with negatives in mixed models
+                if((E=='M' || T=='M' || S=='M') && (matYfit(i-lagsModelMax,k)<=0)){
+                    matYfit(i-lagsModelMax,k) = 1;
+                }
 
-            // Fix potential issue with negatives in mixed models
-            if((E=='M' || T=='M' || S=='M') && (matYfit(j-lagsModelMax,i)<=0)){
-                matYfit(j-lagsModelMax,i) = 1;
+                // If this is zero (intermittent), then set error to zero
+                if(matrixOt(i-lagsModelMax)==0){
+                    vecErrors(i-lagsModelMax) = 0;
+                }
+                else{
+                    vecErrors(i-lagsModelMax) = errorf(matrixYt(i-lagsModelMax), matYfit(i-lagsModelMax,k), E);
+                }
+
+                /* # Transition equation */
+                arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)) =
+                adamFvalue(arrayProfilesRecent.slice(k)(indexLookupTable.col(i)),
+                           arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
+                               adamGvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
+                                          arrayF.slice(k), arrayWt.slice(k).row(i-lagsModelMax), E, T, S,
+                                          nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
+                                          matrixG.col(k), vecErrors(i-lagsModelMax));
+
+                arrayVt.slice(k).col(i) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i));
             }
 
-            // If this is zero (intermittent), then set error to zero
-            if(matrixOt(j-lagsModelMax)==0){
-                vecErrors(j-lagsModelMax) = 0;
-            }
-            else{
-                vecErrors(j-lagsModelMax) = errorf(matrixYt(j-lagsModelMax), matYfit(j-lagsModelMax,i), E);
-            }
+            ////// Backwards run
+            if(backcast && j<(nIterations)){
+                // Change the specific element in the state vector to negative
+                if(T=='A'){
+                    arrayProfilesRecent.slice(k)(1) = -arrayProfilesRecent.slice(k)(1);
+                }
+                else if(T=='M'){
+                    arrayProfilesRecent.slice(k)(1) = 1/arrayProfilesRecent.slice(k)(1);
+                }
 
-            /* # Transition equation */
-            arrayProfilesRecent.slice(i).elem(indexLookupTable.col(j)) =
-            adamFvalue(arrayProfilesRecent.slice(i)(indexLookupTable.col(j)),
-                       arrayF.slice(i), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
-                           adamGvalue(arrayProfilesRecent.slice(i).elem(indexLookupTable.col(j)),
-                                      arrayF.slice(i), arrayWt.slice(i).row(j-lagsModelMax), E, T, S,
-                                      nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                                      matrixG.col(i), vecErrors(j-lagsModelMax));
+                for(int i=obs+lagsModelMax-1; i>=lagsModelMax; i=i-1) {
+                    /* # Measurement equation and the error term */
+                    matYfit(i-lagsModelMax,k) = adamWvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
+                            arrayWt.slice(k).row(i-lagsModelMax), E, T, S,
+                            nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
 
-            arrayVt.slice(i).col(j) = arrayProfilesRecent.slice(i).elem(indexLookupTable.col(j));
+                    // Fix potential issue with negatives in mixed models
+                    if((E=='M' || T=='M' || S=='M') && (matYfit(i-lagsModelMax,k)<=0)){
+                        matYfit(i-lagsModelMax,k) = 1;
+                    }
+
+                    // If this is zero (intermittent), then set error to zero
+                    if(matrixOt(i-lagsModelMax)==0){
+                        vecErrors(i-lagsModelMax) = 0;
+                    }
+                    else{
+                        vecErrors(i-lagsModelMax) = errorf(matrixYt(i-lagsModelMax), matYfit(i-lagsModelMax,k), E);
+                    }
+
+                    /* # Transition equation */
+                    arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)) =
+                    adamFvalue(arrayProfilesRecent.slice(k)(indexLookupTable.col(i)),
+                               arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
+                                   adamGvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
+                                              arrayF.slice(k), arrayWt.slice(k).row(i-lagsModelMax), E, T, S,
+                                              nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
+                                              matrixG.col(k), vecErrors(i-lagsModelMax));
+                }
+
+                if(refineHead){
+                    // Fill in the head of the series.
+                    for(int i=lagsModelMax-1; i>=0; i=i-1) {
+                        arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)) =
+                            adamFvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
+                                       arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                    }
+                }
+
+                // Change the specific element in the state vector to negative
+                if(T=='A'){
+                    arrayProfilesRecent.slice(k)(1) = -arrayProfilesRecent.slice(k)(1);
+                }
+                else if(T=='M'){
+                    arrayProfilesRecent.slice(k)(1) = 1/arrayProfilesRecent.slice(k)(1);
+                }
+            }
         }
     }
 
@@ -77,13 +147,15 @@ RcppExport SEXP adamRefitterWrap(arma::mat matrixYt, arma::mat matrixOt, arma::c
                                  char const &E, char const &T, char const &S,
                                  arma::uvec lags, arma::umat indexLookupTable, arma::cube arrayProfilesRecent,
                                  unsigned int const &nSeasonal, unsigned int const &componentsNumberETS,
-                                 unsigned int const &nArima, unsigned int const &nXreg, bool const &constant){
+                                 unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                                 bool const &backcast, bool const &refineHead){
 
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
 
     return wrap(adamRefitter(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG,
                              E, T, S, lags, indexLookupTable, arrayProfilesRecent,
-                             nNonSeasonal, nSeasonal, nArima, nXreg, constant));
+                             nNonSeasonal, nSeasonal, nArima, nXreg, constant,
+                             backcast, refineHead));
 }
 
 
@@ -106,34 +178,34 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
 
     arma::cube arrY(obs, nSeries, nsim);
 
-    for(unsigned int k=0; k<nsim; k=k+1){
-        for(unsigned int i=0; i<nSeries; i=i+1){
-            arrayProfileRecent.slice(k) = profilesRecentOriginal.slice(k);
-            for(unsigned int j=lagsModelMax; j<obs+lagsModelMax; j=j+1) {
+    for(unsigned int j=0; j<nsim; j=j+1){
+        for(unsigned int k=0; k<nSeries; k=k+1){
+            arrayProfileRecent.slice(j) = profilesRecentOriginal.slice(j);
+            for(unsigned int i=lagsModelMax; i<obs+lagsModelMax; i=i+1) {
                 /* # Measurement equation and the error term */
-                arrY(j-lagsModelMax,i,k) = arrayOt(j-lagsModelMax,i,k) *
-                        (adamWvalue(arrayProfileRecent.slice(k).elem(indexLookupTable.col(j-lagsModelMax)),
-                                    arrayWt.slice(k).row(j-lagsModelMax), E, T, S,
+                arrY(i-lagsModelMax,k,j) = arrayOt(i-lagsModelMax,k,j) *
+                        (adamWvalue(arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)),
+                                    arrayWt.slice(j).row(i-lagsModelMax), E, T, S,
                                     nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) +
-                                        adamRvalue(arrayProfileRecent.slice(k).elem(indexLookupTable.col(j-lagsModelMax)),
-                                                   arrayWt.slice(k).row(j-lagsModelMax), E, T, S,
+                                        adamRvalue(arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)),
+                                                   arrayWt.slice(j).row(i-lagsModelMax), E, T, S,
                                                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
-                                                       arrayErrors.slice(k)(j-lagsModelMax,i));
+                                                       arrayErrors.slice(j)(i-lagsModelMax,k));
 
                 // Fix potential issue with negatives in mixed models
-                if((E=='M' || T=='M' || S=='M') && (arrY(j-lagsModelMax,i,k)<0)){
-                    arrY(j-lagsModelMax,i,k) = 0;
+                if((E=='M' || T=='M' || S=='M') && (arrY(i-lagsModelMax,k,j)<0)){
+                    arrY(i-lagsModelMax,k,j) = 0;
                 }
 
                 /* # Transition equation */
-                arrayProfileRecent.slice(k).elem(indexLookupTable.col(j-lagsModelMax)) =
-                        (adamFvalue(arrayProfileRecent.slice(k).elem(indexLookupTable.col(j-lagsModelMax)),
-                                    arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
-                                        adamGvalue(arrayProfileRecent.slice(k).elem(indexLookupTable.col(j-lagsModelMax)),
-                                                   arrayF.slice(k), arrayWt.slice(k).row(j-lagsModelMax),
+                arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)) =
+                        (adamFvalue(arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)),
+                                    arrayF.slice(j), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
+                                        adamGvalue(arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)),
+                                                   arrayF.slice(j), arrayWt.slice(j).row(i-lagsModelMax),
                                                    E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
-                                                   nComponents, constant, matrixG.col(i),
-                                                   arrayErrors.slice(k)(j-lagsModelMax,i)));
+                                                   nComponents, constant, matrixG.col(k),
+                                                   arrayErrors.slice(j)(i-lagsModelMax,k)));
             }
         }
     }
