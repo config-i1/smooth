@@ -204,7 +204,7 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     case 'M':
                         g.row(0) = vectorG.row(0) / as_scalar(rowvecW.cols(1,nSeasonal) * matrixVt.rows(1,nSeasonal));
                         // !!! This sort of thing can be written as a function not to duplicate the principle...
-                        g.rows(1,nSeasonal) = matrixVt.rows(1,nSeasonal) * (exp(vectorG.rows(1,nSeasonal) * log(1+error/fitted)) - 1);
+                        g.rows(1,nSeasonal) = matrixVt.rows(1,nSeasonal) % (exp(vectorG.rows(1,nSeasonal) * log(1+error/fitted)) - 1);
                         break;
                         // Nothing to do in the other cases
                     }
@@ -214,7 +214,7 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     switch(S){
                     case 'M':
                         g.rows(0,1) = vectorG.rows(0,1) / as_scalar(exp(rowvecW.cols(2,2+nSeasonal-1) * log(matrixVt.rows(2,2+nSeasonal-1))));
-                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) * (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error/fitted)) - 1);
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) % (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error/fitted)) - 1);
                         break;
                         // Nothing to do in the other cases
                     }
@@ -229,7 +229,7 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                         break;
                     case 'M':
                         g.row(0) = g(0) / as_scalar(rowvecW.cols(2,2+nSeasonal-1) * matrixVt.rows(2,2+nSeasonal-1));
-                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) * (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error/fitted)) - 1);
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) % (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error/fitted)) - 1);
                         break;
                     }
                     break;
@@ -246,7 +246,7 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                         g.rows(1,nSeasonal) = vectorG.rows(1,nSeasonal) * fitted * error;
                         break;
                     case 'M':
-                        g.rows(1,nSeasonal) = matrixVt.rows(1,nSeasonal) * (exp(vectorG.rows(1,nSeasonal) * log(1+error)) - 1);
+                        g.rows(1,nSeasonal) = matrixVt.rows(1,nSeasonal) % (exp(vectorG.rows(1,nSeasonal) * log(1+error)) - 1);
                         break;
                     }
                     break;
@@ -263,13 +263,12 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                         break;
                     case 'M':
                         g.row(1) = matrixF.submat(0,0,0,1) * matrixVt.rows(0,1) * vectorG.row(1) * error;
-                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) * (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error)) - 1);
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) % (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error)) - 1);
                         break;
                     }
                     break;
                 // MMZ
                 case 'M':
-
                     g.row(0) = arma::real(exp(matrixF.submat(0,0,0,1) *
                                                log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,1))))) *
                                                (exp(vectorG.row(0) * log(1+error)) - 1);
