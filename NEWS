@@ -2,6 +2,7 @@ smooth v4.3.0 (Release data: 2025-06-25)
 =======
 
 Changes:
+* New ADAM ETS with different maths behind it. This should make the model more robust, especially in case of multiplicative trend. es() uses the conventional models, adam() uses the new ones.
 * ssarima() now uses adam engine.
 * All older functions now use adam engine.
 * New initialisation mechanism called "two-stage" in adam(), where "backcasting" is used to get initial values before the optimisation is done. Slower but leads to better calibrated predictive distributions in ADAM.
