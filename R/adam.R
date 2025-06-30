@@ -7882,6 +7882,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     ellipsis <- list(...);
 
+    # Check whether we deal with adam ETS or the conventional
+    adamETS <- as.character(object$call[[1]])=="adam";
+
     interval <- match.arg(interval[1],c("none", "simulated", "approximate", "semiparametric",
                                         "nonparametric", "confidence", "parametric","prediction",
                                         "empirical","complete"));
@@ -8362,7 +8365,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                         EtypeModified, Ttype, Stype,
                                         lagsModelAll, indexLookupTable, profilesRecentTable,
                                         componentsNumberETSSeasonal, componentsNumberETS,
-                                        componentsNumberARIMA, xregNumber, constantRequired)$matrixYt;
+                                        componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
 
         #### Note that the cumulative doesn't work with oes at the moment!
         if(cumulative){
@@ -9161,6 +9164,9 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     startTime <- Sys.time();
     parametersNames <- names(coef(object));
 
+    # Check whether we deal with adam ETS or the conventional
+    adamETS <- as.character(object$call[[1]])=="adam";
+
     vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, heuristics=heuristics, nsim=nsim, ...));
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
@@ -9755,7 +9761,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                                      lagsModelAll, indexLookupTable, profilesRecentArray,
                                      componentsNumberETSSeasonal, componentsNumberETS,
                                      componentsNumberARIMA, xregNumber, constantRequired,
-                                     object$initialType=="backcasting", refineHead);
+                                     object$initialType=="backcasting", refineHead, adamETS);
     arrVt[] <- adamRefitted$states;
     fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
     profilesRecentArray[] <- adamRefitted$profilesRecent;
@@ -10405,6 +10411,9 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
                           ...){
     type <- match.arg(type);
 
+    # Check whether we deal with adam ETS or the conventional
+    adamETS <- as.character(object$call[[1]])=="adam";
+
     # Model type
     Ttype <- substr(modelType(object),2,2);
 
@@ -10544,7 +10553,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
                                         EtypeModified, Ttype, Stype,
                                         lagsModelAll, indexLookupTable, profilesRecentTable,
                                         componentsNumberETSSeasonal, componentsNumberETS,
-                                        componentsNumberARIMA, xregNumber, constantRequired)$matrixYt;
+                                        componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
 
         yForecast <- vector("numeric", h);
         for(i in 1:h){
@@ -10723,6 +10732,9 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     startTime <- Sys.time();
 
     ellipsis <- list(...);
+
+    # Check whether we deal with adam ETS or the conventional
+    adamETS <- as.character(object$call[[1]])=="adam";
 
     if(!is.null(seed)){
         set.seed(seed);
@@ -10963,7 +10975,7 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
                                     EtypeModified, Ttype, Stype,
                                     lagsModelAll, indexLookupTable, profilesRecentTable,
                                     componentsNumberETSSeasonal, componentsNumberETS,
-                                    componentsNumberARIMA, xregNumber, constantRequired);
+                                    componentsNumberARIMA, xregNumber, constantRequired, adamETS);
 
     # Set the proper time stamps for the fitted
     if(any(yClasses=="zoo")){
