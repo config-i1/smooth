@@ -269,14 +269,18 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     break;
                 // MMZ
                 case 'M':
-                    g.row(0) = exp(matrixF.submat(0,0,0,1) * log(matrixVt.rows(0,1))) * (exp(vectorG.row(0) * log(1+error)) - 1);
+
+                    g.row(0) = arma::real(exp(matrixF.submat(0,0,0,1) *
+                                               log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,1))))) *
+                                               (exp(vectorG.row(0) * log(1+error)) - 1);
                     g.row(1) = exp(matrixF(1,1) * log(matrixVt.row(1))) * (exp(vectorG.row(1) * log(1+error)) - 1);
                     switch(S){
                     case 'A':
                         g.rows(2,2+nSeasonal-1) = vectorG.rows(2,2+nSeasonal-1) * fitted * error;
                         break;
                     case 'M':
-                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) * (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error)) - 1);
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) % (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error)) - 1);
+
                         break;
                     }
                     break;
