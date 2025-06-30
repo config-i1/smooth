@@ -13,7 +13,7 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
                    arma::umat const &indexLookupTable, arma::mat profilesRecent,
                    unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                    unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                   bool const &adam) {
+                   bool const &adamETS) {
 
     unsigned int obs = matrixErrors.n_rows;
     unsigned int nSeries = matrixErrors.n_cols;
@@ -57,7 +57,7 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
                                                             matrixF, matrixWt.row(j-lagsModelMax),
                                                             E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
                                                             nComponents, constant, matrixG.col(i),
-                                                            matrixErrors(j-lagsModelMax,i), yFitted, adam));
+                                                            matrixErrors(j-lagsModelMax,i), yFitted, adamETS));
 
             /* Failsafe for cases when unreasonable value for state vector was produced */
             // if(!matrixVt.col(j).is_finite()){
@@ -91,11 +91,11 @@ RcppExport SEXP adamSimulatorWrap(arma::cube arrayVt, arma::mat matrixErrors, ar
                                   arma::umat indexLookupTable, arma::mat profilesRecent,
                                   unsigned int const &nSeasonal, unsigned int const &componentsNumber,
                                   unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                                  bool const &adam){
+                                  bool const &adamETS){
 
     unsigned int nNonSeasonal = componentsNumber - nSeasonal;
 
     return wrap(adamSimulator(arrayVt, matrixErrors, matrixOt, arrayF, matrixWt, matrixG,
                               E, T, S, lags, indexLookupTable, profilesRecent,
-                              nNonSeasonal, nSeasonal, nArima, nXreg, constant, adam));
+                              nNonSeasonal, nSeasonal, nArima, nXreg, constant, adamETS));
 }

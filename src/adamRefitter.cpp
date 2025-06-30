@@ -14,7 +14,7 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
                   arma::umat const &indexLookupTable, arma::cube arrayProfilesRecent,
                   unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                   unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                  bool const &backcast, bool const &refineHead, bool const &adam) {
+                  bool const &backcast, bool const &refineHead, bool const &adamETS) {
 
     int obs = matrixYt.n_rows;
     unsigned int nSeries = matrixG.n_cols;
@@ -72,7 +72,7 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
                                adamGvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
                                           arrayF.slice(k), arrayWt.slice(k).row(i-lagsModelMax), E, T, S,
                                           nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                                          matrixG.col(k), vecErrors(i-lagsModelMax), matYfit(i-lagsModelMax,k), adam);
+                                          matrixG.col(k), vecErrors(i-lagsModelMax), matYfit(i-lagsModelMax,k), adamETS);
 
                 arrayVt.slice(k).col(i) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i));
             }
@@ -113,7 +113,7 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
                                    adamGvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
                                               arrayF.slice(k), arrayWt.slice(k).row(i-lagsModelMax), E, T, S,
                                               nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                                              matrixG.col(k), vecErrors(i-lagsModelMax), matYfit(i-lagsModelMax,k), adam);
+                                              matrixG.col(k), vecErrors(i-lagsModelMax), matYfit(i-lagsModelMax,k), adamETS);
                 }
 
                 if(refineHead){
@@ -148,14 +148,14 @@ RcppExport SEXP adamRefitterWrap(arma::mat matrixYt, arma::mat matrixOt, arma::c
                                  arma::uvec lags, arma::umat indexLookupTable, arma::cube arrayProfilesRecent,
                                  unsigned int const &nSeasonal, unsigned int const &componentsNumberETS,
                                  unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                                 bool const &backcast, bool const &refineHead, bool const &adam){
+                                 bool const &backcast, bool const &refineHead, bool const &adamETS){
 
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
 
     return wrap(adamRefitter(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG,
                              E, T, S, lags, indexLookupTable, arrayProfilesRecent,
                              nNonSeasonal, nSeasonal, nArima, nXreg, constant,
-                             backcast, refineHead, adam));
+                             backcast, refineHead, adamETS));
 }
 
 
@@ -166,7 +166,7 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
                       arma::umat const &indexLookupTable, arma::cube arrayProfileRecent,
                       unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                       unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                      bool const &adam) {
+                      bool const &adamETS) {
 
     unsigned int obs = arrayErrors.n_rows;
     unsigned int nSeries = arrayErrors.n_cols;
@@ -209,7 +209,7 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
                                                    arrayF.slice(j), arrayWt.slice(j).row(i-lagsModelMax),
                                                    E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
                                                    nComponents, constant, matrixG.col(k),
-                                                   arrayErrors.slice(j)(i-lagsModelMax,k), yFitted, adam));
+                                                   arrayErrors.slice(j)(i-lagsModelMax,k), yFitted, adamETS));
             }
         }
     }
@@ -225,11 +225,11 @@ RcppExport SEXP adamReforecasterWrap(arma::cube arrayErrors, arma::cube arrayOt,
                                      arma::umat const &indexLookupTable, arma::cube arrayProfileRecent,
                                      unsigned int const &nSeasonal, unsigned int const &componentsNumberETS,
                                      unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                                     bool const &adam){
+                                     bool const &adamETS){
 
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
 
     return wrap(adamReforecaster(arrayErrors, arrayOt, arrayF, arrayWt, matrixG,
                                  E, T, S, lags, indexLookupTable, arrayProfileRecent,
-                                 nNonSeasonal, nSeasonal, nArima, nXreg, constant, adam));
+                                 nNonSeasonal, nSeasonal, nArima, nXreg, constant, adamETS));
 }

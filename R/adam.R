@@ -16,7 +16,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "xregParametersPersistence","xregModelInitials","constantName","yDenominator",
                          "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval","icFunction",
                          "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal",
-                         "nIterations","smoother"));
+                         "nIterations","smoother","adamETS"));
 
 #' ADAM is Augmented Dynamic Adaptive Model
 #'
@@ -2135,7 +2135,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations, refineHead, adam=adamETS);
+                                     nIterations, refineHead, adamETS);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -2563,7 +2563,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                              componentsNumberARIMA, xregNumber, constantRequired,
                                              yInSample, ot, any(initialType==c("complete","backcasting")),
-                                             nIterations, refineHead, adam=adamETS);
+                                             nIterations, refineHead, adamETS);
                 logLikReturn[] <- logLikReturn - sum(log(abs(adamFitted$yFitted)));
             }
 
@@ -3039,7 +3039,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                          componentsNumberARIMA, xregNumber, constantRequired,
                                          yInSample, ot, any(initialType==c("complete","backcasting")),
-                                         nIterations, refineHead, adam=adamETS);
+                                         nIterations, refineHead, adamETS);
 
             # Extract the errors correctly
             errors <- switch(distributionNew,
@@ -3668,7 +3668,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations, refineHead, adam=adamETS);
+                                     nIterations, refineHead, adamETS);
 
         matVt[] <- adamFitted$matVt;
 
@@ -7883,7 +7883,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     ellipsis <- list(...);
 
     # Check whether we deal with adam ETS or the conventional
-    adamETS <- as.character(object$call[[1]])=="adam";
+    adamETS <- adamETSChecker(object);
 
     interval <- match.arg(interval[1],c("none", "simulated", "approximate", "semiparametric",
                                         "nonparametric", "confidence", "parametric","prediction",
@@ -9165,7 +9165,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     parametersNames <- names(coef(object));
 
     # Check whether we deal with adam ETS or the conventional
-    adamETS <- as.character(object$call[[1]])=="adam";
+    adamETS <- adamETSChecker(object);
 
     vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, heuristics=heuristics, nsim=nsim, ...));
     # Check if the matrix is positive definite
@@ -9948,6 +9948,9 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     objectRefitted <- reapply(object, nsim=nsim, bootstrap=bootstrap, heuristics=heuristics, ...);
     ellipsis <- list(...);
 
+    # Check whether we deal with adam ETS or the conventional
+    adamETS <- adamETSChecker(object);
+
     # If the trim is not provided, set it to 1%
     if(is.null(ellipsis$trim)){
         trim <- 0.01;
@@ -10290,7 +10293,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                               EtypeModified, Ttype, Stype,
                                               lagsModelAll, indexLookupTable, profilesRecentArray,
                                               componentsNumberETSSeasonal, componentsNumberETS,
-                                              componentsNumberARIMA, xregNumber, constantRequired)$matrixYt;
+                                              componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
 
     #### Note that the cumulative doesn't work with oes at the moment!
     if(cumulative){
@@ -10412,7 +10415,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
     type <- match.arg(type);
 
     # Check whether we deal with adam ETS or the conventional
-    adamETS <- as.character(object$call[[1]])=="adam";
+    adamETS <- adamETSChecker(object);
 
     # Model type
     Ttype <- substr(modelType(object),2,2);
@@ -10734,7 +10737,7 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     ellipsis <- list(...);
 
     # Check whether we deal with adam ETS or the conventional
-    adamETS <- as.character(object$call[[1]])=="adam";
+    adamETS <- adamETSChecker(object);
 
     if(!is.null(seed)){
         set.seed(seed);
@@ -11011,3 +11014,12 @@ print.adam.sim <- function(x, ...){
 # accuracy.adam <- function(object, holdout, ...){}
 # pls.adam
 
+adamETSChecker <- function(object){
+    if(is.call(object$call)){
+        adamETS <- tail(all.names(object$call[[1]]),1)=="adam";
+    }
+    else{
+        adamETS <- FALSE;
+    }
+    return(adamETS);
+}

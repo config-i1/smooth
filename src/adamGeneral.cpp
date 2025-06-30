@@ -14,7 +14,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                 unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
                 arma::vec const &vectorYt, arma::vec const &vectorOt, bool const &backcast,
-                unsigned int const &nIterations, bool const &refineHead, bool const &adam){
+                unsigned int const &nIterations, bool const &refineHead, bool const &adamETS){
     /* # matrixVt should have a length of obs + lagsModelMax.
      * # matrixWt is a matrix with nrows = obs
      * # vecG should be a vector
@@ -78,7 +78,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                            matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
                 adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixF, matrixWt.row(i-lagsModelMax), E, T, S,
                            nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                           vectorG, vecErrors(i-lagsModelMax), vecYfit(i-lagsModelMax), adam);
+                           vectorG, vecErrors(i-lagsModelMax), vecYfit(i-lagsModelMax), adamETS);
 
             // If ot is fractional, amend the fitted value
             if(vectorOt(i-lagsModelMax)!=0 && vectorOt(i-lagsModelMax)!=1){
@@ -119,7 +119,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                                    adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixFInv,
                                               matrixWt.row(i-lagsModelMax), E, T, S,
                                               nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                                              vectorGInv, vecErrors(i-lagsModelMax), vecYfit(i-lagsModelMax), adam);
+                                              vectorGInv, vecErrors(i-lagsModelMax), vecYfit(i-lagsModelMax), adamETS);
             }
 
             // Fill in the head of the series.
@@ -160,14 +160,14 @@ RcppExport SEXP adamFitterWrap(arma::mat matrixVt, arma::mat &matrixWt, arma::ma
                                unsigned int const &componentsNumberETS, unsigned int const &nSeasonal,
                                unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
                                arma::vec &vectorYt, arma::vec &vectorOt, bool const &backcast,
-                               unsigned int const &nIterations, bool const &refineHead, bool const &adam){
+                               unsigned int const &nIterations, bool const &refineHead, bool const &adamETS){
 
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
 
     return wrap(adamFitter(matrixVt, matrixWt, matrixF, vectorG,
                            lags, indexLookupTable, profilesRecent, Etype, Ttype, Stype,
                            nNonSeasonal, nSeasonal, nArima, nXreg, constant,
-                           vectorYt, vectorOt, backcast, nIterations, refineHead, adam));
+                           vectorYt, vectorOt, backcast, nIterations, refineHead, adamETS));
 }
 
 /* # Function produces the point forecasts for the specified model */
