@@ -12,6 +12,7 @@ Changes:
 * ATTENTION! initial="backcasting" is now the default method in all smooth functions.
 * All smooth functions now have the same initialisation mechanism.
 * New initialisation mechanism called "two-stage" in adam(), where "backcasting" is used to get initial values before the optimisation is done. Slower but leads to better calibrated predictive distributions in ADAM.
+* New ADAM ETS with different maths behind it. This should make the model more robust, especially in case of multiplicative trend. es() uses the conventional models, adam() uses the new ones.
 * ssarima() now uses adam engine.
 * All older functions now use adam engine.
 * We no longer renormalise the initial parameters of xreg in case of models with factors. This is to avoid weird disalignment between the estimated parameters and states.
@@ -20,7 +21,7 @@ Changes:
 Bugfixes:
 * auto.adam() now allows selecting the best distribution for a user-specified ARIMA.
 * Fixed vcov() calculation for adam with initial="backcasting".
-* Furthre fixes in vcov() for adam with initial="backcasting".
+* Further fixes in vcov() for adam with initial="backcasting".
 * A fix for auto.ces() not working properly, when called without loading the full package.
 * Some bugfixes for SSARIMA + more consistency in "refine head".
 * A bugfix in reapply() for the initial!="backcasting".

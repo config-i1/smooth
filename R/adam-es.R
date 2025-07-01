@@ -409,7 +409,7 @@ es <- function(y, model="ZXZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
     ourModel <- adam(data=data, model=model, lags=lags, persistence=persistence, phi=phi,
                      loss=loss, h=h, holdout=holdout, initial=initialValue,
                      ic=ic, bounds=bounds, distribution="dnorm",
-                     silent=silent, regressors=regressors[1], ...);
+                     silent=silent, regressors=regressors[1], adamETS=FALSE, ...);
     ourModel$call <- cl;
     ourModel$timeElapsed=Sys.time()-startTime;
 
