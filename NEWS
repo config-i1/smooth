@@ -3,6 +3,7 @@ smooth v4.3.1 (Release data: 2025-07-01)
 
 Changes:
 * es() now has model="ZXZ" by default.
+* adam() now has the parameter ets, allowing to select between two formulations: conventional and adam.
 
 
 smooth v4.3.0 (Release data: 2025-06-30)

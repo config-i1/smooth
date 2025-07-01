@@ -208,6 +208,11 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' estimation. Can be either \code{admissible} - guaranteeing the stability of the
 #' model, \code{usual} - restricting the values with (0, 1) or \code{none} - no
 #' restrictions (potentially dangerous).
+#' @param ets Parameter determining, which ETS formulation to use. If \code{ets="conventional"},
+#' the one from Hyndman et al. (2008) is used. In case of \code{ets="adam"}, ADAM reformulation
+#' that updates multiplicative components differently is used. The latter is closer
+#' to applying ETS to log-transformed data when multiplicative components are used. This helps
+#' makig trend less explosive.
 #' @param ...  Other non-documented parameters. For example, \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of
@@ -347,7 +352,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                  h=0, holdout=FALSE,
                  persistence=NULL, phi=NULL, initial=c("backcasting","optimal","two-stage","complete"), arma=NULL,
                  ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
-                 silent=TRUE, ...){
+                 silent=TRUE, ets=c("conventional","adam"), ...){
     # Copyright (C) 2019 - Inf  Ivan Svetunkov
 
     # Start measuring the time of calculations
@@ -496,6 +501,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         warning("A model of an unknown class was provided. Switching to 'ZZZ'.",call.=FALSE);
         model <- "ZZZ";
     }
+
+    ets <- match.arg(ets);
+    adamETS <- ets=="adam";
 
     #### Check the parameters of the function and create variables based on them ####
     checkerReturn <- parametersChecker(data, model, lags, formula, orders, constant, arma,
@@ -3971,7 +3979,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     constant=constantValue, nParam=parametersNumber, occurrence=oesModel,
                     formula=formula, regressors=regressors,
                     loss=loss, lossValue=CFValue, logLik=logLikADAMValue, distribution=distribution,
-                    scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI));
+                    scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, ets=ets,
+                    res=res, FI=FI));
     }
 
     #### Deal with occurrence model ####
@@ -11015,8 +11024,8 @@ print.adam.sim <- function(x, ...){
 # pls.adam
 
 adamETSChecker <- function(object){
-    if(is.call(object$call)){
-        adamETS <- tail(all.names(object$call[[1]]),1)=="adam";
+    if(!is.null(object$ets) && object$ets=="adam"){
+        adamETS <- TRUE;
     }
     else{
         adamETS <- FALSE;
