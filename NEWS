@@ -1,14 +1,14 @@
-smooth v4.3.0 (Release data: 2025-06-25)
+smooth v4.3.0 (Release data: 2025-06-30)
 =======
 
 Changes:
+* ATTENTION! initial="backcasting" is now the default method in all smooth functions.
+* All smooth functions now have the same initialisation mechanism.
+* New initialisation mechanism called "two-stage" in adam(), where "backcasting" is used to get initial values before the optimisation is done. Slower but leads to better calibrated predictive distributions in ADAM.
 * ssarima() now uses adam engine.
 * All older functions now use adam engine.
-* New initialisation mechanism called "two-stage" in adam(), where "backcasting" is used to get initial values before the optimisation is done. Slower but leads to better calibrated predictive distributions in ADAM.
-* initial="backcasting" is now the default method. This needs a bit of additional tuning for ARIMA.
-* All smooth functions now have the same initialisation mechanism.
 * We no longer renormalise the initial parameters of xreg in case of models with factors. This is to avoid weird disalignment between the estimated parameters and states.
-* The colours are now selected from the used palette instead of being hard coded. This is to make things consistent with greybox.
+* The colours for plots are now selected from the used palette instead of being hard coded. This is to make things consistent with greybox.
 
 Bugfixes:
 * auto.adam() now allows selecting the best distribution for a user-specified ARIMA.
