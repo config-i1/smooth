@@ -3062,15 +3062,6 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         stepSize <- ellipsis$stepSize;
     }
 
-    # Hidden parameter, determining which ETS to use:
-    # ADAM ETS (TRUE) or the conventional one
-    if(is.null(ellipsis$adamETS)){
-        adamETS <- TRUE;
-    }
-    else{
-        adamETS <- ellipsis$adamETS;
-    }
-
     # Add constant in the model
     if(is.numeric(constant)){
         constantRequired <- TRUE;
@@ -3347,8 +3338,6 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     assign("FI",FI,ParentEnvironment);
     # Step size for the hessian
     assign("stepSize",stepSize,ParentEnvironment);
-    # Hidden parameter for the type of ETS
-    assign("adamETS",adamETS,ParentEnvironment);
 
     return(list(select=FALSE));
 }
