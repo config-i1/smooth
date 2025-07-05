@@ -252,7 +252,9 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     break;
                 // MAZ
                 case 'A':
-                    g.row(0) = matrixF.submat(0,0,0,1) * matrixVt.rows(0,1) * (exp(vectorG.row(0) * log(1+error)) - 1);
+                    // Complex is needed to avoid issues with mixed models
+                    g.row(0) = matrixF.submat(0,0,0,1) * matrixVt.rows(0,1) *
+                        (real(exp(vectorG.row(0) * log(std::complex<double>(1+error)))) - 1);
                     switch(S){
                     case 'N':
                         g.row(1) = vectorG.row(1) * fitted * error;
@@ -263,12 +265,15 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                         break;
                     case 'M':
                         g.row(1) = matrixF.submat(0,0,0,1) * matrixVt.rows(0,1) * vectorG.row(1) * error;
-                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) % (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error)) - 1);
+                        // Complex is needed to avoid issues with mixed models
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) %
+                            (arma::real(exp(vectorG.rows(2,2+nSeasonal-1) * log(std::complex<double>(1+error)))) - 1);
                         break;
                     }
                     break;
                 // MMZ
                 case 'M':
+                    // Complex is needed to avoid issues with mixed models
                     g.row(0) = arma::real(exp(matrixF.submat(0,0,0,1) *
                                                log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,1))))) *
                                                (exp(vectorG.row(0) * log(1+error)) - 1);
