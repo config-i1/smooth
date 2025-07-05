@@ -1587,7 +1587,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(etsModel){
             # Fill in persistence
             if(persistenceEstimate && any(persistenceEstimateVector)){
-                if(any(c(Etype,Ttype,Stype)=="M")){
+                if(ets=="conventional" && any(c(Etype,Ttype,Stype)=="M")){
                     # A special type of model which is not safe: AAM, MAA, MAM
                     if((Etype=="A" && Ttype=="A" && Stype=="M") || (Etype=="A" && Ttype=="M" && Stype=="A") ||
                        (any(initialType==c("complete","backcasting")) &&
