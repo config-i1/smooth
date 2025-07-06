@@ -891,7 +891,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             arimaPolynomials <- NULL;
         }
 
-
         if(!profilesRecentProvided){
             # ETS model, initial state
             # If something needs to be estimated...
