@@ -204,7 +204,8 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     case 'M':
                         g.row(0) = vectorG.row(0) / as_scalar(rowvecW.cols(1,nSeasonal) * matrixVt.rows(1,nSeasonal));
                         // !!! This sort of thing can be written as a function not to duplicate the principle...
-                        g.rows(1,nSeasonal) = matrixVt.rows(1,nSeasonal) % (exp(vectorG.rows(1,nSeasonal) * log(1+error/fitted)) - 1);
+                        g.rows(1,nSeasonal) = matrixVt.rows(1,nSeasonal) %
+                            (abs(exp(vectorG.rows(1,nSeasonal) * log(std::complex<double>(1+error/fitted)))) - 1);
                         break;
                         // Nothing to do in the other cases
                     }
@@ -215,6 +216,7 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     case 'M':
                         g.rows(0,1) = vectorG.rows(0,1) * error / as_scalar(abs(exp(rowvecW.cols(2,2+nSeasonal-1) *
                             log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(2,2+nSeasonal-1))))));
+                    // Complex is needed to avoid issues with mixed models
                         g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) %
                             (abs(exp(vectorG.rows(2,2+nSeasonal-1) * log(std::complex<double>(1+error/fitted)))) - 1);
                         break;
@@ -223,7 +225,9 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     break;
                 // AMZ
                 case 'M':
-                    g.row(1) = exp(matrixF(1,1) * log(matrixVt.row(1))) * (exp(vectorG.row(1) * log(1+error/fitted)) - 1);
+                    // Complex is needed to avoid issues with mixed models
+                    g.row(1) = exp(matrixF(1,1) * log(matrixVt.row(1))) *
+                        (abs(exp(vectorG.row(1) * log(std::complex<double>(1+error/fitted)))) - 1);
                     switch(S){
                     case 'N':
                     case 'A':
@@ -231,7 +235,9 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                         break;
                     case 'M':
                         g.row(0) = g(0) / as_scalar(rowvecW.cols(2,2+nSeasonal-1) * matrixVt.rows(2,2+nSeasonal-1));
-                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) % (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error/fitted)) - 1);
+                    // Complex is needed to avoid issues with mixed models
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) %
+                            (abs(exp(vectorG.rows(2,2+nSeasonal-1) * log(std::complex<double>(1+error/fitted)))) - 1);
                         break;
                     }
                     break;
