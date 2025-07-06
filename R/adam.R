@@ -1593,17 +1593,17 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                        (any(initialType==c("complete","backcasting")) &&
                         ((Etype=="M" && Ttype=="A" && Stype=="A") || (Etype=="M" && Ttype=="A" && Stype=="M")))){
                         B[1:sum(persistenceEstimateVector)] <-
-                            c(0.01,0,rep(0,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                            c(0.01,0.005,rep(0,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                     }
                     # MMA is the worst. Set everything to zero and see if anything can be done...
                     else if((Etype=="M" && Ttype=="M" && Stype=="A")){
                         B[1:sum(persistenceEstimateVector)] <-
-                            c(0,0,rep(0,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                            c(0.01,0.005,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                     }
                     else if(Etype=="M" && Ttype=="A"){
                         if(any(initialType==c("complete","backcasting"))){
                             B[1:sum(persistenceEstimateVector)] <-
-                                c(0.1,0,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                                c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                         }
                         else{
                             B[1:sum(persistenceEstimateVector)] <-
