@@ -248,13 +248,14 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                 // MNZ
                 switch(T){
                 case 'N':
-                    g.row(0) = matrixVt.row(0) * (exp(vectorG.row(0) * log(1+error)) - 1);
+                    g.row(0) = matrixVt.row(0) * (abs(exp(vectorG.row(0) * log(std::complex<double>(1+error)))) - 1);
                     switch(S){
                     case 'A':
                         g.rows(1,nSeasonal) = vectorG.rows(1,nSeasonal) * fitted * error;
                         break;
                     case 'M':
-                        g.rows(1,nSeasonal) = matrixVt.rows(1,nSeasonal) % (exp(vectorG.rows(1,nSeasonal) * log(1+error)) - 1);
+                        g.rows(1,nSeasonal) = matrixVt.rows(1,nSeasonal) %
+                            (abs(exp(vectorG.rows(1,nSeasonal) * log(std::complex<double>(1+error)))) - 1);
                         break;
                     }
                     break;
@@ -284,14 +285,16 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     // Complex is needed to avoid issues with mixed models
                     g.row(0) = arma::abs(exp(matrixF.submat(0,0,0,1) *
                                                log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,1))))) *
-                                               (exp(vectorG.row(0) * log(1+error)) - 1);
-                    g.row(1) = exp(matrixF(1,1) * log(matrixVt.row(1))) * (exp(vectorG.row(1) * log(1+error)) - 1);
+                                               (abs(exp(vectorG.row(0) * log(std::complex<double>(1+error)))) - 1);
+                    g.row(1) = exp(matrixF(1,1) * log(matrixVt.row(1))) *
+                        (abs(exp(vectorG.row(1) * log(std::complex<double>(1+error)))) - 1);
                     switch(S){
                     case 'A':
                         g.rows(2,2+nSeasonal-1) = vectorG.rows(2,2+nSeasonal-1) * fitted * error;
                         break;
                     case 'M':
-                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) % (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error)) - 1);
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) %
+                            (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error)) - 1);
 
                         break;
                     }
