@@ -342,6 +342,62 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         return(list(matF=matF,vecG=vecG,vt=vt));
     }
 
+    creator <- function(seasonality, xregModel,
+                        lagsModelAll, lagsModelMax, obsAll, lags, yIndexAll, yClasses,
+                        componentsNumber, xregNumber, obsInSample, obsStates, xregNames,
+                        yFrequency, xregModelInitials){
+        # Create ADAM profiles for correct treatment of seasonality
+        adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
+                                           lags=lags, yIndex=yIndexAll, yClasses=yClasses);
+        profilesRecentTable <- adamProfiles$recent;
+        indexLookupTable <- adamProfiles$lookup;
+
+        matF <- diag(componentsNumber+xregNumber);
+        matF[2,1] <- 1;
+        vecG <- matrix(0,componentsNumber+xregNumber,1);
+        matWt <- matrix(1, obsInSample, componentsNumber+xregNumber);
+        matWt[,2] <- 0;
+        matVt <- matrix(0, componentsNumber+xregNumber, obsStates);
+        # Fix matrices for special cases
+        if(seasonality=="full"){
+            matF[4,3] <- 1;
+            matWt[,4] <- 0;
+            rownames(matVt) <- c("level", "potential", "seasonal 1", "seasonal 2", xregNames);
+            matVt[1,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
+            matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
+            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1],
+                                                   type="additive")$seasonal[[1]][1:lagsModelMax];
+            matVt[4,1:lagsModelMax] <- matVt[3,1:lagsModelMax]/1.1;
+        }
+        else if(seasonality=="partial"){
+            rownames(matVt) <- c("level", "potential", "seasonal", xregNames);
+            matVt[1,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
+            matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
+            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1],
+                                                   type="additive")$seasonal[[1]][1:lagsModelMax];
+        }
+        else if(seasonality=="simple"){
+            rownames(matVt) <- c("level.s", "potential.s", xregNames);
+            matVt[1,1:lagsModelMax] <- yInSample[1:lagsModelMax];
+            matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
+        }
+        else{
+            rownames(matVt) <- c("level", "potential", xregNames);
+            matVt[1:componentsNumber,1] <- c(mean(yInSample[1:min(max(10,yFrequency),obsInSample)]),
+                                             mean(yInSample[1:min(max(10,yFrequency),obsInSample)])/1.1);
+        }
+
+        # Add parameters for the X
+        if(xregModel){
+            matVt[componentsNumber+c(1:xregNumber),1] <- xregModelInitials[[1]][[1]];
+            matWt[,componentsNumber+c(1:xregNumber)] <- xregData[1:obsInSample,];
+        }
+
+        return(list(profilesRecentTable=profilesRecentTable,
+                    indexLookupTable=indexLookupTable, matF=matF,
+                    vecG=vecG, matWt=matWt, matVt=matVt));
+    }
+
     ##### Function returns scale parameter for the provided parameters #####
     scaler <- function(errors, obsInSample){
         return(sqrt(sum(errors^2)/obsInSample));
@@ -465,8 +521,6 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
 
     Stype <- Ttype <- "N";
     model <- "ANN";
-    # A hack in case the parameters were provided
-    modelDo <- modelDoOriginal;
 
     ##### Pre-set yFitted, yForecast, errors and basic parameters #####
     # Prepare fitted and error with ts / zoo
@@ -487,55 +541,22 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
     # Scale value
     parametersNumber[1,4] <- 1;
 
+    # A hack in case the parameters were provided
+    modelDo <- modelDoOriginal;
+
+    if(!a$estimate && !b$estimate &&
+       (initialType=="complete" || (initialType=="backcasting" && !xregModel))){
+        modelDo <- "use";
+    }
+
     #### If we need to estimate the model ####
     if(modelDo=="estimate"){
-        # Create ADAM profiles for correct treatment of seasonality
-        adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
-                                           lags=lags, yIndex=yIndexAll, yClasses=yClasses);
-        profilesRecentTable <- adamProfiles$recent;
-        indexLookupTable <- adamProfiles$lookup;
+        cesCreated <- creator(seasonality, xregModel,
+                              lagsModelAll, lagsModelMax, obsAll, lags, yIndexAll, yClasses,
+                              componentsNumber, xregNumber, obsInSample, obsStates, xregNames,
+                              yFrequency, xregModelInitials);
 
-        matF <- diag(componentsNumber+xregNumber);
-        matF[2,1] <- 1;
-        vecG <- matrix(0,componentsNumber+xregNumber,1);
-        matWt <- matrix(1, obsInSample, componentsNumber+xregNumber);
-        matWt[,2] <- 0;
-        matVt <- matrix(0, componentsNumber+xregNumber, obsStates);
-        # Fix matrices for special cases
-        if(seasonality=="full"){
-            matF[4,3] <- 1;
-            matWt[,4] <- 0;
-            rownames(matVt) <- c("level", "potential", "seasonal 1", "seasonal 2", xregNames);
-            matVt[1,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
-            matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
-            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1],
-                                                   type="additive")$seasonal[[1]][1:lagsModelMax];
-            matVt[4,1:lagsModelMax] <- matVt[3,1:lagsModelMax]/1.1;
-        }
-        else if(seasonality=="partial"){
-            rownames(matVt) <- c("level", "potential", "seasonal", xregNames);
-            matVt[1,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
-            matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
-            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1],
-                                                   type="additive")$seasonal[[1]][1:lagsModelMax];
-        }
-        else if(seasonality=="simple"){
-            rownames(matVt) <- c("level.s", "potential.s", xregNames);
-            matVt[1,1:lagsModelMax] <- yInSample[1:lagsModelMax];
-            matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
-        }
-        else{
-            rownames(matVt) <- c("level", "potential", xregNames);
-            matVt[1:componentsNumber,1] <- c(mean(yInSample[1:min(max(10,yFrequency),obsInSample)]),
-                                             mean(yInSample[1:min(max(10,yFrequency),obsInSample)])/1.1);
-        }
-
-        # Add parameters for the X
-        if(xregModel){
-            matVt[componentsNumber+c(1:xregNumber),1] <- xregModelInitials[[1]][[1]];
-            matWt[,componentsNumber+c(1:xregNumber)] <- xregData[1:obsInSample,];
-        }
-
+        list2env(cesCreated, environment());
         ##### Check number of observations vs number of max parameters #####
         # if(obsNonzero <= nParamMax){
         #     if(regressors=="select"){
@@ -750,15 +771,6 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
 
         # Parameters estimated + variance
         nParamEstimated <- length(B) + (loss=="likelihood")*1;
-
-        # Prepare for fitting
-        elements <- filler(B, matVt, matF, vecG, a, b);
-        matF <- elements$matF;
-        vecG <- elements$vecG;
-        matVt[,1:lagsModelMax] <- elements$vt;
-
-        # Write down the initials in the recent profile
-        profilesRecentInitial <- profilesRecentTable[] <- matVt[,1:lagsModelMax,drop=FALSE];
     }
     #### If we just use the provided values ####
     else{
@@ -772,15 +784,34 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         initialXregEstimateOriginal <- initialXregEstimate;
         initialXregEstimate <- FALSE;
 
+        # If matF doesn't exist, this must be a new model with all parameters provided
+        # So, we need to create the basic matrices.
+        if(!exists("matF", inherits=FALSE)){
+            cesCreated <- creator(seasonality, xregModel,
+                                  lagsModelAll, lagsModelMax, obsAll, lags, yIndexAll, yClasses,
+                                  componentsNumber, xregNumber, obsInSample, obsStates, xregNames,
+                                  yFrequency, xregModelInitials);
+
+            list2env(cesCreated, environment());
+        }
+
         CFValue <- CF(B, matVt, matF, vecG, a, b);
         res <- NULL;
 
         # Only variance is estimated
-        nParamEstimated <- 1;
+        nParamEstimated <- (loss=="likelihood")*1;
 
-        initialType <- initialOriginal;
         initialXregEstimate <- initialXregEstimateOriginal;
     }
+
+    # Prepare for fitting
+    elements <- filler(B, matVt, matF, vecG, a, b);
+    matF <- elements$matF;
+    vecG <- elements$vecG;
+    matVt[,1:lagsModelMax] <- elements$vt;
+
+    # Write down the initials in the recent profile
+    profilesRecentInitial <- profilesRecentTable[] <- matVt[,1:lagsModelMax,drop=FALSE];
 
     #### Fisher Information ####
     if(FI){
@@ -793,12 +824,15 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
             b$estimateOriginal <- b$estimate;
             b$estimate <- TRUE;
         }
-        initialTypeOriginal <- initialType;
-        initialType <- "optimal";
+        # initialTypeOriginal <- initialType;
+        # initialType <- "optimal";
         if(!is.null(initialValueProvided$xreg) && initialOriginal!="complete"){
             initialXregEstimateOriginal <- initialXregEstimate;
             initialXregEstimate <- TRUE;
         }
+        # This is needed to have some likelihood returned in case of boundary situations
+        boundsOriginal <- bounds
+        bounds <- "none"
 
         FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
         colnames(FI) <- rownames(FI) <- names(B);
@@ -809,7 +843,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         if(any(substr(names(B),1,4)=="beta")){
             b$estimate <- b$estimateOriginal;
         }
-        initialType <- initialTypeOriginal;
+        bounds <- boundsOriginal
         if(!is.null(initialValueProvided$xreg) && initialOriginal!="complete"){
             initialXregEstimate <- initialXregEstimateOriginal;
         }
