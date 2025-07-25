@@ -1,4 +1,4 @@
-smooth v4.3.1 (Release data: 2025-07-18)
+smooth v4.3.1 (Release data: 2025-07-25)
 =======
 
 Changes:
@@ -7,6 +7,7 @@ Changes:
 * rmultistep() can now return additive or multiplicative forecast errors depending on what user asks.
 * ces() works with provided parameters again.
 * Tuning of Hessian calculation for CES.
+* ces() now supports multiple seasonalities.
 
 Bugfixes:
 * A fix for adamX with a special case, when formula is provided, the data is a matrix and there are partial matches in names of variables.

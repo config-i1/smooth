@@ -6206,11 +6206,11 @@ print.adam <- function(x, digits=4, ...){
         if(!is.null(x$parameters)){
             cat("\na0 + ia1:",round(x$parameters$a,digits),"\n");
             if(!is.null(x$parameters$b)){
-                if(Im(x$parameters$b)!=0){
-                    cat("b0 + ib1:",round(x$parameters$b,digits),"\n");
+                if(is.complex(x$parameters$b)){
+                    print(round(x$parameters$b,digits));
                 }
                 else{
-                    cat("b:",round(as.numeric(x$parameters$b),digits),"\n");
+                    print(round((x$parameters$b),digits));
                 }
             }
         }
