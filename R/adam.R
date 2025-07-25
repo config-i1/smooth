@@ -6204,7 +6204,8 @@ print.adam <- function(x, digits=4, ...){
 
     if(cesModel){
         if(!is.null(x$parameters)){
-            cat("\na0 + ia1:",round(x$parameters$a,digits),"\n");
+            cat("\n");
+            print(round(x$parameters$a,digits));
             if(!is.null(x$parameters$b)){
                 if(is.complex(x$parameters$b)){
                     print(round(x$parameters$b,digits));
