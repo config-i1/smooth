@@ -2114,6 +2114,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                 }
                 else{
+                    # If this is ETS or ARIMA with polynomials outside standard bounds, do proper check
                     if(etsModel || (arimaModel && maEstimate && (sum(adamElements$arimaPolynomials$maPolynomial[-1])>=1 |
                                                                  sum(adamElements$arimaPolynomials$maPolynomial[-1])<0))){
                         eigenValues <- abs(eigen(adamElements$matF -
@@ -5253,6 +5254,65 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
 #                 ariPolynomial=ariPolynomial,maPolynomial=maPolynomial));
 # }
 
+#### Small technical functions ####
+# Function checks whether the conventional ETS or the ADAM version was used
+adamETSChecker <- function(object){
+    if(!is.null(object$ets) && object$ets=="adam"){
+        adamETS <- TRUE;
+    }
+    else{
+        adamETS <- FALSE;
+    }
+    return(adamETS);
+}
+
+# Function defines number of components based on the model type
+componentsDefiner <- function(object){
+    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
+    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
+    cesModel <- smoothType(object)=="CES";
+    gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
+
+    if(cesModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
+        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
+        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
+            componentsNumberARIMA[] <- componentsNumberARIMA+1;
+        }
+    }
+    else if(gumModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
+    }
+    else{
+        if(!is.null(object$initial$seasonal)){
+            if(is.list(object$initial$seasonal)){
+                componentsNumberETSSeasonal <- length(object$initial$seasonal);
+            }
+            else{
+                componentsNumberETSSeasonal <- 1;
+            }
+        }
+        else{
+            componentsNumberETSSeasonal <- 0;
+        }
+        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
+        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+    }
+
+    return(list(componentsNumberETS=componentsNumberETS,
+                componentsNumberETSSeasonal=componentsNumberETSSeasonal,
+                componentsNumberARIMA=componentsNumberARIMA))
+}
+
 #### Technical methods ####
 #' @export
 lags.adam <- function(object, ...){
@@ -6143,13 +6203,14 @@ print.adam <- function(x, digits=4, ...){
 
     if(cesModel){
         if(!is.null(x$parameters)){
-            cat("\na0 + ia1:",round(x$parameters$a,digits),"\n");
+            cat("\n");
+            print(round(x$parameters$a,digits));
             if(!is.null(x$parameters$b)){
-                if(Im(x$parameters$b)!=0){
-                    cat("b0 + ib1:",round(x$parameters$b,digits),"\n");
+                if(is.complex(x$parameters$b)){
+                    print(round(x$parameters$b,digits));
                 }
                 else{
-                    cat("b:",round(as.numeric(x$parameters$b),digits),"\n");
+                    print(round((x$parameters$b),digits));
                 }
             }
         }
@@ -6985,7 +7046,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
 
     # If this is backcasting, do sampling with moving origin
     changeOrigin <- FALSE;
-    if(object$initialType=="complete"){
+    if(any(object$initialType==c("backcasting","complete"))){
         changeOrigin[] <- TRUE;
     }
 
@@ -7144,6 +7205,10 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             gumModel <- smoothType(object)=="GUM";
             ssarimaModel <- smoothType(object)=="SSARIMA";
             if(cesModel){
+                # If this is not provided by user, use a low value. CES is sensitive, so the small steps are required
+                if(is.null(ellipsis$stepSize)){
+                    ellipsis$stepSize <- 1e-8;
+                }
                 modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
                                                 FI=TRUE, stepSize=ellipsis$stepSize));
             }
@@ -7274,6 +7339,9 @@ residuals.adam <- function(object, ...){
 #'
 #' @param object Model estimated using one of the forecasting functions.
 #' @param h The forecasting horizon to use.
+#' @param error Defines what type of error to return. \code{"default"} means returning the
+#' one used in the original model. \code{"additive"} is to return e_t = y_t - mu_t.
+#' Finally, \code{"multiplicative"} will return e_t = (y_t - mu_t) / mu_t.
 #' @param ... Currently nothing is accepted via ellipsis.
 #' @return The matrix with observations in rows and h steps ahead values in columns.
 #' So, the first row corresponds to the forecast produced from the 0th observation
@@ -7286,20 +7354,31 @@ residuals.adam <- function(object, ...){
 #' rmultistep(ourModel, h=13)
 #'
 #' @export rmultistep
-rmultistep <- function(object, h=10, ...) UseMethod("rmultistep")
+rmultistep <- function(object, h=10,
+                       error=c("default","additive","multiplicative"),
+                       ...) UseMethod("rmultistep")
 
 #' @export
-rmultistep.default <- function(object, h=10, ...){
+rmultistep.default <- function(object, h=10,
+                               error=c("default","additive","multiplicative"),
+                               ...){
     return(NULL);
 }
 
 #' @export
-rmultistep.adam <- function(object, h=10, ...){
+rmultistep.adam <- function(object, h=10,
+                            error=c("default","additive","multiplicative"),
+                            ...){
+    error <- match.arg(error);
+
     yClasses <- class(actuals(object));
 
     # Model type
     model <- modelType(object);
-    Etype <- errorType(object);
+    Etype <- switch(error,
+                    "additive"="A",
+                    "multiplicative"="M",
+                    "default"=errorType(object));
     Ttype <- substr(model,2,2);
     Stype <- substr(model,nchar(model),nchar(model));
 
@@ -7310,19 +7389,13 @@ rmultistep.adam <- function(object, h=10, ...){
     if(Ttype!="N"){
         lagsOriginal <- c(1,lagsOriginal);
     }
-    if(!is.null(object$initial$seasonal)){
-        if(is.list(object$initial$seasonal)){
-            componentsNumberETSSeasonal <- length(object$initial$seasonal);
-        }
-        else{
-            componentsNumberETSSeasonal <- 1;
-        }
-    }
-    else{
-        componentsNumberETSSeasonal <- 0;
-    }
-    componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+
+    # Get componentsNumberETS, seasonal and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
+
     if(ncol(object$data)>1){
         xregNumber <- ncol(object$data)-1;
     }
@@ -7942,10 +8015,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     Stype <- substr(model,nchar(model),nchar(model));
 
     etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
-    cesModel <- smoothType(object)=="CES";
+    # arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
+    # cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
-    ssarimaModel <- smoothType(object)=="SSARIMA";
+    # ssarimaModel <- smoothType(object)=="SSARIMA";
 
     # Technical parameters
     lagsModelAll <- modelLags(object);
@@ -7960,39 +8033,11 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
     profilesRecentTable <- object$profile;
 
-    if(cesModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
-        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
-        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
-            componentsNumberARIMA[] <- componentsNumberARIMA+1;
-        }
-    }
-    else if(gumModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- sum(orders(object));
-    }
-    else if(ssarimaModel){
-        arimaOrders <- orders(object);
-        lags <- lags(object);
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
-    }
-    else{
-        if(!is.null(object$initial$seasonal)){
-            if(is.list(object$initial$seasonal)){
-                componentsNumberETSSeasonal <- length(object$initial$seasonal);
-            }
-            else{
-                componentsNumberETSSeasonal <- 1;
-            }
-        }
-        else{
-            componentsNumberETSSeasonal <- 0;
-        }
-        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
-    }
+    # Get componentsNumberETS and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
 
     obsStates <- nrow(object$states);
     obsInSample <- nobs(object);
@@ -9205,8 +9250,6 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     Etype <- errorType(object);
     Ttype <- substr(modelType(object),2,2);
     Stype <- substr(modelType(object),nchar(modelType(object)),nchar(modelType(object)));
-    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
     lags <- object$lags;
     lagsSeasonal <- lags[lags!=1];
     lagsModelAll <- object$lagsAll;
@@ -9226,7 +9269,9 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     #
     # }
 
-    cesModel <- smoothType(object)=="CES";
+    # cesModel <- smoothType(object)=="CES";
+    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
+    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
     gumModel <- smoothType(object)=="GUM";
     ssarimaModel <- smoothType(object)=="SSARIMA";
 
@@ -9235,39 +9280,11 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
         refineHead[] <- FALSE;
     }
 
-    if(cesModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
-        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
-        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
-            componentsNumberARIMA[] <- componentsNumberARIMA+1;
-        }
-    }
-    else if(gumModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- sum(orders(object));
-    }
-    else if(ssarimaModel){
-        arimaOrders <- orders(object);
-        lags <- lags(object);
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
-    }
-    else{
-        if(!is.null(object$initial$seasonal)){
-            if(is.list(object$initial$seasonal)){
-                componentsNumberETSSeasonal <- length(object$initial$seasonal);
-            }
-            else{
-                componentsNumberETSSeasonal <- 1;
-            }
-        }
-        else{
-            componentsNumberETSSeasonal <- 0;
-        }
-        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
-    }
+    # Get componentsNumberETS, seasonal and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
 
     # Prepare variables for xreg
     if(!is.null(object$initial$xreg)){
@@ -9982,19 +9999,11 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     lagsModelMax <- max(lagsModelAll);
     profilesRecentArray <- objectRefitted$profile;
 
-    if(!is.null(object$initial$seasonal)){
-        if(is.list(object$initial$seasonal)){
-            componentsNumberETSSeasonal <- length(object$initial$seasonal);
-        }
-        else{
-            componentsNumberETSSeasonal <- 1;
-        }
-    }
-    else{
-        componentsNumberETSSeasonal <- 0;
-    }
-    componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+    # Get componentsNumberETS, seasonal and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
 
     obsStates <- nrow(object$states);
     obsInSample <- nobs(object);
@@ -10434,9 +10443,12 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
     if(Ttype!="N"){
         lagsOriginal <- c(1,lagsOriginal);
     }
-    componentsNumberETS <- length(lagsOriginal);
-    componentsNumberETSSeasonal <- sum(lagsOriginal>1);
-    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+
+    # Get componentsNumberETS, seasonal and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
 
     s2 <- sigma(object)^2;
     matWt <- tail(object$measurement,h);
@@ -10772,48 +10784,11 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     # See if constant is required
     constantRequired <- !is.null(object$constant);
 
-    # Expand persistence to include zero for the constant
-    # if(constantRequired){
-    #
-    # }
-
-    cesModel <- smoothType(object)=="CES";
-    gumModel <- smoothType(object)=="GUM";
-    ssarimaModel <- smoothType(object)=="SSARIMA";
-
-    if(cesModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
-        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
-        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
-            componentsNumberARIMA[] <- componentsNumberARIMA+1;
-        }
-    }
-    else if(gumModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- sum(orders(object));
-    }
-    else if(ssarimaModel){
-        arimaOrders <- orders(object);
-        lags <- lags(object);
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
-    }
-    else{
-        if(!is.null(object$initial$seasonal)){
-            if(is.list(object$initial$seasonal)){
-                componentsNumberETSSeasonal <- length(object$initial$seasonal);
-            }
-            else{
-                componentsNumberETSSeasonal <- 1;
-            }
-        }
-        else{
-            componentsNumberETSSeasonal <- 0;
-        }
-        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
-    }
+    # Get componentsNumberETS, seasonal and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
 
     # Prepare variables for xreg
     if(!is.null(object$initial$xreg)){
@@ -11021,13 +10996,3 @@ print.adam.sim <- function(x, ...){
 ##### Other methods to implement #####
 # accuracy.adam <- function(object, holdout, ...){}
 # pls.adam
-
-adamETSChecker <- function(object){
-    if(!is.null(object$ets) && object$ets=="adam"){
-        adamETS <- TRUE;
-    }
-    else{
-        adamETS <- FALSE;
-    }
-    return(adamETS);
-}
