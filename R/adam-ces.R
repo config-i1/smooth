@@ -267,7 +267,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         j <- 0;
         nCoefficients <- 0;
         # No seasonality
-        if(seasonality=="none"){
+        if(seasonality!="simple"){
             if(a$estimate){
                 matF[1,2] <- B[2]-1;
                 matF[2,2] <- 1-B[1];
@@ -283,7 +283,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
             }
         }
         # Simple seasonality, lagged CES
-        else if(seasonality=="simple"){
+        else{
             if(a$estimate){
                 for(i in 1:nSeasonal){
                     matF[i*2,i*2] <- 1-B[nCoefficients+i*2-1];
@@ -478,21 +478,23 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         # Obtain the elements of CES
         elements <- filler(B, matVt, matF, vecG, a, b);
 
-        if(xregModel){
-            # We drop the X parts from matrices
-            indices <- c(1:componentsNumber)
-            eigenValues <- abs(eigen(elements$matF[indices,indices,drop=FALSE] -
-                                         elements$vecG[indices,,drop=FALSE] %*%
-                                         matWt[obsInSample,indices,drop=FALSE],
-                                     symmetric=FALSE, only.values=TRUE)$values);
-        }
-        else{
-            eigenValues <- abs(eigen(elements$matF -
-                                         elements$vecG %*% matWt[obsInSample,,drop=FALSE],
-                                     symmetric=FALSE, only.values=TRUE)$values);
-        }
-        if(any(eigenValues>1+1E-50)){
-            return(1E+100*max(eigenValues));
+        if(bounds=="admissible"){
+            if(xregModel){
+                # We drop the X parts from matrices
+                indices <- c(1:componentsNumber)
+                eigenValues <- abs(eigen(elements$matF[indices,indices,drop=FALSE] -
+                                             elements$vecG[indices,,drop=FALSE] %*%
+                                             matWt[obsInSample,indices,drop=FALSE],
+                                         symmetric=FALSE, only.values=TRUE)$values);
+            }
+            else{
+                eigenValues <- abs(eigen(elements$matF -
+                                             elements$vecG %*% matWt[obsInSample,,drop=FALSE],
+                                         symmetric=FALSE, only.values=TRUE)$values);
+            }
+            if(any(eigenValues>1+1E-50)){
+                return(1E+100*max(eigenValues));
+            }
         }
 
         matVt[,1:lagsModelMax] <- elements$vt;
