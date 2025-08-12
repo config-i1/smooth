@@ -237,11 +237,14 @@ arma::mat adamErrorer(arma::mat const &matrixVt, arma::mat const &matrixWt, arma
     for(unsigned int i = 0; i < (obs-horizon); i=i+1){
         hh = std::min(horizon, obs-i);
         // Update the profile to get the recent value from the state matrix
-        profilesRecent(indexLookupTable.col(i+lagsModelMax-1)) = matrixVt.col(i+lagsModelMax-1);
+        // lagsModelMax moves the thing to the next obs. This way, we have the structure
+        // similar to the fitter
+        profilesRecent(indexLookupTable.col(i+lagsModelMax)) = matrixVt.col(i+lagsModelMax);
         // profilesRecent(indexLookupTable.col(i)) = matrixVt.col(i);
         // This also needs to take probability into account in order to deal with intermittent models
         matErrors.submat(0, i, hh-1, i) = (errorvf(vectorYt.rows(i, i+hh-1),
                                            adamForecaster(matrixWt.rows(i,i+hh-1), matrixF,
+                                                          // lags, indexLookupTable.cols(i,i+hh-1), profilesRecent,
                                                           lags, indexLookupTable.cols(i+lagsModelMax,i+lagsModelMax+hh-1), profilesRecent,
                                                           E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant, hh), E));
     }
