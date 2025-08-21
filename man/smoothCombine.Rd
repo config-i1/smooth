@@ -4,14 +4,15 @@
 \alias{smoothCombine}
 \title{Combination of forecasts of state space models}
 \usage{
-smoothCombine(y, models = NULL, initial = c("optimal", "backcasting"),
-  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE", "MAE", "HAM",
-  "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
-  cumulative = FALSE, interval = c("none", "parametric", "likelihood",
-  "semiparametric", "nonparametric"), level = 0.95, bins = 200,
-  intervalCombine = c("quantile", "probability"), bounds = c("admissible",
-  "none"), silent = c("all", "graph", "legend", "output", "none"),
-  xreg = NULL, regressors = c("use", "select"), initialX = NULL, ...)
+smoothCombine(y, models = NULL, initial = c("backcasting", "optimal",
+  "two-stage", "complete"), ic = c("AICc", "AIC", "BIC", "BICc"),
+  loss = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10,
+  holdout = FALSE, cumulative = FALSE, interval = c("none", "prediction",
+  "confidence", "simulated", "approximate", "semiparametric", "nonparametric",
+  "empirical", "complete"), level = 0.95, bins = 200,
+  intervalCombine = c("quantile", "probability"), bounds = c("usual",
+  "admissible", "none"), silent = TRUE, xreg = NULL,
+  regressors = c("use", "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}
@@ -88,6 +89,11 @@ number.}
 \item{intervalCombine}{How to average the prediction interval:
 quantile-wise (\code{"quantile"}) or probability-wise
 (\code{"probability"}).}
+
+\item{bounds}{What type of bounds to use in the model estimation. The first
+letter can be used instead of the whole word. \code{"usual"} implies restrictions on
+the smoothing parameter, guaranteeing that the exponential smoothing behaves
+as an averaging model. \code{"admissible"} guarantee that the model is stable.}
 
 \item{silent}{accepts \code{TRUE} and \code{FALSE}. If FALSE, the function
 will print its progress and produce a plot at the end.}

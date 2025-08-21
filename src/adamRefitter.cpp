@@ -14,14 +14,17 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
                   arma::umat const &indexLookupTable, arma::cube arrayProfilesRecent,
                   unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                   unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                  bool const &backcast, bool const &refineHead) {
+                  bool const &backcast, bool const &refineHead, bool const &adamETS) {
 
     int obs = matrixYt.n_rows;
     unsigned int nSeries = matrixG.n_cols;
 
     // nIterations=1 means that we don't do backcasting
     // It doesn't seem to matter anyway...
-    unsigned int nIterations = 2;
+    unsigned int nIterations = 1;
+    if(backcast){
+        nIterations = 2;
+    }
 
     int lagsModelMax = max(lags);
     unsigned int nETS = nNonSeasonal + nSeasonal;
@@ -69,7 +72,7 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
                                adamGvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
                                           arrayF.slice(k), arrayWt.slice(k).row(i-lagsModelMax), E, T, S,
                                           nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                                          matrixG.col(k), vecErrors(i-lagsModelMax));
+                                          matrixG.col(k), vecErrors(i-lagsModelMax), matYfit(i-lagsModelMax,k), adamETS);
 
                 arrayVt.slice(k).col(i) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i));
             }
@@ -110,7 +113,7 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
                                    adamGvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
                                               arrayF.slice(k), arrayWt.slice(k).row(i-lagsModelMax), E, T, S,
                                               nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                                              matrixG.col(k), vecErrors(i-lagsModelMax));
+                                              matrixG.col(k), vecErrors(i-lagsModelMax), matYfit(i-lagsModelMax,k), adamETS);
                 }
 
                 if(refineHead){
@@ -145,14 +148,14 @@ RcppExport SEXP adamRefitterWrap(arma::mat matrixYt, arma::mat matrixOt, arma::c
                                  arma::uvec lags, arma::umat indexLookupTable, arma::cube arrayProfilesRecent,
                                  unsigned int const &nSeasonal, unsigned int const &componentsNumberETS,
                                  unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                                 bool const &backcast, bool const &refineHead){
+                                 bool const &backcast, bool const &refineHead, bool const &adamETS){
 
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
 
     return wrap(adamRefitter(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG,
                              E, T, S, lags, indexLookupTable, arrayProfilesRecent,
                              nNonSeasonal, nSeasonal, nArima, nXreg, constant,
-                             backcast, refineHead));
+                             backcast, refineHead, adamETS));
 }
 
 
@@ -162,7 +165,8 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
                       char const &E, char const &T, char const &S, arma::uvec &lags,
                       arma::umat const &indexLookupTable, arma::cube arrayProfileRecent,
                       unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                      unsigned int const &nArima, unsigned int const &nXreg, bool const &constant) {
+                      unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                      bool const &adamETS) {
 
     unsigned int obs = arrayErrors.n_rows;
     unsigned int nSeries = arrayErrors.n_cols;
@@ -173,6 +177,8 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
     int nComponents = lags.n_rows;
     arma::cube profilesRecentOriginal = arrayProfileRecent;
 
+    double yFitted;
+
     arma::cube arrY(obs, nSeries, nsim);
 
     for(unsigned int j=0; j<nsim; j=j+1){
@@ -180,14 +186,15 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
             arrayProfileRecent.slice(j) = profilesRecentOriginal.slice(j);
             for(unsigned int i=lagsModelMax; i<obs+lagsModelMax; i=i+1) {
                 /* # Measurement equation and the error term */
-                arrY(i-lagsModelMax,k,j) = arrayOt(i-lagsModelMax,k,j) *
-                        (adamWvalue(arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)),
+                yFitted = adamWvalue(arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)),
                                     arrayWt.slice(j).row(i-lagsModelMax), E, T, S,
-                                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) +
-                                        adamRvalue(arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)),
-                                                   arrayWt.slice(j).row(i-lagsModelMax), E, T, S,
-                                                   nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
-                                                       arrayErrors.slice(j)(i-lagsModelMax,k));
+                                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
+
+                arrY(i-lagsModelMax,k,j) = arrayOt(i-lagsModelMax,k,j) *
+                        (yFitted + adamRvalue(arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)),
+                                              arrayWt.slice(j).row(i-lagsModelMax), E, T, S,
+                                              nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
+                                                  arrayErrors.slice(j)(i-lagsModelMax,k));
 
                 // Fix potential issue with negatives in mixed models
                 if((E=='M' || T=='M' || S=='M') && (arrY(i-lagsModelMax,k,j)<0)){
@@ -202,7 +209,7 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
                                                    arrayF.slice(j), arrayWt.slice(j).row(i-lagsModelMax),
                                                    E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
                                                    nComponents, constant, matrixG.col(k),
-                                                   arrayErrors.slice(j)(i-lagsModelMax,k)));
+                                                   arrayErrors.slice(j)(i-lagsModelMax,k), yFitted, adamETS));
             }
         }
     }
@@ -217,11 +224,12 @@ RcppExport SEXP adamReforecasterWrap(arma::cube arrayErrors, arma::cube arrayOt,
                                      char const &E, char const &T, char const &S, arma::uvec &lags,
                                      arma::umat const &indexLookupTable, arma::cube arrayProfileRecent,
                                      unsigned int const &nSeasonal, unsigned int const &componentsNumberETS,
-                                     unsigned int const &nArima, unsigned int const &nXreg, bool const &constant){
+                                     unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                                     bool const &adamETS){
 
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
 
     return wrap(adamReforecaster(arrayErrors, arrayOt, arrayF, arrayWt, matrixG,
                                  E, T, S, lags, indexLookupTable, arrayProfileRecent,
-                                 nNonSeasonal, nSeasonal, nArima, nXreg, constant));
+                                 nNonSeasonal, nSeasonal, nArima, nXreg, constant, adamETS));
 }

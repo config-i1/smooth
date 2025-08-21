@@ -1871,12 +1871,16 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                                                              collapse="+")));
                 }
 
-                # Remove variables without variability
+                # Remove variables without variability and amend the formula
                 noVariability <- setNames(vector("logical",ncol(xreg)),colnames(xreg));
                 noVariability[] <- apply((as.matrix(xreg[1:obsInSample,])==matrix(xreg[1,],obsInSample,ncol(xreg),byrow=TRUE)),2,all);
                 noVariabilityNames <- names(noVariability)[noVariability];
-                if(any(noVariability) && any(all.vars(formulaToUse) %in% names(noVariability))){
-                    formulaToUse <- update.formula(formulaToUse,paste0(".~.-",paste0(noVariabilityNames,collapse="-")));
+                # If there are variables with no variability, their nams are in the formula, and the formula is not "y~.",
+                # update the formula
+                if(any(noVariability) && any(all.vars(formulaToUse) %in% names(noVariability)) &&
+                   all.vars(formulaToUse)[2]!="."){
+                    formulaToUse <- update.formula(formulaToUse,
+                                                   paste0(".~.-",paste0(noVariabilityNames,collapse="-")));
                 }
 
                 # Robustify the names of variables
@@ -1896,7 +1900,13 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
                 }
                 else{
-                    xregData <- as.matrix(xreg)[,c(names(noVariability)[!noVariability]),drop=FALSE][,-1,drop=FALSE];
+                    # If there was no formula, use the alm variable names
+                    if(!formulaProvided){
+                        formulaToUse <- as.formula(paste0("`",responseName,"`~",
+                                                      paste0(xregNames, collapse="+")));
+                    }
+                    # Use the matrix with the xregNames - all the others are dropped by alm().
+                    xregData <- as.matrix(xreg)[,xregNames,drop=FALSE];
                     xregNumber <- ncol(xregData);
                     xregNames <- colnames(xregData);
                 }
@@ -1930,16 +1940,29 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 # This part takes care of explanatory variables potentially dropped by ALM
                 # This is needed to get the correct xregData
                 if(additionalManipulations){
+                    # If we have a data.frame and there is a factor, we need to compare variables
+                    # differently
+                    xregFactors <- FALSE
+                    if(is.data.frame(xreg) && any(sapply(xreg, is.factor))){
+                        xregFactors[] <- TRUE;
+                    }
                     xregExpanded <- colnames(model.matrix(xregData,data=xregData));
                     # Remove intercept
                     if(any(xregExpanded=="(Intercept)")){
                         xregExpanded <- xregExpanded[-1];
                     }
+                    # Fix formula in case some variables were dropped by alm()
                     if(any(!(xregExpanded %in% xregNames))){
                         xregNamesRetained <- rep(TRUE,length(xregNamesOriginal));
                         for(i in 1:length(xregNamesOriginal)){
-                            xregNamesRetained[i] <- any(grepl(xregNamesOriginal[i], xregNames));
+                            if(xregFactors){
+                                xregNamesRetained[i] <- any(grepl(xregNamesOriginal[i], xregNames));
+                            }
+                            else{
+                                xregNamesRetained[i] <- any(xregNamesOriginal[i] %in% xregNames);
+                            }
                         }
+
                         # If the dropped variables are in the formula, update the formula
                         if(length(all.vars(formulaToUse))>2 &&
                            any(all.vars(formulaToUse) %in% xregNamesOriginal[!xregNamesRetained])){
@@ -1968,6 +1991,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                         xregNamesModified <- colnames(xregModelMatrix)[-1];
                     }
                     else{
+                        # Drop variables that were removed by alm()
                         xregModelMatrix <- model.matrix(xregData,data=xregData);
                         xregNamesModified <- xregNames;
                     }

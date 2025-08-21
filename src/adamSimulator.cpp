@@ -12,7 +12,8 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
                    char const &E, char const &T, char const &S, arma::uvec &lags,
                    arma::umat const &indexLookupTable, arma::mat profilesRecent,
                    unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                   unsigned int const &nArima, unsigned int const &nXreg, bool const &constant) {
+                   unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                   bool const &adamETS) {
 
     unsigned int obs = matrixErrors.n_rows;
     unsigned int nSeries = matrixErrors.n_cols;
@@ -22,6 +23,8 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
     int nComponents = lags.n_rows;
     int obsAll = obs + lagsModelMax;
     arma::mat profilesRecentOriginal = profilesRecent;
+
+    double yFitted;
 
     arma::mat matrixVt(nComponents, obsAll, arma::fill::zeros);
     arma::mat matrixF(arrayF.n_rows, arrayF.n_cols, arma::fill::zeros);
@@ -34,15 +37,16 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
         profilesRecent = profilesRecentOriginal;
         for(int j=lagsModelMax; j<obsAll; j=j+1) {
             /* # Measurement equation and the error term */
-            matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) *
-                                             (adamWvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
+            yFitted = adamWvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
                                                          matrixWt.row(j-lagsModelMax), E, T, S,
                                                          nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
-                                                         nComponents, constant) +
-                                              adamRvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
-                                                         matrixWt.row(j-lagsModelMax), E, T, S,
-                                                         nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
-                                              matrixErrors(j-lagsModelMax,i));
+                                                         nComponents, constant);
+            matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) *
+                                             (yFitted +
+                                             adamRvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
+                                                        matrixWt.row(j-lagsModelMax), E, T, S,
+                                                        nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
+                                                            matrixErrors(j-lagsModelMax,i));
 
             /* # Transition equation */
             profilesRecent(indexLookupTable.col(j-lagsModelMax)) =
@@ -53,7 +57,7 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
                                                             matrixF, matrixWt.row(j-lagsModelMax),
                                                             E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
                                                             nComponents, constant, matrixG.col(i),
-                                                            matrixErrors(j-lagsModelMax,i)));
+                                                            matrixErrors(j-lagsModelMax,i), yFitted, adamETS));
 
             /* Failsafe for cases when unreasonable value for state vector was produced */
             // if(!matrixVt.col(j).is_finite()){
@@ -86,11 +90,12 @@ RcppExport SEXP adamSimulatorWrap(arma::cube arrayVt, arma::mat matrixErrors, ar
                                   char const &E, char const &T, char const &S, arma::uvec lags,
                                   arma::umat indexLookupTable, arma::mat profilesRecent,
                                   unsigned int const &nSeasonal, unsigned int const &componentsNumber,
-                                  unsigned int const &nArima, unsigned int const &nXreg, bool const &constant){
+                                  unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                                  bool const &adamETS){
 
     unsigned int nNonSeasonal = componentsNumber - nSeasonal;
 
     return wrap(adamSimulator(arrayVt, matrixErrors, matrixOt, arrayF, matrixWt, matrixG,
                               E, T, S, lags, indexLookupTable, profilesRecent,
-                              nNonSeasonal, nSeasonal, nArima, nXreg, constant));
+                              nNonSeasonal, nSeasonal, nArima, nXreg, constant, adamETS));
 }
