@@ -1,13 +1,14 @@
-smooth v4.3.1 (Release data: 2025-08-12)
+smooth v4.3.1 (Release data: 2025-09-17)
 =======
 
 Changes:
 * es() now has model="ZXZ" by default.
-* adam() now has the parameter ets, allowing to select between two formulations: conventional and adam.
+* adam() now has the parameter "ets"", allowing to select between two formulations: conventional and adam.
 * rmultistep() can now return additive or multiplicative forecast errors depending on what user asks.
 * ces() works with provided parameters again.
 * Tuning of Hessian calculation for CES.
 * ces() now supports multiple seasonalities.
+* New initialisation of smoothing parameters in adam(). This guarantees that models do not break with backcasting, but leads to slight deterioration in accuracy due to selection of different models.
 
 Bugfixes:
 * A fix for adamX with a special case, when formula is provided, the data is a matrix and there are partial matches in names of variables.
