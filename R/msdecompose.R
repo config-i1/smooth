@@ -134,6 +134,7 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
     }
     trend <- ySmooth[[lagsLength+1]];
 
+
     # Produce the cleared series
     # Do it only if there was a periodicity provided
     if(seasonalLags){
@@ -146,7 +147,9 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
         for(i in 1:lagsLength){
             patterns[[i]] <- vector("numeric",obsInSample);
             for(j in 1:lags[i]){
+                # Pick the jth seasonal index (e.g. all Januaries). Smooth it
                 ySeasonal <- yClear[[i]][(1:ceiling(obsInSample/lags[i])-1)*lags[i]+j];
+                # If it is "ma", take the simple average, i.e. order=n for the specific index
                 ySeasonalSmooth <- smoothingFunction(ySeasonal[!is.na(ySeasonal)],
                                                      order=switch(smoother,
                                                                   "ma"=length(ySeasonal[!is.na(ySeasonal)]),
@@ -166,6 +169,7 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
     else{
         patterns <- NULL;
     }
+
 
     # Initial level and trend
     initial <- c(ySmooth[[lagsLength]][!is.na(ySmooth[[lagsLength]])][1],
@@ -190,7 +194,7 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
     # Prepare the matrix of states
     yFitted <- trend;
     if(seasonalLags){
-        states <- cbind(trend, c(NA,diff(trend)), matrix(unlist(patterns)[1:obsInSample], obsInSample, lagsLength));
+        states <- cbind(trend, c(NA,diff(trend)), matrix(unlist(patterns), obsInSample, lagsLength));
         if(lagsLength>1){
             colnames(states) <- c("level","trend",paste0("seasonal",1:lagsLength));
         }

@@ -14,6 +14,7 @@ Bugfixes:
 * A fix for adamX with a special case, when formula is provided, the data is a matrix and there are partial matches in names of variables.
 * rmultistep() and multicov() now work with CES and GUM.
 * Fixed a bug in the logic of the C++ function Errorer which would lead to the wrong forecast error matrix. This impacted rmultistep() and multicov() functions.
+* Fixed a bug in msdecompose where the seasonal profile would not be recorded correctly for the multiple seasonal cases.
 
 
 smooth v4.3.0 (Release data: 2025-06-30)
