@@ -118,7 +118,6 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
         rm(X)
     }
 
-    obsInSample <- length(y);
     lags <- sort(unique(lags));
     lagsLength <- length(lags);
     # List of smoothed values
@@ -163,6 +162,8 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
                     patterns[[i]][(1:length(ySeasonalSmooth)-1)*lags[i]+j] <- ySeasonalSmooth;
                 }
             }
+            # This is needed to fix potential issues with samples becoming larger than needed due to ceiling
+            patterns[[i]] <- patterns[[i]][1:obsInSample]
             patterns[[i]][] <- patterns[[i]] - mean(patterns[[i]], na.rm=TRUE);
         }
     }
