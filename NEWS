@@ -1,4 +1,4 @@
-smooth v4.3.1 (Release data: 2025-09-22)
+smooth v4.3.1 (Release data: 2025-10-05)
 =======
 
 Changes:
@@ -9,6 +9,7 @@ Changes:
 * Tuning of Hessian calculation for CES.
 * ces() now supports multiple seasonalities.
 * New initialisation of smoothing parameters in adam(). This guarantees that models do not break with backcasting, but leads to slight deterioration in accuracy due to selection of different models.
+* Allow seasonal ETS on very small sample (e.g. with lags=12 on 12 observations in case of backcasting).
 
 Bugfixes:
 * A fix for adamX with a special case, when formula is provided, the data is a matrix and there are partial matches in names of variables.
