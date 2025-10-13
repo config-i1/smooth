@@ -1,0 +1,299 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Python ADAM Technical Implementation Details
+
+## Parameter Mapping: R to Python
+
+### Core ADAM Function Parameters
+| R Parameter | Python Parameter | Location | Notes |
+|-------------|------------------|----------|-------|
+| `model` | `model` | `ADAM.__init__()` | ETS model specification |
+| `lags` | `lags` | `ADAM.__init__()` | Seasonal periods |
+| `orders` | `ar_order`, `i_order`, `ma_order` | `ADAM.__init__()` | Split into separate parameters |
+| `constant` | `constant` | `ADAM.__init__()` | Include constant term |
+| `distribution` | `distribution` | `ADAM.__init__()` | Error distribution |
+| `loss` | `loss` | `ADAM.__init__()` | Loss function |
+| `ic` | `ic` | `ADAM.__init__()` | Information criterion |
+| `bounds` | `bounds` | `ADAM.__init__()` | Parameter bounds |
+| `occurrence` | `occurrence` | `ADAM.__init__()` | Intermittent data model |
+| `persistence` | `persistence` | `ADAM.__init__()` | Fixed persistence parameters |
+| `phi` | `phi` | `ADAM.__init__()` | Damping parameter |
+| `initial` | `initial` | `ADAM.__init__()` | Initial states |
+| `arma` | `arma` | `ADAM.__init__()` | ARMA parameters |
+| `h` | `h` | `predict()` method | Forecast horizon |
+| `holdout` | `holdout` | `ADAM.__init__()` | Use holdout sample |
+| `silent` | `verbose` | `ADAM.__init__()` | Inverted logic |
+
+### Model Selection Parameters
+| R Parameter | Python Parameter | Python Value | Notes |
+|-------------|------------------|--------------|-------|
+| `model="ZZZ"` | `model_do="select"` | `model="ZZZ"` | Automatic model selection |
+| `model="XXX"` | `model_do="select"` | `model="XXX"` | Additive components only |
+| `model="YYY"` | `model_do="select"` | `model="YYY"` | Multiplicative components only |
+| `model="CCC"` | `model_do="combine"` | `model="CCC"` | Forecast combination |
+
+## Matrix Structure and Naming
+
+### State-Space Matrices
+| Matrix | Python Name | R Equivalent | Purpose |
+|--------|-------------|--------------|---------|
+| State Vector | `mat_vt` | `matVt` | Contains all state components |
+| Measurement Matrix | `mat_wt` | `matWt` | Maps states to observations |
+| Transition Matrix | `mat_f` | `matF` | State evolution |
+| Persistence Vector | `vec_g` | `vecG` | Smoothing parameters |
+
+### Matrix Dimensions
+```python
+# For ETS(A,A,A) with seasonal period 12:
+mat_vt.shape = (components_all, lags_max + 1)  # e.g., (14, 13)
+mat_wt.shape = (obs_in_sample, components_all)  # e.g., (100, 14)
+mat_f.shape = (components_all, components_all)  # e.g., (14, 14)
+vec_g.shape = (components_all,)                 # e.g., (14,)
+```
+
+## Component Indexing System
+
+### ETS Components
+```python
+# Level component
+mat_vt[0, :] = level_states
+vec_g[0] = alpha  # Level smoothing parameter
+
+# Trend component (if present)
+mat_vt[1, :] = trend_states  
+vec_g[1] = beta   # Trend smoothing parameter
+
+# Seasonal components (if present)
+for i in range(seasonal_components):
+    mat_vt[2 + i, :] = seasonal_states[i]
+    vec_g[2 + i] = gamma[i]  # Seasonal smoothing parameters
+```
+
+### ARIMA Components
+```python
+# ARIMA states follow ETS components
+arima_start_idx = components_number_ets
+for i in range(components_number_arima):
+    mat_vt[arima_start_idx + i, :] = arima_states[i]
+```
+
+## Parameter Vector (B) Structure
+
+The parameter vector B contains all estimable parameters in a specific order:
+
+```python
+B = [
+    # ETS persistence parameters
+    alpha,           # Level smoothing (if estimated)
+    beta,            # Trend smoothing (if estimated)  
+    gamma_1, ...,    # Seasonal smoothing (if estimated)
+    
+    # Damping parameter
+    phi,             # Damping (if estimated)
+    
+    # Initial states
+    level_0,         # Initial level (if estimated)
+    trend_0,         # Initial trend (if estimated)
+    seasonal_0, ..., # Initial seasonal states (if estimated)
+    
+    # ARIMA parameters
+    ar_1, ar_2, ..., # AR parameters (if estimated)
+    ma_1, ma_2, ..., # MA parameters (if estimated)
+    
+    # Regression parameters
+    beta_1, ...,     # Regression coefficients (if estimated)
+    
+    # Constant
+    constant,        # Constant term (if estimated)
+    
+    # Distribution parameters
+    other            # Shape/scale parameters (if estimated)
+]
+```
+
+## Distribution Implementation
+
+### Supported Distributions
+| Distribution | Python String | R Equivalent | Parameters |
+|-------------|---------------|--------------|------------|
+| Normal | `"dnorm"` | `"dnorm"` | location, scale |
+| Laplace | `"dlaplace"` | `"dlaplace"` | location, scale |
+| S-distribution | `"ds"` | `"ds"` | location, scale |
+| Generalized Normal | `"dgnorm"` | `"dgnorm"` | location, scale, shape |
+| Log-Normal | `"dlnorm"` | `"dlnorm"` | meanlog, sdlog |
+| Gamma | `"dgamma"` | `"dgamma"` | shape, scale |
+| Inverse Gaussian | `"dinvgauss"` | `"dinvgauss"` | mean, shape |
+
+### Default Distribution Selection
+```python
+if distribution == "default":
+    if loss == "likelihood":
+        if error_type == "A":
+            distribution = "dnorm"
+        else:
+            distribution = "dgamma"
+    elif loss in ["MAE", "MAEh", "MACE"]:
+        distribution = "dlaplace"
+    elif loss in ["HAM", "HAMh", "CHAM"]:
+        distribution = "ds"
+    else:
+        distribution = "dnorm"
+```
+
+## Cost Function Implementation
+
+### Main Cost Function: [cost_functions.py](mdc:python/smooth/adam_general/core/utils/cost_functions.py)
+
+```python
+def CF(B, ...):
+    # 1. Fill matrices with current parameters
+    adamElements = filler(B, ...)
+    
+    # 2. Check parameter bounds and constraints
+    if bounds == "usual":
+        # Apply strict bounds (return 1e100 if violated)
+        
+    # 3. Call C++ fitting routine
+    adam_fitted = adam_fitter(
+        matrixVt=mat_vt,
+        matrixWt=mat_wt, 
+        matrixF=mat_f,
+        vectorG=vec_g,
+        ...
+    )
+    
+    # 4. Calculate and return cost
+    return adam_fitted['cost']
+```
+
+### Constraint Handling
+```python
+# ETS smoothing parameters: 0 ≤ α, β, γ ≤ 1
+if any(vec_g[:components_number_ets] > 1) or any(vec_g[:components_number_ets] < 0):
+    return 1e100
+
+# Trend constraint: β ≤ α
+if model_is_trendy and vec_g[1] > vec_g[0]:
+    return 1e100
+
+# Seasonal constraint: γ ≤ 1 - α
+if model_is_seasonal and any(seasonal_persistence > (1 - vec_g[0])):
+    return 1e100
+
+# Damping constraint: 0 ≤ φ ≤ 1
+if phi_estimate and (phi > 1 or phi < 0):
+    return 1e100
+```
+
+## Optimization Configuration
+
+### NLopt Settings
+```python
+# Algorithm selection
+if explanatory_dict["xreg_model"]:
+    algorithm = nlopt.LN_NELDERMEAD  # For regression models
+else:
+    algorithm = nlopt.LN_SBPLX      # For standard models
+
+# Tolerance settings (matching R)
+opt.set_xtol_rel(1e-6)
+opt.set_ftol_rel(1e-8)
+opt.set_ftol_abs(0)
+opt.set_xtol_abs(1e-8)
+
+# Maximum evaluations
+maxeval = len(B) * 200  # Default scaling
+```
+
+### Parameter Bounds
+```python
+# Default bounds for different parameter types
+bounds_dict = {
+    "persistence": (1e-16, 1 - 1e-16),    # ETS smoothing parameters
+    "phi": (1e-16, 1 - 1e-16),            # Damping parameter
+    "initial": (-1e100, 1e100),           # Initial states
+    "arma": (-1 + 1e-16, 1 - 1e-16),      # ARIMA parameters
+    "constant": (-1e100, 1e100),          # Constant term
+    "other": (1e-16, 1e100)               # Distribution parameters
+}
+```
+
+## Error Handling and Robustness
+
+### Common Issues and Solutions
+```python
+# 1. Singular matrices
+if np.linalg.cond(mat_f) > 1e12:
+    warnings.warn("Transition matrix is near-singular")
+    return 1e100
+
+# 2. Explosive parameters
+if any(np.abs(eigvals(mat_f)) > 1 + 1e-10):
+    return 1e100
+
+# 3. Invalid initial states
+if any(np.isnan(mat_vt)) or any(np.isinf(mat_vt)):
+    warnings.warn("Invalid initial states detected")
+    # Apply fallback initialization
+```
+
+### Numerical Stability
+```python
+# Safe logarithm calculation
+def safe_log(x):
+    return np.log(np.maximum(x, 1e-100))
+
+# Safe division
+def safe_divide(a, b):
+    return np.divide(a, b, out=np.zeros_like(a), where=b!=0)
+```
+
+## C++ Integration Details
+
+### Function Signatures
+```python
+# From _adam_general.py (pybind11 bindings)
+adam_fitter(
+    matrixVt: np.ndarray,      # State matrix (Fortran order)
+    matrixWt: np.ndarray,      # Measurement matrix (Fortran order)
+    matrixF: np.ndarray,       # Transition matrix (Fortran order)
+    vectorG: np.ndarray,       # Persistence vector
+    lags: np.ndarray,          # Lag structure
+    indexLookupTable: np.ndarray,  # Index lookup
+    profilesRecent: np.ndarray,    # Recent profiles
+    E: str,                    # Error type ("A" or "M")
+    T: str,                    # Trend type ("N", "A", "Ad", "M", "Md")
+    S: str,                    # Season type ("N", "A", "M")
+    # ... other parameters
+) -> Dict[str, Any]
+```
+
+### Memory Layout
+```python
+# Ensure Fortran (column-major) order for C++ compatibility
+mat_vt = np.asfortranarray(mat_vt, dtype=np.float64)
+mat_wt = np.asfortranarray(mat_wt, dtype=np.float64)
+mat_f = np.asfortranarray(mat_f, dtype=np.float64)
+vec_g = np.asfortranarray(vec_g, dtype=np.float64)
+```
+
+## Performance Considerations
+
+### Optimization Tips
+1. **Matrix Preallocation**: Matrices are allocated once and reused
+2. **Vectorized Operations**: Use NumPy vectorization where possible
+3. **Memory Layout**: Ensure Fortran order for C++ compatibility
+4. **Parameter Bounds**: Early return for constraint violations
+
+### Profiling Points
+```python
+# Key performance bottlenecks:
+# 1. filler() function (called many times during optimization)
+# 2. adam_fitter() C++ routine
+# 3. Matrix operations in creator() functions
+# 4. Parameter bound checking in CF()
+```
+

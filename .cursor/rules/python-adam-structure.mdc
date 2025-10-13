@@ -1,0 +1,162 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Python ADAM Package Structure - Direct Translation from R
+
+## Overview
+
+The Python ADAM (Augmented Dynamic Adaptive Model) package in [python/](mdc:python/) is a direct translation of the R version found in [R/adam.R](mdc:R/adam.R). It implements advanced time series forecasting methods combining ETS (Error, Trend, Seasonal) and ARIMA models.
+
+## Package Architecture
+
+The Python implementation follows a modular design with clear separation of concerns:
+
+```
+python/smooth/
+├── __init__.py                           # Package initialization
+└── adam_general/
+    ├── __init__.py                       # Module initialization  
+    ├── _adam_general.py                  # Low-level C++ bindings (adam_fitter, adam_forecaster)
+    └── core/
+        ├── __init__.py                   # Core module initialization
+        ├── adam.py                       # Main ADAM class (user interface)
+        ├── checker.py                    # Parameter validation
+        ├── creator.py                    # Model structure creation
+        ├── estimator.py                  # Parameter estimation & model selection
+        ├── forecaster.py                 # Forecast generation
+        └── utils/                        # Utility functions
+            ├── cost_functions.py         # Optimization cost functions
+            ├── ic.py                     # Information criteria
+            ├── polynomials.py            # ARIMA polynomial utilities
+            ├── utils.py                  # General utilities
+            └── var_covar.py              # Variance-covariance calculations
+```
+
+## Core Components Translation
+
+### 1. Main Interface: [adam.py](mdc:python/smooth/adam_general/core/adam.py)
+- **R Equivalent**: [R/adam.R](mdc:R/adam.R) main `adam()` function
+- **Python Class**: `ADAM` class with scikit-learn style interface
+- **Key Methods**:
+  - `__init__()`: Model configuration (equivalent to R function parameters)
+  - `fit(y, X)`: Model estimation (equivalent to R's main estimation logic)
+  - `predict(h, X)`: Point forecasting
+  - `predict_intervals()`: Prediction intervals
+
+### 2. Parameter Validation: [checker.py](mdc:python/smooth/adam_general/core/checker.py)
+- **R Equivalent**: Parameter checking logic embedded in [R/adam.R](mdc:R/adam.R)
+- **Main Function**: `parameters_checker()` - validates all input parameters
+- **Validates**: Model specification, lags, persistence, initial values, ARIMA orders
+
+### 3. Model Creation: [creator.py](mdc:python/smooth/adam_general/core/creator.py)
+- **R Equivalent**: Matrix creation logic in [R/adam.R](mdc:R/adam.R)
+- **Key Functions**:
+  - `architector()`: Defines model architecture (components, lags, profiles)
+  - `creator()`: Builds state-space matrices (mat_wt, mat_f, vec_g, mat_vt)
+  - `initialiser()`: Prepares initial parameter vector and bounds for optimization
+  - `filler()`: Populates matrices with parameter values during optimization
+
+### 4. Parameter Estimation: [estimator.py](mdc:python/smooth/adam_general/core/estimator.py)
+- **R Equivalent**: Estimation logic in [R/adam.R](mdc:R/adam.R)
+- **Key Functions**:
+  - `estimator()`: Single model parameter estimation using NLopt
+  - `selector()`: Model selection from candidate pool
+  - Uses cost functions from [utils/cost_functions.py](mdc:python/smooth/adam_general/core/utils/cost_functions.py)
+
+### 5. Forecasting: [forecaster.py](mdc:python/smooth/adam_general/core/forecaster.py)
+- **R Equivalent**: Forecasting logic in [R/adam.R](mdc:R/adam.R)
+- **Key Functions**:
+  - `preparator()`: Prepares fitted model for forecasting
+  - `forecaster()`: Generates point forecasts and prediction intervals
+
+## Utility Functions Translation
+
+### Cost Functions: [utils/cost_functions.py](mdc:python/smooth/adam_general/core/utils/cost_functions.py)
+- **R Equivalent**: Cost function logic in [R/adam.R](mdc:R/adam.R)
+- **Key Functions**:
+  - `CF()`: Main cost function for optimization (likelihood, MSE, etc.)
+  - `log_Lik_ADAM()`: Log-likelihood calculation
+
+### Information Criteria: [utils/ic.py](mdc:python/smooth/adam_general/core/utils/ic.py)
+- **R Equivalent**: IC calculations in [R/adam.R](mdc:R/adam.R)
+- **Function**: `ic_function()` - calculates AIC, AICc, BIC, BICc
+
+### General Utilities: [utils/utils.py](mdc:python/smooth/adam_general/core/utils/utils.py)
+- **R Equivalent**: Various utility functions in [R/adam.R](mdc:R/adam.R)
+- **Key Functions**:
+  - `msdecompose()`: Multiple seasonal decomposition
+  - `calculate_likelihood()`: Distribution-specific likelihood calculations
+  - `scaler()`: Error scaling for different distributions
+
+### Variance-Covariance: [utils/var_covar.py](mdc:python/smooth/adam_general/core/utils/var_covar.py)
+- **R Equivalent**: Variance calculations in [R/adam.R](mdc:R/adam.R)
+- **Key Functions**:
+  - `sigma()`: Scale parameter calculation
+  - `covar_anal()` / `var_anal()`: Variance-covariance analysis
+  - `matrix_power_wrap()`: Matrix power calculations
+
+## Workflow Translation
+
+The Python implementation mirrors the R workflow:
+
+```
+R: adam(y, model="ZXZ", ...) 
+↓
+Python: ADAM(model="ZXZ", ...).fit(y).predict(h)
+```
+
+### Detailed Flow:
+1. **Initialization**: `ADAM.__init__()` ← R function parameters
+2. **Validation**: `parameters_checker()` ← R parameter validation
+3. **Architecture**: `architector()` ← R architecture setup
+4. **Creation**: `creator()` ← R matrix creation
+5. **Estimation**: `estimator()` ← R optimization
+6. **Forecasting**: `forecaster()` ← R forecasting logic
+
+## Key Differences from R
+
+1. **Object-Oriented**: Python uses class-based approach vs R's functional approach
+2. **Scikit-learn Style**: `fit()` and `predict()` methods for consistency
+3. **Type Hints**: Extensive type annotations for better IDE support
+4. **Pandas Integration**: Native support for pandas Series/DataFrames
+5. **NLopt Optimization**: Uses NLopt library instead of R's optim
+
+## Configuration Files
+
+- [pyproject.toml](mdc:python/pyproject.toml): Modern Python packaging configuration
+- [setup.cfg](mdc:python/setup.cfg): Additional package metadata
+- [CMakeLists.txt](mdc:python/CMakeLists.txt): C++ extension build configuration
+- [Makefile](mdc:python/Makefile): Build automation
+
+## Testing and Documentation
+
+- [tests/](mdc:python/smooth/adam_general/tests/): Jupyter notebooks for testing
+- [README.md](mdc:python/README.md): Package documentation
+- [smooth_package_structure.md](mdc:python/smooth_package_structure.md): Detailed architecture documentation
+
+## Usage Pattern
+
+```python
+# Python equivalent of R's adam() function
+from smooth.adam_general.core.adam import ADAM
+
+# Initialize model (equivalent to R function parameters)
+model = ADAM(
+    model="ANN",           # R: model="ANN"
+    lags=[12],            # R: lags=c(12)  
+    distribution="dnorm",  # R: distribution="dnorm"
+    ic="AICc"             # R: ic="AICc"
+)
+
+# Fit model (equivalent to R's main estimation)
+model.fit(y, X)
+
+# Generate forecasts (equivalent to R's forecast.adam())
+forecasts = model.predict(h=12, X=X_future)
+intervals = model.predict_intervals(h=12, X=X_future)
+```
+
+This Python implementation maintains full compatibility with the R version while providing a more modern, object-oriented interface suitable for Python ecosystems.
+
