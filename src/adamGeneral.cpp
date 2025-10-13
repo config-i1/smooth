@@ -30,11 +30,17 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
     arma::vec vecYfit(obs, arma::fill::zeros);
     arma::vec vecErrors(obs, arma::fill::zeros);
 
-    
-    // Loop for the backcasting
-    // unsigned int nIterations = 1;
-    // if(backcast){
-    //     nIterations = 5;
+    // These are objects used in backcasting.
+    // Needed for some experiments.
+    arma::mat &matrixFInv = matrixF;
+    arma::vec const &vectorGInv = vectorG;
+
+    // if(!inv(matrixFInv, matrixF)){
+    //     matrixFInv = matrixF;
+    //     vectorGInv = vectorG;
+    // }
+    // else{
+    //     vectorGInv = matrixFInv * vectorG;
     // }
 
     // Loop for the backcast
@@ -47,12 +53,12 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
                 profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                                matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
-                
             }
         }
         ////// Run forward
         // Loop for the model construction
         for (int i=lagsModelMax; i<obs+lagsModelMax; i=i+1) {
+            matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
 
             /* # Measurement equation and the error term */
             vecYfit(i-lagsModelMax) = adamWvalue(profilesRecent(indexLookupTable.col(i)),
@@ -75,7 +81,6 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixF, matrixWt.row(i-lagsModelMax), E, T, S,
                            nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant, vectorG, vecErrors(i-lagsModelMax));
 
-            matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
         }
 
         ////// Backwards run
@@ -106,33 +111,35 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
 
                 /* # Transition equation */
                 profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                               matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
-                                   adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixF,
+                               matrixFInv, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
+                                   adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixFInv,
                                               matrixWt.row(i-lagsModelMax), E, T, S,
                                               nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                                              vectorG, vecErrors(i-lagsModelMax));
+                                              vectorGInv, vecErrors(i-lagsModelMax));
             }
 
             // Fill in the head of the series.
-            // if(nArima==0){
+            if(refineHead){
                 for (int i=lagsModelMax-1; i>=0; i=i-1) {
                     profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                                   matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                                   matrixFInv, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
 
-                    matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+                    // matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
                 }
-            // }
+            }
 
             // Change back the specific element in the state vector
             if(T=='A'){
                 profilesRecent(1) = -profilesRecent(1);
                 // Write down correct initials
-                matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
+                // This is needed in case the profileRecent has changed in previous lines
+                // matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
             }
             else if(T=='M'){
                 profilesRecent(1) = 1/profilesRecent(1);
                 // Write down correct initials
-                matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
+                // This is needed in case the profileRecent has changed in previous lines
+                // matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
             }
         }
     }

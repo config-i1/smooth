@@ -23,7 +23,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                       distribution=c("dnorm","dlaplace","ds","dgnorm","dlnorm","dinvgauss","dgamma"),
                       outliers=c("ignore","use","select"), level=0.99,
                       h=0, holdout=FALSE,
-                      persistence=NULL, phi=NULL, initial=c("optimal","backcasting","complete"), arma=NULL,
+                      persistence=NULL, phi=NULL, initial=c("backcasting","optimal","two-stage","complete"), arma=NULL,
                       ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
                       silent=TRUE, parallel=FALSE, ...){
     # Copyright (C) 2020 - Inf  Ivan Svetunkov
@@ -104,18 +104,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
         }
     }
 
-    # If this is non-positive data and positive defined distributions are used, fix this
-    if(any(yInSample<=0) && any(c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution) &&
-       (!is.occurrence(occurrence) && occurrence[1]=="none")){
-        distributionToDrop <- c("dlnorm","dllaplace","dls","dinvgauss","dgamma")[
-            c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution];
-        warning(paste0("The data is not strictly positive, so not all the distributions make sense. ",
-                       "Dropping ",paste0(distributionToDrop,collapse=", "),"."),
-                call.=FALSE);
-        distribution <- distribution[!(distribution %in% distributionToDrop)];
-    }
-    nModels <- length(distribution);
-
     #### Create logical, determining, what we are dealing with ####
     # ETS
     etsModel <- all(model!="NNN");
@@ -151,12 +139,43 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
     }
     regressors <- match.arg(regressors);
 
+    # If this is non-positive data and positive defined distributions are used, fix this
+    if(any(yInSample<=0) && any(c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution) &&
+       (!is.occurrence(occurrence) && occurrence[1]=="none")){
+        distributionToDrop <- c("dlnorm","dllaplace","dls","dinvgauss","dgamma")[
+            c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution];
+        warning(paste0("The data is not strictly positive, so not all distributions make sense. ",
+                       "Dropping ",paste0(distributionToDrop,collapse=", "),"."),
+                call.=FALSE);
+        distribution <- distribution[!(distribution %in% distributionToDrop)];
+    }
+    nModels <- length(distribution);
+
+    # Amend the default list of distributions for the pure ARIMA
+    if(arimaModel && !etsModel && length(distribution) == 7 &&
+       all(distribution %in% c("dnorm", "dlaplace", "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"))){
+        distributionToDrop <- c("dlnorm","dinvgauss","dgamma")[
+            c("dlnorm","dinvgauss","dgamma") %in% distribution];
+        warning(paste0("Not all distributions make sense for the pure ARIMA. ",
+                       "Dropping ",paste0(distributionToDrop,collapse=", "),"."),
+                call.=FALSE);
+        distribution <- distribution[!(distribution %in% distributionToDrop)];
+    }
+
     #### Checks of provided parameters for ARIMA selection ####
-    if(arimaModel && is.list(orders)){
-        arimaModelSelect <- orders$select;
-        arMax <- orders$ar;
-        iMax <- orders$i;
-        maMax <- orders$ma;
+    if(arimaModel){
+        arimaModelSelect <- FALSE;
+        if(is.list(orders)){
+            arimaModelSelect <- orders$select;
+            arMax <- orders$ar;
+            iMax <- orders$i;
+            maMax <- orders$ma;
+        }
+        else{
+            arMax <- orders[1];
+            iMax <- orders[2];
+            maMax <- orders[3];
+        }
 
         if(is.null(arimaModelSelect)){
             arimaModelSelect <- FALSE;
@@ -236,7 +255,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
     nParamMax <- (1 +
                       # ETS model
                       etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
-                                    (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
+                                    any(initial==c("optimal","two-stage")) * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                       # ARIMA components: initials + parameters
                       arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                       # Xreg initials and smoothing parameters
@@ -258,7 +277,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                         nParamMax[] <- (1 +
                                             # ETS model
                                             etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
-                                                          (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
+                                                          any(initial==c("optimal","two-stage")) *
+                                                          ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                                             # ARIMA components: initials + parameters
                                             arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                                             # Xreg initials and smoothing parameters
@@ -272,7 +292,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                         nParamMax[] <- (1 +
                                             # ETS model
                                             etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
-                                                          (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
+                                                          any(initial==c("optimal","two-stage")) *
+                                                          ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                                             # ARIMA components: initials + parameters
                                             arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                                             # Xreg initials and smoothing parameters
@@ -286,7 +307,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                         nParamMax[] <- (1 +
                                             # ETS model
                                             etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
-                                                          (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
+                                                          any(initial==c("optimal","two-stage")) *
+                                                          ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                                             # ARIMA components: initials + parameters
                                             arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                                             # Xreg initials and smoothing parameters
@@ -381,7 +403,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                 if(!silent){
                     cat(distribution[i],"\b, ");
                 }
-                if(etsModel || xregModel){
+                if(etsModel || xregModel || (arimaModel && !arimaModelSelect)){
                     selectedModels[[i]] <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
                                                 distribution=distribution[i], formula=formula,
                                                 h=h, holdout=holdout,
@@ -614,7 +636,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                         if(silentDebug){
                             cat("\nTested MA:", maTest, "IC:", ICValue);
                         }
-                        if(ICValue < bestIC){
+                        if(!is.na(ICValue) && ICValue < bestIC){
                             maBest[i] <- maTest[i];
                             bestIC <- ICValue;
                             bestModel <- testModel;
@@ -651,7 +673,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                             cat("\nTested AR:", arTest, "IC:", ICValue);
                         }
 
-                        if(ICValue < bestIC){
+                        if(!is.na(ICValue) && ICValue < bestIC){
                             arBest[i] <- arTest[i];
                             bestIC <- ICValue;
                             bestModel <- testModel;

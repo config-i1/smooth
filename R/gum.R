@@ -4,16 +4,14 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "B",
 
 #' @rdname gum
 #' @export
-gum_old <- function(data, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","multiplicative"),
+gum_old <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","multiplicative"),
                     persistence=NULL, transition=NULL, measurement=rep(1,sum(orders)),
                     initial=c("optimal","backcasting"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE,
-                    # cumulative=FALSE,
-                    # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                     bounds=c("restricted","admissible","none"),
                     silent=c("all","graph","legend","output","none"),
-                    # xreg=NULL, regressors=c("use","select"), initialX=NULL,
+                    xreg=NULL, regressors=c("use","select"), initialX=NULL,
                     ...){
 # General Univariate Model function. Crazy thing...
 #
@@ -25,7 +23,6 @@ gum_old <- function(data, orders=c(1,1), lags=c(1,frequency(y)), type=c("additiv
     ### Depricate the old parameters
     ellipsis <- list(...);
 
-    y <- data;
     cumulative <- FALSE;
     interval <- ifelse(!is.null(ellipsis$interval),ellipsis$interval,"none");
     level <- ifelse(!is.null(ellipsis$level),ellipsis$level,0.95);

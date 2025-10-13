@@ -17,6 +17,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # If this is simulated, extract the actuals
     if(is.adam.sim(data) || is.smooth.sim(data)){
         data <- data$data;
+        lags <- frequency(data);
     }
     # If this is Mdata, use all the available stuff
     else if(inherits(data,"Mdata")){
@@ -177,14 +178,15 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
     else{
         yInSampleIndex <- yIndex;
-        yIndexDiff <- diff(tail(yIndex,2));
-        yForecastStart <- yIndex[obsInSample]+yIndexDiff;
         if(any(yClasses=="ts")){
-            yForecastIndex <- yIndex[obsInSample]+as.numeric(yIndexDiff)*c(1:max(h,1));
-        }
-        else{
+            yIndexDiff <- deltat(yIndex);
             yForecastIndex <- yIndex[obsInSample]+yIndexDiff*c(1:max(h,1));
         }
+        else{
+            yIndexDiff <- diff(tail(yIndex,2));
+            yForecastIndex <- yIndex[obsInSample]+yIndexDiff*c(1:max(h,1));
+        }
+        yForecastStart <- yIndex[obsInSample]+yIndexDiff;
         yHoldout <- NULL;
         yIndexAll <- c(yIndex,yForecastIndex);
     }
@@ -508,8 +510,10 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     if(max(lags) >= obsInSample){
         warning("The maximum lags value is ", max(lags),
                 ", while the sample size is ", obsInSample,
-                ". I cannot guarantee that I'll be able to fit the model.",
+                ". I cannot fit the seasonal model in this case. ",
+                "Dropping the highest lag.",
                 call.=FALSE);
+        lags <- lags[-which.max(lags)];
     }
 
     #### ARIMA term ####
@@ -710,7 +714,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         if(all(modelIsSeasonal,lagsModelMax==1)){
             if(all(Stype!=c("Z","X","Y"))){
                 warning(paste0("Cannot build the seasonal model on data with the unity lags.\n",
-                               "Switching to non-seasonal model: ETS(",substr(model,1,nchar(model)-1),"N)"));
+                               "Switching to non-seasonal model: ETS(",substr(model,1,nchar(model)-1),"N)"),
+                        call.=FALSE);
             }
             Stype <- "N";
             modelIsSeasonal <- FALSE;
@@ -1206,16 +1211,16 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     initialSeasonalEstimate <- rep(TRUE,componentsNumberETSSeasonal);
 
     # This is an initialisation of the variable
-    initialType <- "optimal"
+    initialType <- "backcasting"
     # initial type can be: "o" - optimal, "b" - backcasting, "p" - provided.
     if(any(is.character(initial))){
-        initialType[] <- match.arg(initial, c("optimal","backcasting","complete"));
+        initialType[] <- match.arg(initial, c("backcasting","optimal","two-stage","complete"));
     }
     else if(is.null(initial)){
         if(!silent){
-            message("Initial value is not selected. Switching to optimal.");
+            message("Initial value is not selected. Switching to backcasting.");
         }
-        initialType[] <- "optimal";
+        initialType[] <- "backcasting";
     }
     else if(!is.null(initial)){
         if(all(modelDo!=c("estimate","use"))){
@@ -1268,8 +1273,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
             else{
                 if(!is.numeric(initial)){
                     warning(paste0("Initial vector is not numeric!\n",
-                                   "Values of initial vector will be estimated."),call.=FALSE);
-                    initialType[] <- "optimal";
+                                   "Values of initial vector will be backcasted."),call.=FALSE);
+                    initialType[] <- "backcasting";
                 }
                 else{
                     # If this is a vector, then it should contain values in the order:
@@ -1543,7 +1548,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     else{
         if(regressors=="select"){
             # If this has not happened by chance, then switch to optimisation
-            if(!is.null(initialXreg) && any(initialType==c("optimal","backcasting"))){
+            if(!is.null(initialXreg) && any(initialType==c("backcasting","optimal","two-stage"))){
                 warning("Variables selection does not work with the provided initials for explantory variables. I will drop them.",
                         call.=FALSE);
                 initialXreg <- NULL;
@@ -1782,6 +1787,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                             xregModelInitials[[1]]$formula <- formulaToUse <- formula(almModel);
                         }
                         xregModelInitials[[1]]$other <- almModel$other;
+                        names(xregModelInitials[[1]]$initialXreg) <-
+                            make.names(names(xregModelInitials[[1]]$initialXreg));
                     }
                     else{
                         # If this is just a regression, include intercept
@@ -1795,6 +1802,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                             xregModelInitials[[2]]$formula <- formulaToUse <- formula(almModel);
                         }
                         xregModelInitials[[2]]$other <- almModel$other;
+                        names(xregModelInitials[[2]]$initialXreg) <-
+                            make.names(names(xregModelInitials[[2]]$initialXreg));
                     }
                 }
                 # If we are selecting the appropriate error, produce two models: for "M" and for "A"
@@ -1862,12 +1871,16 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                                                              collapse="+")));
                 }
 
-                # Remove variables without variability
+                # Remove variables without variability and amend the formula
                 noVariability <- setNames(vector("logical",ncol(xreg)),colnames(xreg));
                 noVariability[] <- apply((as.matrix(xreg[1:obsInSample,])==matrix(xreg[1,],obsInSample,ncol(xreg),byrow=TRUE)),2,all);
                 noVariabilityNames <- names(noVariability)[noVariability];
-                if(any(noVariability) && any(all.vars(formulaToUse) %in% names(noVariability))){
-                    formulaToUse <- update.formula(formulaToUse,paste0(".~.-",paste0(noVariabilityNames,collapse="-")));
+                # If there are variables with no variability, their nams are in the formula, and the formula is not "y~.",
+                # update the formula
+                if(any(noVariability) && any(all.vars(formulaToUse) %in% names(noVariability)) &&
+                   all.vars(formulaToUse)[2]!="."){
+                    formulaToUse <- update.formula(formulaToUse,
+                                                   paste0(".~.-",paste0(noVariabilityNames,collapse="-")));
                 }
 
                 # Robustify the names of variables
@@ -1887,7 +1900,13 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
                 }
                 else{
-                    xregData <- as.matrix(xreg)[,c(names(noVariability)[!noVariability]),drop=FALSE][,-1,drop=FALSE];
+                    # If there was no formula, use the alm variable names
+                    if(!formulaProvided){
+                        formulaToUse <- as.formula(paste0("`",responseName,"`~",
+                                                      paste0(xregNames, collapse="+")));
+                    }
+                    # Use the matrix with the xregNames - all the others are dropped by alm().
+                    xregData <- as.matrix(xreg)[,xregNames,drop=FALSE];
                     xregNumber <- ncol(xregData);
                     xregNames <- colnames(xregData);
                 }
@@ -1918,6 +1937,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 }
 
                 #### Drop the variables with no variability and perfectly correlated
+                # This part takes care of explanatory variables potentially dropped by ALM
+                # This is needed to get the correct xregData
                 if(additionalManipulations){
                     xregExpanded <- colnames(model.matrix(xregData,data=xregData));
                     # Remove intercept
@@ -1982,85 +2003,94 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     }
 
                     #### Fix parameters for factors ####
-                    # The indices of the original parameters
-                    xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
-                    # # The indices of the original parameters
-                    xregParametersIncluded <- setNames(vector("numeric",xregNumber),xregNamesModified);
-                    # The vector, marking the same values of smoothing parameters
-                    if(interceptIsPresent){
-                        xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign")[-1],xregNamesModified);
-                    }
-                    else{
-                        xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
-                    }
-                    if(length(xregParametersPersistence)==0){
-                        xregParametersPersistence <- 0;
-                    }
+                    {
+                        # This part of code is terrible! In the nutshell, what it does it keeps
+                        # all levels of categorical variables to make sure that the same
+                        # categorical variable is treated equally inside ETS. This is mainly needed
+                        # for regressors="adapt", so that "colour" changes over time in the same way,
+                        # and not that "blue" reacts to error more than "red"... Why did I do that?!!
+                        #### Potentially, this part can be removed to save some brain cells from destruction
 
-                    # If there are factors not in the alm data, create additional initials
-                    if(any(xregFactors) && any(!(xregNamesModified %in% xregNames))){
-                        xregAbsent <- !(xregNamesModified %in% xregNames);
-                        xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
-                        # If there is stuff for additive error model, fix parameters
-                        if(!is.null(xregModelInitials[[1]])){
-                            xregParametersNew[!xregAbsent] <- xregModelInitials[[1]]$initialXreg;
-                            # Go through new names and find, where they came from. Then get the missing parameters
-                            for(i in which(xregAbsent)){
-                                # Find the name of the original variable
-                                # Use only the last value... hoping that the names like x and x1 are not used.
-                                xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
-                                xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
-                                # Get the indices of all k-1 levels
-                                xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
-                                                                                       xregFactorsLevels[[xregNameFound]])]] <- i;
-                                # Get the index of the absent one
-                                xregParametersMissing[i] <- i;
-                                # Fill in the absent one, add intercept
-                                xregParametersNew[i] <- almIntercept;
-                                xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
-                                    xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
-                                # normalise all of them
-                                xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
-                                    xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
-                                    mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
-
-                            }
-                            # Write down the new parameters
-                            xregModelInitials[[1]]$initialXreg <- xregParametersNew;
+                        # The indices of the original parameters
+                        xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
+                        # # The indices of the original parameters
+                        xregParametersIncluded <- setNames(vector("numeric",xregNumber),xregNamesModified);
+                        # The vector, marking the same values of smoothing parameters
+                        if(interceptIsPresent){
+                            xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign")[-1],xregNamesModified);
                         }
-                        # If there is stuff for multiplicative error model, fix parameters
-                        if(!is.null(xregModelInitials[[2]])){
-                            xregParametersNew[!xregAbsent] <- xregModelInitials[[2]]$initialXreg;
-                            # Go through new names and find, where they came from. Then get the missing parameters
-                            for(i in which(xregAbsent)){
-                                # Find the name of the original variable
-                                # Use only the last value... hoping that the names like x and x1 are not used.
-                                xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
-                                xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
-                                # Get the indices of all k-1 levels
-                                xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
-                                                                                       xregFactorsLevels[[xregNameFound]])]] <- i;
-
-                                # Get the index of the absent one
-                                xregParametersMissing[i] <- i;
-                                # Fill in the absent one, add intercept
-                                xregParametersNew[i] <- almIntercept;
-                                xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
-                                    xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
-                                # normalise all of them
-                                xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
-                                    xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
-                                    mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
-                            }
-                            # Write down the new parameters
-                            xregModelInitials[[2]]$initialXreg <- xregParametersNew;
+                        else{
+                            xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
                         }
-                        xregNames <- xregNamesModified;
+                        if(length(xregParametersPersistence)==0){
+                            xregParametersPersistence <- 0;
+                        }
+
+                        # If there are factors not in the alm data, create additional initials
+                        if(any(xregFactors) && any(!(xregNamesModified %in% xregNames))){
+                            xregAbsent <- !(xregNamesModified %in% xregNames);
+                            xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
+                            # If there is stuff for additive error model, fix parameters
+                            if(!is.null(xregModelInitials[[1]])){
+                                xregParametersNew[!xregAbsent] <- xregModelInitials[[1]]$initialXreg;
+                                # Go through new names and find, where they came from. Then get the missing parameters
+                                for(i in which(xregAbsent)){
+                                    # Find the name of the original variable
+                                    # Use only the last value... hoping that the names like x and x1 are not used.
+                                    xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
+                                    xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
+                                    # Get the indices of all k-1 levels
+                                    xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
+                                                                                           xregFactorsLevels[[xregNameFound]])]] <- i;
+                                    # Get the index of the absent one
+                                    xregParametersMissing[i] <- i;
+                                    # Fill in the absent one, add intercept
+                                    xregParametersNew[i] <- almIntercept;
+                                    xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
+                                        xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
+                                    # normalise all of them
+                                    xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
+                                        xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
+                                        mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
+
+                                }
+                                # Write down the new parameters
+                                xregModelInitials[[1]]$initialXreg <- xregParametersNew;
+                            }
+                            # If there is stuff for multiplicative error model, fix parameters
+                            if(!is.null(xregModelInitials[[2]])){
+                                xregParametersNew[!xregAbsent] <- xregModelInitials[[2]]$initialXreg;
+                                # Go through new names and find, where they came from. Then get the missing parameters
+                                for(i in which(xregAbsent)){
+                                    # Find the name of the original variable
+                                    # Use only the last value... hoping that the names like x and x1 are not used.
+                                    xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
+                                    xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
+                                    # Get the indices of all k-1 levels
+                                    xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
+                                                                                           xregFactorsLevels[[xregNameFound]])]] <- i;
+
+                                    # Get the index of the absent one
+                                    xregParametersMissing[i] <- i;
+                                    # Fill in the absent one, add intercept
+                                    xregParametersNew[i] <- almIntercept;
+                                    xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
+                                        xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
+                                    # normalise all of them
+                                    xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
+                                        xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
+                                        mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
+                                }
+                                # Write down the new parameters
+                                xregModelInitials[[2]]$initialXreg <- xregParametersNew;
+                            }
+                            xregNames <- xregNamesModified;
+                        }
+                        # The vector of parameters that should be estimated (numeric + original levels of factors)
+                        xregParametersEstimated <- xregParametersIncluded
+                        xregParametersEstimated[xregParametersEstimated!=0] <- 1;
+                        xregParametersEstimated[xregParametersMissing==0 & xregParametersIncluded==0] <- 1;
                     }
-                    # The vector of parameters that should be estimated (numeric + original levels of factors)
-                    xregParametersEstimated <- xregParametersIncluded
-                    xregParametersEstimated[xregParametersEstimated!=0] <- 1;
-                    xregParametersEstimated[xregParametersMissing==0 & xregParametersIncluded==0] <- 1;
                 }
                 else{
                     # If there are more obs in xreg than the obsAll cut the thing
@@ -2531,13 +2561,14 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                       # ETS model
                       etsModel*(persistenceLevelEstimate + modelIsTrendy*persistenceTrendEstimate +
                                     modelIsSeasonal*sum(persistenceSeasonalEstimate) +
-                                    phiEstimate + (initialType=="optimal") *
+                                    phiEstimate + any(initialType==c("optimal","two-stage")) *
                                     (initialLevelEstimate + initialTrendEstimate + sum(initialSeasonalEstimate*lagsModelSeasonal))) +
                       # ARIMA components: initials + parameters
-                      arimaModel*((initialType=="optimal")*initialArimaNumber +
+                      arimaModel*(any(initialType==c("optimal","two-stage"))*initialArimaNumber +
                                       arRequired*arEstimate*sum(arOrders) + maRequired*maEstimate*sum(maOrders)) +
                       # Xreg initials and smoothing parameters
-                      xregModel*(xregNumber*(any(initialType==c("optimal","backcasting"))*initialXregEstimate+persistenceXregEstimate)));
+                      xregModel*(xregNumber*(any(initialType==c("backcasting","optimal","two-stage"))*
+                                                 initialXregEstimate+persistenceXregEstimate)));
 
     # If the sample is smaller than the number of parameters
     if(obsNonzero <= nParamMax){
@@ -2555,7 +2586,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         }
         else if(arimaModel && !etsModel && !select){
             # If the backacasting helps, switch to it.
-            if(initialType=="optimal" && (obsNonzero > (nParamMax - (initialType=="optimal")*initialArimaNumber))){
+            if(any(initialType==c("optimal","two-stage")) &&
+               (obsNonzero > (nParamMax - any(initialType==c("optimal","two-stage"))*initialArimaNumber))){
                 warning(paste0("The number of parameter to estimate is ",nParamMax,
                             ", while the number of observations is ",obsNonzero,
                             ". Switching initial to 'backcasting' to save some degrees of freedom."), call.=FALSE);
@@ -2580,7 +2612,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         }
     }
 
-    if(arimaModel && obsNonzero < (initialType=="optimal")*initialArimaNumber && !select){
+    if(arimaModel && obsNonzero < any(initialType==c("optimal","two-stage"))*initialArimaNumber && !select){
         warning(paste0("In-sample size is ",obsNonzero,", while number of ARIMA components is ",initialArimaNumber,
                        ". Cannot fit the model."),call.=FALSE)
         stop("Not enough observations for such a complicated model.",call.=FALSE);
@@ -2591,13 +2623,13 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                         # ETS model
                         etsModel*(persistenceLevelEstimate + modelIsTrendy*persistenceTrendEstimate +
                                       modelIsSeasonal*sum(persistenceSeasonalEstimate) +
-                                      phiEstimate + (initialType=="optimal") *
+                                      phiEstimate + any(initialType==c("optimal","two-stage")) *
                                       (initialLevelEstimate + initialTrendEstimate + sum(initialSeasonalEstimate*lagsModelSeasonal))) +
                         # ARIMA components: initials + parameters
-                        arimaModel*((initialType=="optimal")*initialArimaNumber +
+                        arimaModel*(any(initialType==c("optimal","two-stage"))*initialArimaNumber +
                                         arRequired*arEstimate*sum(arOrders) + maRequired*maEstimate*sum(maOrders)) +
                         # Xreg initials and smoothing parameters
-                        xregModel*(xregNumber*(any(initialType==c("optimal","backcasting"))*initialXregEstimate+persistenceXregEstimate)));
+                        xregModel*(xregNumber*(any(initialType==c("backcasting","optimal","two-stage"))*initialXregEstimate+persistenceXregEstimate)));
 
     # If the sample is still smaller than the number of parameters (even after removing ARIMA)
     if(etsModel){
@@ -2877,7 +2909,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     if(is.null(ellipsis$maxeval)){
         maxeval <- NULL;
         # Make a warning if this is a big computational task
-        if(any(lags>24) && arimaModel && initialType=="optimal"){
+        if(any(lags>24) && arimaModel && any(initialType==c("optimal","two-stage"))){
             warning(paste0("The estimation of ARIMA model with initial='optimal' on high frequency data might ",
                            "take more time to converge to the optimum. Consider either setting maxeval parameter ",
                            "to a higher value (e.g. maxeval=10000, which will take ~25 times more than this) ",

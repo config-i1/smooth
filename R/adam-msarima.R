@@ -59,6 +59,8 @@
 #' @template ssAuthor
 #' @template ssKeywords
 #'
+#' @template ADAMInitial
+#'
 #' @template ssGeneralRef
 #' @template ssARIMARef
 #'
@@ -80,12 +82,16 @@
 #' ascending.
 #' The orders are set by a user. If you want the automatic order selection,
 #' then use \link[smooth]{auto.msarima} function instead.
+#' @param bounds What type of bounds to use in the model estimation. The first
+#' letter can be used instead of the whole word. \code{"admissible"} guarantee
+#' that the model is stable. \code{"usual"} are not supported due to restrictions
+#' in \code{adam()}.
 #' @param constant If \code{TRUE}, constant term is included in the model. Can
 #' also be a number (constant value). For \code{auto.msarima}, if \code{NULL},
 #' then the function will check if constant is needed.
 #' @param AR Vector or matrix of AR parameters. The order of parameters should
 #' be lag-wise. This means that first all the AR parameters of the firs lag
-#' should be passed, then for the second etc. AR of another msarima can be
+#' should be passed, then for the second etc. AR of another \code{msarima()} can be
 #' passed here.
 #' @param MA Vector or matrix of MA parameters. The order of parameters should
 #' be lag-wise. This means that first all the MA parameters of the firs lag
@@ -192,14 +198,13 @@
 #' @export
 msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL, model=NULL,
-                    initial=c("optimal","backcasting","complete"), ic=c("AICc","AIC","BIC","BICc"),
+                    initial=c("backcasting","optimal","two-stage","complete"), ic=c("AICc","AIC","BIC","BICc"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE,
-                    # cumulative=FALSE,
-                    # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                     bounds=c("usual","admissible","none"),
                     silent=TRUE,
-                    xreg=NULL, regressors=c("use","select","adapt"), initialX=NULL, ...){
+                    xreg=NULL, regressors=c("use","select","adapt"), initialX=NULL,
+                    ...){
     # Copyright (C) 2022 - Inf  Ivan Svetunkov
 
     # Start measuring the time of calculations
@@ -293,6 +298,7 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
     }
 
+    # Form the data from the provided y and xreg
     if(!is.null(xreg) && is.numeric(y)){
         data <- cbind(y=as.data.frame(y),as.data.frame(xreg));
         data <- as.matrix(data)

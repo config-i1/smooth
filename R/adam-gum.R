@@ -24,10 +24,13 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' For some more information about the model and its implementation, see the
 #' vignette: \code{vignette("gum","smooth")}
 #'
+#' @template ssBasicParam
+#' @template ssAdvancedParam
+#' @template ssXregParam
 #' @template ssAuthor
 #' @template ssKeywords
 #'
-#' @template ADAMDataFormulaRegLossSilentHHoldout
+#' @template ADAMInitial
 #'
 #' @template smoothRef
 #' @template ssGeneralRef
@@ -47,11 +50,6 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' \code{"multiplicative"}. The latter means that the GUM is fitted on
 #' log-transformed data. In case of \code{auto.gum()}, can also be \code{"select"},
 #' implying automatic selection of the type.
-#' @param initial Can be either character or a vector of initial states. If it
-#' is character, then it can be \code{"optimal"}, meaning that the initial
-#' states are optimised, \code{"backcasting"}, meaning that the initials are
-#' produced using backcasting procedure (still estimating initials for explanatory
-#' variables), or \code{"complete"}, meaning backcasting for all states.
 #' @param persistence Persistence vector \eqn{g}, containing smoothing
 #' parameters. If \code{NULL}, then estimated.
 #' @param transition Transition matrix \eqn{F}. Can be provided as a vector.
@@ -73,7 +71,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' 2. \code{algorithm} determines the second optimiser. By default this is
 #' "NLOPT_LN_NELDERMEAD".
 #' 3. maxeval0 and maxeval, that determine the number of iterations for the two
-#' optimisers. By default, \code{maxeval0=1000}, \code{maxeval=40*k}, where
+#' optimisers. By default, \code{maxeval0=maxeval=40*k}, where
 #' k is the number of estimated parameters.
 #' 4. xtol_rel0 and xtol_rel, which are 1e-8 and 1e-6 respectively.
 #' There are also ftol_rel0, ftol_rel, ftol_abs0 and ftol_abs, which by default
@@ -100,13 +98,12 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #'
 #' @rdname gum
 #' @export
-gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive","multiplicative"),
-                formula=NULL, regressors=c("use","select","adapt","integrate"),
-                initial=c("backcasting","optimal","complete"),
+gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","multiplicative"),
+                initial=c("backcasting","optimal","two-stage","complete"),
                 persistence=NULL, transition=NULL, measurement=rep(1,sum(orders)),
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
-                model=NULL, ...){
+                model=NULL, xreg=NULL, regressors=c("use","select","adapt","integrate"), initialX=NULL, ...){
 # General Univariate Model function. Paper to follow... at some point... maybe.
 #
 #    Copyright (C) 2016 - Inf Ivan Svetunkov
@@ -214,13 +211,33 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         lags <- lagsNew;
     }
 
+    # Form the data from the provided y and xreg
+    if(!is.null(xreg) && is.numeric(y)){
+        data <- cbind(y=as.data.frame(y),as.data.frame(xreg));
+        data <- as.matrix(data)
+        data <- ts(data, start=start(y), frequency=frequency(y));
+        colnames(data)[1] <- "y";
+        # Give name to the explanatory variables if they do not have them
+        if(is.null(names(xreg))){
+            if(!is.null(ncol(xreg))){
+                colnames(data)[-1] <- paste0("x",c(1:ncol(xreg)));
+            }
+            else{
+                colnames(data)[-1] <- "x";
+            }
+        }
+    }
+    else{
+        data <- y;
+    }
+
     # If initial was provided, trick parametersChecker
     if(!is.character(initial)){
         initialValueProvided <- initial;
         initial <- "optimal";
     }
-    else{
-        initial <- match.arg(initial);
+    if(!is.null(initialX)){
+        initial <- list(xreg=initialX);
     }
 
     # Hack parametersChecker if initial="integrate"
@@ -232,7 +249,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     }
 
     ##### Set environment for ssInput and make all the checks #####
-    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
+    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=NULL,
                                        orders=list(ar=c(orders),i=c(0),ma=c(0),select=FALSE),
                                        constant=FALSE, arma=NULL,
                                        outliers="ignore", level=0.99,
@@ -242,50 +259,6 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
                                        ic="AICc", bounds=bounds[1],
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
-
-    # Values for the preliminary optimiser
-    if(is.null(ellipsis$algorithm0)){
-        algorithm0 <- "NLOPT_LN_BOBYQA";
-    }
-    else{
-        algorithm0 <- ellipsis$algorithm0;
-    }
-    if(is.null(ellipsis$maxeval0)){
-        maxeval0 <- 1000;
-    }
-    else{
-        maxeval0 <- ellipsis$maxeval0;
-    }
-    if(is.null(ellipsis$maxtime0)){
-        maxtime0 <- -1;
-    }
-    else{
-        maxtime0 <- ellipsis$maxtime0;
-    }
-    if(is.null(ellipsis$xtol_rel0)){
-        xtol_rel0 <- 1e-8;
-    }
-    else{
-        xtol_rel0 <- ellipsis$xtol_rel0;
-    }
-    if(is.null(ellipsis$xtol_abs0)){
-        xtol_abs0 <- 0;
-    }
-    else{
-        xtol_abs0 <- ellipsis$xtol_abs0;
-    }
-    if(is.null(ellipsis$ftol_rel0)){
-        ftol_rel0 <- 0;
-    }
-    else{
-        ftol_rel0 <- ellipsis$ftol_rel0;
-    }
-    if(is.null(ellipsis$ftol_abs0)){
-        ftol_abs0 <- 0;
-    }
-    else{
-        ftol_abs0 <- ellipsis$ftol_abs0;
-    }
 
     # Check whether the multiplicative model is applicable
     if(type=="multiplicative"){
@@ -305,7 +278,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     }
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
-    # refined. GUM doesn't need that.
+    # refined.
     refineHead <- TRUE;
 
     ##### Elements of GUM #####
@@ -327,7 +300,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
             nCoefficients[] <- nCoefficients + componentsNumber;
         }
 
-        if(initialType=="optimal"){
+        if(any(initialType==c("optimal","two-stage"))){
             for(i in 1:componentsNumber){
                 vt[i,1:lagsModelMax] <- rep(B[nCoefficients+(1:lagsModel[i])], lagsModelMax)[1:lagsModelMax];
                 nCoefficients[] <- nCoefficients + lagsModel[i];
@@ -449,6 +422,10 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     if(!is.null(initialValue)){
         initialType <- "provided";
     }
+
+    # if(initialType=="provided"){
+    #     refineHead[] <- FALSE;
+    # }
 
     orders <- ordersOriginal;
     lags <- lagsOriginal;
@@ -573,7 +550,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     }
     yForecast <- rep(NA, h);
 
-    # Values for occurrence. No longer supported in ces()
+    # Values for occurrence. No longer supported in gum()
     parametersNumber[1,3] <- parametersNumber[2,3] <- 0;
     # Xreg parameters
     parametersNumber[1,2] <- xregNumber + sum(persistenceXreg);
@@ -592,14 +569,14 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
             B <- vector("numeric", persistenceEstimate*componentsNumberAll +
                             transitionEstimate*componentsNumberAll^2 +
                             measurementEstimate*componentsNumber +
-                            initialEstimate*(initialType=="optimal")*sum(initialsNumber) +
+                            initialEstimate*any(initialType==c("optimal","two-stage"))*sum(initialsNumber) +
                             xregNumber*initialXregEstimate*(initialType!="complete"));
             names(B) <- c(paste0("g",1:componentsNumberAll)[persistenceEstimate*(1:componentsNumberAll)],
                           paste0("F",paste0(rep(1:componentsNumberAll,each=componentsNumberAll),
                                             rep(1:componentsNumberAll,times=componentsNumberAll))
                           )[transitionEstimate*(1:(componentsNumberAll^2))],
                           paste0("w",1:componentsNumber)[measurementEstimate*(1:componentsNumber)],
-                          paste0("vt",1:sum(initialsNumber))[initialEstimate*(initialType=="optimal")*(1:sum(initialsNumber))],
+                          paste0("vt",1:sum(initialsNumber))[initialEstimate*any(initialType==c("optimal","two-stage"))*(1:sum(initialsNumber))],
                           xregNames[(1:xregNumber)*initialXregEstimate*(initialType!="complete")]);
 
             nCoefficients <- 0;
@@ -619,7 +596,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
             }
 
             # In case of optimal, get some initials from backcasting
-            if(initialEstimate && (initialType=="optimal")){
+            if(initialType=="two-stage" && is.null(B)){
                 clNew <- cl;
                 # If environment is provided, use it
                 if(!is.null(ellipsis$environment)){
@@ -669,6 +646,50 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
             }
         }
 
+        # Values for the preliminary optimiser
+        if(is.null(ellipsis$algorithm0)){
+            algorithm0 <- "NLOPT_LN_BOBYQA";
+        }
+        else{
+            algorithm0 <- ellipsis$algorithm0;
+        }
+        if(is.null(ellipsis$maxeval0)){
+            maxeval0 <- maxevalUsed;
+        }
+        else{
+            maxeval0 <- ellipsis$maxeval0;
+        }
+        if(is.null(ellipsis$maxtime0)){
+            maxtime0 <- -1;
+        }
+        else{
+            maxtime0 <- ellipsis$maxtime0;
+        }
+        if(is.null(ellipsis$xtol_rel0)){
+            xtol_rel0 <- 1e-8;
+        }
+        else{
+            xtol_rel0 <- ellipsis$xtol_rel0;
+        }
+        if(is.null(ellipsis$xtol_abs0)){
+            xtol_abs0 <- 0;
+        }
+        else{
+            xtol_abs0 <- ellipsis$xtol_abs0;
+        }
+        if(is.null(ellipsis$ftol_rel0)){
+            ftol_rel0 <- 0;
+        }
+        else{
+            ftol_rel0 <- ellipsis$ftol_rel0;
+        }
+        if(is.null(ellipsis$ftol_abs0)){
+            ftol_abs0 <- 0;
+        }
+        else{
+            ftol_abs0 <- ellipsis$ftol_abs0;
+        }
+
         # First run of BOBYQA to get better values of B
         res <- nloptr(B, CF, opts=list(algorithm=algorithm0, xtol_rel=xtol_rel0, xtol_abs=xtol_abs0,
                                        ftol_rel=ftol_rel0, ftol_abs=ftol_abs0,
@@ -714,7 +735,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         # Create index lookup table
         indexLookupTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
                                            lags=lags, yIndex=yIndexAll, yClasses=yClasses)$lookup;
-        if(initialType=="optimal"){
+        if(any(initialType==c("optimal","two-stage"))){
             initialType <- "provided";
         }
         # initialValue <- profilesRecentInitial;
@@ -903,26 +924,22 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         errormeasures <- NULL;
     }
 
-    if(!silent){
-        graphmaker(actuals=y,forecast=yForecast,fitted=yFitted,
-                   legend=FALSE,main=modelname);
-    }
-
     ##### Return values #####
-    modelReturned <- list(model=modelname, timeElapsed=Sys.time()-startTime,
-                          call=cl, orders=orders, lags=lags, type=type,
-                          data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
-                          forecast=yForecast, states=matVt, accuracy=errormeasures,
-                          profile=profilesRecentTable, profileInitial=profilesRecentInitial,
-                          persistence=vecG[,1], transition=matF,
-                          measurement=matWt, initial=initialValue, initialType=initialType,
-                          nParam=parametersNumber,
-                          formula=formula, regressors=regressors,
-                          loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
-                          ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
-                                       c("AIC","AICc","BIC","BICc")),
-                          distribution=distribution, bounds=bounds,
-                          scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI);
+    modelReturned <- structure(list(model=modelname, timeElapsed=Sys.time()-startTime,
+                                    call=cl, orders=orders, lags=lags, type=type,
+                                    data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
+                                    forecast=yForecast, states=matVt, accuracy=errormeasures,
+                                    profile=profilesRecentTable, profileInitial=profilesRecentInitial,
+                                    persistence=vecG[,1], transition=matF,
+                                    measurement=matWt, initial=initialValue, initialType=initialType,
+                                    nParam=parametersNumber,
+                                    formula=formula, regressors=regressors,
+                                    loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
+                                    ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
+                                                 c("AIC","AICc","BIC","BICc")),
+                                    distribution=distribution, bounds=bounds,
+                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI),
+                          class=c("adam","smooth"));
 
     # Fix data and holdout if we had explanatory variables
     if(!is.null(xregData) && !is.null(ncol(data))){
@@ -950,5 +967,9 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         }
     }
 
-    return(structure(modelReturned,class=c("adam","smooth")));
+    if(!silent){
+        plot(modelReturned, 7)
+    }
+
+    return(modelReturned);
 }
