@@ -16,21 +16,13 @@ test_that("Test if crazy order SSARIMA was estimated on AirPassengers", {
     skip_on_cran()
     testModel <- ssarima(AirPassengers, orders=list(ar=c(1,1,0), i=c(1,0,1),ma=c(0,1,1)),
                          lags=c(1,6,12), h=18, holdout=TRUE, initial="o", silent=TRUE, interval=TRUE)
-    expect_equal(testModel$model, "SARIMA(1,1,0)[1](1,0,1)[6](0,1,1)[12]")
-})
-
-# Combine SSARIMA
-test_that("Test if combined ARIMA works", {
-    skip_on_cran()
-    testModel <- auto.ssarima(AirPassengers, combine=TRUE, silent=TRUE, ic="AIC")
-    expect_match(testModel$model, "combine")
+    expect_equal(testModel$model, "SSARIMA(1,1,0)[1](1,0,1)[6](0,1,1)[12]")
 })
 
 # Test selection of exogenous with Auto.SSARIMA
-test_that("Select exogenous variables for auto SSARIMAX on BJsales with selection", {
+test_that("Use exogenous variables for auto SSARIMAX on BJsales with selection", {
     skip_on_cran()
-    x <- BJsales.lead
-    y <- BJsales
-    testModel <- auto.ssarima(y, orders=list(ar=3,i=2,ma=3), lags=1, h=18, holdout=TRUE, xreg=xregExpander(x), regressors="select", silent=TRUE)
-    expect_equal(ncol(testModel$xreg),1)
+    testModel <- auto.ssarima(BJsales, orders=list(ar=3,i=2,ma=3), lags=1, h=18, holdout=TRUE,
+                              regressors="use", silent=TRUE, xreg=xregExpander(BJsales.lead))
+    expect_equal(length(testModel$initial$xreg),3)
 })

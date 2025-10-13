@@ -14,7 +14,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                 unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
                 arma::vec const &vectorYt, arma::vec const &vectorOt, bool const &backcast,
-                unsigned int const &nIterations, bool const &refineHead){
+                unsigned int const &nIterations, bool const &refineHead, bool const &adamETS){
     /* # matrixVt should have a length of obs + lagsModelMax.
      * # matrixWt is a matrix with nrows = obs
      * # vecG should be a vector
@@ -30,11 +30,17 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
     arma::vec vecYfit(obs, arma::fill::zeros);
     arma::vec vecErrors(obs, arma::fill::zeros);
 
-    
-    // Loop for the backcasting
-    // unsigned int nIterations = 1;
-    // if(backcast){
-    //     nIterations = 5;
+    // These are objects used in backcasting.
+    // Needed for some experiments.
+    arma::mat &matrixFInv = matrixF;
+    arma::vec const &vectorGInv = vectorG;
+
+    // if(!inv(matrixFInv, matrixF)){
+    //     matrixFInv = matrixF;
+    //     vectorGInv = vectorG;
+    // }
+    // else{
+    //     vectorGInv = matrixFInv * vectorG;
     // }
 
     // Loop for the backcast
@@ -47,12 +53,12 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
                 profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                                matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
-                
             }
         }
         ////// Run forward
         // Loop for the model construction
         for (int i=lagsModelMax; i<obs+lagsModelMax; i=i+1) {
+            matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
 
             /* # Measurement equation and the error term */
             vecYfit(i-lagsModelMax) = adamWvalue(profilesRecent(indexLookupTable.col(i)),
@@ -64,8 +70,6 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 vecErrors(i-lagsModelMax) = 0;
             }
             else{
-                // We need this multiplication for cases, when occurrence is fractional
-                vecYfit(i-lagsModelMax) = vectorOt(i-lagsModelMax)*vecYfit(i-lagsModelMax);
                 vecErrors(i-lagsModelMax) = errorf(vectorYt(i-lagsModelMax), vecYfit(i-lagsModelMax), E);
             }
 
@@ -73,9 +77,14 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
             profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                            matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
                 adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixF, matrixWt.row(i-lagsModelMax), E, T, S,
-                           nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant, vectorG, vecErrors(i-lagsModelMax));
+                           nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
+                           vectorG, vecErrors(i-lagsModelMax), vecYfit(i-lagsModelMax), adamETS);
 
-            matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+            // If ot is fractional, amend the fitted value
+            if(vectorOt(i-lagsModelMax)!=0 && vectorOt(i-lagsModelMax)!=1){
+                // We need this multiplication for cases, when occurrence is fractional
+                vecYfit(i-lagsModelMax) = vectorOt(i-lagsModelMax)*vecYfit(i-lagsModelMax);
+            }
         }
 
         ////// Backwards run
@@ -106,33 +115,35 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
 
                 /* # Transition equation */
                 profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                               matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
-                                   adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixF,
+                               matrixFInv, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
+                                   adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixFInv,
                                               matrixWt.row(i-lagsModelMax), E, T, S,
                                               nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                                              vectorG, vecErrors(i-lagsModelMax));
+                                              vectorGInv, vecErrors(i-lagsModelMax), vecYfit(i-lagsModelMax), adamETS);
             }
 
             // Fill in the head of the series.
-            // if(nArima==0){
+            if(refineHead){
                 for (int i=lagsModelMax-1; i>=0; i=i-1) {
                     profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                                   matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                                   matrixFInv, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
 
-                    matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+                    // matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
                 }
-            // }
+            }
 
             // Change back the specific element in the state vector
             if(T=='A'){
                 profilesRecent(1) = -profilesRecent(1);
                 // Write down correct initials
-                matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
+                // This is needed in case the profileRecent has changed in previous lines
+                // matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
             }
             else if(T=='M'){
                 profilesRecent(1) = 1/profilesRecent(1);
                 // Write down correct initials
-                matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
+                // This is needed in case the profileRecent has changed in previous lines
+                // matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
             }
         }
     }
@@ -149,14 +160,14 @@ RcppExport SEXP adamFitterWrap(arma::mat matrixVt, arma::mat &matrixWt, arma::ma
                                unsigned int const &componentsNumberETS, unsigned int const &nSeasonal,
                                unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
                                arma::vec &vectorYt, arma::vec &vectorOt, bool const &backcast,
-                               unsigned int const &nIterations, bool const &refineHead){
+                               unsigned int const &nIterations, bool const &refineHead, bool const &adamETS){
 
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
 
     return wrap(adamFitter(matrixVt, matrixWt, matrixF, vectorG,
                            lags, indexLookupTable, profilesRecent, Etype, Ttype, Stype,
                            nNonSeasonal, nSeasonal, nArima, nXreg, constant,
-                           vectorYt, vectorOt, backcast, nIterations, refineHead));
+                           vectorYt, vectorOt, backcast, nIterations, refineHead, adamETS));
 }
 
 /* # Function produces the point forecasts for the specified model */
@@ -226,11 +237,14 @@ arma::mat adamErrorer(arma::mat const &matrixVt, arma::mat const &matrixWt, arma
     for(unsigned int i = 0; i < (obs-horizon); i=i+1){
         hh = std::min(horizon, obs-i);
         // Update the profile to get the recent value from the state matrix
-        profilesRecent(indexLookupTable.col(i+lagsModelMax-1)) = matrixVt.col(i+lagsModelMax-1);
+        // lagsModelMax moves the thing to the next obs. This way, we have the structure
+        // similar to the fitter
+        profilesRecent(indexLookupTable.col(i+lagsModelMax)) = matrixVt.col(i+lagsModelMax);
         // profilesRecent(indexLookupTable.col(i)) = matrixVt.col(i);
         // This also needs to take probability into account in order to deal with intermittent models
         matErrors.submat(0, i, hh-1, i) = (errorvf(vectorYt.rows(i, i+hh-1),
                                            adamForecaster(matrixWt.rows(i,i+hh-1), matrixF,
+                                                          // lags, indexLookupTable.cols(i,i+hh-1), profilesRecent,
                                                           lags, indexLookupTable.cols(i+lagsModelMax,i+lagsModelMax+hh-1), profilesRecent,
                                                           E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant, hh), E));
     }

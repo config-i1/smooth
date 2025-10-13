@@ -68,6 +68,8 @@ auto.ssarima(y, h=20, holdout=TRUE)}
 }
 \references{
 \itemize{
+\item Svetunkov, I., 2023. Smooth Forecasting with the Smooth Package in R. arXiv.
+\doi{10.48550/arXiv.2301.01790}
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
@@ -76,16 +78,14 @@ Springer-Verlag. \doi{10.1007/978-3-540-71918-2}.
 }
 
 \itemize{
-\item Svetunkov Ivan and Boylan John E. (2017). Multiplicative
-State-Space Models for Intermittent Time Series. Working Paper of
-Department of Management Science, Lancaster University, 2017:4 , 1-43.
+\item Svetunkov, I., Boylan, J.E., 2023a. iETS: State Space Model for
+Intermittent Demand Forecastings. International Journal of Production
+Economics. 109013. \doi{10.1016/j.ijpe.2023.109013}
 \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
 Linking forecasting to inventory obsolescence. European Journal of
 Operational Research, 214, 606-615.
 \item Croston, J. (1972) Forecasting and stock control for intermittent
 demands. Operational Research Quarterly, 23(3), 289-303.
-\item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
-estimates. International Journal of Forecasting, 21(2), 303-314.
 }
 
 \itemize{
@@ -104,6 +104,9 @@ models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}
 \itemize{
 \item Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike
 weights. International Journal of Forecasting, 27, pp 238 - 251.
+\item Svetunkov, I., Boylan, J.E., 2023b. Staying Positive: Challenges and
+ Solutions in Using Pure Multiplicative ETS Models. IMA Journal of
+ Management Mathematics. p. 403-425. \doi{10.1093/imaman/dpad028}
 }
 
 \itemize{

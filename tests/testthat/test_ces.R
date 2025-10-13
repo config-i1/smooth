@@ -3,7 +3,7 @@ context("Tests for ces() function");
 # Basic CES selection
 testModel <- auto.ces(AirPassengers, silent=TRUE);
 test_that("Test CES selection on BJsales", {
-    expect_match(testModel$seasonality, "partial");
+    expect_match(smoothType(testModel), "CES");
 })
 
 # Reuse previous CES
@@ -28,7 +28,6 @@ test_that("Test provided a and b of CES on AirPassengers", {
 # Test selection of exogenous with CES
 test_that("Use exogenous variables for CESX on BJsales", {
     skip_on_cran()
-    xregData <- cbind(BJsales.lead, BJsales);
-    testModel <- ces(xregData, h=18, holdout=TRUE, silent=TRUE, regressors="use")
+    testModel <- ces(BJsales, h=18, holdout=TRUE, silent=TRUE, regressors="use", xreg=BJsales.lead)
     expect_equal(length(testModel$initial$xreg),1);
 })

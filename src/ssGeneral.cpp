@@ -17,7 +17,7 @@ double cdf(arma::vec const &vecYt, arma::vec const &vecYfit, double const &error
             CFbuffer = log(R::pnorm(ceil(vecYt(i)), vecYfit(i), errorSD, 1, 0) - R::pnorm(ceil(vecYt(i))-1, vecYfit(i), errorSD, 1, 0));
             // If CF is infinite, then this means that P(x<X)=1 for both cases.
             // This is automatically transfered into log(1)
-            if(arma::is_finite(CFbuffer)){
+            if(std::isfinite(CFbuffer)){
                 CF += CFbuffer;
             }
         }
@@ -25,7 +25,7 @@ double cdf(arma::vec const &vecYt, arma::vec const &vecYfit, double const &error
     else{
         for(int i=0; i<obs; ++i){
             CFbuffer = log(R::plnorm(ceil(vecYt(i)), log(vecYfit(i)), errorSD, 1, 0) - R::plnorm(ceil(vecYt(i))-1, log(vecYfit(i)), errorSD, 1, 0));
-            if(arma::is_finite(CFbuffer)){
+            if(std::isfinite(CFbuffer)){
                 CF += CFbuffer;
             }
         }

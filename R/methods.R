@@ -742,10 +742,10 @@ forecast.smooth <- function(object, h=10,
         newModel <- es_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="CES"){
-        newModel <- ces(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
+        newModel <- ces_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="GUM"){
-        newModel <- gum(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=levelNew,silent="all",...);
+        newModel <- gum_old(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
@@ -753,7 +753,7 @@ forecast.smooth <- function(object, h=10,
                 newModel <- msarima(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
             }
             else{
-                newModel <- ssarima(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
+                newModel <- ssarima_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
             }
         }
         else{
@@ -957,7 +957,7 @@ errorType.smooth <- function(object, ...){
         }
     }
     # SSARIMA models
-    else if(smoothType=="ARIMA"){
+    else if(any(smoothType==c("ARIMA","SSARIMA"))){
         Etype <- "A";
     }
     # CES models
@@ -1358,7 +1358,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         do.call(plot,ellipsis);
         abline(a=0,b=1,col="grey",lwd=2,lty=2)
         if(lowess){
-            lines(lowess(ellipsis$x, ellipsis$y), col="red");
+            lines(lowess(ellipsis$x, ellipsis$y), col=2);
         }
     }
 
@@ -1426,7 +1426,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         abline(h=0, col="grey", lty=2);
         polygon(c(xRange,rev(xRange)),c(statistic[1],statistic[1],statistic[2],statistic[2]),
                 col="lightgrey", border=NA, density=10);
-        abline(h=statistic, col="red", lty=2);
+        abline(h=statistic, col=2, lty=2);
         if(length(outliersID)>0){
             points(ellipsis$x[outliersID], ellipsis$y[outliersID], pch=16);
             text(ellipsis$x[outliersID], ellipsis$y[outliersID], labels=outliersID, pos=(ellipsis$y[outliersID]>0)*2+1);
@@ -1437,19 +1437,19 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
                 ellipsis$y <- ellipsis$y[!is.na(ellipsis$x)];
                 ellipsis$x <- ellipsis$x[!is.na(ellipsis$x)];
             }
-            lines(lowess(ellipsis$x, ellipsis$y), col="red");
+            lines(lowess(ellipsis$x, ellipsis$y), col=2);
         }
 
         if(legend){
             if(lowess){
                 legend(legendPosition,
                        legend=c(paste0(round(level,3)*100,"% bounds"),"outside the bounds","LOWESS line"),
-                       col=c("red", "black","red"), lwd=c(1,NA,1), lty=c(2,1,1), pch=c(NA,16,NA));
+                       col=c(2, 1 ,2), lwd=c(1,NA,1), lty=c(2,1,1), pch=c(NA,16,NA));
             }
             else{
                 legend(legendPosition,
                        legend=c(paste0(round(level,3)*100,"% bounds"),"outside the bounds"),
-                       col=c("red", "black"), lwd=c(1,NA), lty=c(2,1), pch=c(NA,16));
+                       col=c(2, 1), lwd=c(1,NA), lty=c(2,1), pch=c(NA,16));
             }
         }
     }
@@ -1500,7 +1500,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         do.call(plot,ellipsis);
         abline(h=0, col="grey", lty=2);
         if(lowess){
-            lines(lowess(ellipsis$x, ellipsis$y), col="red");
+            lines(lowess(ellipsis$x, ellipsis$y), col=2);
         }
     }
 
@@ -1639,17 +1639,17 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             if(any(is.na(ellipsis$x))){
                 ellipsis$x[is.na(ellipsis$x)] <- mean(ellipsis$x, na.rm=TRUE);
             }
-            lines(lowess(c(1:length(ellipsis$x)),ellipsis$x), col="red");
+            lines(lowess(c(1:length(ellipsis$x)),ellipsis$x), col=2);
         }
         abline(h=0, col="grey", lty=2);
-        abline(h=statistic[1], col="red", lty=2);
-        abline(h=statistic[2], col="red", lty=2);
+        abline(h=statistic[1], col=2, lty=2);
+        abline(h=statistic[2], col=2, lty=2);
         polygon(c(1:nobs(x), c(nobs(x):1)),
                 c(rep(statistic[1],nobs(x)), rep(statistic[2],nobs(x))),
                 col="lightgrey", border=NA, density=10);
         if(legend){
             legend(legendPosition,legend=c("Residuals",paste0(level*100,"% prediction interval")),
-                   col=c("black","red"), lwd=rep(1,3), lty=c(1,1,2));
+                   col=c(1,2), lwd=rep(1,3), lty=c(1,1,2));
         }
     }
 
@@ -1716,8 +1716,8 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         ellipsis$type <- "h"
 
         do.call(plot,ellipsis);
-        abline(h=0, col="black", lty=1);
-        abline(h=statistic, col="red", lty=2);
+        abline(h=0, col=1, lty=1);
+        abline(h=statistic, col=2, lty=2);
         if(any(ellipsis$x>statistic[2] | ellipsis$x<statistic[1])){
             outliersID <- which(ellipsis$x >statistic[2] | ellipsis$x <statistic[1]);
             points(outliersID, ellipsis$x[outliersID], pch=16);
@@ -1736,7 +1736,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
                 x$states <- cbind(actuals(x),x$states,residuals(x));
                 colnames(x$states) <- statesNames;
                 if(ncol(x$states)>10){
-                    message("Too many states. Plotting them one by one on several graphs.");
+                    message("Too many states. Plotting them on several canvases.");
                     if(is.null(ellipsis$main)){
                         ellipsisMain <- NULL;
                     }
@@ -1886,7 +1886,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         do.call(plot,ellipsis);
         abline(h=0, col="grey", lty=2);
         if(lowess){
-            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col="red");
+            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col=2);
         }
     }
 
@@ -2620,6 +2620,9 @@ smoothType <- function(object, ...){
         else if(gregexpr("CES",object$model)!=-1){
             smoothType <- "CES";
         }
+        else if(gregexpr("SSARIMA",object$model)!=-1){
+            smoothType <- "SSARIMA";
+        }
         else if(gregexpr("ARIMA",object$model)!=-1){
             smoothType <- "ARIMA";
         }
@@ -2724,4 +2727,20 @@ accuracy.smooth.forecast <- function(object, holdout=NULL, ...){
         h <- length(holdout);
         return(measures(holdout, object$mean, actuals(object)));
     }
+}
+
+# Function detects the palette and sets its own colours if the default one is used
+paletteDetector <- function(colours){
+    # If the default palette is used, define the new one in the provided colours
+    paletteBasic <- palette();
+    palette("default");
+    paletteDefault <- palette();
+    if(all(paletteBasic %in% paletteDefault) &&
+       all(paletteBasic==paletteDefault)){
+        paletteBasic <- colours;
+    }
+    else{
+        palette(paletteBasic);
+    }
+    return(paletteBasic);
 }

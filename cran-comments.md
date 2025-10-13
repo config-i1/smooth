@@ -1,23 +1,15 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "03 February 2025"
+date: "30 June 2025"
 output: html_document
 ---
 
-## Update
-I think this should fix the issue with the clang-UBSAN, gcc-UBSAN.
-
-Also, the suggested package `legion` has been submitted to CRAN as well, and will become available soon.
-
-
 ## Version
-This is ``smooth`` package, v4.1.1.
-
-This is a try to fix the UBSAN issue on CRAN.
+This is ``smooth`` package, v4.3.0
 
 ## Test environments
-* local Ubuntu 24.04.1, R 4.4.1
+* local Ubuntu 25.04, R 4.5.1
 * github actions
 * win-builder (devel and release)
 * rhub v2

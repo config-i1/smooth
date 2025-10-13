@@ -8,19 +8,19 @@
 \usage{
 msarima(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, AR = NULL, MA = NULL, model = NULL,
-  initial = c("optimal", "backcasting", "complete"), ic = c("AICc", "AIC",
-  "BIC", "BICc"), loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE",
-  "GTMSE", "MSCE"), h = 10, holdout = FALSE, bounds = c("usual",
-  "admissible", "none"), silent = TRUE, xreg = NULL,
+  initial = c("backcasting", "optimal", "two-stage", "complete"),
+  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood", "MSE",
+  "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
+  bounds = c("usual", "admissible", "none"), silent = TRUE, xreg = NULL,
   regressors = c("use", "select", "adapt"), initialX = NULL, ...)
 
 auto.msarima(y, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
-  lags = c(1, frequency(y)), initial = c("optimal", "backcasting",
-  "complete"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood",
-  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10,
-  holdout = FALSE, bounds = c("usual", "admissible", "none"),
-  silent = TRUE, xreg = NULL, regressors = c("use", "select", "adapt"),
-  initialX = NULL, ...)
+  lags = c(1, frequency(y)), initial = c("backcasting", "optimal",
+  "two-stage", "complete"), ic = c("AICc", "AIC", "BIC", "BICc"),
+  loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
+  "MSCE"), h = 10, holdout = FALSE, bounds = c("usual", "admissible",
+  "none"), silent = TRUE, xreg = NULL, regressors = c("use", "select",
+  "adapt"), initialX = NULL, ...)
 
 msarima_old(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, AR = NULL, MA = NULL, initial = c("backcasting",
@@ -61,7 +61,7 @@ then the function will check if constant is needed.}
 
 \item{AR}{Vector or matrix of AR parameters. The order of parameters should
 be lag-wise. This means that first all the AR parameters of the firs lag
-should be passed, then for the second etc. AR of another msarima can be
+should be passed, then for the second etc. AR of another \code{msarima()} can be
 passed here.}
 
 \item{MA}{Vector or matrix of MA parameters. The order of parameters should
@@ -106,18 +106,12 @@ are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
 the end of the data.}
 
 \item{bounds}{What type of bounds to use in the model estimation. The first
-letter can be used instead of the whole word.}
+letter can be used instead of the whole word. \code{"admissible"} guarantee
+that the model is stable. \code{"usual"} are not supported due to restrictions
+in \code{adam()}.}
 
-\item{silent}{If \code{silent="none"}, then nothing is silent, everything is
-printed out and drawn. \code{silent="all"} means that nothing is produced or
-drawn (except for warnings). In case of \code{silent="graph"}, no graph is
-produced. If \code{silent="legend"}, then legend of the graph is skipped.
-And finally \code{silent="output"} means that nothing is printed out in the
-console, but the graph is produced. \code{silent} also accepts \code{TRUE}
-and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
-\code{silent="all"}, while \code{silent=FALSE} is equivalent to
-\code{silent="none"}. The parameter also accepts first letter of words ("n",
-"a", "g", "l", "o").}
+\item{silent}{accepts \code{TRUE} and \code{FALSE}. If FALSE, the function
+will print its progress and produce a plot at the end.}
 
 \item{xreg}{The vector (either numeric or time series) or the matrix (or
 data.frame) of exogenous variables that should be included in the model. If
@@ -129,8 +123,7 @@ produced using \link[smooth]{es} function.}
 
 \item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
-\code{"select"} means that a selection using \code{ic} should be done.
-\code{"combine"} will be available at some point in future...}
+\code{"select"} means that a selection using \code{ic} should be done.}
 
 \item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}
@@ -326,6 +319,8 @@ plot(forecast(ourModel, h=18, interval="simulated"))
 }
 \references{
 \itemize{
+\item Svetunkov, I., 2023. Smooth Forecasting with the Smooth Package in R. arXiv.
+\doi{10.48550/arXiv.2301.01790}
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)

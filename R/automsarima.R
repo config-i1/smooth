@@ -20,7 +20,8 @@
 #' @rdname msarima
 #' @export
 auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(y)),
-                         initial=c("optimal","backcasting","complete"), ic=c("AICc","AIC","BIC","BICc"),
+                         initial=c("backcasting","optimal","two-stage","complete"),
+                         ic=c("AICc","AIC","BIC","BICc"),
                          loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                          h=10, holdout=FALSE,
                          bounds=c("usual","admissible","none"),
@@ -52,7 +53,7 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
 
     return(adam(data, model="NNN", orders=orders, lags=lags, distribution="dnorm",
                 initial=initial, loss=loss, h=h, holdout=holdout, bounds=bounds,
-                silent=silent, regressors=regressors, ...))
+                silent=silent, regressors=regressors, adamETS=FALSE, ...))
 
 # Function estimates several msarima models and selects the best one using the selected information criterion.
 #
