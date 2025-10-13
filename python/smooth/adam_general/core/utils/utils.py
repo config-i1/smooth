@@ -2,7 +2,7 @@ import numpy as np
 from scipy import stats
 from scipy.linalg import eigvals
 from scipy.special import gamma, digamma, beta
-
+import pandas as pd
 
 def msdecompose(y, lags=[12], type="additive", smoother="ma"):
     """
@@ -191,6 +191,10 @@ def calculate_pacf(data, nlags=40):
 
 
 def calculate_likelihood(distribution, Etype, y, y_fitted, scale, other):
+    
+    # Fixes the output dimension
+    y = y.reshape(-1,1) 
+    
     if distribution == "dnorm":
         if Etype == "A":
             return stats.norm.logpdf(y, loc=y_fitted, scale=scale)

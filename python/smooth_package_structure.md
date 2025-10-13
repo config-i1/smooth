@@ -192,13 +192,13 @@ The prediction phase:
 
 ```
 ┌───────────┐     ┌──────────┐     ┌──────────┐     ┌───────────┐     ┌───────────┐
-│ User Input │────►│ Checker  │────►│ Creator  │────►│ Estimator │────►│ Forecaster│
+│ User Input│────►│ Checker  │────►│ Creator  │────►│ Estimator │────►│ Forecaster│
 └───────────┘     └──────────┘     └──────────┘     └───────────┘     └───────────┘
       │                                                                      │
       │                                                                      │
       │                     ┌───────────────────────┐                        │
-      └────────────────────► ADAM (Main Interface) ◄────────────────────────┘
-                           └───────────────────────┘
+      └────────────────────  ADAM (Main Interface)   ────────────────────────┘
+                            └───────────────────────┘
 ```
 
 ## Main Functions and Their Responsibilities

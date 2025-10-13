@@ -38,15 +38,18 @@ def CF(B,
                         explanatory_checked,
                         phi_dict,
                         constants_checked)
-    
     # If we estimate parameters of distribution, take it from the B vector
     if otherParameterEstimate:
+        
         other = abs(B[-1])
         if general['distribution_new'] in ["dgnorm", "dlgnorm"] and other < 0.25:
             # MODIFIED: reduced penalty value
             return 1e5 / other
     # Check the bounds, classical restrictions
+    #print(components_dict['components_number_ets_non_seasonal'])
+    
     if bounds == "usual":
+        
         if arima_checked['arima_model'] and any([arima_checked['ar_estimate'], arima_checked['ma_estimate']]):
             if arima_checked['ar_estimate'] and sum(-adamElements['arimaPolynomials']['arPolynomial'][1:]) >= 1:
                 arPolynomialMatrix[:, 0] = -adamElements['arimaPolynomials']['arPolynomial'][1:]
@@ -63,11 +66,12 @@ def CF(B,
                 if any(maPolyroots > 1):
                     # Return a large penalty value
                     return 1e100
-
+        
         if model_type_dict['ets_model']:
             # Strict constraint enforcement like in R
             # Check if any smoothing parameters are outside the [0,1] bounds
             if any(adamElements['vec_g'][:components_dict['components_number_ets']] > 1) or any(adamElements['vec_g'][:components_dict['components_number_ets']] < 0):
+                
                 return 1e100
             if model_type_dict['model_is_trendy']:
                 # Strict constraint enforcement like in R
@@ -77,18 +81,20 @@ def CF(B,
                     any(adamElements['vec_g'][components_dict['components_number_ets_non_seasonal']:
                                     components_dict['components_number_ets_non_seasonal'] + 
                                     components_dict['components_number_ets_seasonal']] > (1 - adamElements['vec_g'][0])):
+                    
                     return 1e100
             
             elif model_type_dict['model_is_seasonal'] and \
                     any(adamElements['vec_g'][components_dict['components_number_ets_non_seasonal']:
                                 components_dict['components_number_ets_non_seasonal'] + 
                                 components_dict['components_number_ets_seasonal']] > (1 - adamElements['vec_g'][0])):
+                    
                     return 1e100
 
             # Strict constraint enforcement like in R
             if phi_dict['phi_estimate'] and (adamElements['mat_f'][1, 1] > 1 or adamElements['mat_f'][1, 1] < 0):
                 return 1e100
-
+        
         # Not supporting regression model now
         # if explanatory_checked['xreg_model'] and regressors == "adapt":
         #     if any(adamElements['vec_g'][components_dict['components_number_ets'] + 
@@ -146,10 +152,9 @@ def CF(B,
     # Write down the initials in the recent profile
     #print(profile_dict['profiles_recent_table'])
     profile_dict['profiles_recent_table'][:] = adamElements['mat_vt'][:, :lags_dict['lags_model_max']]    
-
     # Convert pandas Series/DataFrames to numpy arrays
-    y_in_sample = np.asarray(observations_dict['y_in_sample'].values.flatten(), dtype=np.float64)
-    ot = np.asarray(observations_dict['ot'].values.flatten(), dtype=np.float64)
+    y_in_sample = np.asarray(observations_dict['y_in_sample'], dtype=np.float64)
+    ot = np.asarray(observations_dict['ot'], dtype=np.float64)
     mat_vt = np.asfortranarray(adamElements['mat_vt'], dtype=np.float64)
     mat_wt = np.asfortranarray(adamElements['mat_wt'], dtype=np.float64)
     mat_f = np.asfortranarray(adamElements['mat_f'], dtype=np.float64)
@@ -158,20 +163,19 @@ def CF(B,
     index_lookup_table = np.asfortranarray(profile_dict['index_lookup_table'], dtype=np.uint64)
     profiles_recent_table = np.asfortranarray(profile_dict['profiles_recent_table'], dtype=np.float64)
 
-
     # Print detailed debug information
-    #print('mat_vt shape:', mat_vt.shape, 'dtype:', mat_vt.dtype)
-    #print('mat_vt:', mat_vt)
-    #print('mat_wt shape:', mat_wt.shape, 'dtype:', mat_wt.dtype)
-    #print('mat_wt:', mat_wt)
-    #print('mat_f shape:', mat_f.shape, 'dtype:', mat_f.dtype)
-    #print('mat_f:', mat_f)
-    #print('vec_g shape:', vec_g.shape, 'dtype:', vec_g.dtype)
-    #print('vec_g:', vec_g)
-    #print('lags_model_all shape:', lags_model_all.shape, 'dtype:', lags_model_all.dtype)
-    #print('lags_model_all:', lags_model_all)
+    # print('mat_vt shape:', mat_vt.shape, 'dtype:', mat_vt.dtype)
+    # print('mat_vt:', mat_vt)
+    # print('mat_wt shape:', mat_wt.shape, 'dtype:', mat_wt.dtype)
+    # print('mat_wt:', mat_wt)
+    # print('mat_f shape:', mat_f.shape, 'dtype:', mat_f.dtype)
+    # print('mat_f:', mat_f)
+    # print('vec_g shape:', vec_g.shape, 'dtype:', vec_g.dtype)
+    # print('vec_g:', vec_g)
+    # print('lags_model_all shape:', lags_model_all.shape, 'dtype:', lags_model_all.dtype)
+    # print('lags_model_all:', lags_model_all)
     #print('index_lookup_table shape:', index_lookup_table.shape, 'dtype:', index_lookup_table)
-    #print('profiles_recent_table shape:', profiles_recent_table.shape, 'dtype:', profiles_recent_table)
+    # print('profiles_recent_table shape:', profiles_recent_table.shape, 'dtype:', profiles_recent_table)
     # print('error_type:', model_type_dict['error_type'])
     # print('trend_type:', model_type_dict['trend_type'])
     # print('season_type:', model_type_dict['season_type'])
@@ -184,7 +188,6 @@ def CF(B,
     # print('y_in_sample:', y_in_sample)
     # print('ot shape:', ot.shape, 'dtype:', ot.dtype)
     # print('ot:', ot)
-    #print('checkpoint 1', flush=True)
     
     adam_fitted = adam_fitter(
         matrixVt=mat_vt,
@@ -206,25 +209,22 @@ def CF(B,
         vectorOt=ot,  # Ensure correct mapping
         backcast=any([t == "complete" or t == "backcasting" for t in initials_checked['initial_type']])
     )
-    #print(adam_fitted)
 
-    #print('adam_fitted', adam_fitted)
-    #print("Checkpoint 4", flush=True)
 
     #adam_fitted['errors'] = np.repeat()
 
     #print('adam_fitted')
     #print(adam_fitted)
-    
     if not general['multisteps']:
         if general['loss'] == "likelihood":
+            
             scale = scaler(general['distribution_new'], 
                             model_type_dict['error_type'], 
                             adam_fitted['errors'][observations_dict['ot_logical']],
                             adam_fitted['yFitted'][observations_dict['ot_logical']], 
                             observations_dict['obs_in_sample'], 
                             other)
-
+            #print(adam_fitted['errors'])
             # Calculate the likelihood
             CFValue = -np.sum(calculate_likelihood(general['distribution_new'], 
                                                     model_type_dict['error_type'], 
@@ -232,7 +232,7 @@ def CF(B,
                                                     adam_fitted['yFitted'][observations_dict['ot_logical']], 
                                                     scale, 
                                                     other))
-
+            #print(CFValue)
             # Differential entropy for the logLik of occurrence model
             if observations_dict.get('occurrence_model', False) or any(~observations_dict['ot_logical']):
                 CFValueEntropy = calculate_entropy(general['distribution_new'], 
@@ -312,9 +312,8 @@ def CF(B,
 
         #CFValue = calculate_multistep_loss(general['loss'], adamErrors, observations_dict['obs_in_sample'], general['horizon'])
     if np.isnan(CFValue):
-        print("CFValue is NaN")
+        #print("CFValue is NaN")
         CFValue = 1e300
-    #print("CFValue:", CFValue)
     return CFValue
 
 
