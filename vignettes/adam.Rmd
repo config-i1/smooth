@@ -117,6 +117,7 @@ A brand new thing in the function is the possibility to use several frequencies 
 In order to show how it works, we will generate an artificial time series, inspired by half-hourly electricity demand using `sim.gum()` function:
 
 ```{r GUMData}
+set.seed(41)
 ordersGUM <- c(1,1,1)
 lagsGUM <- c(1,48,336)
 initialGUM1 <- -25381.7

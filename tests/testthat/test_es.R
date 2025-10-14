@@ -3,7 +3,7 @@ context("Tests for es() function");
 # Basic ETS selection
 testModel <- es(BJsales, silent=TRUE);
 test_that("Test ETS selection on BJsales", {
-    expect_equal(length(testModel$ICs), 9);
+    expect_equal(length(testModel$ICs), 5);
 })
 
 test_that("Test damped-trend ETS on BJsales", {

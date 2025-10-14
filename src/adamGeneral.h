@@ -186,116 +186,232 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                             unsigned int const &nETS, unsigned int const &nNonSeasonal,
                             unsigned int const &nSeasonal, unsigned int const &nArima,
                             unsigned int const &nXreg, unsigned int const &nComponents,
-                            bool const &constant, arma::vec const &vectorG, double const error){
+                            bool const &constant, arma::vec const &vectorG, double const error,
+                            double const fitted, bool const &adamETS){
     arma::vec g(matrixVt.n_rows, arma::fill::ones);
 
     if(nETS>0){
-        // AZZ
-        switch(E){
-        case 'A':
-            // ANZ
-            switch(T){
-            case 'N':
-                switch(S){
-                case 'M':
-                    g(0) = 1 / as_scalar(rowvecW.cols(1,nSeasonal) * matrixVt.rows(1,nSeasonal));
-                    g.rows(1,nSeasonal).fill(1 / matrixVt(0));
-                    // // Explanatory variables
-                    // if(nComponents > (nETS)){
-                    //     /* g.rows(1,nSeasonal) = 1 / (1/g(1) +
-                    //      as_scalar(rowvecW.cols(nSeasonal,nComponents-1) * matrixVt.rows(nSeasonal,nComponents))); */
-                    //     g.rows(nETS,nComponents-1) = 1/matrixVt.rows(nETS,nComponents-1);
-                    // }
+    // If this is ADAM ETS, use different functions
+        if(adamETS){
+            g = vectorG * error;
+            switch(E){
+            // AZZ
+            case 'A':
+                // ANZ
+                switch(T){
+                case 'N':
+                    switch(S){
+                    case 'M':
+                        g.row(0) = vectorG.row(0) * error / as_scalar(rowvecW.cols(1,nSeasonal) * matrixVt.rows(1,nSeasonal));
+                        // !!! This sort of thing can be written as a function not to duplicate the principle...
+                        g.rows(1,nSeasonal) = matrixVt.rows(1,nSeasonal) %
+                            (abs(exp(vectorG.rows(1,nSeasonal) * log(std::complex<double>(1+error/fitted)))) - 1);
+                        break;
+                        // Nothing to do in the other cases
+                    }
                     break;
-                }
-                break;
                 // AAZ
-            case 'A':
-                switch(S){
-                case 'M':
-                    g.rows(0,1) = g.rows(0,1) / as_scalar(exp(rowvecW.cols(2,2+nSeasonal-1) * log(matrixVt.rows(2,2+nSeasonal-1))));
-                    g.rows(2,2+nSeasonal-1).fill(1 / as_scalar(rowvecW.cols(0,1) * matrixVt.rows(0,1)));
-                    // // Explanatory variables
-                    // if(nComponents > (nETS)){
-                    //     /*g.rows(2,2+nSeasonal-1) = 1 / (1/g(1) +
-                    //       as_scalar(rowvecW.cols(nSeasonal,nComponents) * matrixVt.rows(nSeasonal,nComponents)));*/
-                    //     g.rows(nETS,nComponents-1) = 1/matrixVt.rows(nETS,nComponents-1);
-                    // }
+                case 'A':
+                    switch(S){
+                    case 'M':
+                        g.rows(0,1) = vectorG.rows(0,1) * error / as_scalar(abs(exp(rowvecW.cols(2,2+nSeasonal-1) *
+                            log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(2,2+nSeasonal-1))))));
+                    // Complex is needed to avoid issues with mixed models
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) %
+                            (abs(exp(vectorG.rows(2,2+nSeasonal-1) * log(std::complex<double>(1+error/fitted)))) - 1);
+                        break;
+                        // Nothing to do in the other cases
+                    }
                     break;
-                }
-                break;
                 // AMZ
-            case 'M':
-                switch(S){
-                case 'N':
-                case 'A':
-                    g(1) = g(1) / matrixVt(0);
-                    break;
                 case 'M':
-                    g(0) = g(0) / as_scalar(rowvecW.cols(2,2+nSeasonal-1) * matrixVt.rows(2,2+nSeasonal-1));
-                    g(1) = g(1) / (matrixVt(0) * as_scalar(exp(rowvecW.cols(2,2+nSeasonal-1) * log(matrixVt.rows(2,2+nSeasonal-1)))));
-                    g.rows(2,2+nSeasonal-1) = g.rows(2,2+nSeasonal-1) / as_scalar(exp(rowvecW.cols(0,1) * log(matrixVt.rows(0,1))));
+                    // Complex is needed to avoid issues with mixed models
+                    g.row(1) = exp(matrixF(1,1) * log(matrixVt.row(1))) *
+                        (abs(exp(vectorG.row(1) * log(std::complex<double>(1+error/fitted)))) - 1);
+                    switch(S){
+                    case 'N':
+                    case 'A':
+                        g.row(1) = vectorG.row(1) * error / matrixVt.row(0);
+                        break;
+                    case 'M':
+                        g.row(0) = vectorG.row(0) * error / as_scalar(rowvecW.cols(2,2+nSeasonal-1) * matrixVt.rows(2,2+nSeasonal-1));
+                    // Complex is needed to avoid issues with mixed models
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) %
+                            (abs(exp(vectorG.rows(2,2+nSeasonal-1) * log(std::complex<double>(1+error/fitted)))) - 1);
+                        break;
+                    }
                     break;
                 }
                 break;
-            }
-            break;
             // MZZ
-        case 'M':
-            // MNZ
-            switch(T){
-            case 'N':
-                switch(S){
-                case 'N':
-                    g = matrixVt;
-                    break;
-                case 'A':
-                    g.rows(0,nSeasonal) = matrixVt.rows(0,nSeasonal);
-                    break;
-                case 'M':
-                    g = matrixVt;
-                    break;
-                }
-                break;
-                // MAZ
-            case 'A':
-                switch(S){
-                case 'N':
-                    g.rows(0,1).fill(as_scalar(rowvecW.cols(0,1) * matrixVt.rows(0,1)));
-                    break;
-                case 'A':
-                    g.fill(as_scalar(rowvecW * matrixVt));
-                    // Explanatory variables
-                    // if(nComponents > (nETS)){
-                    //     g.rows(nETS,nComponents-1) = matrixVt.rows(nETS,nComponents-1);
-                    // }
-                    break;
-                case 'M':
-                    g.rows(0,1).fill(as_scalar(rowvecW.cols(0,1) * matrixVt.rows(0,1)));
-                    g.rows(2,nComponents-1) = matrixVt.rows(2,nComponents-1);
-                    break;
-                }
-                break;
-                // MMZ
             case 'M':
-                switch(S){
+                // MNZ
+                switch(T){
                 case 'N':
-                    g.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,nNonSeasonal-1)));
+                    g.row(0) = matrixVt.row(0) * (abs(exp(vectorG.row(0) * log(std::complex<double>(1+error)))) - 1);
+                    switch(S){
+                    case 'A':
+                        g.rows(1,nSeasonal) = vectorG.rows(1,nSeasonal) * fitted * error;
+                        break;
+                    case 'M':
+                        g.rows(1,nSeasonal) = matrixVt.rows(1,nSeasonal) %
+                            (abs(exp(vectorG.rows(1,nSeasonal) * log(std::complex<double>(1+error)))) - 1);
+                        break;
+                    }
                     break;
+                // MAZ
                 case 'A':
-                    g.rows(0,nComponents-1).fill(as_scalar(exp(rowvecW.cols(0,1) * log(matrixVt.rows(0,1))) +
-                        rowvecW.cols(2,nETS-1) * matrixVt.rows(2,nETS-1)));
-                    // g(0) = g(0) / matrixVt(1);
-                    g(1) = g(1) / matrixVt(0);
+                    // Complex is needed to avoid issues with mixed models
+                    g.row(0) = matrixF.submat(0,0,0,1) * matrixVt.rows(0,1) *
+                        (abs(exp(vectorG.row(0) * log(std::complex<double>(1+error)))) - 1);
+                    switch(S){
+                    case 'N':
+                        g.row(1) = vectorG.row(1) * fitted * error;
+                        break;
+                    case 'A':
+                        g.row(1) = vectorG.row(1) * fitted * error;
+                        g.rows(2,2+nSeasonal-1) = vectorG.rows(2,2+nSeasonal-1) * error;
+                        break;
+                    case 'M':
+                        g.row(1) = matrixF.submat(0,0,0,1) * matrixVt.rows(0,1) * vectorG.row(1) * error;
+                        // Complex is needed to avoid issues with mixed models
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) %
+                            (arma::abs(exp(vectorG.rows(2,2+nSeasonal-1) * log(std::complex<double>(1+error)))) - 1);
+                        break;
+                    }
                     break;
+                // MMZ
                 case 'M':
-                    g.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,nNonSeasonal-1)));
-                    g.rows(2,nComponents-1) = matrixVt.rows(2,nComponents-1);
+                    // Complex is needed to avoid issues with mixed models
+                    g.row(0) = arma::abs(exp(matrixF.submat(0,0,0,1) *
+                                               log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,1))))) *
+                                               (abs(exp(vectorG.row(0) * log(std::complex<double>(1+error)))) - 1);
+                    g.row(1) = exp(matrixF(1,1) * log(matrixVt.row(1))) *
+                        (abs(exp(vectorG.row(1) * log(std::complex<double>(1+error)))) - 1);
+                    switch(S){
+                    case 'A':
+                        g.rows(2,2+nSeasonal-1) = vectorG.rows(2,2+nSeasonal-1) * fitted * error;
+                        break;
+                    case 'M':
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) %
+                            (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error)) - 1);
+
+                        break;
+                    }
                     break;
                 }
                 break;
             }
-            break;
+        }
+    // If this is the conventional ETS...
+        else{
+            // AZZ
+            switch(E){
+            case 'A':
+                // ANZ
+                switch(T){
+                case 'N':
+                    switch(S){
+                    case 'M':
+                        g(0) = 1 / as_scalar(rowvecW.cols(1,nSeasonal) * matrixVt.rows(1,nSeasonal));
+                        g.rows(1,nSeasonal).fill(1 / matrixVt(0));
+                        // // Explanatory variables
+                        // if(nComponents > (nETS)){
+                        //     /* g.rows(1,nSeasonal) = 1 / (1/g(1) +
+                        //      as_scalar(rowvecW.cols(nSeasonal,nComponents-1) * matrixVt.rows(nSeasonal,nComponents))); */
+                        //     g.rows(nETS,nComponents-1) = 1/matrixVt.rows(nETS,nComponents-1);
+                        // }
+                        break;
+                    }
+                    break;
+                    // AAZ
+                case 'A':
+                    switch(S){
+                    case 'M':
+                        g.rows(0,1) = g.rows(0,1) / as_scalar(exp(rowvecW.cols(2,2+nSeasonal-1) * log(matrixVt.rows(2,2+nSeasonal-1))));
+                        g.rows(2,2+nSeasonal-1).fill(1 / as_scalar(rowvecW.cols(0,1) * matrixVt.rows(0,1)));
+                        // // Explanatory variables
+                        // if(nComponents > (nETS)){
+                        //     /*g.rows(2,2+nSeasonal-1) = 1 / (1/g(1) +
+                        //       as_scalar(rowvecW.cols(nSeasonal,nComponents) * matrixVt.rows(nSeasonal,nComponents)));*/
+                        //     g.rows(nETS,nComponents-1) = 1/matrixVt.rows(nETS,nComponents-1);
+                        // }
+                        break;
+                    }
+                    break;
+                    // AMZ
+                case 'M':
+                    switch(S){
+                    case 'N':
+                    case 'A':
+                        g(1) = g(1) / matrixVt(0);
+                        break;
+                    case 'M':
+                        g(0) = g(0) / as_scalar(rowvecW.cols(2,2+nSeasonal-1) * matrixVt.rows(2,2+nSeasonal-1));
+                        g(1) = g(1) / (matrixVt(0) * as_scalar(exp(rowvecW.cols(2,2+nSeasonal-1) * log(matrixVt.rows(2,2+nSeasonal-1)))));
+                        g.rows(2,2+nSeasonal-1) = g.rows(2,2+nSeasonal-1) / as_scalar(exp(rowvecW.cols(0,1) * log(matrixVt.rows(0,1))));
+                        break;
+                    }
+                    break;
+                }
+                break;
+                // MZZ
+            case 'M':
+                // MNZ
+                switch(T){
+                case 'N':
+                    switch(S){
+                    case 'N':
+                        g = matrixVt;
+                        break;
+                    case 'A':
+                        g.rows(0,nSeasonal) = matrixVt.rows(0,nSeasonal);
+                        break;
+                    case 'M':
+                        g = matrixVt;
+                        break;
+                    }
+                    break;
+                    // MAZ
+                case 'A':
+                    switch(S){
+                    case 'N':
+                        g.rows(0,1).fill(as_scalar(rowvecW.cols(0,1) * matrixVt.rows(0,1)));
+                        break;
+                    case 'A':
+                        g.fill(as_scalar(rowvecW * matrixVt));
+                        // Explanatory variables
+                        // if(nComponents > (nETS)){
+                        //     g.rows(nETS,nComponents-1) = matrixVt.rows(nETS,nComponents-1);
+                        // }
+                        break;
+                    case 'M':
+                        g.rows(0,1).fill(as_scalar(rowvecW.cols(0,1) * matrixVt.rows(0,1)));
+                        g.rows(2,nComponents-1) = matrixVt.rows(2,nComponents-1);
+                        break;
+                    }
+                    break;
+                    // MMZ
+                case 'M':
+                    switch(S){
+                    case 'N':
+                        g.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,nNonSeasonal-1)));
+                        break;
+                    case 'A':
+                        g.rows(0,nComponents-1).fill(as_scalar(exp(rowvecW.cols(0,1) * log(matrixVt.rows(0,1))) +
+                            rowvecW.cols(2,nETS-1) * matrixVt.rows(2,nETS-1)));
+                        // g(0) = g(0) / matrixVt(1);
+                        g(1) = g(1) / matrixVt(0);
+                        break;
+                    case 'M':
+                        g.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,nNonSeasonal-1)));
+                        g.rows(2,nComponents-1) = matrixVt.rows(2,nComponents-1);
+                        break;
+                    }
+                    break;
+                }
+                break;
+            }
         }
     }
 
@@ -315,10 +431,19 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
         g.rows(find_nonfinite(g)).fill(0);
     }
 
-    // Do the multiplication in order to get the correct g(v) value
-    g = g % vectorG * error;
+    if(!adamETS){
+        // Do the multiplication in order to get the correct g(v) value
+        g = g % vectorG * error;
+    }
+    else{
+        if(nXreg>0){
+            // For adam, only the xreg part needs g values
+            g.rows(nETS+nArima,nComponents-1) = g.rows(nETS+nArima,nComponents-1) % vectorG.rows(nETS+nArima,nComponents-1) * error;
+        }
+    }
 
     // If there are arima components, make sure that the g is correct for multiplicative error type
+    // This goes last not to mess g with additional values from vectorG (line 432)
     if(nArima>0 && E=='M'){
         g.rows(nETS,nETS+nArima-1) =
             adamFvalue(matrixVt, matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal,

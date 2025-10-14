@@ -507,7 +507,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     lags <- c(1,unique(lags[lags>1]));
 
     # Warning if the lags length is higher than the sample size
-    if(max(lags) >= obsInSample){
+    if(max(lags) > obsInSample){
         warning("The maximum lags value is ", max(lags),
                 ", while the sample size is ", obsInSample,
                 ". I cannot fit the seasonal model in this case. ",
@@ -1940,16 +1940,29 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 # This part takes care of explanatory variables potentially dropped by ALM
                 # This is needed to get the correct xregData
                 if(additionalManipulations){
+                    # If we have a data.frame and there is a factor, we need to compare variables
+                    # differently
+                    xregFactors <- FALSE
+                    if(is.data.frame(xreg) && any(sapply(xreg, is.factor))){
+                        xregFactors[] <- TRUE;
+                    }
                     xregExpanded <- colnames(model.matrix(xregData,data=xregData));
                     # Remove intercept
                     if(any(xregExpanded=="(Intercept)")){
                         xregExpanded <- xregExpanded[-1];
                     }
+                    # Fix formula in case some variables were dropped by alm()
                     if(any(!(xregExpanded %in% xregNames))){
                         xregNamesRetained <- rep(TRUE,length(xregNamesOriginal));
                         for(i in 1:length(xregNamesOriginal)){
-                            xregNamesRetained[i] <- any(grepl(xregNamesOriginal[i], xregNames));
+                            if(xregFactors){
+                                xregNamesRetained[i] <- any(grepl(xregNamesOriginal[i], xregNames));
+                            }
+                            else{
+                                xregNamesRetained[i] <- any(xregNamesOriginal[i] %in% xregNames);
+                            }
                         }
+
                         # If the dropped variables are in the formula, update the formula
                         if(length(all.vars(formulaToUse))>2 &&
                            any(all.vars(formulaToUse) %in% xregNamesOriginal[!xregNamesRetained])){
@@ -1978,6 +1991,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                         xregNamesModified <- colnames(xregModelMatrix)[-1];
                     }
                     else{
+                        # Drop variables that were removed by alm()
                         xregModelMatrix <- model.matrix(xregData,data=xregData);
                         xregNamesModified <- xregNames;
                     }
@@ -2667,7 +2681,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     }
                 }
                 # We have enough observations for seasonal model
-                if((obsNonzero > (2*lagsModelMax)) && lagsModelMax!=1){
+                if((obsNonzero > (lagsModelMax)) && lagsModelMax!=1){
                     if(any(Stype==c("Z","X","A"))){
                         modelsPool <- c(modelsPool,"ANA");
                     }
@@ -2726,7 +2740,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                                                    substr(modelsPool,nchar(modelsPool),nchar(modelsPool))!="N")];
                 }
                 # We don't have enough observations for seasonal models
-                if(obsNonzero <= 2*lagsModelMax){
+                if(obsNonzero <= lagsModelMax){
                     modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N"];
                 }
                 # We don't have enough observations for damped trend
@@ -2774,7 +2788,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     #                      substr(model,nchar(model),nchar(model))!="N")];
                 }
                 # We don't have enough observations for seasonal models
-                if(obsNonzero <= 2*lagsModelMax){
+                if(obsNonzero <= lagsModelMax){
                     model <- paste0(substr(model,1,2),"N");
                     # model <- model[substr(model,nchar(model),nchar(model))=="N"];
                 }
