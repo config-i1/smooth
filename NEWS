@@ -1,18 +1,22 @@
-smooth v4.3.1 (Release data: 2025-08-12)
+smooth v4.3.1 (Release data: 2025-10-05)
 =======
 
 Changes:
 * es() now has model="ZXZ" by default.
-* adam() now has the parameter ets, allowing to select between two formulations: conventional and adam.
+* adam() now has the parameter "ets"", allowing to select between two formulations: conventional and adam. We will switch adam() to the "adam" one starting from 4.5.0. es() will always use the "conventional". For now, we are testing the new one to see how it performs.
 * rmultistep() can now return additive or multiplicative forecast errors depending on what user asks.
 * ces() works with provided parameters again.
 * Tuning of Hessian calculation for CES.
 * ces() now supports multiple seasonalities.
+* New initialisation of smoothing parameters in adam(). This guarantees that models do not break with backcasting, but leads to slight deterioration in accuracy due to selection of different models.
+* Allow seasonal ETS on very small sample (e.g. with lags=12 on 12 observations in case of backcasting).
 
 Bugfixes:
 * A fix for adamX with a special case, when formula is provided, the data is a matrix and there are partial matches in names of variables.
 * rmultistep() and multicov() now work with CES and GUM.
 * Fixed a bug in the logic of the C++ function Errorer which would lead to the wrong forecast error matrix. This impacted rmultistep() and multicov() functions.
+* Fixed a bug in msdecompose where the seasonal profile would not be recorded correctly for the multiple seasonal cases.
+* SARIMA(0,1,0) now works on small data, producing Seasonal Naive in adam().
 
 
 smooth v4.3.0 (Release data: 2025-06-30)

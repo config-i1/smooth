@@ -507,7 +507,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     lags <- c(1,unique(lags[lags>1]));
 
     # Warning if the lags length is higher than the sample size
-    if(max(lags) >= obsInSample){
+    if(max(lags) > obsInSample){
         warning("The maximum lags value is ", max(lags),
                 ", while the sample size is ", obsInSample,
                 ". I cannot fit the seasonal model in this case. ",
@@ -2681,7 +2681,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     }
                 }
                 # We have enough observations for seasonal model
-                if((obsNonzero > (2*lagsModelMax)) && lagsModelMax!=1){
+                if((obsNonzero > (lagsModelMax)) && lagsModelMax!=1){
                     if(any(Stype==c("Z","X","A"))){
                         modelsPool <- c(modelsPool,"ANA");
                     }
@@ -2740,7 +2740,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                                                    substr(modelsPool,nchar(modelsPool),nchar(modelsPool))!="N")];
                 }
                 # We don't have enough observations for seasonal models
-                if(obsNonzero <= 2*lagsModelMax){
+                if(obsNonzero <= lagsModelMax){
                     modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N"];
                 }
                 # We don't have enough observations for damped trend
@@ -2788,7 +2788,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     #                      substr(model,nchar(model),nchar(model))!="N")];
                 }
                 # We don't have enough observations for seasonal models
-                if(obsNonzero <= 2*lagsModelMax){
+                if(obsNonzero <= lagsModelMax){
                     model <- paste0(substr(model,1,2),"N");
                     # model <- model[substr(model,nchar(model),nchar(model))=="N"];
                 }

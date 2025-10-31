@@ -901,7 +901,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         if(obsNonzero>=lagsModelMax*2){
                             # If either Etype or Stype are multiplicative, do multiplicative decomposition
                             decompositionType <- c("additive","multiplicative")[any(c(Etype,Stype)=="M")+1];
-                            yDecomposition <- msdecompose(yInSample, lags[lags!=1], type=decompositionType,
+                            yDecomposition <- msdecompose(yInSample, lags=lags[lags!=1], type=decompositionType,
                                                           smoother=smoother);
                             j <- 1;
                             # level
@@ -1164,12 +1164,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 if(initialArimaEstimate){
                     matVt[componentsNumberETS+1:componentsNumberARIMA, 1:initialArimaNumber] <-
                         switch(Etype, "A"=0, "M"=1);
-                    if(any(lags>1)){
+                    # Do decomposition if we have at least 2 years of data
+                    if(any(lags>1) && obsInSample > max(lags)*2){
                         yDecomposition <- tail(msdecompose(yInSample,
-                                                           lags[lags!=1],
+                                                           lags=lags[lags!=1],
                                                            type=switch(Etype,
                                                                        "A"="additive",
                                                                        "M"="multiplicative"))$seasonal,1)[[1]];
+                    }
+                    else if(any(lags>1) && obsInSample <= max(lags)*2){
+                        yDecomposition <- yInSample[otLogical][1:obsInSample];
                     }
                     else{
                         yDecomposition <- switch(Etype,
