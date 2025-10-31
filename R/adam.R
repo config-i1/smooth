@@ -898,7 +898,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 if(initialEstimate){
                     # For the seasonal models
                     if(modelIsSeasonal){
-                        if(obsNonzero>=lagsModelMax*2){
+                        # if(obsNonzero>=lagsModelMax*2){
                             # If either Etype or Stype are multiplicative, do multiplicative decomposition
                             decompositionType <- c("additive","multiplicative")[any(c(Etype,Stype)=="M")+1];
                             # !!! Use deterministic trend. This way g=0 means we fit the global model to the data
@@ -909,9 +909,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             if(initialLevelEstimate){
                                 # matVt[j,1:lagsModelMax] <- yDecomposition$initial[1];
                                 matVt[j,1:lagsModelMax] <- switch(Ttype,
-                                                                  "A"=yDecomposition$gta[1],
                                                                   "M"=yDecomposition$gtm[1],
-                                                                  yDecomposition$initial[1]);
+                                                                  yDecomposition$gta[1]);
                                 if(xregModel){
                                     if(Etype=="A"){
                                         matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
@@ -1013,91 +1012,92 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                     }
                                 }
                             }
-                        }
-                        else{
-                            j <- 1;
-                            # level
-                            if(initialLevelEstimate){
-                                matVt[j,1:lagsModelMax] <- mean(yInSample[1:min(lagsModelMax, obsInSample)]);
-                                if(xregModel){
-                                    if(Etype=="A"){
-                                        matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
-                                            as.vector(xregModelInitials[[1]]$initialXreg %*% xregData[1,]);
-                                    }
-                                    else{
-                                        matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] /
-                                            as.vector(exp(xregModelInitials[[2]]$initialXreg %*% xregData[1,]));
-                                    }
-                                }
-                            }
-                            else{
-                                matVt[j,1:lagsModelMax] <- initialLevel;
-                            }
-                            j <- j+1;
-                            if(modelIsTrendy){
-                                if(initialTrendEstimate){
-                                    if(Ttype=="A"){
-                                        # trend
-                                        matVt[j,1:lagsModelMax] <- yInSample[2]-yInSample[1];
-                                    }
-                                    else if(Ttype=="M"){
-                                        if(initialLevelEstimate){
-                                            # level fix
-                                            matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
-                                        }
-                                        # trend
-                                        matVt[j,1:lagsModelMax] <- yInSample[2]/yInSample[1];
-                                    }
-                                    # This is a failsafe for multiplicative trend models, so that the thing does not explode
-                                    if(Ttype=="M" && any(matVt[j,1:lagsModelMax]>1.1)){
-                                        matVt[j,1:lagsModelMax] <- 1;
-                                    }
-                                }
-                                else{
-                                    matVt[j,1:lagsModelMax] <- initialTrend;
-                                }
+                        # }
+                        # else{
+                        #     j <- 1;
+                        #     # level
+                        #     if(initialLevelEstimate){
+                        #         matVt[j,1:lagsModelMax] <- mean(yInSample[1:min(lagsModelMax, obsInSample)]);
+                        #         if(xregModel){
+                        #             if(Etype=="A"){
+                        #                 matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
+                        #                     as.vector(xregModelInitials[[1]]$initialXreg %*% xregData[1,]);
+                        #             }
+                        #             else{
+                        #                 matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] /
+                        #                     as.vector(exp(xregModelInitials[[2]]$initialXreg %*% xregData[1,]));
+                        #             }
+                        #         }
+                        #     }
+                        #     else{
+                        #         matVt[j,1:lagsModelMax] <- initialLevel;
+                        #     }
+                        #     j <- j+1;
+                        #     if(modelIsTrendy){
+                        #         if(initialTrendEstimate){
+                        #             if(Ttype=="A"){
+                        #                 # trend
+                        #                 matVt[j,1:lagsModelMax] <- yInSample[2]-yInSample[1];
+                        #             }
+                        #             else if(Ttype=="M"){
+                        #                 if(initialLevelEstimate){
+                        #                     # level fix
+                        #                     matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
+                        #                 }
+                        #                 # trend
+                        #                 matVt[j,1:lagsModelMax] <- yInSample[2]/yInSample[1];
+                        #             }
+                        #             # This is a failsafe for multiplicative trend models, so that the thing does not explode
+                        #             if(Ttype=="M" && any(matVt[j,1:lagsModelMax]>1.1)){
+                        #                 matVt[j,1:lagsModelMax] <- 1;
+                        #             }
+                        #         }
+                        #         else{
+                        #             matVt[j,1:lagsModelMax] <- initialTrend;
+                        #         }
+                        #
+                        #         # Do roll back. Especially useful for backcasting and multisteps
+                        #         if(Ttype=="A"){
+                        #             matVt[j-1,1:lagsModelMax] <- matVt[j-1,1] - matVt[j,1]*lagsModelMax;
+                        #         }
+                        #         else if(Ttype=="M"){
+                        #             matVt[j-1,1:lagsModelMax] <- matVt[j-1,1] / matVt[j,1]^lagsModelMax;
+                        #         }
+                        #         j <- j+1;
+                        #     }
+                        #     #### Seasonal components
+                        #     # For pure models use stuff as is
+                        #     if(Stype=="A"){
+                        #         for(i in 1:componentsNumberETSSeasonal){
+                        #             if(initialSeasonalEstimate[i]){
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]-matVt[1,1];
+                        #                 # Renormalise the initial seasons
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] -
+                        #                     mean(matVt[i+j-1,1:lagsModel[i+j-1]]);
+                        #             }
+                        #             else{
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
+                        #             }
+                        #         }
+                        #     }
+                        #     # For mixed models use a different set of initials
+                        #     else{
+                        #         for(i in 1:componentsNumberETSSeasonal){
+                        #             if(initialSeasonalEstimate[i]){
+                        #                 # abs() is needed for mixed ETS+ARIMA
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]/abs(matVt[1,1]);
+                        #                 # Renormalise the initial seasons
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] /
+                        #                     exp(mean(log(matVt[i+j-1,1:lagsModel[i+j-1]])));
+                        #             }
+                        #             else{
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
+                        #             }
+                        #         }
+                        #     }
+                        # }
 
-                                # Do roll back. Especially useful for backcasting and multisteps
-                                if(Ttype=="A"){
-                                    matVt[j-1,1:lagsModelMax] <- matVt[j-1,1] - matVt[j,1]*lagsModelMax;
-                                }
-                                else if(Ttype=="M"){
-                                    matVt[j-1,1:lagsModelMax] <- matVt[j-1,1] / matVt[j,1]^lagsModelMax;
-                                }
-                                j <- j+1;
-                            }
-                            #### Seasonal components
-                            # For pure models use stuff as is
-                            if(Stype=="A"){
-                                for(i in 1:componentsNumberETSSeasonal){
-                                    if(initialSeasonalEstimate[i]){
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]-matVt[1,1];
-                                        # Renormalise the initial seasons
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] -
-                                            mean(matVt[i+j-1,1:lagsModel[i+j-1]]);
-                                    }
-                                    else{
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
-                                    }
-                                }
-                            }
-                            # For mixed models use a different set of initials
-                            else{
-                                for(i in 1:componentsNumberETSSeasonal){
-                                    if(initialSeasonalEstimate[i]){
-                                        # abs() is needed for mixed ETS+ARIMA
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]/abs(matVt[1,1]);
-                                        # Renormalise the initial seasons
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] /
-                                            exp(mean(log(matVt[i+j-1,1:lagsModel[i+j-1]])));
-                                    }
-                                    else{
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
-                                    }
-                                }
-                            }
-                        }
-
+                        # Failsafe in case negatives were produced
                         if(Etype=="M" && matVt[1,1]<=0){
                             matVt[1,1:lagsModelMax] <- yInSample[1];
                         }
@@ -1136,6 +1136,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                 matVt[2,1:lagsModelMax] <- initialTrend;
                             }
                         }
+                        # Failsafe in case negatives were produced
                         if(Etype=="M" && matVt[1,1]<=0){
                             matVt[1,1:lagsModelMax] <- yInSample[1];
                         }
