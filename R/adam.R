@@ -1132,6 +1132,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                 matVt[2,1:lagsModelMax] <- initialTrend;
                             }
                         }
+                        if(Etype=="M" && matVt[1,1]<=0){
+                            matVt[1,1:lagsModelMax] <- yInSample[1];
+                        }
                     }
 
                     if(initialLevelEstimate && Etype=="M" && matVt[1,lagsModelMax]==0){
