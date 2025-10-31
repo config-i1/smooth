@@ -1097,6 +1097,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                 }
                             }
                         }
+
+                        if(Etype=="M" && matVt[1,1]<=0){
+                            matVt[1,1:lagsModelMax] <- yInSample[1];
+                        }
                     }
                     # Non-seasonal models
                     else{
