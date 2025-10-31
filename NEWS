@@ -4,6 +4,8 @@ smooth v4.3.2 (Release data: 2025-10-31)
 Changes:
 * msdecompose() now also returns gta and gtm, which correspond to the parameters for the Global Trend, Additive and the Global Trend Multiplicative models. This is needed for adam().
 * New ETS initial values to make sure that the backcasting produces sensible values for the global level models.
+* Removed some heuristics in adam() for the initialisation on small samples - this is now handled by the msdecompose.
+* lowess is now the default smoother in adam(), when calling for the msdecompose. This is better than "ma" because it saves the sample and is more robust.
 
 
 smooth v4.3.1 (Release data: 2025-10-05)
