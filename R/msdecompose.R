@@ -182,19 +182,24 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
     # Initial level and trend
     initial <- c(ySmooth[[lagsLength]][!is.na(ySmooth[[lagsLength]])][1],
                  mean(diff(ySmooth[[lagsLength]]),na.rm=T));
-    # Fix the initial, to get to the beginning of the sample
-    initial[1] <- initial[1] - initial[2]*floor(max(lags)/2);
+
+    if(smoother=="ma"){
+        # Fix the initial, to get to the beginning of the sample
+        initial[1] <- initial[1] - initial[2]*floor(max(lags)/2);
+    }
     names(initial) <- c("level","trend");
-    # Do the same with the deterministic trend
-    trendDetermAdd[1] <- trendDetermAdd[1] - trendDetermAdd[2]*floor(max(lags)/2);
+
+    # Move the trend back to start it off-sample in case of ADAM
+    trendDetermAdd[1] <- trendDetermAdd[1] - trendDetermAdd[2]*max(lags);
 
     # Return to the original scale
     if(type=="multiplicative"){
         initial[] <- exp(initial);
         trend[] <- exp(trend);
+        # Sort out additive/multiplicative trend for ADAM
         trendDetermMult <- exp(trendDetermAdd);
         trendDetermAdd <- .lm.fit(X,trend[!is.na(trend)])$coefficients;
-        trendDetermAdd[1] <- trendDetermAdd[1] - trendDetermAdd[2]*floor(max(lags)/2);
+        trendDetermAdd[1] <- trendDetermAdd[1] - trendDetermAdd[2]*max(lags);
         if(seasonalLags){
             patterns[] <- lapply(patterns,exp);
         }
