@@ -212,7 +212,7 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
         if(any(trend[!is.na(trend)]<=0)){
             nonPositiveValues[] <- TRUE;
             trendMin <- min(trend, na.rm=TRUE);
-            trend[] <- trend + trendMin + 1;
+            trend[] <- trend - trendMin + 1;
         }
         trendDetermMult <- .lm.fit(X,log(trend[!is.na(trend)]))$coefficients;
         trendDetermMult[] <- exp(trendDetermMult);
