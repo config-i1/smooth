@@ -908,10 +908,17 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             j <- 1;
                             # level
                             if(initialLevelEstimate){
-                                # matVt[j,1:lagsModelMax] <- yDecomposition$initial[1];
-                                matVt[j,1:lagsModelMax] <- switch(Ttype,
-                                                                  "M"=yDecomposition$gtm[1],
-                                                                  yDecomposition$gta[1]);
+                                # If there's a trend, use the intercept from the deterministic one
+                                if(modelIsTrendy){
+                                    # matVt[j,1:lagsModelMax] <- yDecomposition$initial[1];
+                                    matVt[j,1:lagsModelMax] <- switch(Ttype,
+                                                                      "M"=yDecomposition$gtm[1],
+                                                                      yDecomposition$gta[1]);
+                                }
+                                # If not, use the global mean
+                                else{
+                                    matVt[j,1:lagsModelMax] <- mean(yInSample[otLogical]);
+                                }
                                 if(xregModel){
                                     if(Etype=="A"){
                                         matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
@@ -1113,11 +1120,18 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                       smoother=smoother);
                         # level
                         if(initialLevelEstimate){
-                            # matVt[1,1:lagsModelMax] <- mean(yInSample[1:max(lagsModelMax,ceiling(obsInSample*0.2))]);
-                            matVt[1,1:lagsModelMax] <- switch(Ttype,
-                                                              "A"=yDecomposition$gta[1],
-                                                              "M"=yDecomposition$gtm[1],
-                                                              yDecomposition$initial[1]);
+                            # If there's a trend, use the intercept from the deterministic one
+                            if(modelIsTrendy){
+                                # matVt[1,1:lagsModelMax] <- mean(yInSample[1:max(lagsModelMax,ceiling(obsInSample*0.2))]);
+                                matVt[1,1:lagsModelMax] <- switch(Ttype,
+                                                                  "A"=yDecomposition$gta[1],
+                                                                  "M"=yDecomposition$gtm[1],
+                                                                  yDecomposition$initial[1]);
+                            }
+                            # If not, use the global mean
+                            else{
+                                matVt[j,1:lagsModelMax] <- mean(yInSample[otLogical]);
+                            }
                         }
                         else{
                             matVt[1,1:lagsModelMax] <- initialLevel;
