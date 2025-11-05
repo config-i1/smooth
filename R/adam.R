@@ -1130,7 +1130,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             }
                             # If not, use the global mean
                             else{
-                                matVt[j,1:lagsModelMax] <- mean(yInSample[otLogical]);
+                                matVt[1,1:lagsModelMax] <- mean(yInSample[otLogical]);
                             }
                         }
                         else{
@@ -6647,7 +6647,7 @@ sigma.adam <- function(object, ...){
                        "dlaplace"=,
                        "ds"=,
                        "dgnorm"=,
-                       "dt"=, 
+                       "dt"=,
                        "dlogis"=,
                        "dalaplace"=sum(residuals(object)^2,na.rm=TRUE),
                        "dlnorm"=,
@@ -8469,7 +8469,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                     vcovMulti <- diag(vcovMulti);
                 }
             }
-        
+
         }
         #### Semiparametric, nonparametric and empirical interval ####
         # Extract multistep errors and calculate the covariance matrix
@@ -8658,7 +8658,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             }
 
         }
-        
+
         # Empirical, based on specific quantiles
         else if(interval=="empirical"){
             for(i in 1:h){
@@ -8852,7 +8852,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         yForecast[] <- exp(yForecast);
         yLower[] <- exp(yLower);
         yUpper[] <- exp(yUpper);
-        
+
     }
 
 
