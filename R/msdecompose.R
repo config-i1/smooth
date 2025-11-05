@@ -97,6 +97,15 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
     }
 
     obsInSample <- length(y);
+
+    if(smoother=="ma" && obsInSample <= min(lags)){
+        warning("The minimum lag is larger than the sample size. ",
+                "Moving average does not work in this case. ",
+                "Switching smoother to LOWESS.",
+                call.=FALSE);
+        smoother <- "lowess";
+    }
+
     yNAValues <- is.na(y);
 
     # Transform the data if needed and split the sample
