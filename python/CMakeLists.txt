@@ -10,8 +10,14 @@ if(SKBUILD)
   message(STATUS "The project is built using scikit-build")
 endif()
 
-# Pybind11
-find_package(pybind11 REQUIRED)
+# Pybind11 (fetch to avoid system dependency)
+include(FetchContent)
+FetchContent_Declare(
+  pybind11
+  GIT_REPOSITORY https://github.com/pybind/pybind11.git
+  GIT_TAG v2.12.0
+)
+FetchContent_MakeAvailable(pybind11)
 
 # CARMA
 ADD_SUBDIRECTORY(../src/libs/carma carma)
