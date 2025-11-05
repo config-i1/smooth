@@ -6632,17 +6632,22 @@ coef.adam <- function(object, ...){
 #' @importFrom stats sigma
 #' @export
 sigma.adam <- function(object, ...){
+
+    #print(nobs(object, all=FALSE))
+    #print(nparam(object))
     df <- (nobs(object, all=FALSE)-nparam(object));
+    #print(df)
     # If the sample is too small, then use biased estimator
     if(df<=0){
         df[] <- nobs(object);
     }
+    #print()
     return(sqrt(switch(object$distribution,
                        "dnorm"=,
                        "dlaplace"=,
                        "ds"=,
                        "dgnorm"=,
-                       "dt"=,
+                       "dt"=, 
                        "dlogis"=,
                        "dalaplace"=sum(residuals(object)^2,na.rm=TRUE),
                        "dlnorm"=,
@@ -8432,7 +8437,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             }
             # IG and Lnorm can use approximations from the multiplications
             if(etsModel && any(object$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm")) && Etype=="M"){
+
+
                 vcovMulti <- adamVarAnal(lagsModelAll, h, matWt[1,,drop=FALSE], matF, vecG, s2);
+                #print(vcovMulti)
                 if(is.scale(object$scale)){
                     # Fix the matrix with the time varying variance
                     vcovMulti[] <- vcovMulti / s2 * (sqrt(s2Forecast) %*% t(sqrt(s2Forecast)));
@@ -8461,6 +8469,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                     vcovMulti <- diag(vcovMulti);
                 }
             }
+        
         }
         #### Semiparametric, nonparametric and empirical interval ####
         # Extract multistep errors and calculate the covariance matrix
@@ -8647,7 +8656,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                     yUpper[] <-(yUpper-1)*yForecast;
                 }
             }
+
         }
+        
         # Empirical, based on specific quantiles
         else if(interval=="empirical"){
             for(i in 1:h){
@@ -8731,6 +8742,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
     }
 
+
+
     # Fix of prediction intervals depending on what has happened
     if(interval!="none"){
         # Make sensible values out of those weird quantiles
@@ -8810,6 +8823,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                    "upper"=paste0("Upper bound (",level*100,"%)"));
     }
 
+
+
     # If this was a model in logarithms (e.g. ARIMA for sm), then take exponent
     if(any(unlist(gregexpr("in logs",object$model))!=-1)){
         yForecast[] <- exp(yForecast);
@@ -8837,7 +8852,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         yForecast[] <- exp(yForecast);
         yLower[] <- exp(yLower);
         yUpper[] <- exp(yUpper);
+        
     }
+
 
     return(structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
                           level=level, interval=interval, side=side, cumulative=cumulative, h=h,

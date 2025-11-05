@@ -8,7 +8,7 @@ project(smooth VERSION 0.0.1)
 
 if(SKBUILD)
   message(STATUS "The project is built using scikit-build")
-endif()
+  endif()
 
 # Pybind11
 find_package(pybind11 REQUIRED)
@@ -39,8 +39,6 @@ target_include_directories(_adam_general PRIVATE ../src/python_examples/.)
 target_link_libraries(_adam_general PRIVATE carma::carma ${ARMADILLO_LIBRARIES} ${lapackblas_libraries})
 install(TARGETS _adam_general DESTINATION smooth/adam_general)
 
-# Install Python source files
-install(DIRECTORY smooth DESTINATION .)
 
 # Old experimental stuff by Leo
 # code to add the pybind11 cpp module, look at demo project 
