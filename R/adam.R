@@ -6096,11 +6096,12 @@ print.adam <- function(x, digits=4, ...){
     etsModel <- any(unlist(gregexpr("ETS",x$model))!=-1);
     arimaModel <- any(unlist(gregexpr("ARIMA",x$model))!=-1);
     cesModel <- smoothType(x)=="CES";
+    adamETS <- adamETSChecker(x);
 
     cat("Time elapsed:",round(as.numeric(x$timeElapsed,units="secs"),2),"seconds");
     # tail all.vars is needed in case smooth::adam() was used
     cat(paste0("\nModel estimated using ",tail(all.vars(x$call[[1]]),1),
-               "() function: ",x$model));
+               "() function: ",ifelse(adamETS, "ADAM ", ""),x$model));
     cat(paste0("\nWith ", x$initialType, " initialisation"));
     if(is.scale(x$scale)){
         cat("\nScale model estimated with sm():",x$scale$model);
