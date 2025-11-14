@@ -8,16 +8,10 @@ project(smooth VERSION 0.0.1)
 
 if(SKBUILD)
   message(STATUS "The project is built using scikit-build")
-endif()
+  endif()
 
-# Pybind11 (fetch to avoid system dependency)
-include(FetchContent)
-FetchContent_Declare(
-  pybind11
-  GIT_REPOSITORY https://github.com/pybind/pybind11.git
-  GIT_TAG v2.12.0
-)
-FetchContent_MakeAvailable(pybind11)
+# Pybind11
+find_package(pybind11 REQUIRED)
 
 # CARMA
 ADD_SUBDIRECTORY(../src/libs/carma carma)
@@ -32,34 +26,19 @@ else()
    set(lapackblas_libraries "/usr/lib/x86_64-linux-gnu/")
 endif()
 
-# Armadillo (use correct CMake package name)
-find_package(Armadillo QUIET)
-if(Armadillo_FOUND)
-  message(STATUS "Found Armadillo")
-  include_directories(${ARMADILLO_INCLUDE_DIRS})
-else()
-  message(WARNING "Armadillo not found. Install system package (e.g., libarmadillo-dev) or set Armadillo_DIR. Using fallback include path /usr/include.")
-  set(ARMADILLO_INCLUDE_DIRS "/usr/include")
-  include_directories(${ARMADILLO_INCLUDE_DIRS})
-endif()
+# Armadillo
+find_package(armadillo)
+IF(NOT ARMADILLO_FOUND)
+    set(ARMADILLO_INCLUDE_DIRS "/usr/lib/")
+ENDIF()
+include_directories(${ARMADILLO_INCLUDE_DIRS})
 
 # Adam General
 pybind11_add_module(_adam_general ../src/python_examples/adamGeneral.cpp)
 target_include_directories(_adam_general PRIVATE ../src/python_examples/.)
-target_link_libraries(_adam_general PRIVATE carma::carma)
-if(Armadillo_FOUND)
-  if(TARGET Armadillo::armadillo)
-    target_link_libraries(_adam_general PRIVATE Armadillo::armadillo)
-  else()
-    target_link_libraries(_adam_general PRIVATE ${ARMADILLO_LIBRARIES})
-  endif()
-else()
-  target_link_libraries(_adam_general PRIVATE ${lapackblas_libraries})
-endif()
+target_link_libraries(_adam_general PRIVATE carma::carma ${ARMADILLO_LIBRARIES} ${lapackblas_libraries})
 install(TARGETS _adam_general DESTINATION smooth/adam_general)
 
-# Install Python source files
-install(DIRECTORY smooth DESTINATION .)
 
 # Old experimental stuff by Leo
 # code to add the pybind11 cpp module, look at demo project 

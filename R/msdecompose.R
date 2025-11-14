@@ -31,6 +31,9 @@
 #' \item \code{initial} - the estimates of the initial level and trend.
 #' \item \code{trend} - the long term trend in the data.
 #' \item \code{seasonal} - the list of seasonal parameters.
+#' \item \code{gta} - parameters for the intercept and slope of the Global
+#' Trend, Additive.
+#' \item \code{gtm} - same as gta, but for the multiplicative model (thus "m").
 #' \item \code{lags} - the provided lags.
 #' \item \code{type} - the selected type of the decomposition.
 #' \item \code{yName} - the name of the provided data.
@@ -94,6 +97,15 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
     }
 
     obsInSample <- length(y);
+
+    if(smoother=="ma" && obsInSample <= min(lags)){
+        warning("The minimum lag is larger than the sample size. ",
+                "Moving average does not work in this case. ",
+                "Switching smoother to LOWESS.",
+                call.=FALSE);
+        smoother <- "lowess";
+    }
+
     yNAValues <- is.na(y);
 
     # Transform the data if needed and split the sample
@@ -171,24 +183,56 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
         patterns <- NULL;
     }
 
+    # Deterministic trend fit to the smooth series.
+    # This is required by adam() with backcasting
+    X <- cbind("Intercept"=1, trend=1:obsInSample)[!is.na(trend),];
+    trendDetermAdd <- .lm.fit(X,trend[!is.na(trend)])$coefficients;
 
     # Initial level and trend
     initial <- c(ySmooth[[lagsLength]][!is.na(ySmooth[[lagsLength]])][1],
                  mean(diff(ySmooth[[lagsLength]]),na.rm=T));
-    # Fix the initial, to get to the begining of the sample
-    initial[1] <- initial[1] - initial[2]*floor(max(lags)/2);
+
+    if(smoother=="ma"){
+        # Fix the initial, to get to the beginning of the sample
+        initial[1] <- initial[1] - initial[2]*floor(max(lags)/2);
+    }
     names(initial) <- c("level","trend");
+
+    # Move the trend back to start it off-sample in case of ADAM
+    trendDetermAdd[1] <- trendDetermAdd[1] - trendDetermAdd[2]*max(lags);
 
     # Return to the original scale
     if(type=="multiplicative"){
         initial[] <- exp(initial);
-        trend <- exp(trend);
+        trend[] <- exp(trend);
+        # Sort out additive/multiplicative trend for ADAM
+        trendDetermMult <- exp(trendDetermAdd);
+        trendDetermAdd <- .lm.fit(X,trend[!is.na(trend)])$coefficients;
+        trendDetermAdd[1] <- trendDetermAdd[1] - trendDetermAdd[2]*max(lags);
         if(seasonalLags){
             patterns[] <- lapply(patterns,exp);
         }
         if(shiftedData){
             initial[1] <- initial[1] - 1;
             trend[] <- trend -1;
+            trendDetermAdd[1] <- trendDetermAdd[1] - 1;
+            trendDetermMult[1] <- trendDetermMult[1] - 1;
+        }
+    }
+    # Get the deterministic multiplicative trend
+    else{
+        # Shift the trend if it contains negative values
+        nonPositiveValues <- FALSE;
+        if(any(trend[!is.na(trend)]<=0)){
+            nonPositiveValues[] <- TRUE;
+            trendMin <- min(trend, na.rm=TRUE);
+            trend[] <- trend - trendMin + 1;
+        }
+        trendDetermMult <- .lm.fit(X,log(trend[!is.na(trend)]))$coefficients;
+        trendDetermMult[] <- exp(trendDetermMult);
+        # Correct the initial level
+        if(nonPositiveValues){
+            trendDetermMult[1] <- trendDetermMult[1] - trendMin - 1;
         }
     }
 
@@ -219,6 +263,8 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
     }
 
     return(structure(list(y=y, states=states, initial=initial, seasonal=patterns, fitted=yFitted,
+                          # gta is the Global Trend, Additive. gtm is the Global Trend, Multiplicative
+                          gta=trendDetermAdd, gtm=trendDetermMult,
                           loss="MSE", lags=lags, type=type, yName=yName, smoother=smoother),
                      class=c("msdecompose","smooth")));
 }
@@ -251,8 +297,8 @@ fitted.msdecompose <- function(object, ...){
 #' @rdname forecast.smooth
 #' @export
 forecast.msdecompose <- function(object, h=10,
-                            interval=c("parametric","semiparametric","nonparametric","none"),
-                            level=0.95, model=NULL, ...){
+                                 interval=c("parametric","semiparametric","nonparametric","none"),
+                                 level=0.95, model=NULL, ...){
     interval <- match.arg(interval,c("parametric","semiparametric","nonparametric","none"));
     if(is.null(model)){
         model <- switch(errorType(object),
