@@ -6637,7 +6637,7 @@ sigma.adam <- function(object, ...){
     # df <- (nobs(object, all=FALSE)-nparam(object));
     df <- (nobs(object, all=FALSE)-nparam(object) -
                # Take initials into account if we did backcasting
-               (length(unlist(object$initial)) * test$initialType=="backcasting"));
+               (length(unlist(object$initial)) * object$initialType=="backcasting"));
     #print(df)
     # If the sample is too small, then use biased estimator
     if(df<=0){
