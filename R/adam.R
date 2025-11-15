@@ -8420,7 +8420,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             # If scale model is included, produce forecasts
             if(is.scale(object$scale)){
                 # Number of degrees of freedom to de-bias the variance
-                df <- (nobs(object, all=FALSE)-nparam(object));
+                # df <- (nobs(object, all=FALSE)-nparam(object));
+                df <- (nobs(object, all=FALSE) - nparam(object) -
+                           # Take initials into account if we did backcasting
+                           (length(unlist(object$initial)) * test$initialType=="backcasting"));
                 # If the sample is too small, then use biased estimator
                 if(df<=0){
                     df[] <- nobs(object, all=FALSE);
