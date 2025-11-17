@@ -2920,7 +2920,19 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(any(loss==c("LASSO","RIDGE")) && lambda==1){
             CFValue[] <- 0;
         }
-        nParamEstimated <- length(B);
+        # Parameters that were "estimated" in backcasting
+        nParamBackcasting <- (
+            # initials of ETS
+            etsModel*any(initialType==c("complete","backcasting"))*
+                (initialLevelEstimate +
+                     (modelIsTrendy*initialTrendEstimate) +
+                     (modelIsSeasonal*sum(initialSeasonalEstimate*(lagsModelSeasonal-1)))) +
+                # initials of ARIMA
+                any(initialType==c("complete","backcasting"))*arimaModel*initialArimaNumber*initialArimaEstimate +
+                # initials of xreg
+                (initialType=="complete")*xregModel*initialXregEstimate*sum(xregParametersEstimated));
+
+        nParamEstimated <- length(B) + nParamBackcasting;
         # Return a proper logLik class
         logLikADAMValue <- structure(logLikADAM(B,
                                                 etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal, yInSample,
@@ -6634,10 +6646,9 @@ coef.adam <- function(object, ...){
 #' @export
 sigma.adam <- function(object, ...){
 
-    # df <- (nobs(object, all=FALSE)-nparam(object));
-    df <- (nobs(object, all=FALSE)-nparam(object) -
-               # Take initials into account if we did backcasting
-               (length(unlist(object$initial)) * (object$initialType=="backcasting")));
+    #print(nobs(object, all=FALSE))
+    #print(nparam(object))
+    df <- (nobs(object, all=FALSE)-nparam(object));
     #print(df)
     # If the sample is too small, then use biased estimator
     if(df<=0){
