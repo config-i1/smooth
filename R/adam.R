@@ -2920,7 +2920,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(any(loss==c("LASSO","RIDGE")) && lambda==1){
             CFValue[] <- 0;
         }
-        # Parameters that were "estimated" in backcasting
+        # Initial parameters that were "estimated" in backcasting
         nParamBackcasting <- (
             # initials of ETS
             etsModel*any(initialType==c("complete","backcasting"))*
@@ -2932,7 +2932,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 # initials of xreg
                 (initialType=="complete")*xregModel*initialXregEstimate*sum(xregParametersEstimated));
 
-        nParamEstimated <- length(B) + nParamBackcasting;
+        nParamEstimated <- length(B);
         # Return a proper logLik class
         logLikADAMValue <- structure(logLikADAM(B,
                                                 etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal, yInSample,
@@ -3223,7 +3223,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
         }
 
-        return(list(B=B, CFValue=CFValue, nParamEstimated=nParamEstimated, logLikADAMValue=logLikADAMValue,
+        return(list(B=B, CFValue=CFValue, nParamEstimated=nParamEstimated, nParamBackcasting=nParamBackcasting,
+                    logLikADAMValue=logLikADAMValue,
                     xregModel=xregModel, xregData=xregData, xregNumber=xregNumber,
                     xregNames=xregNames, xregModelInitials=xregModelInitials, formula=formula,
                     initialXregEstimate=initialXregEstimate, persistenceXregEstimate=persistenceXregEstimate,
@@ -3944,8 +3945,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     persistence=persistence, phi=phi, transition=matF,
                     measurement=matWt, initial=initialValue, initialType=initialType,
                     initialEstimated=initialEstimated, orders=orders, arma=armaParametersList,
-                    constant=constantValue, nParam=parametersNumber, occurrence=oesModel,
-                    formula=formula, regressors=regressors,
+                    constant=constantValue, nParam=parametersNumber, nParamBack=nParamBackcasting,
+                    occurrence=oesModel, formula=formula, regressors=regressors,
                     loss=loss, lossValue=CFValue, logLik=logLikADAMValue, distribution=distribution,
                     scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, ets=ets,
                     res=res, FI=FI));
