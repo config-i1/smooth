@@ -38,11 +38,16 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
         for (unsigned int j=1; j<=nIterations; j=j+1) {
             // Refine the head (in order for it to make sense)
             if(refineHead){
-                for(int i=0; i<lagsModelMax; i=i+1) {
-                    arrayVt.slice(k).col(i) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i));
-                    arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)) =
-                        adamFvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
-                                   arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                // Record the initial profile to the first column
+                arrayVt.slice(k).col(0) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(0));
+
+                if(lagsModelMax>1){
+                    for(int i=1; i<lagsModelMax; i=i+1) {
+                        arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)) =
+                            adamFvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
+                                       arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                        arrayVt.slice(k).col(i) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i));
+                    }
                 }
             }
             // Loop for the model construction

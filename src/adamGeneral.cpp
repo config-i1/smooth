@@ -46,16 +46,18 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
     // Loop for the backcast
     for (unsigned int j=1; j<=nIterations; j=j+1) {
 
-        // Record the initial profile to the first column
-        matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
         // Refine the head (in order for it to make sense)
         // This is only needed for ETS(*,Z,Z) models, with trend.
         // This is not needed for lagsMax=1, because there is nothing to fill in
-        if(refineHead && lagsModelMax>1){
-            for (int i=1; i<lagsModelMax; i=i+1) {
-                profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                               matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
-                matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+        if(refineHead){
+            // Record the initial profile to the first column
+            matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
+            if(lagsModelMax>1){
+                for (int i=1; i<lagsModelMax; i=i+1) {
+                    profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
+                                   matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                    matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+                }
             }
         }
         ////// Run forward
