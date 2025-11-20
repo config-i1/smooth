@@ -18,7 +18,8 @@ adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   level = 0.99, h = 0, holdout = FALSE, persistence = NULL,
   phi = NULL, initial = c("backcasting", "optimal", "two-stage",
   "complete"), arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
-  bounds = c("usual", "admissible", "none"), silent = TRUE, ...)
+  bounds = c("usual", "admissible", "none"), silent = TRUE,
+  ets = c("conventional", "adam"), ...)
 
 \method{simulate}{adam}(object, nsim = 1, seed = NULL,
   obs = nobs(object), ...)
@@ -33,7 +34,7 @@ auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   persistence = NULL, phi = NULL, initial = c("backcasting", "optimal",
   "two-stage", "complete"), arma = NULL, ic = c("AICc", "AIC", "BIC",
   "BICc"), bounds = c("usual", "admissible", "none"), silent = TRUE,
-  parallel = FALSE, ...)
+  parallel = FALSE, ets = c("conventional", "adam"), ...)
 
 \method{sm}{adam}(object, model = "YYY", lags = NULL, orders = list(ar =
   c(0), i = c(0), ma = c(0), select = FALSE), constant = FALSE,
@@ -241,6 +242,12 @@ restrictions (potentially dangerous).}
 If \code{TRUE}, then the function will print what it does and how much it has
 already done.}
 
+\item{ets}{Parameter determining, which ETS formulation to use. If \code{ets="conventional"},
+the one from Hyndman et al. (2008) is used. In case of \code{ets="adam"}, ADAM reformulation
+that updates multiplicative components differently is used. The latter is closer
+to applying ETS to log-transformed data when multiplicative components are used. This helps
+makig trend less explosive.}
+
 \item{...}{Other non-documented parameters. For example, \code{FI=TRUE} will
 make the function also produce Fisher Information matrix, which then can be
 used to calculated variances of smoothing parameters and initial states of
@@ -280,7 +287,8 @@ If equal to 41, then the detailed results of the optimisation are returned.
 You can read more about these parameters by running the function
 \link[nloptr]{nloptr.print.options}.
 It is also possible to regulate what smoother to use to get initial seasonal indices
-from the \link[smooth]{msdecompose} function via the \code{smoother} parameter.
+from the \link[smooth]{msdecompose} function via the \code{smoother} parameter. The default
+value is \code{smoother="lowess"}.
 Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
 Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 can be provided here as well.}

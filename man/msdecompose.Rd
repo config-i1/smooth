@@ -33,6 +33,9 @@ The object of the class "msdecompose" is return, containing:
 \item \code{initial} - the estimates of the initial level and trend.
 \item \code{trend} - the long term trend in the data.
 \item \code{seasonal} - the list of seasonal parameters.
+\item \code{gta} - parameters for the intercept and slope of the Global
+Trend, Additive.
+\item \code{gtm} - same as gta, but for the multiplicative model (thus "m").
 \item \code{lags} - the provided lags.
 \item \code{type} - the selected type of the decomposition.
 \item \code{yName} - the name of the provided data.

@@ -426,7 +426,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                      Etype, Ttype, Stype, 0, 0,
                                      componentsNumberARIMA, xregNumber, constantEstimate,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations, refineHead);
+                                     nIterations, refineHead, FALSE);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -1106,7 +1106,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                  Etype, Ttype, Stype, 0, 0,
                                  componentsNumberARIMA, xregNumber, constantEstimate,
                                  yInSample, ot, any(initialType==c("complete","backcasting")),
-                                 nIterations, refineHead);
+                                 nIterations, refineHead, FALSE);
 
     errors[] <- adamFitted$errors;
     yFitted[] <- adamFitted$yFitted;

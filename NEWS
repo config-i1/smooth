@@ -1,19 +1,51 @@
-smooth v4.3.0 (Release data: 2025-06-25)
+smooth v4.3.2 (Release data: 2025-10-31)
 =======
 
 Changes:
+* msdecompose() now also returns gta and gtm, which correspond to the parameters for the Global Trend, Additive and the Global Trend Multiplicative models. This is needed for adam().
+* New ETS initial values to make sure that the backcasting produces sensible values for the global level models.
+* Removed some heuristics in adam() for the initialisation on small samples - this is now handled by the msdecompose.
+* lowess is now the default smoother in adam(), when calling for the msdecompose. This is better than "ma" because it saves the sample and is more robust.
+
+
+smooth v4.3.1 (Release data: 2025-10-05)
+=======
+
+Changes:
+* es() now has model="ZXZ" by default.
+* adam() now has the parameter "ets"", allowing to select between two formulations: conventional and adam. We will switch adam() to the "adam" one starting from 4.5.0. es() will always use the "conventional". For now, we are testing the new one to see how it performs.
+* rmultistep() can now return additive or multiplicative forecast errors depending on what user asks.
+* ces() works with provided parameters again.
+* Tuning of Hessian calculation for CES.
+* ces() now supports multiple seasonalities.
+* New initialisation of smoothing parameters in adam(). This guarantees that models do not break with backcasting, but leads to slight deterioration in accuracy due to selection of different models.
+* Allow seasonal ETS on very small sample (e.g. with lags=12 on 12 observations in case of backcasting).
+
+Bugfixes:
+* A fix for adamX with a special case, when formula is provided, the data is a matrix and there are partial matches in names of variables.
+* rmultistep() and multicov() now work with CES and GUM.
+* Fixed a bug in the logic of the C++ function Errorer which would lead to the wrong forecast error matrix. This impacted rmultistep() and multicov() functions.
+* Fixed a bug in msdecompose where the seasonal profile would not be recorded correctly for the multiple seasonal cases.
+* SARIMA(0,1,0) now works on small data, producing Seasonal Naive in adam().
+
+
+smooth v4.3.0 (Release data: 2025-06-30)
+=======
+
+Changes:
+* ATTENTION! initial="backcasting" is now the default method in all smooth functions.
+* All smooth functions now have the same initialisation mechanism.
+* New initialisation mechanism called "two-stage" in adam(), where "backcasting" is used to get initial values before the optimisation is done. Slower but leads to better calibrated predictive distributions in ADAM.
+* New ADAM ETS with different maths behind it. This should make the model more robust, especially in case of multiplicative trend. es() uses the conventional models, adam() uses the new ones.
 * ssarima() now uses adam engine.
 * All older functions now use adam engine.
-* New initialisation mechanism called "two-stage" in adam(), where "backcasting" is used to get initial values before the optimisation is done. Slower but leads to better calibrated predictive distributions in ADAM.
-* initial="backcasting" is now the default method. This needs a bit of additional tuning for ARIMA.
-* All smooth functions now have the same initialisation mechanism.
 * We no longer renormalise the initial parameters of xreg in case of models with factors. This is to avoid weird disalignment between the estimated parameters and states.
-* The colours are now selected from the used palette instead of being hard coded. This is to make things consistent with greybox.
+* The colours for plots are now selected from the used palette instead of being hard coded. This is to make things consistent with greybox.
 
 Bugfixes:
 * auto.adam() now allows selecting the best distribution for a user-specified ARIMA.
 * Fixed vcov() calculation for adam with initial="backcasting".
-* Furthre fixes in vcov() for adam with initial="backcasting".
+* Further fixes in vcov() for adam with initial="backcasting".
 * A fix for auto.ces() not working properly, when called without loading the full package.
 * Some bugfixes for SSARIMA + more consistency in "refine head".
 * A bugfix in reapply() for the initial!="backcasting".

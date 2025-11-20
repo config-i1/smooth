@@ -4,12 +4,17 @@
 \alias{rmultistep}
 \title{Multiple steps ahead forecast errors}
 \usage{
-rmultistep(object, h = 10, ...)
+rmultistep(object, h = 10, error = c("default", "additive",
+  "multiplicative"), ...)
 }
 \arguments{
 \item{object}{Model estimated using one of the forecasting functions.}
 
 \item{h}{The forecasting horizon to use.}
+
+\item{error}{Defines what type of error to return. \code{"default"} means returning the
+one used in the original model. \code{"additive"} is to return e_t = y_t - mu_t.
+Finally, \code{"multiplicative"} will return e_t = (y_t - mu_t) / mu_t.}
 
 \item{...}{Currently nothing is accepted via ellipsis.}
 }

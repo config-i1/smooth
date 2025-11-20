@@ -16,7 +16,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "xregParametersPersistence","xregModelInitials","constantName","yDenominator",
                          "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval","icFunction",
                          "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal",
-                         "nIterations","smoother"));
+                         "nIterations","smoother","adamETS"));
 
 #' ADAM is Augmented Dynamic Adaptive Model
 #'
@@ -208,6 +208,11 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' estimation. Can be either \code{admissible} - guaranteeing the stability of the
 #' model, \code{usual} - restricting the values with (0, 1) or \code{none} - no
 #' restrictions (potentially dangerous).
+#' @param ets Parameter determining, which ETS formulation to use. If \code{ets="conventional"},
+#' the one from Hyndman et al. (2008) is used. In case of \code{ets="adam"}, ADAM reformulation
+#' that updates multiplicative components differently is used. The latter is closer
+#' to applying ETS to log-transformed data when multiplicative components are used. This helps
+#' makig trend less explosive.
 #' @param ...  Other non-documented parameters. For example, \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of
@@ -247,7 +252,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' You can read more about these parameters by running the function
 #' \link[nloptr]{nloptr.print.options}.
 #' It is also possible to regulate what smoother to use to get initial seasonal indices
-#' from the \link[smooth]{msdecompose} function via the \code{smoother} parameter.
+#' from the \link[smooth]{msdecompose} function via the \code{smoother} parameter. The default
+#' value is \code{smoother="lowess"}.
 #' Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
 #' Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 #' can be provided here as well.
@@ -347,7 +353,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                  h=0, holdout=FALSE,
                  persistence=NULL, phi=NULL, initial=c("backcasting","optimal","two-stage","complete"), arma=NULL,
                  ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
-                 silent=TRUE, ...){
+                 silent=TRUE, ets=c("conventional","adam"), ...){
     # Copyright (C) 2019 - Inf  Ivan Svetunkov
 
     # Start measuring the time of calculations
@@ -497,6 +503,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         model <- "ZZZ";
     }
 
+    ets <- match.arg(ets);
+    adamETS <- ets=="adam";
+
     #### Check the parameters of the function and create variables based on them ####
     checkerReturn <- parametersChecker(data, model, lags, formula, orders, constant, arma,
                                        outliers, level,
@@ -583,7 +592,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 modelReturned$forecast <- ts(NA, start=yIndex[obsInSample]+diff(yIndex[1:2]), frequency=yFrequency);
             }
             modelReturned$states <- ts(matrix(coef(checkerReturn), obsInSample+1, nParam, byrow=TRUE,
-                                           dimnames=list(NULL, names(coef(checkerReturn)))),
+                                              dimnames=list(NULL, names(coef(checkerReturn)))),
                                        start=yIndex[1]-diff(yIndex[1:2]), frequency=yFrequency);
         }
         modelReturned$persistence <- rep(0, nParam);
@@ -883,7 +892,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             arimaPolynomials <- NULL;
         }
 
-
         if(!profilesRecentProvided){
             # ETS model, initial state
             # If something needs to be estimated...
@@ -891,20 +899,26 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 if(initialEstimate){
                     # For the seasonal models
                     if(modelIsSeasonal){
-                        if(obsNonzero>=lagsModelMax*2){
+                        # if(obsNonzero>=lagsModelMax*2){
                             # If either Etype or Stype are multiplicative, do multiplicative decomposition
                             decompositionType <- c("additive","multiplicative")[any(c(Etype,Stype)=="M")+1];
-                            yDecomposition <- msdecompose(yInSample, lags[lags!=1], type=decompositionType,
+                            # !!! Use deterministic trend. This way g=0 means we fit the global model to the data
+                            yDecomposition <- msdecompose(yInSample, lags=lags[lags!=1], type=decompositionType,
                                                           smoother=smoother);
                             j <- 1;
                             # level
                             if(initialLevelEstimate){
-                                matVt[j,1:lagsModelMax] <- yDecomposition$initial[1];
-                                # matVt[j,1:lagsModelMax] <-
-                                #     switch(decompositionType,
-                                #            "additive"=yDecomposition$initial[1]-yDecomposition$initial[2]*lagsModelMax,
-                                #            "multiplicative"=yDecomposition$initial[1]/yDecomposition$initial[2]^lagsModelMax);
-                                # matVt[j,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
+                                # If there's a trend, use the intercept from the deterministic one
+                                if(modelIsTrendy){
+                                    # matVt[j,1:lagsModelMax] <- yDecomposition$initial[1];
+                                    matVt[j,1:lagsModelMax] <- switch(Ttype,
+                                                                      "M"=yDecomposition$gtm[1],
+                                                                      yDecomposition$gta[1]);
+                                }
+                                # If not, use the global mean
+                                else{
+                                    matVt[j,1:lagsModelMax] <- mean(yInSample[otLogical]);
+                                }
                                 if(xregModel){
                                     if(Etype=="A"){
                                         matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
@@ -924,12 +938,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             if(modelIsTrendy){
                                 if(initialTrendEstimate){
                                     if(Ttype=="A" && Stype=="M"){
-                                        # if(initialLevelEstimate){
-                                        #     # level fix
-                                        #     matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
-                                        # }
-                                        # trend
-                                        matVt[j,1:lagsModelMax] <- prod(yDecomposition$initial)-yDecomposition$initial[1];
+                                        # matVt[j,1:lagsModelMax] <- prod(yDecomposition$initial)-yDecomposition$initial[1];
+                                        matVt[j,1:lagsModelMax] <- yDecomposition$gta[2]
                                         # If the initial trend is higher than the lowest value, initialise with zero.
                                         # This is a failsafe mechanism for the mixed models
                                         if(matVt[j,1]<0 && abs(matVt[j,1])>min(abs(yInSample[otLogical]))){
@@ -937,25 +947,24 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                         }
                                     }
                                     else if(Ttype=="M" && Stype=="A"){
-                                        # if(initialLevelEstimate){
-                                        #     # level fix
-                                        #     matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
-                                        # }
                                         # trend
-                                        matVt[j,1:lagsModelMax] <- sum(abs(yDecomposition$initial))/abs(yDecomposition$initial[1]);
+                                        # matVt[j,1:lagsModelMax] <- sum(abs(yDecomposition$initial))/abs(yDecomposition$initial[1]);
+                                        matVt[j,1:lagsModelMax] <- yDecomposition$gtm[2]
                                     }
                                     else if(Ttype=="M"){
                                         # trend is too dangerous, make it start from 1.
-                                        matVt[j,1:lagsModelMax] <- 1;
+                                        # matVt[j,1:lagsModelMax] <- 1;
+                                        matVt[j,1:lagsModelMax] <- yDecomposition$gtm[2]
                                     }
                                     else{
                                         # trend
-                                        matVt[j,1:lagsModelMax] <- yDecomposition$initial[2];
+                                        # matVt[j,1:lagsModelMax] <- yDecomposition$initial[2];
+                                        matVt[j,1:lagsModelMax] <- yDecomposition$gta[2]
                                     }
                                     # This is a failsafe for multiplicative trend models, so that the thing does not explode
-                                    if(Ttype=="M" && any(matVt[j,1:lagsModelMax]>1.1)){
-                                        matVt[j,1:lagsModelMax] <- 1;
-                                    }
+                                    # if(Ttype=="M" && any(matVt[j,1:lagsModelMax]>1.1)){
+                                    #     matVt[j,1:lagsModelMax] <- 1;
+                                    # }
                                     # This is a failsafe for multiplicative trend models, so that the thing does not explode
                                     if(Ttype=="M" && any(matVt[1,1:lagsModelMax]<0)){
                                         matVt[1,1:lagsModelMax] <- yInSample[otLogical][1];
@@ -1011,121 +1020,140 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                     }
                                 }
                             }
-                        }
-                        else{
-                            j <- 1;
-                            # level
-                            if(initialLevelEstimate){
-                                matVt[j,1:lagsModelMax] <- mean(yInSample[1:min(lagsModelMax, obsInSample)]);
-                                if(xregModel){
-                                    if(Etype=="A"){
-                                        matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
-                                            as.vector(xregModelInitials[[1]]$initialXreg %*% xregData[1,]);
-                                    }
-                                    else{
-                                        matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] /
-                                            as.vector(exp(xregModelInitials[[2]]$initialXreg %*% xregData[1,]));
-                                    }
-                                }
-                            }
-                            else{
-                                matVt[j,1:lagsModelMax] <- initialLevel;
-                            }
-                            j <- j+1;
-                            if(modelIsTrendy){
-                                if(initialTrendEstimate){
-                                    if(Ttype=="A"){
-                                        # trend
-                                        matVt[j,1:lagsModelMax] <- yInSample[2]-yInSample[1];
-                                    }
-                                    else if(Ttype=="M"){
-                                        if(initialLevelEstimate){
-                                            # level fix
-                                            matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
-                                        }
-                                        # trend
-                                        matVt[j,1:lagsModelMax] <- yInSample[2]/yInSample[1];
-                                    }
-                                    # This is a failsafe for multiplicative trend models, so that the thing does not explode
-                                    if(Ttype=="M" && any(matVt[j,1:lagsModelMax]>1.1)){
-                                        matVt[j,1:lagsModelMax] <- 1;
-                                    }
-                                }
-                                else{
-                                    matVt[j,1:lagsModelMax] <- initialTrend;
-                                }
+                        # }
+                        # else{
+                        #     j <- 1;
+                        #     # level
+                        #     if(initialLevelEstimate){
+                        #         matVt[j,1:lagsModelMax] <- mean(yInSample[1:min(lagsModelMax, obsInSample)]);
+                        #         if(xregModel){
+                        #             if(Etype=="A"){
+                        #                 matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
+                        #                     as.vector(xregModelInitials[[1]]$initialXreg %*% xregData[1,]);
+                        #             }
+                        #             else{
+                        #                 matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] /
+                        #                     as.vector(exp(xregModelInitials[[2]]$initialXreg %*% xregData[1,]));
+                        #             }
+                        #         }
+                        #     }
+                        #     else{
+                        #         matVt[j,1:lagsModelMax] <- initialLevel;
+                        #     }
+                        #     j <- j+1;
+                        #     if(modelIsTrendy){
+                        #         if(initialTrendEstimate){
+                        #             if(Ttype=="A"){
+                        #                 # trend
+                        #                 matVt[j,1:lagsModelMax] <- yInSample[2]-yInSample[1];
+                        #             }
+                        #             else if(Ttype=="M"){
+                        #                 if(initialLevelEstimate){
+                        #                     # level fix
+                        #                     matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
+                        #                 }
+                        #                 # trend
+                        #                 matVt[j,1:lagsModelMax] <- yInSample[2]/yInSample[1];
+                        #             }
+                        #             # This is a failsafe for multiplicative trend models, so that the thing does not explode
+                        #             if(Ttype=="M" && any(matVt[j,1:lagsModelMax]>1.1)){
+                        #                 matVt[j,1:lagsModelMax] <- 1;
+                        #             }
+                        #         }
+                        #         else{
+                        #             matVt[j,1:lagsModelMax] <- initialTrend;
+                        #         }
+                        #
+                        #         # Do roll back. Especially useful for backcasting and multisteps
+                        #         if(Ttype=="A"){
+                        #             matVt[j-1,1:lagsModelMax] <- matVt[j-1,1] - matVt[j,1]*lagsModelMax;
+                        #         }
+                        #         else if(Ttype=="M"){
+                        #             matVt[j-1,1:lagsModelMax] <- matVt[j-1,1] / matVt[j,1]^lagsModelMax;
+                        #         }
+                        #         j <- j+1;
+                        #     }
+                        #     #### Seasonal components
+                        #     # For pure models use stuff as is
+                        #     if(Stype=="A"){
+                        #         for(i in 1:componentsNumberETSSeasonal){
+                        #             if(initialSeasonalEstimate[i]){
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]-matVt[1,1];
+                        #                 # Renormalise the initial seasons
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] -
+                        #                     mean(matVt[i+j-1,1:lagsModel[i+j-1]]);
+                        #             }
+                        #             else{
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
+                        #             }
+                        #         }
+                        #     }
+                        #     # For mixed models use a different set of initials
+                        #     else{
+                        #         for(i in 1:componentsNumberETSSeasonal){
+                        #             if(initialSeasonalEstimate[i]){
+                        #                 # abs() is needed for mixed ETS+ARIMA
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]/abs(matVt[1,1]);
+                        #                 # Renormalise the initial seasons
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] /
+                        #                     exp(mean(log(matVt[i+j-1,1:lagsModel[i+j-1]])));
+                        #             }
+                        #             else{
+                        #                 matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
+                        #             }
+                        #         }
+                        #     }
+                        # }
 
-                                # Do roll back. Especially useful for backcasting and multisteps
-                                if(Ttype=="A"){
-                                    matVt[j-1,1:lagsModelMax] <- matVt[j-1,1] - matVt[j,1]*lagsModelMax;
-                                }
-                                else if(Ttype=="M"){
-                                    matVt[j-1,1:lagsModelMax] <- matVt[j-1,1] / matVt[j,1]^lagsModelMax;
-                                }
-                                j <- j+1;
-                            }
-                            #### Seasonal components
-                            # For pure models use stuff as is
-                            if(Stype=="A"){
-                                for(i in 1:componentsNumberETSSeasonal){
-                                    if(initialSeasonalEstimate[i]){
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]-matVt[1,1];
-                                        # Renormalise the initial seasons
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] -
-                                            mean(matVt[i+j-1,1:lagsModel[i+j-1]]);
-                                    }
-                                    else{
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
-                                    }
-                                }
-                            }
-                            # For mixed models use a different set of initials
-                            else{
-                                for(i in 1:componentsNumberETSSeasonal){
-                                    if(initialSeasonalEstimate[i]){
-                                        # abs() is needed for mixed ETS+ARIMA
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]/abs(matVt[1,1]);
-                                        # Renormalise the initial seasons
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] /
-                                            exp(mean(log(matVt[i+j-1,1:lagsModel[i+j-1]])));
-                                    }
-                                    else{
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
-                                    }
-                                }
-                            }
+                        # Failsafe in case negatives were produced
+                        if(Etype=="M" && matVt[1,1]<=0){
+                            matVt[1,1:lagsModelMax] <- yInSample[1];
                         }
                     }
                     # Non-seasonal models
                     else{
+                        # This decomposition does not produce seasonal component
+                        # If either Etype or Stype are multiplicative, do multiplicative decomposition
+                        decompositionType <- c("additive","multiplicative")[any(c(Etype,Stype)=="M")+1];
+                        # !!! Use deterministic trend. This way g=0 means we fit the global model to the data
+                        yDecomposition <- msdecompose(yInSample, lags=1, type=decompositionType,
+                                                      smoother=smoother);
                         # level
                         if(initialLevelEstimate){
-                            matVt[1,1:lagsModelMax] <- mean(yInSample[1:max(lagsModelMax,ceiling(obsInSample*0.2))]);
-                            # if(xregModel){
-                            #     if(Etype=="A"){
-                            #         matVt[1,1:lagsModelMax] <- matVt[1,lagsModelMax] -
-                            #             as.vector(xregModelInitials[[1]]$initialXreg %*% xregData[1,]);
-                            #     }
-                            #     else{
-                            #         matVt[1,1:lagsModelMax] <- matVt[1,lagsModelMax] /
-                            #             as.vector(exp(xregModelInitials[[2]]$initialXreg %*% xregData[1,]));
-                            #     }
-                            # }
+                            # If there's a trend, use the intercept from the deterministic one
+                            if(modelIsTrendy){
+                                # matVt[1,1:lagsModelMax] <- mean(yInSample[1:max(lagsModelMax,ceiling(obsInSample*0.2))]);
+                                matVt[1,1:lagsModelMax] <- switch(Ttype,
+                                                                  "A"=yDecomposition$gta[1],
+                                                                  "M"=yDecomposition$gtm[1],
+                                                                  yDecomposition$initial[1]);
+                            }
+                            # If not, use the global mean
+                            else{
+                                matVt[j,1:lagsModelMax] <- mean(yInSample[otLogical]);
+                            }
                         }
                         else{
                             matVt[1,1:lagsModelMax] <- initialLevel;
                         }
                         if(modelIsTrendy){
                             if(initialTrendEstimate){
+                                # matVt[2,1:lagsModelMax] <- switch(Ttype,
+                                #                                   "A" = mean(diff(yInSample[1:max(lagsModelMax+1,
+                                #                                                                   ceiling(obsInSample*0.2))]),
+                                #                                              na.rm=TRUE),
+                                #                                   "M" = exp(mean(diff(log(yInSample[otLogical])),na.rm=TRUE)));
                                 matVt[2,1:lagsModelMax] <- switch(Ttype,
-                                                                  "A" = mean(diff(yInSample[1:max(lagsModelMax+1,
-                                                                                                  ceiling(obsInSample*0.2))]),
-                                                                             na.rm=TRUE),
-                                                                  "M" = exp(mean(diff(log(yInSample[otLogical])),na.rm=TRUE)));
+                                                                  "A"=yDecomposition$gta[2],
+                                                                  "M"=yDecomposition$gtm[2]);
                             }
                             else{
                                 matVt[2,1:lagsModelMax] <- initialTrend;
                             }
+                        }
+                        # Failsafe in case negatives were produced
+                        if(Etype=="M" && matVt[1,1]<=0){
+                            matVt[1,1:lagsModelMax] <- yInSample[1];
                         }
                     }
 
@@ -1157,12 +1185,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 if(initialArimaEstimate){
                     matVt[componentsNumberETS+1:componentsNumberARIMA, 1:initialArimaNumber] <-
                         switch(Etype, "A"=0, "M"=1);
-                    if(any(lags>1)){
+                    # Do decomposition if we have at least 2 years of data
+                    if(any(lags>1) && obsInSample > max(lags)*2){
                         yDecomposition <- tail(msdecompose(yInSample,
-                                                           lags[lags!=1],
+                                                           lags=lags[lags!=1],
                                                            type=switch(Etype,
                                                                        "A"="additive",
                                                                        "M"="multiplicative"))$seasonal,1)[[1]];
+                    }
+                    else if(any(lags>1) && obsInSample <= max(lags)*2){
+                        yDecomposition <- yInSample[otLogical][1:obsInSample];
                     }
                     else{
                         yDecomposition <- switch(Etype,
@@ -1171,38 +1203,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                     matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <-
                         rep(yDecomposition,ceiling(initialArimaNumber/max(lags)))[1:initialArimaNumber];
-                        # rep(yInSample[1:initialArimaNumber],each=componentsNumberARIMA);
-
-                    # Failsafe mechanism in case the sample is too small
-                    # matVt[is.na(matVt)] <- switch(Etype, "A"=0, "M"=1);
-
-                    # If this is just ARIMA with optimisation, refine the initials
-                    # if(!etsModel && initialType!="complete"){
-                    #     arimaPolynomials <- polynomialiser(rep(0.1,sum(c(arOrders,maOrders))), arOrders, iOrders, maOrders,
-                    #                                        arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
-                    #     if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
-                    #         matVt[componentsNumberETS+nonZeroARI[,2],
-                    #               1:initialArimaNumber] <-
-                    #             switch(Etype,
-                    #                    "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                    #                        t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                    #                        tail(arimaPolynomials$ariPolynomial,1),
-                    #                    "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                    #                                t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                    #                                tail(arimaPolynomials$ariPolynomial,1)));
-                    #     }
-                    #     else{
-                    #         matVt[componentsNumberETS+nonZeroMA[,2],
-                    #               1:initialArimaNumber] <-
-                    #             switch(Etype,
-                    #                    "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                    #                        t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                    #                        tail(arimaPolynomials$maPolynomial,1),
-                    #                    "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                    #                                t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                    #                                tail(arimaPolynomials$maPolynomial,1)));
-                    #     }
-                    # }
+                    # rep(yInSample[1:initialArimaNumber],each=componentsNumberARIMA);
                 }
                 else{
                     # Fill in the matrix with 0 / 1, just in case if the state will not be updated anymore
@@ -1211,47 +1212,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     # Insert the provided initials
                     matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <-
                         initialArima[1:initialArimaNumber];
-
-                    # matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
-                    #     switch(Etype,
-                    #            "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(initialArima[1:initialArimaNumber]) /
-                    #                tail(arimaPolynomials$ariPolynomial,1),
-                    #            "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(initialArima[1:initialArimaNumber])) /
-                    #                        tail(arimaPolynomials$ariPolynomial,1)));
-
-                    # If only AR is needed, but provided or if both are needed, but provided
-                    # if(((arRequired && !arEstimate) && !maRequired) ||
-                    #    ((arRequired && !arEstimate) && (maRequired && !maEstimate)) ||
-                    #    (iRequired && !arEstimate && !maEstimate)){
-                    #     matVt[componentsNumberETS+nonZeroARI[,2],1:initialArimaNumber] <-
-                    #         switch(Etype,
-                    #                "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                    #                    t(initialArima[1:initialArimaNumber]) /
-                    #                    tail(arimaPolynomials$ariPolynomial,1),
-                    #                "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                    #                            t(log(initialArima[1:initialArimaNumber])) /
-                    #                            tail(arimaPolynomials$ariPolynomial,1)));
-                    # }
-                    # If only MA is needed, but provided
-                    # else if(((maRequired && !maEstimate) && !arRequired)){
-                    #     matVt[componentsNumberETS+nonZeroMA[,2],1:initialArimaNumber] <-
-                    #         switch(Etype,
-                    #                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                    #                    t(initialArima[1:initialArimaNumber]) /
-                    #                    tail(arimaPolynomials$maPolynomial,1),
-                    #                "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                    #                            t(log(initialArima[1:initialArimaNumber])) /
-                    #                            tail(arimaPolynomials$maPolynomial,1)));
-                    # }
                 }
             }
 
             # Fill in the initials for xreg
             if(xregModel){
                 if(Etype=="A" || initialXregProvided || is.null(xregModelInitials[[2]])){
-                    # matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
-                    #       1:lagsModelMax] <- xregModelInitials[[1]]$initialXreg;
-
                     # This step is needed to address the potential issue with dropped level
                     # of factor variables or variables due to multicollinearity
                     matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
@@ -1260,9 +1226,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                           1:lagsModelMax] <- xregModelInitials[[1]]$initialXreg;
                 }
                 else{
-                    # matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
-                    #       1:lagsModelMax] <- xregModelInitials[[2]]$initialXreg;
-
                     # This step is needed to address the potential issue with dropped level
                     # of factor variables or variables due to multicollinearity
                     matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,
@@ -1467,11 +1430,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                            "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]),
                            "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(B[j+1:initialArimaNumber]))));
 
-                    # switch(Etype,
-                    #        "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]) /
-                    #            tail(arimaPolynomials$ariPolynomial,1),
-                    #        "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(B[j+1:initialArimaNumber])) /
-                    #                    tail(arimaPolynomials$ariPolynomial,1)));
+                # switch(Etype,
+                #        "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]) /
+                #            tail(arimaPolynomials$ariPolynomial,1),
+                #        "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(B[j+1:initialArimaNumber])) /
+                #                    tail(arimaPolynomials$ariPolynomial,1)));
                 j[] <- j+initialArimaNumber;
             }
             # This is needed in order to propagate initials of ARIMA to all components
@@ -1485,13 +1448,13 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                            "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
                                        t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]))));
 
-                    # switch(Etype,
-                    #        "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                    #            t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                    #            tail(arimaPolynomials$ariPolynomial,1),
-                    #        "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                    #                    t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                    #                    tail(arimaPolynomials$ariPolynomial,1)));
+                # switch(Etype,
+                #        "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                #            t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
+                #            tail(arimaPolynomials$ariPolynomial,1),
+                #        "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                #                    t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
+                #                    tail(arimaPolynomials$ariPolynomial,1)));
 
                 # }
                 # else{
@@ -1579,23 +1542,23 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(etsModel){
             # Fill in persistence
             if(persistenceEstimate && any(persistenceEstimateVector)){
-                if(any(c(Etype,Ttype,Stype)=="M")){
+                if(ets=="conventional" && any(c(Etype,Ttype,Stype)=="M")){
                     # A special type of model which is not safe: AAM, MAA, MAM
                     if((Etype=="A" && Ttype=="A" && Stype=="M") || (Etype=="A" && Ttype=="M" && Stype=="A") ||
                        (any(initialType==c("complete","backcasting")) &&
                         ((Etype=="M" && Ttype=="A" && Stype=="A") || (Etype=="M" && Ttype=="A" && Stype=="M")))){
                         B[1:sum(persistenceEstimateVector)] <-
-                            c(0.01,0,rep(0,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                            c(0.01,0.005,rep(0.001,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                     }
                     # MMA is the worst. Set everything to zero and see if anything can be done...
                     else if((Etype=="M" && Ttype=="M" && Stype=="A")){
                         B[1:sum(persistenceEstimateVector)] <-
-                            c(0,0,rep(0,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                            c(0.01,0.005,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                     }
                     else if(Etype=="M" && Ttype=="A"){
                         if(any(initialType==c("complete","backcasting"))){
                             B[1:sum(persistenceEstimateVector)] <-
-                                c(0.1,0,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                                c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                         }
                         else{
                             B[1:sum(persistenceEstimateVector)] <-
@@ -1878,9 +1841,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
             else{
                 # if(Etype=="A"){
-                    # B[j]*1.01 is needed to make sure that the bounds cover the initial value
-                    Bu[j] <- max(abs(yInSample[otLogical]),abs(B[j])*1.01);
-                    Bl[j] <- -Bu[j];
+                # B[j]*1.01 is needed to make sure that the bounds cover the initial value
+                Bu[j] <- max(abs(yInSample[otLogical]),abs(B[j])*1.01);
+                Bl[j] <- -Bu[j];
                 # }
                 # else{
                 #     Bu[j] <- 1.5;
@@ -1933,8 +1896,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                          "A"=sum((errors/yFitted)^2/(1+errors/yFitted))/obsInSample,
                                          "M"=sum((errors)^2/(1+errors))/obsInSample),
                       "dgamma"=switch(Etype,
-                                         "A"=sum((errors/yFitted)^2)/obsInSample,
-                                         "M"=sum(errors^2)/obsInSample)
+                                      "A"=sum((errors/yFitted)^2)/obsInSample,
+                                      "M"=sum(errors^2)/obsInSample)
                       # "M"=mean((errors)^2/(1+errors))),
         ));
     }
@@ -2107,6 +2070,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                 }
                 else{
+                    # If this is ETS or ARIMA with polynomials outside standard bounds, do proper check
                     if(etsModel || (arimaModel && maEstimate && (sum(adamElements$arimaPolynomials$maPolynomial[-1])>=1 |
                                                                  sum(adamElements$arimaPolynomials$maPolynomial[-1])<0))){
                         eigenValues <- abs(eigen(adamElements$matF -
@@ -2135,7 +2099,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations, refineHead);
+                                     nIterations, refineHead, adamETS);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -2206,7 +2170,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                        # abs() is a failsafe mechanism for weird cases of negative values in mixed models
                                        "dgamma"=dgamma(x=yInSample[otLogical], shape=1/scale,
                                                        scale=scale*abs(adamFitted$yFitted[otLogical]), log=TRUE)
-                                       ));
+                ));
 
                 # Differential entropy for the logLik of occurrence model
                 if(occurrenceModel || any(!otLogical)){
@@ -2257,7 +2221,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 ### All of this is needed in order to get rid of initial level, trend, seasonal and xreg parameters
                 # Define, how many elements to skip (we don't normalise smoothing parameters)
                 persistenceToSkip <- componentsNumberETS + persistenceXregEstimate*xregNumber +
-                                     phiEstimate + sum(arOrders) + sum(maOrders);
+                    phiEstimate + sum(arOrders) + sum(maOrders);
 
                 # Shrink phi to 1
                 if(phiEstimate){
@@ -2563,7 +2527,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                              componentsNumberARIMA, xregNumber, constantRequired,
                                              yInSample, ot, any(initialType==c("complete","backcasting")),
-                                             nIterations, refineHead);
+                                             nIterations, refineHead, adamETS);
                 logLikReturn[] <- logLikReturn - sum(log(abs(adamFitted$yFitted)));
             }
 
@@ -2981,7 +2945,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                 bounds, loss, lossFunction, distributionNew, horizon, multisteps,
                                                 denominator, yDenominator, other, otherParameterEstimate, lambda,
                                                 arPolynomialMatrix, maPolynomialMatrix),
-        # In case of likelihood, we typically have one more parameter to estimate - scale.
+                                     # In case of likelihood, we typically have one more parameter to estimate - scale.
                                      nobs=obsInSample,df=nParamEstimated+(loss=="likelihood"),class="logLik");
         xregIndex <- 1;
         #### If we do variables selection, do it here, then reestimate the model. ####
@@ -3039,7 +3003,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                          componentsNumberARIMA, xregNumber, constantRequired,
                                          yInSample, ot, any(initialType==c("complete","backcasting")),
-                                         nIterations, refineHead);
+                                         nIterations, refineHead, adamETS);
 
             # Extract the errors correctly
             errors <- switch(distributionNew,
@@ -3668,7 +3632,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations, refineHead);
+                                     nIterations, refineHead, adamETS);
 
         matVt[] <- adamFitted$matVt;
 
@@ -3971,7 +3935,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     constant=constantValue, nParam=parametersNumber, occurrence=oesModel,
                     formula=formula, regressors=regressors,
                     loss=loss, lossValue=CFValue, logLik=logLikADAMValue, distribution=distribution,
-                    scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI));
+                    scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, ets=ets,
+                    res=res, FI=FI));
     }
 
     #### Deal with occurrence model ####
@@ -5063,7 +5028,7 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
                                   dimnames=list(lagsModelAll,NULL));
     # Create the lookup table
     indexLookupTable <- matrix(1,length(lagsModelAll),obsAll+lagsModelMax,
-                                    dimnames=list(lagsModelAll,NULL));
+                               dimnames=list(lagsModelAll,NULL));
     # Modify the lookup table in order to get proper indices in C++
     profileIndices <- matrix(c(1:(lagsModelMax*length(lagsModelAll))),length(lagsModelAll));
 
@@ -5071,10 +5036,10 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
         profilesRecentTable[i,1:lagsModelAll[i]] <- 1:lagsModelAll[i];
         # -1 is needed to align this with C++ code
         indexLookupTable[i,lagsModelMax+c(1:obsAll)] <- rep(profileIndices[i,1:lagsModelAll[i]],
-                                                                 ceiling(obsAll/lagsModelAll[i]))[1:obsAll] -1;
+                                                            ceiling(obsAll/lagsModelAll[i]))[1:obsAll] -1;
         # Fix the head of the data, before the sample starts
         indexLookupTable[i,1:lagsModelMax] <- tail(rep(unique(indexLookupTable[i,lagsModelMax+c(1:obsAll)]),lagsModelMax),
-                                                        lagsModelMax);
+                                                   lagsModelMax);
     }
 
     # Do shifts for proper lags only:
@@ -5244,6 +5209,65 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
 #     return(list(arPolynomial=arPolynomial,iPolynomial=iPolynomial,
 #                 ariPolynomial=ariPolynomial,maPolynomial=maPolynomial));
 # }
+
+#### Small technical functions ####
+# Function checks whether the conventional ETS or the ADAM version was used
+adamETSChecker <- function(object){
+    if(!is.null(object$ets) && object$ets=="adam"){
+        adamETS <- TRUE;
+    }
+    else{
+        adamETS <- FALSE;
+    }
+    return(adamETS);
+}
+
+# Function defines number of components based on the model type
+componentsDefiner <- function(object){
+    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
+    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
+    cesModel <- smoothType(object)=="CES";
+    gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
+
+    if(cesModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
+        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
+        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
+            componentsNumberARIMA[] <- componentsNumberARIMA+1;
+        }
+    }
+    else if(gumModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
+    }
+    else{
+        if(!is.null(object$initial$seasonal)){
+            if(is.list(object$initial$seasonal)){
+                componentsNumberETSSeasonal <- length(object$initial$seasonal);
+            }
+            else{
+                componentsNumberETSSeasonal <- 1;
+            }
+        }
+        else{
+            componentsNumberETSSeasonal <- 0;
+        }
+        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
+        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+    }
+
+    return(list(componentsNumberETS=componentsNumberETS,
+                componentsNumberETSSeasonal=componentsNumberETSSeasonal,
+                componentsNumberARIMA=componentsNumberARIMA))
+}
 
 #### Technical methods ####
 #' @export
@@ -6135,13 +6159,14 @@ print.adam <- function(x, digits=4, ...){
 
     if(cesModel){
         if(!is.null(x$parameters)){
-            cat("\na0 + ia1:",round(x$parameters$a,digits),"\n");
+            cat("\n");
+            print(round(x$parameters$a,digits));
             if(!is.null(x$parameters$b)){
-                if(Im(x$parameters$b)!=0){
-                    cat("b0 + ib1:",round(x$parameters$b,digits),"\n");
+                if(is.complex(x$parameters$b)){
+                    print(round(x$parameters$b,digits));
                 }
                 else{
-                    cat("b:",round(as.numeric(x$parameters$b),digits),"\n");
+                    print(round((x$parameters$b),digits));
                 }
             }
         }
@@ -6631,8 +6656,8 @@ sigma.adam <- function(object, ...){
                        "dlgnorm"=sum(log(residuals(object)-extractScale(object)^2/2)^2,na.rm=TRUE),
                        "dinvgauss"=,
                        "dgamma"=sum((residuals(object)-1)^2,na.rm=TRUE)
-                       )
-                /df));
+    )
+    /df));
 }
 
 #' @export
@@ -6812,7 +6837,7 @@ xtable::xtable
 #' @importFrom xtable xtable
 #' @export
 xtable.adam <- function(x, caption = NULL, label = NULL, align = NULL, digits = NULL,
-                           display = NULL, auto = FALSE, ...){
+                        display = NULL, auto = FALSE, ...){
     adamSummary <- summary(x);
     return(do.call("xtable", list(x=adamSummary,
                                   caption=caption, label=label, align=align, digits=digits,
@@ -6821,7 +6846,7 @@ xtable.adam <- function(x, caption = NULL, label = NULL, align = NULL, digits = 
 
 #' @export
 xtable.summary.adam <- function(x, caption = NULL, label = NULL, align = NULL, digits = NULL,
-                           display = NULL, auto = FALSE, ...){
+                                display = NULL, auto = FALSE, ...){
     # Substitute class with lm
     class(x) <- "summary.lm";
     return(do.call("xtable", list(x=x,
@@ -6982,7 +7007,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
 
     # If this is backcasting, do sampling with moving origin
     changeOrigin <- FALSE;
-    if(object$initialType=="complete"){
+    if(any(object$initialType==c("backcasting","complete"))){
         changeOrigin[] <- TRUE;
     }
 
@@ -7141,12 +7166,16 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             gumModel <- smoothType(object)=="GUM";
             ssarimaModel <- smoothType(object)=="SSARIMA";
             if(cesModel){
+                # If this is not provided by user, use a low value. CES is sensitive, so the small steps are required
+                if(is.null(ellipsis$stepSize)){
+                    ellipsis$stepSize <- 1e-8;
+                }
                 modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
-                                                FI=TRUE, stepSize=ellipsis$stepSize));
+                                                    FI=TRUE, stepSize=ellipsis$stepSize));
             }
             else if(gumModel){
                 modelReturn <- suppressWarnings(gum(object$data, h=0, model=object, formula=formula(object),
-                                                FI=TRUE, stepSize=ellipsis$stepSize));
+                                                    FI=TRUE, stepSize=ellipsis$stepSize));
             }
             else if(ssarimaModel){
                 modelReturn <- suppressWarnings(ssarima(object$data, h=0, model=object, formula=formula(object),
@@ -7271,6 +7300,9 @@ residuals.adam <- function(object, ...){
 #'
 #' @param object Model estimated using one of the forecasting functions.
 #' @param h The forecasting horizon to use.
+#' @param error Defines what type of error to return. \code{"default"} means returning the
+#' one used in the original model. \code{"additive"} is to return e_t = y_t - mu_t.
+#' Finally, \code{"multiplicative"} will return e_t = (y_t - mu_t) / mu_t.
 #' @param ... Currently nothing is accepted via ellipsis.
 #' @return The matrix with observations in rows and h steps ahead values in columns.
 #' So, the first row corresponds to the forecast produced from the 0th observation
@@ -7283,20 +7315,31 @@ residuals.adam <- function(object, ...){
 #' rmultistep(ourModel, h=13)
 #'
 #' @export rmultistep
-rmultistep <- function(object, h=10, ...) UseMethod("rmultistep")
+rmultistep <- function(object, h=10,
+                       error=c("default","additive","multiplicative"),
+                       ...) UseMethod("rmultistep")
 
 #' @export
-rmultistep.default <- function(object, h=10, ...){
+rmultistep.default <- function(object, h=10,
+                               error=c("default","additive","multiplicative"),
+                               ...){
     return(NULL);
 }
 
 #' @export
-rmultistep.adam <- function(object, h=10, ...){
+rmultistep.adam <- function(object, h=10,
+                            error=c("default","additive","multiplicative"),
+                            ...){
+    error <- match.arg(error);
+
     yClasses <- class(actuals(object));
 
     # Model type
     model <- modelType(object);
-    Etype <- errorType(object);
+    Etype <- switch(error,
+                    "additive"="A",
+                    "multiplicative"="M",
+                    "default"=errorType(object));
     Ttype <- substr(model,2,2);
     Stype <- substr(model,nchar(model),nchar(model));
 
@@ -7307,19 +7350,13 @@ rmultistep.adam <- function(object, h=10, ...){
     if(Ttype!="N"){
         lagsOriginal <- c(1,lagsOriginal);
     }
-    if(!is.null(object$initial$seasonal)){
-        if(is.list(object$initial$seasonal)){
-            componentsNumberETSSeasonal <- length(object$initial$seasonal);
-        }
-        else{
-            componentsNumberETSSeasonal <- 1;
-        }
-    }
-    else{
-        componentsNumberETSSeasonal <- 0;
-    }
-    componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+
+    # Get componentsNumberETS, seasonal and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
+
     if(ncol(object$data)>1){
         xregNumber <- ncol(object$data)-1;
     }
@@ -7339,11 +7376,11 @@ rmultistep.adam <- function(object, h=10, ...){
     }
     adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample,
                                        lagsOriginal, time(actuals(object)), yClasses);
-    profilesRecentTable <- adamProfiles$recent;
+    # profilesRecentTable <- adamProfiles$recent;
     indexLookupTable <- adamProfiles$lookup;
 
     # Fill in the profile. This is done in Errorer as well, but this is just in case
-    profilesRecentTable[] <- t(object$states[1:lagsModelMax,,drop=FALSE]);
+    profilesRecentTable <- object$profileInitial;
 
     # Return multi-step errors matrix
     if(any(yClasses=="ts")){
@@ -7362,7 +7399,7 @@ rmultistep.adam <- function(object, h=10, ...){
                                    componentsNumberETS, componentsNumberETSSeasonal,
                                    componentsNumberARIMA, xregNumber, constantRequired, h,
                                    matrix(actuals(object),obsInSample,1), ot),
-                  order.by=time(actuals(object))));
+                   order.by=time(actuals(object))));
     }
 }
 
@@ -7887,6 +7924,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     ellipsis <- list(...);
 
+    # Check whether we deal with adam ETS or the conventional
+    adamETS <- adamETSChecker(object);
+
     interval <- match.arg(interval[1],c("none", "simulated", "approximate", "semiparametric",
                                         "nonparametric", "confidence", "parametric","prediction",
                                         "empirical","complete"));
@@ -7936,10 +7976,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     Stype <- substr(model,nchar(model),nchar(model));
 
     etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
-    cesModel <- smoothType(object)=="CES";
+    # arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
+    # cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
-    ssarimaModel <- smoothType(object)=="SSARIMA";
+    # ssarimaModel <- smoothType(object)=="SSARIMA";
 
     # Technical parameters
     lagsModelAll <- modelLags(object);
@@ -7954,39 +7994,11 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
     profilesRecentTable <- object$profile;
 
-    if(cesModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
-        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
-        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
-            componentsNumberARIMA[] <- componentsNumberARIMA+1;
-        }
-    }
-    else if(gumModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- sum(orders(object));
-    }
-    else if(ssarimaModel){
-        arimaOrders <- orders(object);
-        lags <- lags(object);
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
-    }
-    else{
-        if(!is.null(object$initial$seasonal)){
-            if(is.list(object$initial$seasonal)){
-                componentsNumberETSSeasonal <- length(object$initial$seasonal);
-            }
-            else{
-                componentsNumberETSSeasonal <- 1;
-            }
-        }
-        else{
-            componentsNumberETSSeasonal <- 0;
-        }
-        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
-    }
+    # Get componentsNumberETS and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
 
     obsStates <- nrow(object$states);
     obsInSample <- nobs(object);
@@ -8342,8 +8354,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                    "dllaplace"=exp(rlaplace(h*nsim, 0, scaleValue))-1,
                                    "dls"=exp(rs(h*nsim, 0, scaleValue))-1,
                                    "dlgnorm"=exp(rgnorm(h*nsim, 0, scaleValue, object$other$shape))-1
-                                   ),
-                            h,nsim);
+        ),
+        h,nsim);
         # Normalise errors in order not to get ridiculous things on small nsim
         if(nsim<=500){
             if(Etype=="A"){
@@ -8367,7 +8379,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                         EtypeModified, Ttype, Stype,
                                         lagsModelAll, indexLookupTable, profilesRecentTable,
                                         componentsNumberETSSeasonal, componentsNumberETS,
-                                        componentsNumberARIMA, xregNumber, constantRequired)$matrixYt;
+                                        componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
 
         #### Note that the cumulative doesn't work with oes at the moment!
         if(cumulative){
@@ -8502,12 +8514,12 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                     # Transform scales into the variances
                     # dnorm, dlnorm, dgamma and dinvgauss return scales that are equal to variances
                     vcovMulti[] <- switch(object$distribution,
-                                           "dlaplace"=2*vcovMulti^2,
-                                           "ds"=120*vcovMulti^4,
-                                           "dgnorm"=vcovMulti^2*gamma(3/object$other$shape)/gamma(1/object$other$shape),
-                                           "dalaplace"=vcovMulti^2/(object$other$alpha^2*(1-object$other$alpha)^2/
-                                                                         (object$other$alpha^2+(1-object$other$alpha)^2)),
-                                           vcovMulti)*obsInSample/df;
+                                          "dlaplace"=2*vcovMulti^2,
+                                          "ds"=120*vcovMulti^4,
+                                          "dgnorm"=vcovMulti^2*gamma(3/object$other$shape)/gamma(1/object$other$shape),
+                                          "dalaplace"=vcovMulti^2/(object$other$alpha^2*(1-object$other$alpha)^2/
+                                                                       (object$other$alpha^2+(1-object$other$alpha)^2)),
+                                          vcovMulti)*obsInSample/df;
                 }
                 else{
                     vcovMulti <- sigma(object)^2;
@@ -9044,11 +9056,11 @@ plot.adam.forecast <- function(x, ...){
                                 start=end(ellipsis$actuals)+yDeltat,
                                 frequency=frequency(ellipsis$forecast));
         ellipsis$lower <- ts(ellipsis$lower,
-                                start=end(ellipsis$actuals)+yDeltat,
-                                frequency=frequency(ellipsis$forecast));
+                             start=end(ellipsis$actuals)+yDeltat,
+                             frequency=frequency(ellipsis$forecast));
         ellipsis$upper <- ts(ellipsis$upper,
-                                start=end(ellipsis$actuals)+yDeltat,
-                                frequency=frequency(ellipsis$forecast));
+                             start=end(ellipsis$actuals)+yDeltat,
+                             frequency=frequency(ellipsis$forecast));
         ellipsis$main <- paste0("Cumulative ", ellipsis$main);
         ellipsis$vline <- FALSE;
 
@@ -9178,6 +9190,9 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     startTime <- Sys.time();
     parametersNames <- names(coef(object));
 
+    # Check whether we deal with adam ETS or the conventional
+    adamETS <- adamETSChecker(object);
+
     vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, heuristics=heuristics, nsim=nsim, ...));
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
@@ -9208,8 +9223,6 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     Etype <- errorType(object);
     Ttype <- substr(modelType(object),2,2);
     Stype <- substr(modelType(object),nchar(modelType(object)),nchar(modelType(object)));
-    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
     lags <- object$lags;
     lagsSeasonal <- lags[lags!=1];
     lagsModelAll <- object$lagsAll;
@@ -9229,7 +9242,9 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     #
     # }
 
-    cesModel <- smoothType(object)=="CES";
+    # cesModel <- smoothType(object)=="CES";
+    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
+    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
     gumModel <- smoothType(object)=="GUM";
     ssarimaModel <- smoothType(object)=="SSARIMA";
 
@@ -9238,39 +9253,11 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
         refineHead[] <- FALSE;
     }
 
-    if(cesModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
-        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
-        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
-            componentsNumberARIMA[] <- componentsNumberARIMA+1;
-        }
-    }
-    else if(gumModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- sum(orders(object));
-    }
-    else if(ssarimaModel){
-        arimaOrders <- orders(object);
-        lags <- lags(object);
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
-    }
-    else{
-        if(!is.null(object$initial$seasonal)){
-            if(is.list(object$initial$seasonal)){
-                componentsNumberETSSeasonal <- length(object$initial$seasonal);
-            }
-            else{
-                componentsNumberETSSeasonal <- 1;
-            }
-        }
-        else{
-            componentsNumberETSSeasonal <- 0;
-        }
-        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
-    }
+    # Get componentsNumberETS, seasonal and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
 
     # Prepare variables for xreg
     if(!is.null(object$initial$xreg)){
@@ -9772,7 +9759,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                                      lagsModelAll, indexLookupTable, profilesRecentArray,
                                      componentsNumberETSSeasonal, componentsNumberETS,
                                      componentsNumberARIMA, xregNumber, constantRequired,
-                                     object$initialType=="backcasting", refineHead);
+                                     object$initialType=="backcasting", refineHead, adamETS);
     arrVt[] <- adamRefitted$states;
     fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
     profilesRecentArray[] <- adamRefitted$profilesRecent;
@@ -9831,7 +9818,7 @@ plot.reapply <- function(x, ...){
 
     nLevels <- 5
     cols <- colorRampPalette(c(paletteBasic[6],paletteBasic[5]))(nLevels)[findInterval(1:nLevels,
-                                                                           seq(1, nLevels, length.out=nLevels))];
+                                                                                       seq(1, nLevels, length.out=nLevels))];
 
     ellipsis <- list(...);
     ellipsis$x <- actuals(x);
@@ -9875,7 +9862,7 @@ plot.reapplyCombined <- function(x, ...){
 
     nLevels <- 5
     cols <- colorRampPalette(c(paletteBasic[6],paletteBasic[5]))(nLevels)[findInterval(1:nLevels,
-                                                                           seq(1, nLevels, length.out=nLevels))];
+                                                                                       seq(1, nLevels, length.out=nLevels))];
 
     ellipsis <- list(...);
     ellipsis$x <- actuals(x);
@@ -9959,6 +9946,9 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     objectRefitted <- reapply(object, nsim=nsim, bootstrap=bootstrap, heuristics=heuristics, ...);
     ellipsis <- list(...);
 
+    # Check whether we deal with adam ETS or the conventional
+    adamETS <- adamETSChecker(object);
+
     # If the trim is not provided, set it to 1%
     if(is.null(ellipsis$trim)){
         trim <- 0.01;
@@ -9982,24 +9972,16 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     lagsModelMax <- max(lagsModelAll);
     profilesRecentArray <- objectRefitted$profile;
 
-    if(!is.null(object$initial$seasonal)){
-        if(is.list(object$initial$seasonal)){
-            componentsNumberETSSeasonal <- length(object$initial$seasonal);
-        }
-        else{
-            componentsNumberETSSeasonal <- 1;
-        }
-    }
-    else{
-        componentsNumberETSSeasonal <- 0;
-    }
-    componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+    # Get componentsNumberETS, seasonal and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
 
     obsStates <- nrow(object$states);
     obsInSample <- nobs(object);
     indexLookupTable <- adamProfileCreator(lagsModelAll, lagsModelMax,
-                                                obsInSample+h)$lookup[,-c(1:(obsInSample+lagsModelMax)),drop=FALSE];
+                                           obsInSample+h)$lookup[,-c(1:(obsInSample+lagsModelMax)),drop=FALSE];
 
     yClasses <- class(actuals(object));
 
@@ -10301,7 +10283,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                               EtypeModified, Ttype, Stype,
                                               lagsModelAll, indexLookupTable, profilesRecentArray,
                                               componentsNumberETSSeasonal, componentsNumberETS,
-                                              componentsNumberARIMA, xregNumber, constantRequired)$matrixYt;
+                                              componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
 
     #### Note that the cumulative doesn't work with oes at the moment!
     if(cumulative){
@@ -10422,6 +10404,9 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
                           ...){
     type <- match.arg(type);
 
+    # Check whether we deal with adam ETS or the conventional
+    adamETS <- adamETSChecker(object);
+
     # Model type
     Ttype <- substr(modelType(object),2,2);
 
@@ -10431,9 +10416,12 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
     if(Ttype!="N"){
         lagsOriginal <- c(1,lagsOriginal);
     }
-    componentsNumberETS <- length(lagsOriginal);
-    componentsNumberETSSeasonal <- sum(lagsOriginal>1);
-    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+
+    # Get componentsNumberETS, seasonal and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
 
     s2 <- sigma(object)^2;
     matWt <- tail(object$measurement,h);
@@ -10461,7 +10449,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
 
         # Get the lookup table
         indexLookupTable <- adamProfileCreator(lagsModelAll, lagsModelMax,
-                                                    obsInSample+h)$lookup[,-c(1:(obsInSample+lagsModelMax)),drop=FALSE];
+                                               obsInSample+h)$lookup[,-c(1:(obsInSample+lagsModelMax)),drop=FALSE];
         profilesRecentTable <- object$profile;
 
         lagsModelMin <- lagsModelAll[lagsModelAll!=1];
@@ -10561,7 +10549,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
                                         EtypeModified, Ttype, Stype,
                                         lagsModelAll, indexLookupTable, profilesRecentTable,
                                         componentsNumberETSSeasonal, componentsNumberETS,
-                                        componentsNumberARIMA, xregNumber, constantRequired)$matrixYt;
+                                        componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
 
         yForecast <- vector("numeric", h);
         for(i in 1:h){
@@ -10624,11 +10612,11 @@ pointLik.adam <- function(object, log=TRUE, ...){
                                                "M"=ds(q=yInSample[otLogical],mu=yFitted[otLogical],
                                                       scale=scale*sqrt(yFitted[otLogical]), log=TRUE)),
                                    "dgnorm"=switch(Etype,
-                                                  "A"=dgnorm(q=yInSample[otLogical], mu=yFitted[otLogical],
-                                                            scale=scale, shape=other, log=TRUE),
-                                                  "M"=suppressWarnings(dgnorm(q=yInSample[otLogical], mu=yFitted[otLogical],
-                                                                              scale=scale*yFitted[otLogical], shape=other,
-                                                                              log=TRUE))),
+                                                   "A"=dgnorm(q=yInSample[otLogical], mu=yFitted[otLogical],
+                                                              scale=scale, shape=other, log=TRUE),
+                                                   "M"=suppressWarnings(dgnorm(q=yInSample[otLogical], mu=yFitted[otLogical],
+                                                                               scale=scale*yFitted[otLogical], shape=other,
+                                                                               log=TRUE))),
                                    "dlogis"=switch(Etype,
                                                    "A"=dlogis(x=yInSample[otLogical], location=yFitted[otLogical],
                                                               scale=scale, log=TRUE),
@@ -10651,7 +10639,7 @@ pointLik.adam <- function(object, log=TRUE, ...){
                                    "dls"=ds(q=log(yInSample[otLogical]), mu=log(yFitted[otLogical]),
                                             scale=scale, log=TRUE),
                                    "dlgnorm"=dgnorm(q=log(yInSample[otLogical]), mu=log(yFitted[otLogical]),
-                                                   scale=scale, shape=other, log=TRUE),
+                                                    scale=scale, shape=other, log=TRUE),
                                    "dinvgauss"=dinvgauss(x=yInSample[otLogical], mean=yFitted[otLogical],
                                                          dispersion=scale/yFitted[otLogical], log=TRUE),
                                    "dgamma"=dgamma(x=yInSample[otLogical], shape=1/scale,
@@ -10679,7 +10667,7 @@ pointLik.adam <- function(object, log=TRUE, ...){
                                          "dinvgauss" = (0.5*(log(pi/2)+1+log(scale))),
                                          "dgamma" = (1/scale + log(scale*yFitted[!otLogical]) +
                                                          log(gamma(1/scale)) + (1-1/scale)*digamma(1/scale))
-                                         );
+        );
 
         likValues[] <- likValues + pointLik(object$occurrence);
     }
@@ -10741,6 +10729,9 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
 
     ellipsis <- list(...);
 
+    # Check whether we deal with adam ETS or the conventional
+    adamETS <- adamETSChecker(object);
+
     if(!is.null(seed)){
         set.seed(seed);
     }
@@ -10766,48 +10757,11 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     # See if constant is required
     constantRequired <- !is.null(object$constant);
 
-    # Expand persistence to include zero for the constant
-    # if(constantRequired){
-    #
-    # }
-
-    cesModel <- smoothType(object)=="CES";
-    gumModel <- smoothType(object)=="GUM";
-    ssarimaModel <- smoothType(object)=="SSARIMA";
-
-    if(cesModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
-        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
-        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
-            componentsNumberARIMA[] <- componentsNumberARIMA+1;
-        }
-    }
-    else if(gumModel){
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- sum(orders(object));
-    }
-    else if(ssarimaModel){
-        arimaOrders <- orders(object);
-        lags <- lags(object);
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
-    }
-    else{
-        if(!is.null(object$initial$seasonal)){
-            if(is.list(object$initial$seasonal)){
-                componentsNumberETSSeasonal <- length(object$initial$seasonal);
-            }
-            else{
-                componentsNumberETSSeasonal <- 1;
-            }
-        }
-        else{
-            componentsNumberETSSeasonal <- 0;
-        }
-        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
-    }
+    # Get componentsNumberETS, seasonal and componentsNumberARIMA
+    componentsDefined <- componentsDefiner(object);
+    componentsNumberETS <- componentsDefined$componentsNumberETS;
+    componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
+    componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
 
     # Prepare variables for xreg
     if(!is.null(object$initial$xreg)){
@@ -10980,7 +10934,7 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
                                     EtypeModified, Ttype, Stype,
                                     lagsModelAll, indexLookupTable, profilesRecentTable,
                                     componentsNumberETSSeasonal, componentsNumberETS,
-                                    componentsNumberARIMA, xregNumber, constantRequired);
+                                    componentsNumberARIMA, xregNumber, constantRequired, adamETS);
 
     # Set the proper time stamps for the fitted
     if(any(yClasses=="zoo")){
@@ -11015,4 +10969,3 @@ print.adam.sim <- function(x, ...){
 ##### Other methods to implement #####
 # accuracy.adam <- function(object, holdout, ...){}
 # pls.adam
-

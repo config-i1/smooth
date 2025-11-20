@@ -1,17 +1,19 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "02 April 2025"
+date: "24 October 2025"
 output: html_document
 ---
 
 ## Version
-This is ``smooth`` package, v4.2.0
+This is ``smooth`` package, v4.3.1
 
-This is a try to fix the errors on CRAN.
+## Notes
+This version fixes the issues on CRAN caused by the new RcppArmadillo.
+
 
 ## Test environments
-* local Ubuntu 24.04.1, R 4.4.1
+* local Ubuntu 25.04, R 4.5.1
 * github actions
 * win-builder (devel and release)
 * rhub v2

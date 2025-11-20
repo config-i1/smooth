@@ -223,7 +223,7 @@
 #'
 #' @rdname es
 #' @export
-es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
+es <- function(y, model="ZXZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
                initial=c("backcasting","optimal","two-stage","complete"),initialSeason=NULL,
                ic=c("AICc","AIC","BIC","BICc"),
                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
@@ -409,7 +409,7 @@ es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
     ourModel <- adam(data=data, model=model, lags=lags, persistence=persistence, phi=phi,
                      loss=loss, h=h, holdout=holdout, initial=initialValue,
                      ic=ic, bounds=bounds, distribution="dnorm",
-                     silent=silent, regressors=regressors[1], ...);
+                     silent=silent, regressors=regressors[1], ets="conventional", ...);
     ourModel$call <- cl;
     ourModel$timeElapsed=Sys.time()-startTime;
 
