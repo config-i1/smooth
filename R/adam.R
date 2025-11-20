@@ -9263,9 +9263,9 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     ssarimaModel <- smoothType(object)=="SSARIMA";
 
     refineHead <- TRUE;
-    if(any(arimaModel,ssarimaModel)){
-        refineHead[] <- FALSE;
-    }
+    # if(any(arimaModel,ssarimaModel)){
+    #     refineHead[] <- FALSE;
+    # }
 
     # Get componentsNumberETS, seasonal and componentsNumberARIMA
     componentsDefined <- componentsDefiner(object);
