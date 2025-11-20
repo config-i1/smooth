@@ -662,9 +662,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. Only needed for the ETS(*,Z,*) models
     refineHead <- TRUE;
-    if(arimaModel){
-        refineHead[] <- FALSE;
-    }
+    # if(arimaModel){
+    #     refineHead[] <- FALSE;
+    # }
     # if(initialType!="backcasting" | componentsNumberARIMA==0){
     #     refineHead[] <- TRUE;
     # }
