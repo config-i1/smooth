@@ -448,6 +448,8 @@ def estimator(
     maxtime=None,
     print_level=1,  # 1 or 0
     maxeval=None,
+    B_initial=None,
+    return_matrices=False,
 ):
     """
     Estimate parameters for ADAM model.
@@ -498,6 +500,9 @@ def estimator(
         Verbosity level (0 or 1)
     maxeval : int, optional
         Maximum number of evaluations
+    B_initial : array-like, optional
+        Initial parameter vector to start optimization from.
+        If provided, it overrides the default initialization logic.
 
     Returns
     -------
@@ -549,13 +554,35 @@ def estimator(
         observations_dict=observations_dict,
         bounds=general_dict["bounds"],
         phi_dict=phi_dict,
+        profile_dict=profile_dict,
     )
     # Get initial parameter vector and bounds
-    B = b_values["B"]
+    if B_initial is not None:
+        B = B_initial
+    else:
+        B = b_values["B"]
     if lb is None:
         lb = b_values["Bl"]
     if ub is None:
         ub = b_values["Bu"]
+    
+    # Ensure bounds are compatible with B
+    if B_initial is not None:
+        # Extend bounds if necessary
+        if len(lb) != len(B):
+            # This shouldn't happen if B_initial has correct length, but safety first
+            if len(lb) < len(B):
+                lb = np.pad(lb, (0, len(B) - len(lb)), 'constant', constant_values=-np.inf)
+                ub = np.pad(ub, (0, len(B) - len(ub)), 'constant', constant_values=np.inf)
+        
+        # Check compatibility
+        if np.any(B < lb) or np.any(B > ub):
+            # Adjust bounds to accommodate B
+            lb = np.minimum(lb, B)
+            ub = np.maximum(ub, B)
+            # Maybe relax bounds slightly
+            lb[B < lb] -= 1e-5
+            ub[B > ub] += 1e-5
 
     # Step 4: Set up ARIMA polynomials if needed
     ar_polynomial_matrix, ma_polynomial_matrix = _setup_arima_polynomials(
@@ -643,13 +670,80 @@ def estimator(
     )
 
     # Step 12: Prepare and return results
-    return {
+    result = {
         "B": B,
         "CF_value": CF_value,
         "n_param_estimated": n_param_estimated,
         "log_lik_adam_value": log_lik_adam_value,
         "arima_polynomials": adam_created["arima_polynomials"],
     }
+
+    if return_matrices:
+        # Ensure matrices are updated with final B values and backcasted states
+        # The CF function uses copies, so we need to update the originals
+        from smooth.adam_general.core.utils.cost_functions import log_Lik_ADAM
+        from smooth.adam_general._adam_general import adam_fitter
+
+        # Fill matrices with final B
+        filler(
+            B,
+            model_type_dict,
+            components_dict,
+            lags_dict,
+            adam_created,
+            persistence_dict,
+            initials_dict,
+            arima_dict,
+            explanatory_dict,
+            phi_dict,
+            constant_dict,
+        )
+
+        # Run adam_fitter with backcasting to update states
+        if initials_dict["initial_type"] in ["complete", "backcasting"]:
+            mat_vt = np.asfortranarray(adam_created["mat_vt"], dtype=np.float64)
+            mat_wt = np.asfortranarray(adam_created["mat_wt"], dtype=np.float64)
+            mat_f = np.asfortranarray(adam_created["mat_f"], dtype=np.float64)
+            vec_g = np.asfortranarray(adam_created["vec_g"], dtype=np.float64)
+            lags_model_all = np.asfortranarray(lags_dict["lags_model_all"], dtype=np.uint64).reshape(-1, 1)
+            index_lookup_table = np.asfortranarray(profile_dict["index_lookup_table"], dtype=np.uint64)
+            profiles_recent_table = np.asfortranarray(profile_dict["profiles_recent_table"], dtype=np.float64)
+            y_in_sample = np.asfortranarray(observations_dict["y_in_sample"], dtype=np.float64)
+            ot = np.asfortranarray(observations_dict["ot"], dtype=np.float64)
+
+            adam_fitter(
+                matrixVt=mat_vt,
+                matrixWt=mat_wt,
+                matrixF=mat_f,
+                vectorG=vec_g,
+                lags=lags_model_all,
+                indexLookupTable=index_lookup_table,
+                profilesRecent=profiles_recent_table,
+                E=model_type_dict["error_type"],
+                T=model_type_dict["trend_type"],
+                S=model_type_dict["season_type"],
+                nNonSeasonal=components_dict["components_number_ets"] - components_dict["components_number_ets_seasonal"],
+                nSeasonal=components_dict["components_number_ets_seasonal"],
+                nArima=components_dict.get("components_number_arima", 0),
+                nXreg=explanatory_dict["xreg_number"],
+                constant=constant_dict["constant_required"],
+                vectorYt=y_in_sample,
+                vectorOt=ot,
+                backcast=True,
+                nIterations=initials_dict.get("n_iterations", 2) or 2,
+                refineHead=not arima_dict["arima_model"],
+                adamETS=False
+            )
+
+            # Update original matrices
+            adam_created["mat_vt"][:] = mat_vt[:]
+
+        result["matrices"] = adam_created
+        result["lags_dict"] = lags_dict
+        result["profile_dict"] = profile_dict
+        result["components_dict"] = components_dict
+
+    return result
 
 
 # Helper functions for selector
@@ -1524,11 +1618,29 @@ def _process_initial_values(
                     i, : lags_dict["lags_model_max"]
                 ][0]
             # In cases of seasonal components, they should be at the end of the pre-heat period
+            # Only extract lag-1 values (the last one is the normalized value computed from others)
             else:
-                start_idx = lags_dict["lags_model_max"] - lags_dict["lags_model"][i][0]
-                initial_value_ets[i] = matrices_dict["mat_vt"][
+                start_idx = lags_dict["lags_model_max"] - lags_dict["lags_model"][i]
+                seasonal_full = matrices_dict["mat_vt"][
                     i, start_idx : lags_dict["lags_model_max"]
-                ]
+                ].copy()
+
+                # Renormalise seasonal initials to match R implementation
+                if np.any(~np.isnan(seasonal_full)):
+                    if model_type_dict["season_type"] == "A":
+                        seasonal_full = seasonal_full - np.nanmean(seasonal_full)
+                    elif model_type_dict["season_type"] == "M":
+                        positive_vals = seasonal_full.copy()
+                        positive_vals[positive_vals <= 0] = np.nan
+                        if np.all(np.isnan(positive_vals)):
+                            geo_mean = 1.0
+                        else:
+                            geo_mean = np.exp(np.nanmean(np.log(positive_vals)))
+                            if np.isnan(geo_mean) or geo_mean == 0:
+                                geo_mean = 1.0
+                        seasonal_full = seasonal_full / geo_mean
+
+                initial_value_ets[i] = seasonal_full[:-1]
 
         j = 0
         # Write down level in the final list
@@ -1547,13 +1659,19 @@ def _process_initial_values(
 
             # Write down the initial seasonals
             if model_type_dict["model_is_seasonal"]:
+                # Convert initial_seasonal_estimate to list if it's a boolean (for single seasonality)
+                if isinstance(initials_checked['initial_seasonal_estimate'], bool):
+                    seasonal_estimate_list = [initials_checked['initial_seasonal_estimate']] * components_dict['components_number_ets_seasonal']
+                else:
+                    seasonal_estimate_list = initials_checked['initial_seasonal_estimate']
+
                 initial_estimated[
                     j + 1 : j + 1 + components_dict["components_number_ets_seasonal"]
-                ] = initials_checked["initial_seasonal_estimate"]
+                ] = seasonal_estimate_list
                 # Remove the level from ETS list
                 initial_value_ets[0] = None
                 j += 1
-                if len(initials_checked["initial_seasonal_estimate"]) > 1:
+                if len(seasonal_estimate_list) > 1:
                     initial_value[j] = [x for x in initial_value_ets if x is not None]
                     initial_value_names[j] = "seasonal"
                     for k in range(components_dict["components_number_ets_seasonal"]):

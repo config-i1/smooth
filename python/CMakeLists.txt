@@ -59,7 +59,7 @@ endif()
 install(TARGETS _adam_general DESTINATION smooth/adam_general)
 
 # Install Python source files
-install(DIRECTORY smooth DESTINATION .)
+# install(DIRECTORY smooth DESTINATION .)
 
 # Old experimental stuff by Leo
 # code to add the pybind11 cpp module, look at demo project 

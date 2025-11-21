@@ -4,35 +4,47 @@ from scipy.linalg import eigvals
 from scipy.special import gamma, digamma, beta
 import pandas as pd
 
-def msdecompose(y, lags=[12], type="additive", smoother="ma"):
+try:
+    from statsmodels.nonparametric.smoothers_lowess import lowess as sm_lowess
+    HAS_STATSMODELS = True
+except ImportError:
+    HAS_STATSMODELS = False
+
+def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     """
     Decomposes a time series assuming multiple frequencies provided in lags.
-    Uses only 'ma' smoother and avoids statsmodels package.
-    
+
     Parameters:
     - y: numpy array, the time series data
     - lags: list or array, seasonal periods
     - type: str, 'additive' or 'multiplicative'
-    - smoother: str, set to 'ma' only in this implementation
-    
+    - smoother: str, 'ma' for moving average, 'lowess' or 'supsmu' for LOWESS smoothing
+
     Returns:
     - dict: decomposition results including states, fitted values, etc.
     """
     # Argument validation
     if type not in ["additive", "multiplicative"]:
         raise ValueError("type must be 'additive' or 'multiplicative'")
-    if smoother != "ma":
-        raise ValueError("Only 'ma' smoother is supported in this implementation")
+    if smoother not in ["ma", "lowess", "supsmu"]:
+        raise ValueError("smoother must be 'ma', 'lowess', or 'supsmu'")
+
+    # Check statsmodels availability for lowess
+    if smoother in ["lowess", "supsmu"] and not HAS_STATSMODELS:
+        raise ImportError("statsmodels is required for lowess/supsmu smoother. "
+                         "Install it with: pip install statsmodels")
 
     # Variable name handling
     y_name = "y"
 
     # Data preparation
     y = np.asarray(y)
+    obs_in_sample = len(y)
     seasonal_lags = any(lag > 1 for lag in lags)
 
     # Smoothing function definition
-    def smoothing_function(y, order):
+    def smoothing_function_ma(y, order):
+        """Moving average smoother"""
         # Convert y to float to avoid integer overflow
         y = y.astype(float)
         if order == np.sum(~np.isnan(y)) or order % 2 != 0:
@@ -49,8 +61,68 @@ def msdecompose(y, lags=[12], type="additive", smoother="ma"):
             trend[i] = np.sum(y[i - half_k : i + half_k + 1] * weights)
         return trend
 
+    def smoothing_function_lowess(y, order):
+        """LOWESS smoother (equivalent to R's lowess/supsmu)"""
+        y = y.astype(float)
+        n = len(y)
+        x = np.arange(1, n + 1)
+
+        # Calculate span similar to R's supsmu
+        # R uses span = max(3/n, 1/order) for supsmu
+        if order == 1:
+            # R's lowess uses f = 2/3 for default
+            span = 2/3
+        elif order == lags[len(lags)-1] or order == obs_in_sample:
+             span = 2/3 # 1/(1.5)
+        elif order > n:
+            span = 3 / n
+        else:
+            span = 1 / order
+
+        # Ensure span is reasonable (between 0 and 1)
+        span = max(min(span, 1.0), 3 / n)
+
+        # Handle missing values
+        valid_mask = ~np.isnan(y)
+        if not np.any(valid_mask):
+            return np.full_like(y, np.nan)
+
+        # Apply LOWESS
+        # statsmodels lowess returns array of (x, y) pairs
+        # R's lowess uses iter=3 by default
+        smoothed = sm_lowess(y[valid_mask], x[valid_mask], frac=span,
+                            return_sorted=True, it=3)
+
+        # Map back to original indices
+        result = np.full_like(y, np.nan)
+        result[valid_mask] = smoothed[:, 1]
+
+        return result
+
     # Initial data processing
-    obs_in_sample = len(y)
+    # obs_in_sample is already defined above
+    
+    # Select smoothing function based on smoother type
+    if smoother == "ma":
+        smoothing_function = smoothing_function_ma
+    else:  # lowess or supsmu
+        smoothing_function = smoothing_function_lowess
+
+    # Check if MA smoother works with the given sample size
+    if smoother == "ma" and obs_in_sample <= min(lags):
+        import warnings
+        warnings.warn(
+            "The minimum lag is larger than the sample size. "
+            "Moving average does not work in this case. "
+            "Switching smoother to LOWESS.",
+            stacklevel=2
+        )
+        smoother = "lowess"
+        if not HAS_STATSMODELS:
+            raise ImportError("statsmodels is required for lowess smoother. "
+                             "Install it with: pip install statsmodels")
+        smoothing_function = smoothing_function_lowess
+
     y_na_values = np.isnan(y)
     if type == "multiplicative":
         shifted_data = False
@@ -96,9 +168,15 @@ def msdecompose(y, lags=[12], type="additive", smoother="ma"):
                 indices = np.arange(j, obs_in_sample, lags[i])
                 y_seasonal = y_clear[i][indices]
                 y_seasonal_non_na = y_seasonal[~np.isnan(y_seasonal)]
+                
                 if len(y_seasonal_non_na) > 0:
-                    y_seasonal_smooth = np.mean(y_seasonal_non_na)
-                    pattern_i[indices] = y_seasonal_smooth
+                    if smoother == "ma":
+                        y_seasonal_smooth = np.mean(y_seasonal_non_na)
+                        pattern_i[indices[~np.isnan(y_seasonal)]] = y_seasonal_smooth
+                    else:
+                        y_seasonal_smooth = smoothing_function(y_seasonal_non_na, order=obs_in_sample)
+                        pattern_i[indices[~np.isnan(y_seasonal)]] = y_seasonal_smooth
+            
             if np.any(~np.isnan(pattern_i)):
                 pattern_i -= np.nanmean(pattern_i)
             patterns.append(pattern_i)
@@ -116,14 +194,51 @@ def msdecompose(y, lags=[12], type="additive", smoother="ma"):
         diffs = np.diff(valid_data_for_initial)
         init_trend = np.nanmean(diffs) if len(diffs) > 0 else 0.0
     initial = np.array([init_level, init_trend], dtype=float)
-    #print(lags)
-    initial[0] -= initial[1] * np.floor(max(lags) / 2)
-    # Multiplicative adjustment
+
+    # Fix the initial for MA smoother
+    if smoother == "ma":
+        initial[0] -= initial[1] * np.floor(max(lags) / 2)
+
+    # Deterministic trend fit to the smooth series
+    # This is required by adam() with backcasting
+    valid_trend = ~np.isnan(trend)
+    X_determ = np.column_stack([np.ones(obs_in_sample), np.arange(1, obs_in_sample + 1)])
+    gta = np.linalg.lstsq(X_determ[valid_trend], trend[valid_trend], rcond=None)[0]
+
+    # Move the trend back to start it off-sample in case of ADAM
+    gta[0] = gta[0] - gta[1] * max(lags)
+
+    # Return to the original scale
     if type == "multiplicative":
         initial = np.exp(initial)
-        trend = np.exp(trend)
+        trend_exp = np.exp(trend)
+
+        # Sort out additive/multiplicative trend for ADAM
+        gtm = np.exp(gta.copy())
+
+        # Recalculate gta on the exponential scale
+        gta = np.linalg.lstsq(X_determ[valid_trend], trend_exp[valid_trend], rcond=None)[0]
+        gta[0] = gta[0] - gta[1] * max(lags)
+
+        trend = trend_exp
         if seasonal_lags:
             patterns = [np.exp(pattern) for pattern in patterns]
+    else:
+        # Get the deterministic multiplicative trend for additive decomposition
+        # Shift the trend if it contains negative values
+        non_positive_values = False
+        trend_for_gtm = trend.copy()
+        if np.any(trend[valid_trend] <= 0):
+            non_positive_values = True
+            trend_min = np.nanmin(trend)
+            trend_for_gtm = trend - trend_min + 1
+
+        gtm = np.linalg.lstsq(X_determ[valid_trend], np.log(trend_for_gtm[valid_trend]), rcond=None)[0]
+        gtm = np.exp(gtm)
+
+        # Correct the initial level
+        if non_positive_values:
+            gtm[0] = gtm[0] - trend_min - 1
 
     # Fitted values and states
     y_fitted = trend.copy()
@@ -147,6 +262,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="ma"):
         "initial": initial,
         "seasonal": patterns,
         "fitted": y_fitted,
+        # gta is the Global Trend, Additive. gtm is the Global Trend, Multiplicative
+        "gta": gta,
+        "gtm": gtm,
         "loss": "MSE",
         "lags": lags,
         "type": type,

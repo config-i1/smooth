@@ -4,6 +4,7 @@
 
 The SMOOTH forecasting package is a Python implementation of advanced time series forecasting methods, with ADAM (Augmented Dynamic Adaptive Model) as its central component. The package provides a flexible framework for forecasting that combines various models including ETS (Error, Trend, Seasonal), ARIMA (Autoregressive Integrated Moving Average), and their hybrid combinations.
 
+
 ## Directory Structure
 
 ```

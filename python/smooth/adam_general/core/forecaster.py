@@ -942,14 +942,20 @@ def _process_initial_values(
             # Remove the trend from ETS list
             initial_value_ets[j] = None
             initial_value_names[j] = "trend"
-        
+
         # Write down the initial seasonals
         if model_type_dict["model_is_seasonal"]:
-            initial_estimated[j + 1:j + 1 + components_dict["components_number_ets_seasonal"]] = initials_checked["initial_seasonal_estimate"]
+            # Convert initial_seasonal_estimate to list if it's a boolean (for single seasonality)
+            if isinstance(initials_checked['initial_seasonal_estimate'], bool):
+                seasonal_estimate_list = [initials_checked['initial_seasonal_estimate']] * components_dict['components_number_ets_seasonal']
+            else:
+                seasonal_estimate_list = initials_checked['initial_seasonal_estimate']
+
+            initial_estimated[j + 1:j + 1 + components_dict["components_number_ets_seasonal"]] = seasonal_estimate_list
             # Remove the level from ETS list
             initial_value_ets[0] = None
             j += 1
-            if len(initials_checked["initial_seasonal_estimate"]) > 1:
+            if len(seasonal_estimate_list) > 1:
                 initial_value[j] = [x for x in initial_value_ets if x is not None]
                 initial_value_names[j] = "seasonal"
                 for k in range(components_dict["components_number_ets_seasonal"]):
@@ -1078,10 +1084,17 @@ def _process_other_parameters(
         Tuple of (constant_value, other_returned)
     """
     # Get constant value
+    # If constant is being estimated, get it from B (last element when estimated)
+    # If not estimated but required, get the fixed value from constants_checked
     if constants_checked["constant_estimate"]:
-        constant_value = adam_estimated['B'],[constants_checked["constant_name"]]
+        if len(adam_estimated['B']) > 0:
+            constant_value = adam_estimated['B'][-1]
+        else:
+            constant_value = 0  # Default when no parameters estimated
+    elif constants_checked["constant_required"]:
+        constant_value = constants_checked.get("constant_value", 0)
     else:
-        constant_value = adam_estimated['B'][-1]
+        constant_value = 0
 
     # Initialize other parameters dictionary
     other_returned = {}
@@ -1237,6 +1250,17 @@ def preparator(
     )
 
     # 4. Run adam_fitter to get fitted values and states
+    # Determine refineHead based on whether ARIMA is present
+    refine_head = not arima_checked['arima_model']
+    # Use conventional ETS for now (adamETS=False)
+    adam_ets = False
+
+    # Check if initial_type is a list or string and compute backcast correctly
+    if isinstance(initials_checked['initial_type'], list):
+        backcast_value_prep = any([t == "complete" or t == "backcasting" for t in initials_checked['initial_type']])
+    else:
+        backcast_value_prep = initials_checked['initial_type'] in ["complete", "backcasting"]
+
     adam_fitted = adam_fitter(
         matrixVt=mat_vt,
         matrixWt=mat_wt,
@@ -1256,12 +1280,10 @@ def preparator(
         constant=constants_checked["constant_required"],
         vectorYt=y_in_sample,
         vectorOt=ot,
-        backcast=any(
-            [
-                t == "complete" or t == "backcasting"
-                for t in initials_checked["initial_type"]
-            ]
-        ),
+        backcast=backcast_value_prep,
+        nIterations=initials_checked["n_iterations"],
+        refineHead=refine_head,
+        adamETS=adam_ets
     )
     # 5. Correct negative or NaN values in multiplicative components
     matrices_dict, profiles_dict = _correct_multiplicative_components(

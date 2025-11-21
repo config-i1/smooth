@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Important Testing Note
+
+**RNG Differences**: R and Python use different random number generation algorithms. Even with the same seed (e.g., `set.seed(33)` in R and `np.random.seed(33)` in Python), they will produce completely different random data.
+
+When comparing Python implementations against R:
+1. Generate data in R and save to CSV: `write.csv(data.frame(value=time_series), "test_data.csv", row.names=FALSE)`
+2. Read the same data in Python: `pd.read_csv("test_data.csv")`
+3. This ensures both implementations work with identical input data for valid comparison
+
 ## Repository Overview
 
 The **smooth** repository contains time series forecasting implementations in both R and Python. The R package is the mature, production version available on CRAN. The Python implementation (currently in development on the `Python` branch) is a direct translation focusing on the ADAM (Augmented Dynamic Adaptive Model) forecasting framework.
@@ -33,7 +42,11 @@ pip install -e ".[dev]"
 
 # Or use the Makefile target
 make install
+
 ```
+to run sth activate .venv from the main smooth folder and then do cd python install using python3 -m pip install -e . ...
+Update only if you do C++ code changes not python code changes.
+
 
 **Build System**: Uses CMakeLists.txt for C++ extensions, requires pybind11 and numpy
 

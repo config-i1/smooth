@@ -185,7 +185,8 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                             unsigned int const &nSeasonal, unsigned int const &nArima,
                             unsigned int const &nXreg, unsigned int const &nComponents,
                             bool const &constant, arma::vec const &vectorG, double const error,
-                            double const fitted, bool const &adamETS){
+                            double const fitted, bool const &adamETS)
+{
     arma::vec g(matrixVt.n_rows, arma::fill::ones);
 
     if(nETS>0){
@@ -279,6 +280,40 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     }
                     break;
                 // MMZ
+                case 'M':
+                    // Complex is needed to avoid issues with mixed models
+                    g.row(0) = arma::abs(exp(matrixF.submat(0,0,0,1) *
+                                               log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,1))))) *
+                                               (abs(exp(vectorG.row(0) * log(std::complex<double>(1+error)))) - 1);
+                    g.row(1) = exp(matrixF(1,1) * log(matrixVt.row(1))) *
+                        (abs(exp(vectorG.row(1) * log(std::complex<double>(1+error)))) - 1);
+                    switch(S){
+                    case 'A':
+                        g.rows(2,2+nSeasonal-1) = vectorG.rows(2,2+nSeasonal-1) * fitted * error;
+                        break;
+                    case 'M':
+                        g.rows(2,2+nSeasonal-1) = matrixVt.rows(2,2+nSeasonal-1) %
+                            (exp(vectorG.rows(2,2+nSeasonal-1) * log(1+error)) - 1);
+
+                        break;
+                    }
+                    break;
+                }
+                break;
+            }
+        }
+    // If this is the conventional ETS...
+        else{
+            // AZZ
+            switch(E)
+        {
+        case 'A':
+            // ANZ
+            switch (T)
+            {
+            case 'N':
+                switch (S)
+                {
                 case 'M':
                     // Complex is needed to avoid issues with mixed models
                     g.row(0) = arma::abs(exp(matrixF.submat(0,0,0,1) *
@@ -410,6 +445,8 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                 }
                 break;
             }
+            break;
+        }
         }
     }
 

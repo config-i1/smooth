@@ -150,14 +150,15 @@ def CF(B,
                 return 1e100 * np.max(eigenValues)
 
     # Write down the initials in the recent profile
-    #print(profile_dict['profiles_recent_table'])
-    profile_dict['profiles_recent_table'][:] = adamElements['mat_vt'][:, :lags_dict['lags_model_max']]    
+    profile_dict['profiles_recent_table'][:] = adamElements['mat_vt'][:, :lags_dict['lags_model_max']]
     # Convert pandas Series/DataFrames to numpy arrays
     y_in_sample = np.asarray(observations_dict['y_in_sample'], dtype=np.float64)
     ot = np.asarray(observations_dict['ot'], dtype=np.float64)
-    mat_vt = np.asfortranarray(adamElements['mat_vt'], dtype=np.float64)
+    # CRITICAL FIX: C++ adamFitter takes matrixVt by reference and modifies it!
+    # We must pass a COPY to avoid polluting adamElements across optimization iterations
+    mat_vt = np.asfortranarray(adamElements['mat_vt'].copy(), dtype=np.float64)
     mat_wt = np.asfortranarray(adamElements['mat_wt'], dtype=np.float64)
-    mat_f = np.asfortranarray(adamElements['mat_f'], dtype=np.float64)
+    mat_f = np.asfortranarray(adamElements['mat_f'].copy(), dtype=np.float64)  # Also copy mat_f since it's passed by reference
     vec_g = np.asfortranarray(adamElements['vec_g'], dtype=np.float64) # Make sure it's a 1D array
     lags_model_all = np.asfortranarray(lags_dict['lags_model_all'], dtype=np.uint64).reshape(-1,1)  # Make sure it's a 1D array
     index_lookup_table = np.asfortranarray(profile_dict['index_lookup_table'], dtype=np.uint64)
@@ -188,7 +189,18 @@ def CF(B,
     # print('y_in_sample:', y_in_sample)
     # print('ot shape:', ot.shape, 'dtype:', ot.dtype)
     # print('ot:', ot)
-    
+
+    # Determine refineHead based on whether ARIMA is present
+    refine_head = not arima_checked['arima_model']
+    # Use conventional ETS for now (adamETS=False)
+    adam_ets = False
+
+    # Check if initial_type is a list or string and compute backcast correctly
+    if isinstance(initials_checked['initial_type'], list):
+        backcast_value = any([t == "complete" or t == "backcasting" for t in initials_checked['initial_type']])
+    else:
+        backcast_value = initials_checked['initial_type'] in ["complete", "backcasting"]
+
     adam_fitted = adam_fitter(
         matrixVt=mat_vt,
         matrixWt=mat_wt,
@@ -207,7 +219,10 @@ def CF(B,
         constant=constants_checked['constant_required'],
         vectorYt=y_in_sample,  # Ensure correct mapping
         vectorOt=ot,  # Ensure correct mapping
-        backcast=any([t == "complete" or t == "backcasting" for t in initials_checked['initial_type']])
+        backcast=backcast_value,
+        nIterations=initials_checked['n_iterations'],
+        refineHead=refine_head,
+        adamETS=adam_ets
     )
 
 
@@ -437,24 +452,38 @@ def log_Lik_ADAM(
             profile_dict['profiles_recent_table'][:] = adam_elements['matVt'][:, :lags_dict['lags_model_max']]
 
             # Fit the model again to extract the fitted values
-            adam_fitted = adam_fitter(adam_elements['mat_vt'], 
-                              adam_elements['mat_wt'], 
-                              adam_elements['mat_f'], 
+            # Determine refineHead based on whether ARIMA is present
+            refine_head = not arima_dict['arima_model']
+            # Use conventional ETS for now (adamETS=False)
+            adam_ets = False
+
+            # Check if initial_type is a list or string and compute backcast correctly
+            if isinstance(initials_dict['initial_type'], list):
+                backcast_value_log = any([t == "complete" or t == "backcasting" for t in initials_dict['initial_type']])
+            else:
+                backcast_value_log = initials_dict['initial_type'] in ["complete", "backcasting"]
+
+            adam_fitted = adam_fitter(adam_elements['mat_vt'],
+                              adam_elements['mat_wt'],
+                              adam_elements['mat_f'],
                               adam_elements['vec_g'],
-                              lags_dict['lags_model_all'], 
-                              profile_dict['index_lookup_table'], 
+                              lags_dict['lags_model_all'],
+                              profile_dict['index_lookup_table'],
                               profile_dict['profiles_recent_table'],
-                              model_type_dict['error_type'], 
-                              model_type_dict['trend_type'], 
-                              model_type_dict['season_type'], 
-                              components_dict['components_number_ets'], 
+                              model_type_dict['error_type'],
+                              model_type_dict['trend_type'],
+                              model_type_dict['season_type'],
+                              components_dict['components_number_ets'],
                               components_dict['components_number_ets_seasonal'],
-                              components_dict['components_number_arima'], 
-                              explanatory_dict['xreg_number'], 
+                              components_dict['components_number_arima'],
+                              explanatory_dict['xreg_number'],
                               constant_dict['constant_required'],
-                              observations_dict['y_in_sample'], 
-                              observations_dict['ot'], 
-                              any([t == "complete" or t == "backcasting" for t in initials_dict['initial_type']]))
+                              observations_dict['y_in_sample'],
+                              observations_dict['ot'],
+                              backcast_value_log,
+                              initials_dict['n_iterations'],
+                              refine_head,
+                              adam_ets)
             
             logLikReturn -= np.sum(np.log(np.abs(adam_fitted['y_fitted'])))
 
