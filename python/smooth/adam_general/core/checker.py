@@ -1578,18 +1578,18 @@ def _calculate_ot_logical(
                     y_forecast_start = last_idx + freq_delta
                 else:
                     # For numeric index
-                    if hasattr(data.index, 'freq'):
+                    if hasattr(data.index, 'freq') and data.index.freq is not None:
                         y_forecast_start = data.index[-1] + data.index.freq
                     else:
-                        # Fallback for numeric index without freq
-                        y_forecast_start = data.index[-1] + np.timedelta64(1, freq)
+                        # Fallback for numeric index without freq - use integer
+                        y_forecast_start = int(data.index[-1]) + 1
             except (ImportError, AttributeError, ValueError):
                 # Fallback: use the last index + freq
-                if hasattr(data.index, 'freq'):
+                if hasattr(data.index, 'freq') and data.index.freq is not None:
                     y_forecast_start = data.index[-1] + data.index.freq
                 else:
-                    # Ultimate fallback for numeric index
-                    y_forecast_start = data.index[-1] + np.timedelta64(1, freq)
+                    # Ultimate fallback for numeric index - use integer
+                    y_forecast_start = int(data.index[-1]) + 1
     else:
         # For non-indexed data, just use the total length
         y_forecast_start = len(y_in_sample)

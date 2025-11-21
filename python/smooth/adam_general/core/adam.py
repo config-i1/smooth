@@ -336,6 +336,7 @@ class ADAM:
         interval_method: Optional[Literal['parametric', 'simulation', 'bootstrap']] = 'parametric',
         level: Optional[Union[float, List[float]]] = 0.95,
         side: Literal['both', 'upper', 'lower'] = 'both',
+        nsim: int = 10000,
     ) -> NDArray:
         """
         Generate point forecasts using the fitted ADAM model.
@@ -370,6 +371,9 @@ class ADAM:
             - 'lower': Only the lower bound.
             - 'upper': Only the upper bound.
             Used if `calculate_intervals` is True.
+        nsim : int, default=10000
+            Number of simulations to run for simulation-based intervals.
+            Only used when `interval_method='simulation'`.
 
         Returns
         -------
@@ -394,6 +398,7 @@ class ADAM:
         self.interval_method = interval_method
         self.level = level
         self.side = side
+        self.general["nsim"] = nsim
 
         # Handle exogenous variables if provided
         if X is not None:

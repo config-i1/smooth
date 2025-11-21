@@ -4,10 +4,11 @@ import warnings
 from scipy import stats
 from scipy.special import gamma
 
-from smooth.adam_general._adam_general import adam_forecaster, adam_fitter
+from smooth.adam_general._adam_general import adam_forecaster, adam_fitter, adam_simulator
 from smooth.adam_general.core.creator import adam_profile_creator, filler
 from smooth.adam_general.core.utils.utils import scaler
 from smooth.adam_general.core.utils.var_covar import sigma, covar_anal, var_anal, matrix_power_wrap
+from smooth.adam_general.core.utils.distributions import generate_errors, normalize_errors
 
 def _prepare_forecast_index(observations_dict, general_dict):
     """
@@ -22,14 +23,43 @@ def _prepare_forecast_index(observations_dict, general_dict):
 
     Returns
     -------
-    pandas.DatetimeIndex
+    pandas.Index
         Index for the forecast
     """
-    observations_dict["y_forecast_index"] = pd.date_range(
-        start=observations_dict["y_forecast_start"], 
-        periods=general_dict["h"], 
-        freq=observations_dict["frequency"]
-    )
+    y_forecast_start = observations_dict["y_forecast_start"]
+    h = general_dict["h"]
+    freq = observations_dict["frequency"]
+
+    # Check if y_forecast_start is a valid timestamp
+    try:
+        # Try to create a date_range with the start
+        if isinstance(y_forecast_start, (pd.Timestamp, np.datetime64)):
+            observations_dict["y_forecast_index"] = pd.date_range(
+                start=y_forecast_start,
+                periods=h,
+                freq=freq
+            )
+        elif isinstance(y_forecast_start, (int, np.integer)):
+            # Numeric index - use RangeIndex
+            observations_dict["y_forecast_index"] = pd.RangeIndex(
+                start=y_forecast_start,
+                stop=y_forecast_start + h
+            )
+        else:
+            # Try date_range anyway, may work for some types
+            observations_dict["y_forecast_index"] = pd.date_range(
+                start=y_forecast_start,
+                periods=h,
+                freq=freq
+            )
+    except (TypeError, ValueError):
+        # Fallback to RangeIndex
+        n_obs = len(observations_dict.get("y_in_sample", []))
+        observations_dict["y_forecast_index"] = pd.RangeIndex(
+            start=n_obs,
+            stop=n_obs + h
+        )
+
     return observations_dict["y_forecast_index"]
 
 
@@ -585,21 +615,47 @@ def forecaster(
 
     # 12. Prepare interval parameters
     if calculate_intervals:
-        # assert method is parameteric boostrap or simulation
+        # assert method is parametric, bootstrap or simulation
         assert interval_method in ["parametric", "simulation", "bootstrap"], "Interval method must be either parametric, simulation, or bootstrap"
-
-        # if it is not parameteric raise warning and say that for now only parametric is supported
-        if interval_method != "parametric":
-            warnings.warn("For now only parametric intervals are supported. Other methods will be implemented in the future.")
-            interval_method = "parametric"
 
         if level is None:
             warnings.warn("No confidence level specified. Using default level of 0.95")
-            level = [0.95]
+            level = 0.95
+
+        # Ensure level is a scalar for now
+        if isinstance(level, list):
+            level = level[0]
 
         level_low, level_up = ensure_level_format(level, side)
-    
-        y_lower, y_upper = generate_prediction_interval(y_forecast_values, model_prepared, general_dict, observations_dict, model_type_dict, lags_dict, params_info, level)
+
+        # Route to appropriate interval method
+        if interval_method == "simulation":
+            nsim = general_dict.get("nsim", 10000)
+            y_lower, y_upper = generate_simulation_interval(
+                y_forecast_values,
+                model_prepared,
+                general_dict,
+                observations_dict,
+                model_type_dict,
+                lags_dict,
+                components_dict,
+                explanatory_checked,
+                constants_checked,
+                params_info,
+                level,
+                nsim=nsim
+            )
+        elif interval_method == "bootstrap":
+            warnings.warn("Bootstrap intervals not yet supported. Using parametric.")
+            y_lower, y_upper = generate_prediction_interval(
+                y_forecast_values, model_prepared, general_dict,
+                observations_dict, model_type_dict, lags_dict, params_info, level
+            )
+        else:  # parametric (default)
+            y_lower, y_upper = generate_prediction_interval(
+                y_forecast_values, model_prepared, general_dict,
+                observations_dict, model_type_dict, lags_dict, params_info, level
+            )
     
         y_forecast_out = pd.DataFrame({
             'mean': y_forecast_values,
@@ -1714,5 +1770,256 @@ def generate_prediction_interval(predictions,
         # y_lower/upper_final currently hold multipliers, multiply forecast
         y_lower_final = y_forecast * y_lower_final
         y_upper_final = y_forecast * y_upper_final
+
+    return y_lower_final, y_upper_final
+
+
+def generate_simulation_interval(
+    predictions,
+    prepared_model,
+    general_dict,
+    observations_dict,
+    model_type_dict,
+    lags_dict,
+    components_dict,
+    explanatory_checked,
+    constants_checked,
+    params_info,
+    level,
+    nsim=10000,
+    external_errors=None
+):
+    """
+    Generate prediction intervals using simulation.
+
+    This implements the simulation-based intervals from R's forecast.adam()
+    (lines 8317-8412 in R/adam.R).
+
+    Parameters
+    ----------
+    predictions : np.ndarray
+        Point forecasts.
+    prepared_model : dict
+        Dictionary with the prepared model.
+    general_dict : dict
+        Dictionary with general model parameters.
+    observations_dict : dict
+        Dictionary with observation data.
+    model_type_dict : dict
+        Dictionary with model type information.
+    lags_dict : dict
+        Dictionary with lag-related information.
+    components_dict : dict
+        Dictionary with model components information.
+    explanatory_checked : dict
+        Dictionary with external regressors information.
+    constants_checked : dict
+        Dictionary with information about constants.
+    params_info : dict
+        Dictionary with parameter information.
+    level : float
+        Confidence level for prediction intervals.
+    nsim : int
+        Number of simulations to run.
+    external_errors : np.ndarray, optional
+        Pre-generated error matrix of shape (h, nsim) for deterministic testing.
+        If provided, these errors are used instead of generating new ones.
+        This allows 100% reproducibility between R and Python by using
+        the same random errors.
+
+    Returns
+    -------
+    tuple
+        (y_lower, y_upper) arrays of prediction interval bounds.
+    """
+    h = general_dict["h"]
+    lags_model_max = lags_dict["lags_model_max"]
+    lags_model_all = lags_dict["lags_model_all"]
+
+    # Get number of components
+    n_components = (components_dict["components_number_ets"] +
+                   components_dict.get("components_number_arima", 0) +
+                   explanatory_checked["xreg_number"] +
+                   int(constants_checked["constant_required"]))
+
+    # 1. Create 3D state array: [components, h+lags_max, nsim]
+    arr_vt = np.zeros((n_components, h + lags_model_max, nsim), order='F')
+
+    # Initialize with current states (replicated across nsim)
+    mat_vt = prepared_model["states"][:, observations_dict["obs_states"] - lags_model_max:observations_dict["obs_states"] + 1]
+    for i in range(nsim):
+        arr_vt[:, :lags_model_max, i] = mat_vt[:, :lags_model_max]
+
+    # 2. Calculate degrees of freedom for de-biasing
+    # params_info is a list of lists, params_info[0][-1] is the number of parameters
+    n_param = params_info[0][-1] if params_info and params_info[0] else 0
+    df = observations_dict["obs_in_sample"] - n_param
+    if df <= 0:
+        df = observations_dict["obs_in_sample"]
+
+    # 3. Get and de-bias scale
+    scale_value = prepared_model["scale"] * observations_dict["obs_in_sample"] / df
+
+    # 4. Generate random errors or use external errors
+    if external_errors is not None:
+        # Use externally provided errors for deterministic testing
+        mat_errors = external_errors
+        if mat_errors.shape != (h, nsim):
+            raise ValueError(f"external_errors shape {mat_errors.shape} does not match (h={h}, nsim={nsim})")
+    else:
+        distribution = general_dict["distribution"]
+        other_params = general_dict.get("other", {})
+
+        # Generate h*nsim errors and reshape to (h, nsim)
+        errors_flat = generate_errors(
+            distribution=distribution,
+            n=h * nsim,
+            scale=scale_value,
+            obs_in_sample=observations_dict["obs_in_sample"],
+            n_param=n_param,
+            shape=other_params.get("shape"),
+            alpha=other_params.get("alpha")
+        )
+        mat_errors = errors_flat.reshape((h, nsim), order='F')
+
+    # 5. Normalize errors if nsim <= 500
+    e_type = model_type_dict["error_type"]
+    if nsim <= 500:
+        mat_errors = normalize_errors(mat_errors, e_type)
+
+    # 6. Determine modified error type for additive models with log-distributions
+    e_type_modified = e_type
+    if e_type == "A" and distribution in ["dlnorm", "dinvgauss", "dgamma", "dls", "dllaplace", "dlgnorm"]:
+        e_type_modified = "M"
+
+    # 7. Prepare matrices for simulator
+    mat_vt_prep, mat_wt, vec_g, mat_f = _prepare_matrices_for_forecast(
+        prepared_model, observations_dict, lags_dict, general_dict
+    )
+
+    # Prepare lookup table
+    lookup = _prepare_lookup_table(lags_dict, observations_dict, general_dict)
+
+    # Create 3D arrays for F and G (replicated for each simulation)
+    arr_f = np.zeros((mat_f.shape[0], mat_f.shape[1], nsim), order='F')
+    for i in range(nsim):
+        arr_f[:, :, i] = mat_f
+
+    # G matrix: [n_components, nsim]
+    mat_g = np.zeros((n_components, nsim), order='F')
+    for i in range(nsim):
+        mat_g[:, i] = vec_g.flatten()
+
+    # Occurrence matrix (all ones for now - no occurrence model)
+    mat_ot = np.ones((h, nsim), order='F')
+
+    # Profiles recent table
+    profiles_recent = np.asfortranarray(prepared_model["profiles_recent_table"], dtype=np.float64)
+
+    # Prepare inputs for C++ simulator
+    arr_vt_f = np.asfortranarray(arr_vt, dtype=np.float64)
+    mat_errors_f = np.asfortranarray(mat_errors, dtype=np.float64)
+    mat_ot_f = np.asfortranarray(mat_ot, dtype=np.float64)
+    arr_f_f = np.asfortranarray(arr_f, dtype=np.float64)
+    mat_wt_f = np.asfortranarray(mat_wt, dtype=np.float64)
+    mat_g_f = np.asfortranarray(mat_g, dtype=np.float64)
+    lags_f = np.asfortranarray(lags_model_all, dtype=np.uint64).reshape(-1, 1)
+    lookup_f = np.asfortranarray(lookup, dtype=np.uint64)
+
+    # Determine adamETS setting (False for conventional ETS)
+    adam_ets = False
+
+    # 8. Call the simulator
+    sim_result = adam_simulator(
+        arrayVt=arr_vt_f,
+        matrixErrors=mat_errors_f,
+        matrixOt=mat_ot_f,
+        arrayF=arr_f_f,
+        matrixWt=mat_wt_f,
+        matrixG=mat_g_f,
+        E=e_type_modified,
+        T=model_type_dict["trend_type"],
+        S=model_type_dict["season_type"],
+        lags=lags_f,
+        indexLookupTable=lookup_f,
+        profilesRecent=profiles_recent,
+        nNonSeasonal=components_dict["components_number_ets"] - components_dict["components_number_ets_seasonal"],
+        nSeasonal=components_dict["components_number_ets_seasonal"],
+        nArima=components_dict.get("components_number_arima", 0),
+        nXreg=explanatory_checked["xreg_number"],
+        constant=constants_checked["constant_required"],
+        adamETS=adam_ets
+    )
+
+    y_simulated = sim_result["matrixYt"]  # Shape: (h, nsim)
+
+    # 9. Handle cumulative forecasts
+    if general_dict.get("cumulative", False):
+        y_forecast_sim = np.mean(np.sum(y_simulated, axis=0))
+        level_low = (1 - level) / 2
+        level_up = 1 - level_low
+        y_lower = np.array([np.quantile(np.sum(y_simulated, axis=0), level_low)])
+        y_upper = np.array([np.quantile(np.sum(y_simulated, axis=0), level_up)])
+    else:
+        # 10. Calculate quantiles for each horizon
+        level_low = (1 - level) / 2
+        level_up = 1 - level_low
+
+        y_lower = np.zeros(h)
+        y_upper = np.zeros(h)
+        y_forecast_sim = np.zeros(h)
+
+        for i in range(h):
+            # For multiplicative trend/seasonal, use trimmed mean
+            if model_type_dict["trend_type"] == "M" or (
+                model_type_dict["season_type"] == "M" and h > lags_dict.get("lags_model_min", 1)
+            ):
+                # Trim 1% on each side
+                y_forecast_sim[i] = stats.trim_mean(y_simulated[i, :], 0.01)
+            else:
+                y_forecast_sim[i] = np.mean(y_simulated[i, :])
+
+            # Use R's type=7 quantile (linear interpolation)
+            y_lower[i] = np.quantile(y_simulated[i, :], level_low, interpolation='linear')
+            y_upper[i] = np.quantile(y_simulated[i, :], level_up, interpolation='linear')
+
+    # 11. Convert to relative form (like parametric intervals)
+    # R uses the same yForecast for both conversion and final combination:
+    # - For additive models: yForecast = point forecast (adamForecast)
+    # - For multiplicative: yForecast = simulation mean (overwritten in loop)
+    if e_type == "A":
+        # For additive: use point forecast for both operations (like R)
+        y_lower = y_lower - predictions
+        y_upper = y_upper - predictions
+    else:
+        # For multiplicative: use simulation mean for both operations (like R)
+        # Avoid division by zero
+        y_lower = np.where(y_forecast_sim != 0, y_lower / y_forecast_sim, 0)
+        y_upper = np.where(y_forecast_sim != 0, y_upper / y_forecast_sim, 0)
+
+    # 12. Final combination with forecasts (same as parametric)
+    y_lower_final = y_lower.copy()
+    y_upper_final = y_upper.copy()
+
+    # Handle NaNs
+    nan_lower_mask = np.isnan(y_lower_final)
+    if np.any(nan_lower_mask):
+        replace_val = 0.0 if e_type == "A" else 1.0
+        y_lower_final[nan_lower_mask] = replace_val
+
+    nan_upper_mask = np.isnan(y_upper_final)
+    if np.any(nan_upper_mask):
+        replace_val = 0.0 if e_type == "A" else 1.0
+        y_upper_final[nan_upper_mask] = replace_val
+
+    # Combine with forecasts using the SAME value as used for relative form
+    if e_type == "A":
+        # For additive: use point forecast (same as subtraction above)
+        y_lower_final = predictions + y_lower_final
+        y_upper_final = predictions + y_upper_final
+    else:
+        # For multiplicative: use simulation mean (same as division above)
+        y_lower_final = y_forecast_sim * y_lower_final
+        y_upper_final = y_forecast_sim * y_upper_final
 
     return y_lower_final, y_upper_final

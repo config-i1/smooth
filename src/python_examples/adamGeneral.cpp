@@ -210,6 +210,72 @@ arma::vec adamForecaster(arma::mat const &matrixWt,
     return vecYfor;
 }
 
+// # Simulator for generating multiple forecast paths
+py::dict adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat const &matrixOt,
+                       arma::cube const &arrayF, arma::mat const &matrixWt, arma::mat const &matrixG,
+                       char const &E, char const &T, char const &S, arma::uvec &lags,
+                       arma::umat const &indexLookupTable, arma::mat profilesRecent,
+                       unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
+                       unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                       bool const &adamETS) {
+
+    unsigned int obs = matrixErrors.n_rows;
+    unsigned int nSeries = matrixErrors.n_cols;
+
+    int lagsModelMax = max(lags);
+    unsigned int nETS = nNonSeasonal + nSeasonal;
+    int nComponents = lags.n_rows;
+    int obsAll = obs + lagsModelMax;
+    arma::mat profilesRecentOriginal = profilesRecent;
+
+    double yFitted;
+
+    arma::mat matrixVt(nComponents, obsAll, arma::fill::zeros);
+    arma::mat matrixF(arrayF.n_rows, arrayF.n_cols, arma::fill::zeros);
+
+    arma::mat matY(obs, nSeries);
+
+    for(unsigned int i=0; i<nSeries; i=i+1){
+        matrixVt = arrayVt.slice(i);
+        matrixF = arrayF.slice(i);
+        profilesRecent = profilesRecentOriginal;
+        for(int j=lagsModelMax; j<obsAll; j=j+1) {
+            /* # Measurement equation and the error term */
+            yFitted = adamWvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
+                                                         matrixWt.row(j-lagsModelMax), E, T, S,
+                                                         nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
+                                                         nComponents, constant);
+            matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) *
+                                             (yFitted +
+                                             adamRvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
+                                                        matrixWt.row(j-lagsModelMax), E, T, S,
+                                                        nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
+                                                            matrixErrors(j-lagsModelMax,i));
+
+            /* # Transition equation */
+            profilesRecent(indexLookupTable.col(j-lagsModelMax)) =
+                                                (adamFvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
+                                                            matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima,
+                                                            nComponents, constant) +
+                                                 adamGvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
+                                                            matrixF, matrixWt.row(j-lagsModelMax),
+                                                            E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
+                                                            nComponents, constant, matrixG.col(i),
+                                                            matrixErrors(j-lagsModelMax,i), yFitted, adamETS));
+
+            matrixVt.col(j) = profilesRecent(indexLookupTable.col(j-lagsModelMax));
+        }
+        arrayVt.slice(i) = matrixVt;
+    }
+
+    // Create a Python dictionary to return results
+    py::dict result;
+    result["arrayVt"] = arrayVt;
+    result["matrixYt"] = matY;
+
+    return result;
+}
+
 PYBIND11_MODULE(_adam_general, m)
 {
     m.doc() = "Adam code"; // module docstring
@@ -253,4 +319,23 @@ PYBIND11_MODULE(_adam_general, m)
           py::arg("nXreg"),
           py::arg("constant"),
           py::arg("horizon"));
+    m.def("adam_simulator", &adamSimulator, "simulates multiple forecast paths",
+          py::arg("arrayVt"),
+          py::arg("matrixErrors"),
+          py::arg("matrixOt"),
+          py::arg("arrayF"),
+          py::arg("matrixWt"),
+          py::arg("matrixG"),
+          py::arg("E"),
+          py::arg("T"),
+          py::arg("S"),
+          py::arg("lags"),
+          py::arg("indexLookupTable"),
+          py::arg("profilesRecent"),
+          py::arg("nNonSeasonal"),
+          py::arg("nSeasonal"),
+          py::arg("nArima"),
+          py::arg("nXreg"),
+          py::arg("constant"),
+          py::arg("adamETS"));
 }

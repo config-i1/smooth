@@ -28,8 +28,8 @@ find_package(LAPACK)
 if(LAPACK_FOUND AND BLAS_FOUND)
    set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 else()
-   # IS: This is where they are on my system. This might change from one OS to another
-   set(lapackblas_libraries "/usr/lib/x86_64-linux-gnu/")
+   # Fallback: explicitly specify the libraries
+   set(lapackblas_libraries "/usr/lib/x86_64-linux-gnu/libblas.so" "/usr/lib/x86_64-linux-gnu/liblapack.so")
 endif()
 
 # Armadillo (use correct CMake package name)
@@ -47,14 +47,14 @@ endif()
 pybind11_add_module(_adam_general ../src/python_examples/adamGeneral.cpp)
 target_include_directories(_adam_general PRIVATE ../src/python_examples/.)
 target_link_libraries(_adam_general PRIVATE carma::carma)
+# Always link BLAS/LAPACK
+target_link_libraries(_adam_general PRIVATE ${lapackblas_libraries})
 if(Armadillo_FOUND)
   if(TARGET Armadillo::armadillo)
     target_link_libraries(_adam_general PRIVATE Armadillo::armadillo)
   else()
     target_link_libraries(_adam_general PRIVATE ${ARMADILLO_LIBRARIES})
   endif()
-else()
-  target_link_libraries(_adam_general PRIVATE ${lapackblas_libraries})
 endif()
 install(TARGETS _adam_general DESTINATION smooth/adam_general)
 
