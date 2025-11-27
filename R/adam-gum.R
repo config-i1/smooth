@@ -766,8 +766,8 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
             measurementEstimateOriginal <- measurementEstimate;
             measurementEstimate <- TRUE;
         }
-        initialTypeOriginal <- initialType;
-        initialType <- "optimal";
+        # initialTypeOriginal <- initialType;
+        # initialType <- "optimal";
         if(!is.null(initialValueProvided$xreg) && initialOriginal!="complete"){
             initialXregEstimateOriginal <- initialXregEstimate;
             initialXregEstimate <- TRUE;
@@ -785,7 +785,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         if(any(substr(names(B),1,1)=="w")){
             measurementEstimate <- measurementEstimateOriginal;
         }
-        initialType <- initialTypeOriginal;
+        # initialType <- initialTypeOriginal;
         if(!is.null(initialValueProvided$xreg) && initialOriginal!="complete"){
             initialXregEstimate <- initialXregEstimateOriginal;
         }

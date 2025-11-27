@@ -662,9 +662,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. Only needed for the ETS(*,Z,*) models
     refineHead <- TRUE;
-    if(arimaModel){
-        refineHead[] <- FALSE;
-    }
+    # if(arimaModel){
+    #     refineHead[] <- FALSE;
+    # }
     # if(initialType!="backcasting" | componentsNumberARIMA==0){
     #     refineHead[] <- TRUE;
     # }
@@ -2920,6 +2920,18 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(any(loss==c("LASSO","RIDGE")) && lambda==1){
             CFValue[] <- 0;
         }
+        # Initial parameters that were "estimated" in backcasting
+        nParamBackcasting <- (
+            # initials of ETS
+            etsModel*any(initialType==c("complete","backcasting"))*
+                (initialLevelEstimate +
+                     (modelIsTrendy*initialTrendEstimate) +
+                     (modelIsSeasonal*sum(initialSeasonalEstimate*(lagsModelSeasonal-1)))) +
+                # initials of ARIMA
+                any(initialType==c("complete","backcasting"))*arimaModel*initialArimaNumber*initialArimaEstimate +
+                # initials of xreg
+                (initialType=="complete")*xregModel*initialXregEstimate*sum(xregParametersEstimated));
+
         nParamEstimated <- length(B);
         # Return a proper logLik class
         logLikADAMValue <- structure(logLikADAM(B,
@@ -3211,7 +3223,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
         }
 
-        return(list(B=B, CFValue=CFValue, nParamEstimated=nParamEstimated, logLikADAMValue=logLikADAMValue,
+        return(list(B=B, CFValue=CFValue, nParamEstimated=nParamEstimated, nParamBackcasting=nParamBackcasting,
+                    logLikADAMValue=logLikADAMValue,
                     xregModel=xregModel, xregData=xregData, xregNumber=xregNumber,
                     xregNames=xregNames, xregModelInitials=xregModelInitials, formula=formula,
                     initialXregEstimate=initialXregEstimate, persistenceXregEstimate=persistenceXregEstimate,
@@ -3932,8 +3945,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     persistence=persistence, phi=phi, transition=matF,
                     measurement=matWt, initial=initialValue, initialType=initialType,
                     initialEstimated=initialEstimated, orders=orders, arma=armaParametersList,
-                    constant=constantValue, nParam=parametersNumber, occurrence=oesModel,
-                    formula=formula, regressors=regressors,
+                    constant=constantValue, nParam=parametersNumber,# nParamBack=nParamBackcasting,
+                    occurrence=oesModel, formula=formula, regressors=regressors,
                     loss=loss, lossValue=CFValue, logLik=logLikADAMValue, distribution=distribution,
                     scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, ets=ets,
                     res=res, FI=FI));
@@ -9250,9 +9263,9 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     ssarimaModel <- smoothType(object)=="SSARIMA";
 
     refineHead <- TRUE;
-    if(any(arimaModel,ssarimaModel)){
-        refineHead[] <- FALSE;
-    }
+    # if(any(arimaModel,ssarimaModel)){
+    #     refineHead[] <- FALSE;
+    # }
 
     # Get componentsNumberETS, seasonal and componentsNumberARIMA
     componentsDefined <- componentsDefiner(object);
