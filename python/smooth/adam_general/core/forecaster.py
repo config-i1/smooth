@@ -1306,8 +1306,8 @@ def preparator(
     )
 
     # 4. Run adam_fitter to get fitted values and states
-    # Determine refineHead based on whether ARIMA is present
-    refine_head = not arima_checked['arima_model']
+    # refineHead should always be True (fixed backcasting issue)
+    refine_head = True
     # Use conventional ETS for now (adamETS=False)
     adam_ets = False
 

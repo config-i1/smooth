@@ -731,7 +731,7 @@ def estimator(
                 vectorOt=ot,
                 backcast=True,
                 nIterations=initials_dict.get("n_iterations", 2) or 2,
-                refineHead=not arima_dict["arima_model"],
+                refineHead=True,  # Always True (fixed backcasting issue)
                 adamETS=False
             )
 

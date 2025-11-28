@@ -58,12 +58,17 @@ py::dict adamFitter(arma::mat &matrixVt,
 
         // Refine the head (in order for it to make sense)
         // This is only needed for ETS(*,Z,*) models, with trend.
-        if(refineHead){
-            for (int i = 0; i < lagsModelMax; i = i + 1)
-            {
-                matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
-                profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                               matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+        // This is not needed for lagsMax=1, because there is nothing to fill in
+        if(refineHead && (T!='N')){
+            // Record the initial profile to the first column
+            matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
+            if(lagsModelMax>1){
+                // Update the head, but only for the trend component
+                for (int i=1; i<lagsModelMax; i=i+1) {
+                    profilesRecent(indexLookupTable.col(i).rows(0,1)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
+                                   matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant).rows(0,1);
+                    matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+                }
             }
         }
         ////// Run forward

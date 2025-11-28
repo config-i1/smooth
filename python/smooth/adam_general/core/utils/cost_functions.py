@@ -190,8 +190,8 @@ def CF(B,
     # print('ot shape:', ot.shape, 'dtype:', ot.dtype)
     # print('ot:', ot)
 
-    # Determine refineHead based on whether ARIMA is present
-    refine_head = not arima_checked['arima_model']
+    # refineHead should always be True (fixed backcasting issue)
+    refine_head = True
     # Use conventional ETS for now (adamETS=False)
     adam_ets = False
 
@@ -452,8 +452,8 @@ def log_Lik_ADAM(
             profile_dict['profiles_recent_table'][:] = adam_elements['matVt'][:, :lags_dict['lags_model_max']]
 
             # Fit the model again to extract the fitted values
-            # Determine refineHead based on whether ARIMA is present
-            refine_head = not arima_dict['arima_model']
+            # refineHead should always be True (fixed backcasting issue)
+            refine_head = True
             # Use conventional ETS for now (adamETS=False)
             adam_ets = False
 
