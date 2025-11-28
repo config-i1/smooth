@@ -198,7 +198,8 @@
 #' @export
 msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL, model=NULL,
-                    initial=c("backcasting","optimal","two-stage","complete"), ic=c("AICc","AIC","BIC","BICc"),
+                    initial=c("backcasting","optimal","two-stage","complete"),
+                    ic=c("AICc","AIC","BIC","BICc"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE,
                     bounds=c("usual","admissible","none"),
@@ -236,47 +237,61 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
 # If this is a normal ARIMA, do things
         if(any(unlist(gregexpr("combine",model$model))==-1)){
-            if(!is.null(model$occurrence)){
-                occurrence <- model$occurrence;
-            }
-            if(!is.null(model$initial)){
-                initial <- model$initial;
-            }
-            if(is.null(xreg)){
-                xreg <- model$xreg;
-            }
-            else{
-                if(is.null(model$xreg)){
-                    xreg <- NULL;
-                }
-                else{
-                    if(ncol(xreg)!=ncol(model$xreg)){
-                        xreg <- xreg[,colnames(model$xreg)];
-                    }
-                }
-            }
-            initialX <- model$initialX;
-            persistenceX <- model$persistenceX;
-            transitionX <- model$transitionX;
-            if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
-                updateX <- TRUE;
-            }
-            if(!is.null(model$AR)){
-                AR <- model$AR;
-            }
-            if(!is.null(model$MA)){
-                MA <- model$MA;
-            }
-            if(is.null(model$constant) || (is.numeric(model$constant) && model$constant==0)){
-                constant <- FALSE;
-            }
-            orders <- orders(model);
-            lags <- lags(model);
-            model <- model$model;
-            arimaOrders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
-                                   ,collapse=";");
-            comas <- unlist(gregexpr("\\,",arimaOrders));
-            semicolons <- unlist(gregexpr("\\;",arimaOrders));
+
+            return(adam(data=y, model=model,
+                        orders=orders, lags=lags, constant=constant,
+                        arma=list(ar=AR,ma=MA),
+                        loss=loss, h=h, holdout=holdout, initial=initialValue,
+                        ic=ic, bounds=bounds[1], distribution="dnorm",
+                        silent=silent, regressors=regressors[1], environment=env, ...));
+
+            # if(!is.null(model$occurrence)){
+            #     occurrence <- model$occurrence;
+            # }
+            # if(!is.null(model$initial)){
+            #     initial <- model$initial;
+            # }
+            # if(is.null(xreg)){
+            #     xreg <- model$xreg;
+            # }
+            # else{
+            #     if(is.null(model$xreg)){
+            #         xreg <- NULL;
+            #     }
+            #     else{
+            #         if(ncol(xreg)!=ncol(model$xreg)){
+            #             xreg <- xreg[,colnames(model$xreg)];
+            #         }
+            #     }
+            # }
+            # initialX <- model$initialX;
+            # persistenceX <- model$persistenceX;
+            # transitionX <- model$transitionX;
+            # if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
+            #     updateX <- TRUE;
+            # }
+            # if(is.null(model$arma)){
+            #     if(!is.null(model$AR)){
+            #         AR <- model$AR;
+            #     }
+            #     if(!is.null(model$MA)){
+            #         MA <- model$MA;
+            #     }
+            # }
+            # else{
+            #     AR <- model$arma$ar;
+            #     MA <- model$arma$ma;
+            # }
+            # if(is.null(model$constant) || (is.numeric(model$constant) && model$constant==0)){
+            #     constant <- FALSE;
+            # }
+            # orders <- orders(model);
+            # lags <- lags(model);
+            # model <- model$model;
+            # arimaOrders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
+            #                        ,collapse=";");
+            # comas <- unlist(gregexpr("\\,",arimaOrders));
+            # semicolons <- unlist(gregexpr("\\;",arimaOrders));
         }
         else{
             stop("The provided model is a combination of ARIMAs. We cannot fit that.",call.=FALSE);

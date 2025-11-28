@@ -735,8 +735,11 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         # Create index lookup table
         indexLookupTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
                                            lags=lags, yIndex=yIndexAll, yClasses=yClasses)$lookup;
-        if(any(initialType==c("optimal","two-stage"))){
+        if(any(initialType==c("optimal","two-stage","provided"))){
             initialType <- "provided";
+        }
+        else{
+            initialType <- initialOriginal[1];
         }
         # initialValue <- profilesRecentInitial;
         initialXregEstimateOriginal <- initialXregEstimate;
@@ -810,7 +813,9 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
     # Write down the recent profile for future use
     profilesRecentTable <- adamFitted$profile;
     matVt[] <- adamFitted$matVt;
-    profilesRecentInitial <- matVt[,1:lagsModelMax,drop=FALSE]
+    if(!any(initialType==c("complete","backcasting"))){
+        profilesRecentInitial <- matVt[,1:lagsModelMax,drop=FALSE];
+    }
 
     scale <- scaler(adamFitted$errors[otLogical], obsInSample);
 
