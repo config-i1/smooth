@@ -185,7 +185,8 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                             unsigned int const &nSeasonal, unsigned int const &nArima,
                             unsigned int const &nXreg, unsigned int const &nComponents,
                             bool const &constant, arma::vec const &vectorG, double const error,
-                            double const fitted, bool const &adamETS){
+                            double const fitted, bool const &adamETS)
+{
     arma::vec g(matrixVt.n_rows, arma::fill::ones);
 
     if(nETS>0){

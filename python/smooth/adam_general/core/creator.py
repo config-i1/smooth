@@ -2,8 +2,9 @@ import numpy as np
 from typing import List, Dict, Union, Any
 from scipy.optimize import minimize
 
-from smooth.adam_general.core.utils.utils import msdecompose, calculate_acf, calculate_pacf
+from smooth.adam_general.core.utils.utils import msdecompose, calculate_acf, calculate_pacf, measurement_inverter
 from smooth.adam_general.core.utils.polynomials import adam_polynomialiser
+from smooth.adam_general._adam_general import adam_fitter
 
 import warnings
 # Suppress divide by zero warnings
@@ -661,7 +662,17 @@ def _initialize_ets_seasonal_states_with_decomp(
 
     # Initialize level
     if initials_checked["initial_level_estimate"]:
-        mat_vt[j, 0:lags_model_max] = y_decomposition["initial"][0]
+        # If there's a trend, use the intercept from the deterministic one
+        if model_is_trendy:
+            # Use gtm[0] for multiplicative trend, gta[0] for additive
+            if t_type == "M":
+                mat_vt[j, 0:lags_model_max] = y_decomposition["gtm"][0]
+            else:
+                mat_vt[j, 0:lags_model_max] = y_decomposition["gta"][0]
+        # If not trendy, use the global mean
+        else:
+            mat_vt[j, 0:lags_model_max] = np.mean(y_in_sample[ot_logical])
+
         if explanatory_checked["xreg_model"]:
             if e_type == "A":
                 mat_vt[j, 0:lags_model_max] -= np.dot(
@@ -682,12 +693,9 @@ def _initialize_ets_seasonal_states_with_decomp(
     # Initialize trend if needed
     if model_is_trendy:
         if initials_checked["initial_trend_estimate"]:
-            # Handle different trend types
+            # Handle different trend types using gta/gtm
             if t_type == "A" and s_type == "M":
-                mat_vt[j, 0:lags_model_max] = (
-                    np.prod(y_decomposition["initial"]) - y_decomposition["initial"][0]
-                )
-
+                mat_vt[j, 0:lags_model_max] = y_decomposition["gta"][1]
                 # If the initial trend is higher than the lowest value, initialise with zero.
                 # This is a failsafe mechanism for the mixed models
                 if mat_vt[j, 0] < 0 and abs(mat_vt[j, 0]) > min(
@@ -695,19 +703,14 @@ def _initialize_ets_seasonal_states_with_decomp(
                 ):
                     mat_vt[j, 0:lags_model_max] = 0
             elif t_type == "M" and s_type == "A":
-                mat_vt[j, 0:lags_model_max] = sum(
-                    abs(y_decomposition["initial"])
-                ) / abs(y_decomposition["initial"][0])
+                mat_vt[j, 0:lags_model_max] = y_decomposition["gtm"][1]
             elif t_type == "M":
-                # trend is too dangerous, make it start from 1.
-                mat_vt[j, 0:lags_model_max] = 1
+                mat_vt[j, 0:lags_model_max] = y_decomposition["gtm"][1]
             else:
-                # trend
-                mat_vt[j, 0:lags_model_max] = y_decomposition["initial"][1]
+                # Additive trend
+                mat_vt[j, 0:lags_model_max] = y_decomposition["gta"][1]
 
-            # Safety checks for multiplicative trend models
-            if t_type == "M" and np.any(mat_vt[j, 0:lags_model_max] > 1.1):
-                mat_vt[j, 0:lags_model_max] = 1
+            # This is a failsafe for multiplicative trend models with negative initial level
             if t_type == "M" and np.any(mat_vt[0, 0:lags_model_max] < 0):
                 mat_vt[0, 0:lags_model_max] = y_in_sample[ot_logical][0]
         else:
@@ -760,6 +763,10 @@ def _initialize_ets_seasonal_states_with_decomp(
                 mat_vt[i + j, 0 : lags_model[i + j]] = initials_checked[
                     "initial_seasonal"
                 ][i]
+
+    # Failsafe in case negatives were produced
+    if e_type == "M" and mat_vt[0, 0] <= 0:
+        mat_vt[0, 0:lags_model_max] = y_in_sample[0]
 
     return mat_vt
 
@@ -885,34 +892,50 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
     # Get parameters
     lags_model_max = model_params["lags_model_max"]
     model_is_trendy = model_params["model_is_trendy"]
+    e_type = model_params["e_type"]
     t_type = model_params["t_type"]
     y_in_sample = model_params["y_in_sample"]
     ot_logical = model_params["ot_logical"]
-    obs_in_sample = model_params["obs_in_sample"]
+
+    # This decomposition does not produce seasonal component
+    # If either e_type or t_type are multiplicative, do multiplicative decomposition
+    decomposition_type = (
+        "multiplicative" if any(x == "M" for x in [e_type, t_type]) else "additive"
+    )
+    # Use deterministic trend - this way g=0 means we fit the global model to the data
+    y_decomposition = msdecompose(
+        y_in_sample.ravel(),
+        lags=[1],
+        type=decomposition_type,
+    )
 
     # level
     if initials_checked["initial_level_estimate"]:
-        mat_vt[0, :lags_model_max] = np.mean(y_in_sample[:max(lags_model_max, int(np.ceil(obs_in_sample * 0.2)))])
+        # If there's a trend, use the intercept from the deterministic one
+        if model_is_trendy:
+            if t_type == "A":
+                mat_vt[0, :lags_model_max] = y_decomposition["gta"][0]
+            else:  # t_type == "M"
+                mat_vt[0, :lags_model_max] = y_decomposition["gtm"][0]
+        # If not trendy, use the global mean
+        else:
+            mat_vt[0, :lags_model_max] = np.mean(y_in_sample[ot_logical])
     else:
         mat_vt[0, :lags_model_max] = initials_checked["initial_level"]
+
     # trend
     if model_is_trendy:
         if initials_checked["initial_trend_estimate"]:
             if t_type == "A":
-                mat_vt[1, 0:lags_model_max] = np.nanmean(
-                    np.diff(
-                        y_in_sample[
-                            0 : max(lags_model_max + 1, int(obs_in_sample * 0.2))
-                        ],
-                        axis=0,
-                    )
-                )
+                mat_vt[1, 0:lags_model_max] = y_decomposition["gta"][1]
             else:  # t_type == "M"
-                mat_vt[1, 0:lags_model_max] = np.exp(
-                    np.mean(np.diff(np.log(y_in_sample[ot_logical])))
-                )
+                mat_vt[1, 0:lags_model_max] = y_decomposition["gtm"][1]
         else:
             mat_vt[1, 0:lags_model_max] = initials_checked["initial_trend"]
+
+    # Failsafe in case negatives were produced
+    if e_type == "M" and mat_vt[0, 0] <= 0:
+        mat_vt[0, 0:lags_model_max] = y_in_sample[0]
 
     return mat_vt
 
@@ -1163,6 +1186,7 @@ def initialiser(
     observations_dict,
     bounds="usual",
     other=None,
+    profile_dict=None, # Added
 ):
     """
     Initialize parameters for the ADAM model. Determines initial parameter
@@ -1182,6 +1206,7 @@ def initialiser(
         observations_dict: Dictionary containing observation information
         bounds: Bounds specification for optimization
         other: Other parameters (currently unused)
+        profile_dict: Dictionary containing profile information (needed for complete init)
 
     Returns:
         Dict: Dictionary containing initialized parameters B, Bl, Bu and names.
@@ -1196,12 +1221,12 @@ def initialiser(
         model_type_dict["ets_model"] * (sum(persistence_estimate_vector) + phi_dict['phi_estimate']) +
         explanatory_checked['xreg_model'] * persistence_checked['persistence_xreg_estimate'] * max(explanatory_checked['xreg_parameters_persistence'] or [0]) +
         arima_checked['arima_model'] * (arima_checked['ar_estimate'] * sum(arima_checked['ar_orders'] or []) + arima_checked['ma_estimate'] * sum(arima_checked['ma_orders'] or [])) +
-        model_type_dict["ets_model"] * (initials_checked['initial_type'] not in ["complete", "backcasting"]) * (
+        model_type_dict["ets_model"] * (initials_checked['initial_type'] not in ["backcasting", "complete"]) * (
             initials_checked['initial_level_estimate'] +
             (model_type_dict["model_is_trendy"] * initials_checked['initial_trend_estimate']) +
             (model_type_dict["model_is_seasonal"] * sum(initials_checked['initial_seasonal_estimate'] * (np.array(lags_dict["lags_model_seasonal"] or []) - 1)))
         ) +
-        (initials_checked['initial_type'] not in ["complete", "backcasting"]) * arima_checked['arima_model'] * (initials_checked['initial_arima_number'] or 0) * initials_checked['initial_arima_estimate'] +
+        (initials_checked['initial_type'] not in ["backcasting", "complete"]) * arima_checked['arima_model'] * (initials_checked['initial_arima_number'] or 0) * initials_checked['initial_arima_estimate'] +
         (initials_checked['initial_type'] != "complete") * explanatory_checked['xreg_model'] * initials_checked['initial_xreg_estimate'] * sum(explanatory_checked['xreg_parameters_estimated'] or []) +
         constants_checked['constant_estimate']
     )
@@ -1221,12 +1246,16 @@ def initialiser(
                     (initials_checked['initial_type'] in ["complete", "backcasting"] and
                      ((model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "A" and model_type_dict["season_type"] == "A") or
                       (model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "A" and model_type_dict["season_type"] == "M")))):
-                    B[j:j+sum(persistence_estimate_vector)] = [0.01, 0] + [0] * components_dict["components_number_ets_seasonal"]
+                    # Match R: c(0.01,0.005,rep(0.001,componentsNumberETSSeasonal))[which(persistenceEstimateVector)]
+                    initial_values = [0.01, 0.005] + [0.001] * components_dict["components_number_ets_seasonal"]
+                    B[j:j+sum(persistence_estimate_vector)] = [val for val, estimate in zip(initial_values, persistence_estimate_vector) if estimate]
                 elif model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "M" and model_type_dict["season_type"] == "A":
                     B[j:j+sum(persistence_estimate_vector)] = [0, 0] + [0] * components_dict["components_number_ets_seasonal"]
                 elif model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "A":
                     if initials_checked['initial_type'] in ["complete", "backcasting"]:
-                        B[j:j+sum(persistence_estimate_vector)] = [0.1, 0] + [0.3] * components_dict["components_number_ets_seasonal"]
+                        # Match R: c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)]
+                        initial_values = [0.1, 0.05] + [0.3] * components_dict["components_number_ets_seasonal"]
+                        B[j:j+sum(persistence_estimate_vector)] = [val for val, estimate in zip(initial_values, persistence_estimate_vector) if estimate]
                     else:
                         B[j:j+sum(persistence_estimate_vector)] = [0.2, 0.01] + [0.3] * components_dict["components_number_ets_seasonal"]
                 elif model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "M":
@@ -1325,7 +1354,10 @@ def initialiser(
                     names.extend([f"theta{k+1}[{lag}]" for k in range(arima_checked['ma_orders'][i])])
                     j += arima_checked['ma_orders'][i]
 
-    if model_type_dict["ets_model"] and initials_checked['initial_type'] not in ["complete", "backcasting"] and initials_checked['initial_estimate']:
+    # NOTE: Removed backcasting from initialiser - CF already handles backcasting for complete/backcasting modes
+    # This was causing double backcasting which led to different results than R
+
+    if model_type_dict["ets_model"] and initials_checked['initial_type'] not in ["backcasting", "complete"] and initials_checked['initial_estimate']:
         if initials_checked['initial_level_estimate']:
             B[j] = adam_created['mat_vt'][0, 0]
             Bl[j] = -np.inf if model_type_dict["error_type"] == "A" else 0
@@ -1378,7 +1410,7 @@ def initialiser(
                     Bu[j:j+temp_lag-1] = np.inf
                 #names.extend([f"seasonal_{m}" for m in range(2, temp_lag)])
                 j += temp_lag - 1
-    if initials_checked['initial_type'] not in ["complete", "backcasting"] and arima_checked['arima_model'] and initials_checked['initial_arima_estimate']:
+    if initials_checked['initial_type'] not in ["backcasting", "complete"] and arima_checked['arima_model'] and initials_checked['initial_arima_estimate']:
         B[j:j+initials_checked['initial_arima_number']] = adam_created['mat_vt'][components_dict["components_number_ets"] + components_dict["components_number_arima"], :initials_checked['initial_arima_number']]
         names.extend([f"ARIMAState{n}" for n in range(1, initials_checked['initial_arima_number']+1)])
         if model_type_dict["error_type"] == "A":
@@ -1390,14 +1422,17 @@ def initialiser(
             Bu[j:j+initials_checked['initial_arima_number']] = np.inf
         j += initials_checked['initial_arima_number']
 
-    if initials_checked['initial_type'] != "complete" and initials_checked['initial_xreg_estimate'] and explanatory_checked['xreg_model']:
-        xreg_number_to_estimate = sum(explanatory_checked['xreg_parameters_estimated'])
-        if xreg_number_to_estimate > 0:
-            B[j:j+xreg_number_to_estimate] = adam_created['mat_vt'][components_dict["components_number_ets"] + components_dict["components_number_arima"], 0]
-            names.extend([f"xreg{idx+1}" for idx in range(xreg_number_to_estimate)])
-            Bl[j:j+xreg_number_to_estimate] = -np.inf
-            Bu[j:j+xreg_number_to_estimate] = np.inf
-            j += xreg_number_to_estimate
+    if initials_checked['initial_xreg_estimate'] and explanatory_checked['xreg_model']:
+        # For complete and backcasting, we do NOT estimate xreg initials in the main B vector
+        # (because they are handled by the backcasting procedure itself or pre-estimated)
+        if initials_checked['initial_type'] not in ["backcasting", "complete"]:
+            xreg_number_to_estimate = sum(explanatory_checked['xreg_parameters_estimated'])
+            if xreg_number_to_estimate > 0:
+                B[j:j+xreg_number_to_estimate] = adam_created['mat_vt'][components_dict["components_number_ets"] + components_dict["components_number_arima"], 0]
+                names.extend([f"xreg{idx+1}" for idx in range(xreg_number_to_estimate)])
+                Bl[j:j+xreg_number_to_estimate] = -np.inf
+                Bu[j:j+xreg_number_to_estimate] = np.inf
+                j += xreg_number_to_estimate
 
     if constants_checked['constant_estimate']:
         j += 1
@@ -2329,7 +2364,8 @@ def filler(B,
             if len(arima_checked['non_zero_ma']) > 0:
                 matrices_dict['vec_g'][components_dict['components_number_ets'] + arima_checked['non_zero_ma'][:, 1]] += arima_polynomials['maPolynomial'][arima_checked['non_zero_ma'][:, 0]]
         except Exception as e:
-            print(f"DEBUG - Error in ARIMA processing: {e}")
+            # print(f"DEBUG - Error in ARIMA processing: {e}")
+            pass
         
         j += sum(np.array(arima_checked['ar_orders'])*arima_checked['ar_estimate'] + 
                 np.array(arima_checked['ma_orders'])*arima_checked['ma_estimate'])

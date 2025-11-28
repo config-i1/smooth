@@ -1085,7 +1085,7 @@ def _check_initial(
 
     # Handle "optimal" or "backcasting" strings
     if isinstance(initial, str):
-        if initial.lower() in ["optimal", "backcasting"]:
+        if initial.lower() in ["optimal", "backcasting", "complete", "two-stage"]:
             result["initial_type"] = initial.lower()
             return result
         else:
@@ -1542,7 +1542,11 @@ def _calculate_ot_logical(
         ot_logical = np.ones_like(ot_logical, dtype=bool)
 
     # Determine frequency
-    freq = "1"  # Default
+    if frequency is not None:
+        freq = frequency
+    else:
+        freq = "1"  # Default
+
     if (
         hasattr(data, "index")
         and hasattr(data.index, "freq")
@@ -1574,18 +1578,18 @@ def _calculate_ot_logical(
                     y_forecast_start = last_idx + freq_delta
                 else:
                     # For numeric index
-                    if hasattr(data.index, 'freq'):
+                    if hasattr(data.index, 'freq') and data.index.freq is not None:
                         y_forecast_start = data.index[-1] + data.index.freq
                     else:
-                        # Fallback for numeric index without freq
-                        y_forecast_start = data.index[-1] + np.timedelta64(1, freq)
+                        # Fallback for numeric index without freq - use integer
+                        y_forecast_start = int(data.index[-1]) + 1
             except (ImportError, AttributeError, ValueError):
                 # Fallback: use the last index + freq
-                if hasattr(data.index, 'freq'):
+                if hasattr(data.index, 'freq') and data.index.freq is not None:
                     y_forecast_start = data.index[-1] + data.index.freq
                 else:
-                    # Ultimate fallback for numeric index
-                    y_forecast_start = data.index[-1] + np.timedelta64(1, freq)
+                    # Ultimate fallback for numeric index - use integer
+                    y_forecast_start = int(data.index[-1]) + 1
     else:
         # For non-indexed data, just use the total length
         y_forecast_start = len(y_in_sample)
@@ -1792,6 +1796,7 @@ def parameters_checker(
     persistence=None,
     phi=None,
     initial=None,
+    n_iterations=None,
     distribution="default",
     loss="likelihood",
     h=0,
@@ -1979,6 +1984,25 @@ def parameters_checker(
         silent=silent,
     )
 
+    # Process n_iterations parameter (for backcasting)
+    # Default behavior matches R: 2 iterations for backcasting/complete, 1 otherwise
+    if n_iterations is None:
+        if init_info["initial_type"] in ["backcasting", "complete"]:
+            n_iterations = 2
+        else:
+            n_iterations = 1
+    else:
+        # Validate user-provided n_iterations
+        if not isinstance(n_iterations, int) or n_iterations < 1:
+            _warn(f"n_iterations must be a positive integer. Using default value.", silent)
+            if init_info["initial_type"] in ["backcasting", "complete"]:
+                n_iterations = 2
+            else:
+                n_iterations = 1
+
+    # Add to init_info
+    init_info["n_iterations"] = n_iterations
+
     #####################
     # 10) Check Constant
     #####################
@@ -2154,6 +2178,7 @@ def parameters_checker(
         "initial_arima_number": init_info["initial_arima_number"],
         "initial_xreg_estimate": init_info["initial_xreg_estimate"],
         "initial_xreg_provided": init_info["initial_xreg_provided"],
+        "n_iterations": init_info["n_iterations"],
     }
 
     # Create ARIMA dictionary

@@ -3,7 +3,9 @@ import numpy as np
 
 
 def sigma(observations_dict, params_info, general, prepared_model):
-    vals = observations_dict['obs_in_sample'] - params_info['parameters_number'][0][-1]
+
+
+    vals = observations_dict['obs_in_sample'] - params_info[0][-1] 
     # If the sample is too small, then use biased estimator
     if vals <= 0:
         vals = observations_dict['obs_in_sample']

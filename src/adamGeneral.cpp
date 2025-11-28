@@ -47,19 +47,23 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
     for (unsigned int j=1; j<=nIterations; j=j+1) {
 
         // Refine the head (in order for it to make sense)
-        // This is only needed for ETS(*,Z,*) models, with trend.
-        if(refineHead){
-            for (int i=0; i<lagsModelMax; i=i+1) {
-                matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
-                profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                               matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+        // This is only needed for ETS(*,Z,Z) models, with trend.
+        // This is not needed for lagsMax=1, because there is nothing to fill in
+        if(refineHead && (T!='N')){
+            // Record the initial profile to the first column
+            matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
+            if(lagsModelMax>1){
+                // Update the head, but only for the trend component
+                for (int i=1; i<lagsModelMax; i=i+1) {
+                    profilesRecent(indexLookupTable.col(i).rows(0,1)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
+                                   matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant).rows(0,1);
+                    matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+                }
             }
         }
         ////// Run forward
         // Loop for the model construction
         for (int i=lagsModelMax; i<obs+lagsModelMax; i=i+1) {
-            matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
-
             /* # Measurement equation and the error term */
             vecYfit(i-lagsModelMax) = adamWvalue(profilesRecent(indexLookupTable.col(i)),
                     matrixWt.row(i-lagsModelMax), E, T, S,
@@ -79,6 +83,8 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixF, matrixWt.row(i-lagsModelMax), E, T, S,
                            nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
                            vectorG, vecErrors(i-lagsModelMax), vecYfit(i-lagsModelMax), adamETS);
+
+            matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
 
             // If ot is fractional, amend the fitted value
             if(vectorOt(i-lagsModelMax)!=0 && vectorOt(i-lagsModelMax)!=1){
