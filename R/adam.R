@@ -662,15 +662,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. Only needed for the ETS(*,Z,*) models
     refineHead <- TRUE;
-    # if(arimaModel){
-    #     refineHead[] <- FALSE;
-    # }
-    # if(initialType!="backcasting" | componentsNumberARIMA==0){
-    #     refineHead[] <- TRUE;
-    # }
-    # if(initialType=="provided"){
-    #     refineHead[] <- FALSE;
-    # }
 
     #### The function creates the technical variables (lags etc) based on the type of the model ####
     architector <- function(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal,
@@ -2932,7 +2923,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 # initials of xreg
                 (initialType=="complete")*xregModel*initialXregEstimate*sum(xregParametersEstimated));
 
-        nParamEstimated <- length(B);
+        nParamEstimated <- length(B) + nParamBackcasting;
         # Return a proper logLik class
         logLikADAMValue <- structure(logLikADAM(B,
                                                 etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal, yInSample,
@@ -3223,7 +3214,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
         }
 
-        return(list(B=B, CFValue=CFValue, nParamEstimated=nParamEstimated, nParamBackcasting=nParamBackcasting,
+        return(list(B=B, CFValue=CFValue, nParamEstimated=nParamEstimated,
                     logLikADAMValue=logLikADAMValue,
                     xregModel=xregModel, xregData=xregData, xregNumber=xregNumber,
                     xregNames=xregNames, xregModelInitials=xregModelInitials, formula=formula,
@@ -3945,7 +3936,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     persistence=persistence, phi=phi, transition=matF,
                     measurement=matWt, initial=initialValue, initialType=initialType,
                     initialEstimated=initialEstimated, orders=orders, arma=armaParametersList,
-                    constant=constantValue, nParam=parametersNumber,# nParamBack=nParamBackcasting,
+                    constant=constantValue, nParam=parametersNumber,
                     occurrence=oesModel, formula=formula, regressors=regressors,
                     loss=loss, lossValue=CFValue, logLik=logLikADAMValue, distribution=distribution,
                     scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, ets=ets,
@@ -6647,15 +6638,20 @@ coef.adam <- function(object, ...){
 #' @export
 sigma.adam <- function(object, ...){
 
-    #print(nobs(object, all=FALSE))
-    #print(nparam(object))
-    df <- (nobs(object, all=FALSE)-nparam(object));
-    #print(df)
+    nParam <- nparam(object);
+    # In case of likelihood, sigma was calculated as a parameter
+    # This is not needed for unbiassing sigma
+    if((!is.null(object$loss) && object$loss=="likelihood") ||
+       (inherits(object, "adamCombined") && object$models[[1]]$loss=="likelihood")){
+        nParam[] <- nParam - object$nParam[1,4];
+    }
+
+    df <- nobs(object, all=FALSE)-nParam;
     # If the sample is too small, then use biased estimator
     if(df<=0){
         df[] <- nobs(object);
     }
-    #print()
+
     return(sqrt(switch(object$distribution,
                        "dnorm"=,
                        "dlaplace"=,
@@ -9263,9 +9259,6 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     ssarimaModel <- smoothType(object)=="SSARIMA";
 
     refineHead <- TRUE;
-    # if(any(arimaModel,ssarimaModel)){
-    #     refineHead[] <- FALSE;
-    # }
 
     # Get componentsNumberETS, seasonal and componentsNumberARIMA
     componentsDefined <- componentsDefiner(object);
