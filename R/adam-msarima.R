@@ -241,7 +241,7 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             return(adam(data=y, model=model,
                         orders=orders, lags=lags, constant=constant,
                         arma=list(ar=AR,ma=MA),
-                        loss=loss, h=h, holdout=holdout, initial=initialValue,
+                        loss=loss, h=h, holdout=holdout, initial=initial,
                         ic=ic, bounds=bounds[1], distribution="dnorm",
                         silent=silent, regressors=regressors[1], environment=env, ...));
 
