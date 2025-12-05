@@ -1,4 +1,4 @@
-smooth v4.3.2 (Release data: 2025-11-28)
+smooth v4.3.2 (Release data: 2025-12-05)
 =======
 
 Changes:
@@ -7,7 +7,7 @@ Changes:
 * Removed some heuristics in adam() for the initialisation on small samples - this is now handled by the msdecompose.
 * lowess is now the default smoother in adam(), when calling for the msdecompose. This is better than "ma" because it saves the sample and is more robust.
 * Tuning of the backcasting initialisation of ADAM. This should fix the problems for ADAM ARIMA and some ETS models.
-* Trying new number of degrees of freedom in case of backcasting.
+* New calculation for the number of estimated states in case of backcasting. They now can be fractional. This is based on the discount matrix. This should fix the small sample bias.
 
 Bugfixes:
 * Fixed the issue with reusing the initials in gum, ces, msarima and ssarima.
