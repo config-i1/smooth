@@ -2317,60 +2317,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                            other, otherParameterEstimate, lambda,
                            arPolynomialMatrix, maPolynomialMatrix, hessianCalculation=FALSE){
 
-        # If this is just for the calculation of hessian, return to the original values of parameters
-        # if(hessianCalculation && any(initialType==c("optimal","backcasting"))){
-        #     persistenceToSkip <- 0;
-        #     if(initialType=="optimal"){
-        #         # Define, how many elements to skip (we don't normalise smoothing parameters)
-        #         if(persistenceXregEstimate){
-        #             persistenceToSkip[] <- componentsNumberETS+componentsNumberARIMA+xregNumber;
-        #         }
-        #         else{
-        #             persistenceToSkip[] <- componentsNumberETS+componentsNumberARIMA;
-        #         }
-        #         j <- 1;
-        #         if(phiEstimate){
-        #             j[] <- 2;
-        #         }
-        #         # Level
-        #         B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
-        #         # Trend
-        #         if(Ttype!="N"){
-        #             j[] <- j+1;
-        #             if(Ttype=="A"){
-        #                 B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
-        #             }
-        #         }
-        #         # Seasonality
-        #         if(Stype=="A"){
-        #             if(componentsNumberETSSeasonal>1){
-        #                 for(k in 1:componentsNumberETSSeasonal){
-        #                     if(initialSeasonalEstimateFI[k]){
-        #                         # -1 is needed in order to remove the redundant seasonal element (normalisation)
-        #                         B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
-        #                             B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] *
-        #                             sd(yInSample);
-        #                         j[] <- j+(lagsModelSeasonal[k]-1);
-        #                     }
-        #                 }
-        #             }
-        #             else{
-        #                 # -1 is needed in order to remove the redundant seasonal element (normalisation)
-        #                 B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
-        #                     B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] * sd(yInSample);
-        #             }
-        #         }
-        #     }
-        #
-        #     # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
-        #     if(xregNumber>0 && Etype=="A"){
-        #         denominator <- tail(colMeans(abs(matWt)),xregNumber);
-        #         # If it is lower than 1, then we are probably dealing with (0, 1). No need to normalise
-        #         denominator[abs(denominator)<1] <- 1;
-        #         B[persistenceToSkip+sum(lagsModel)+c(1:xregNumber)] <- tail(B,xregNumber) * denominator;
-        #     }
-        # }
-
         if(!multisteps){
             if(any(loss==c("LASSO","RIDGE"))){
                 return(0);
@@ -2932,9 +2878,27 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                 xregParametersMissing, xregParametersIncluded,
                                 xregParametersEstimated, xregParametersPersistence, constantEstimate);
 
-        # Initial parameters that were "estimated" in backcasting. Discounted values
-        nStatesBackcasting <- dfDiscounter(adamCreated$vecG, adamCreated$matF, adamCreated$matWt,
-                                           lagsModelAll, obsInSample);
+        ##### Calculate the number of degrees of freedom coming from states in case of backcasting #####
+        nStatesBackcasting <- 0;
+        # Calculate number of efficient degrees of freedom from states
+        # if(any(initialType==c("backcasting","complete"))){
+        #
+        #     dfs <- dfDiscounter(adamCreated$vecG, adamCreated$matF, lagsModelAll,
+        #                         obsInSample, indexLookupTable,
+        #                         Etype, Ttype, Stype, etsModel,
+        #                         componentsNumberETSSeasonal, componentsNumberETS,
+        #                         componentsNumberARIMA, xregNumber, constantRequired, adamETS);
+        #
+        #     print(dfs)
+        #
+        #     dfs <- dfDiscounter2(adamCreated$vecG, adamCreated$matF, lagsModelAll,
+        #                         obsInSample, indexLookupTable,
+        #                         Etype, Ttype, Stype, etsModel,
+        #                         componentsNumberETSSeasonal, componentsNumberETS,
+        #                         componentsNumberARIMA, xregNumber, constantRequired, adamETS);
+        #
+        #     print(dfs)
+        # }
 
         nParamEstimated <- length(B) + nStatesBackcasting;
         # Return a proper logLik class
@@ -5133,25 +5097,117 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
 # This is needed for debiasing sigma in case of adam with backcasted initials
 # dfDiscounter <- function(object, persistence=NULL, transition=NULL, measurement=NULL,
 #                          lagsAll=NULL, obsInSample=NULL){
-dfDiscounter <- function(persistence, transition, measurement,
-                         lagsAll, obsInSample){
+dfDiscounter <- function(persistence, transition,
+                         lagsAll, obsInSample, indexLookupTable,
+                         Etype, Ttype, Stype, etsModel,
+                         componentsNumberETSSeasonal, componentsNumberETS,
+                         componentsNumberARIMA, xregNumber, constantRequired, adamETS){
 
     lagsUnique <- unique(lagsAll);
+    lagsModelMax <- max(lagsAll);
     lagsUniqueLength <- length(lagsUnique);
-    obsPeriods <- ceiling(2*obsInSample/lagsAll);
+    componentsNumberETSNonSeasonal <- componentsNumberETS - componentsNumberETSSeasonal;
 
-    # Vector of discounts for components
-    discountValues <- vector("numeric", lagsUniqueLength);
-
-    # Check discount values per unique component (unique lag)
-    for(i in 1:lagsUniqueLength){
-        discountValues[which(lagsAll==lagsUnique[i])] <-
-            diag((transition[lagsAll==lagsUnique[i], lagsAll==lagsUnique[i], drop=FALSE] -
-                     persistence[lagsAll==lagsUnique[i],,drop=FALSE] %*%
-                     measurement[obsInSample,lagsAll==lagsUnique[i],drop=FALSE])^obsPeriods[lagsAll==lagsUnique[i]]);
+    # This is the sample to model to reflect the backcasted period (back and forth)
+    # lagsModelMax appears because we have "refineHead"
+    obsInSampleBackcasting <- obsInSample*2+lagsModelMax-1;
+    nStates <- ncol(transition);
+    # State matrix that has columns similar to obsStates
+    matVtBack <- array(1, c(nStates, obsInSampleBackcasting + lagsModelMax, 1));
+    # Measurement matrix with the new sample
+    matWtBack <- matrix(1, obsInSampleBackcasting, nStates);
+    # indexLookupTable for the new data. This is similar to doing forth and back pass
+    indexLookupTableBack <- cbind(indexLookupTable,indexLookupTable[,(ncol(indexLookupTable)-1):1, drop=FALSE]);
+    # Create a new profile, which has 1 for the initial states
+    profilesRecentTableBack <- matrix(0, nStates, lagsModelMax);
+    for(i in 1:nStates){
+        profilesRecentTableBack[i,1:lagsAll[i]] <- 1;
     }
-    return(sum(abs(discountValues) * lagsAll));
+    # Seasonality needs to be treated differently, because we estimate m-1 initials
+    # We spread m-1 to the m elements to reflect the idea that we estimated only m-1
+    # If we estimated all m, we would have 1 in every cell
+    if(etsModel && Stype!="N"){
+        for(k in 1:componentsNumberETSSeasonal){
+            profilesRecentTableBack[componentsNumberETSNonSeasonal+k,
+                                    1:lagsAll[componentsNumberETSNonSeasonal+k]] <-
+                (lagsAll[componentsNumberETSNonSeasonal+k]-1)/lagsAll[componentsNumberETSNonSeasonal+k];
+        }
+    }
+
+    # The errors are designed to capture how the states change
+    # -1 implies that we adapt the states towards zero
+    matErrors <- matrix(-1, obsInSampleBackcasting, 1);
+    # In case of adam ETS, the values of errors should be different because -1 is not possible
+    if(adamETS){
+        matErrors[] <- 1/exp(1)-1;
+    }
+
+    adamSimulatedBack <- adamSimulatorWrap(matVtBack, matErrors,
+                                           matrix(1, obsInSampleBackcasting, 1),
+                                           array(transition, c(nrow(transition), ncol(transition), 1)), matWtBack,
+                                           persistence, Etype, Ttype, Stype,
+                                           lagsAll, indexLookupTableBack, profilesRecentTableBack,
+                                           componentsNumberETSSeasonal, componentsNumberETS,
+                                           componentsNumberARIMA, xregNumber, constantRequired, adamETS)$profile[,,1];
+
+    return(adamSimulatedBack);
 }
+
+# The alternative thing that relies on the fitter
+dfDiscounter2 <- function(persistence, transition,
+                          lagsAll, obsInSample, indexLookupTable,
+                          Etype, Ttype, Stype, etsModel,
+                          componentsNumberETSSeasonal, componentsNumberETS,
+                          componentsNumberARIMA, xregNumber, constantRequired, adamETS){
+
+    lagsUnique <- unique(lagsAll);
+    lagsModelMax <- max(lagsAll);
+    lagsUniqueLength <- length(lagsUnique);
+    componentsNumberETSNonSeasonal <- componentsNumberETS - componentsNumberETSSeasonal;
+
+    # This is the sample to model to reflect the backcasted period (back and forth)
+    # lagsModelMax appears because we have "refineHead"
+    obsInSampleBackcasting <- obsInSample*2+lagsModelMax-1;
+    nStates <- ncol(transition);
+    # State matrix that has columns similar to obsStates
+    matVtBack <- matrix(1, nStates, obsInSampleBackcasting + lagsModelMax);
+    # Measurement matrix with the new sample
+    matWtBack <- matrix(1, obsInSampleBackcasting, nStates);
+    # indexLookupTable for the new data. This is similar to doing forth and back pass
+    indexLookupTableBack <- cbind(indexLookupTable,indexLookupTable[,(ncol(indexLookupTable)-1):1, drop=FALSE]);
+    # Create a new profile, which has 1 for the initial states
+    profilesRecentTableBack <- matrix(0, nStates, lagsModelMax);
+    for(i in 1:nStates){
+        profilesRecentTableBack[i,1:lagsAll[i]] <- 1;
+    }
+    # Seasonality needs to be treated differently, because we estimate m-1 initials
+    # We spread m-1 to the m elements to reflect the idea that we estimated only m-1
+    # If we estimated all m, we would have 1 in every cell
+    if(etsModel && Stype!="N"){
+        for(k in 1:componentsNumberETSSeasonal){
+            profilesRecentTableBack[componentsNumberETSNonSeasonal+k,
+                                    1:lagsAll[componentsNumberETSNonSeasonal+k]] <-
+                (lagsAll[componentsNumberETSNonSeasonal+k]-1)/lagsAll[componentsNumberETSNonSeasonal+k];
+        }
+    }
+
+    # The new data. This is just zeroes to see how the df effect evaporates
+    yInSampleBack <- matrix(0, obsInSampleBackcasting, 1);
+    # New occurrence, which is 1 everywhere
+    otBack <- matrix(1, obsInSampleBackcasting, 1);
+
+    # Fit the model to the data
+    adamFittedBack <- adamFitterWrap(matVtBack, matWtBack, transition, persistence,
+                                     lagsAll, indexLookupTableBack, profilesRecentTableBack,
+                                     Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+                                     componentsNumberARIMA, xregNumber, constantRequired,
+                                     yInSampleBack, otBack, FALSE,
+                                     1, FALSE, adamETS)$profile;
+
+    # Get the final profile. It now contains the discounted df for the start of the data
+    return(adamFittedBack)
+}
+
 
 #### Small technical functions ####
 # Function checks whether the conventional ETS or the ADAM version was used
