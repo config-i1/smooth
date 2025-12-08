@@ -31,6 +31,8 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
 
     arma::mat matY(obs, nSeries);
 
+    arma::cube profilesRecentArray(profilesRecent.n_rows, profilesRecent.n_cols, nSeries);
+
     for(unsigned int i=0; i<nSeries; i=i+1){
         matrixVt = arrayVt.slice(i);
         matrixF = arrayF.slice(i);
@@ -78,9 +80,11 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
             matrixVt.col(j) = profilesRecent(indexLookupTable.col(j-lagsModelMax));
         }
         arrayVt.slice(i) = matrixVt;
+        profilesRecentArray.slice(i) = profilesRecent;
     }
 
-    return List::create(Named("arrayVt") = arrayVt, Named("matrixYt") = matY);
+    return List::create(Named("arrayVt") = arrayVt, Named("matrixYt") = matY,
+                        Named("profile") = profilesRecentArray);
 }
 
 /* # Wrapper for simulator */
