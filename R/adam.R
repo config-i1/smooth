@@ -5093,15 +5093,17 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
     return(list(recent=profilesRecentTable,lookup=indexLookupTable));
 }
 
+
+#### Experimental function to figure out df of ADAM in case of backcasting ####
 # The function calculates the discounted number of degrees of freedom for the model
 # This is needed for debiasing sigma in case of adam with backcasted initials
 # dfDiscounter <- function(object, persistence=NULL, transition=NULL, measurement=NULL,
 #                          lagsAll=NULL, obsInSample=NULL){
-dfDiscounter <- function(persistence, transition,
-                         lagsAll, obsInSample, indexLookupTable,
-                         Etype, Ttype, Stype, etsModel,
-                         componentsNumberETSSeasonal, componentsNumberETS,
-                         componentsNumberARIMA, xregNumber, constantRequired, adamETS){
+dfDiscounterSim <- function(persistence, transition,
+                            lagsAll, obsInSample, indexLookupTable,
+                            Etype, Ttype, Stype, etsModel,
+                            componentsNumberETSSeasonal, componentsNumberETS,
+                            componentsNumberARIMA, xregNumber, constantRequired, adamETS){
 
     lagsUnique <- unique(lagsAll);
     lagsModelMax <- max(lagsAll);
@@ -5154,11 +5156,11 @@ dfDiscounter <- function(persistence, transition,
 }
 
 # The alternative thing that relies on the fitter
-dfDiscounter2 <- function(persistence, transition,
-                          lagsAll, obsInSample, indexLookupTable,
-                          Etype, Ttype, Stype, etsModel,
-                          componentsNumberETSSeasonal, componentsNumberETS,
-                          componentsNumberARIMA, xregNumber, constantRequired, adamETS){
+dfDiscounterFit <- function(persistence, transition,
+                            lagsAll, obsInSample, indexLookupTable,
+                            Etype, Ttype, Stype, etsModel,
+                            componentsNumberETSSeasonal, componentsNumberETS,
+                            componentsNumberARIMA, xregNumber, constantRequired, adamETS){
 
     lagsUnique <- unique(lagsAll);
     lagsModelMax <- max(lagsAll);
@@ -5208,9 +5210,34 @@ dfDiscounter2 <- function(persistence, transition,
     return(list(profileInitial=profilesRecentTableBack, profileRecent=adamFittedBack))
 }
 
+dfDiscounter <- function(object){
+    lagsModelAll <- modelLags(object)
+    lagsModelMax <- max(lagsModelAll)
+    obsAll <- nobs(object) + nobs(object)
+    components <- componentsDefiner(object)
+    vecG <- matrix(object$persistence)
+
+    dfs1 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
+                            obsAll, adamProfileCreator(lagsModelAll, lagsModelMax, obsAll)$lookup,
+                            errorType(object), trendType(object), seasonType(object), etsChecker(object),
+                            components$componentsNumberETSSeasonal, components$componentsNumberETS,
+                            components$componentsNumberARIMA, length(object$initial$xreg), !is.null(object$constant),
+                            adamETSChecker(object))
+
+    # Record what would happen if we had a deterministic stuff
+    vecG[] <- 0
+    dfs2 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
+                            obsAll, adamProfileCreator(lagsModelAll, lagsModelMax, obsAll)$lookup,
+                            errorType(object), trendType(object), seasonType(object), etsChecker(object),
+                            components$componentsNumberETSSeasonal, components$componentsNumberETS,
+                            components$componentsNumberARIMA, length(object$initial$xreg), !is.null(object$constant),
+                            adamETSChecker(object))
+
+    return(list(profile1=dfs1$profileRecent, profile2=dfs2$profileRecent, profileInitial=dfs1$profileInitial))
+}
+
 
 #### Small technical functions returning types of models and components ####
-
 # Function checks whether the conventional ETS or the ADAM version was used
 adamETSChecker <- function(object){
     if(!is.null(object$ets) && object$ets=="adam"){
