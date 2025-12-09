@@ -5205,11 +5205,12 @@ dfDiscounter2 <- function(persistence, transition,
                                      1, FALSE, adamETS)$profile;
 
     # Get the final profile. It now contains the discounted df for the start of the data
-    return(adamFittedBack)
+    return(list(profileInitial=profilesRecentTableBack, profileRecent=adamFittedBack))
 }
 
 
-#### Small technical functions ####
+#### Small technical functions returning types of models and components ####
+
 # Function checks whether the conventional ETS or the ADAM version was used
 adamETSChecker <- function(object){
     if(!is.null(object$ets) && object$ets=="adam"){
@@ -5223,11 +5224,11 @@ adamETSChecker <- function(object){
 
 # Function defines number of components based on the model type
 componentsDefiner <- function(object){
-    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
-    cesModel <- smoothType(object)=="CES";
-    gumModel <- smoothType(object)=="GUM";
-    ssarimaModel <- smoothType(object)=="SSARIMA";
+    etsModel <- etsChecker(object);
+    arimaModel <- arimaChecker(object);
+    cesModel <- cesChecker(object);
+    gumModel <- gumChecker(object);
+    ssarimaModel <- ssarimaChecker(object);
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
@@ -5267,6 +5268,68 @@ componentsDefiner <- function(object){
                 componentsNumberETSSeasonal=componentsNumberETSSeasonal,
                 componentsNumberARIMA=componentsNumberARIMA))
 }
+
+etsChecker <- function(object){
+    return(any(unlist(gregexpr("ETS",object$model))!=-1));
+}
+
+arimaChecker <- function(object){
+    return(any(unlist(gregexpr("ARIMA",object$model))!=-1));
+}
+
+gumChecker <- function(object){
+    return(smoothType(object)=="GUM");
+}
+
+ssarimaChecker <- function(object){
+    return(smoothType(object)=="SSARIMA");
+}
+
+cesChecker <- function(object){
+    return(smoothType(object)=="CES");
+}
+
+#' @export
+modelType.adam <- function(object, ...){
+    etsModel <- etsChecker(object);
+    if(etsModel){
+        modelType <- substring(object$model,
+                               unlist(gregexpr("\\(",object$model))+1,
+                               unlist(gregexpr("\\)",object$model))-1)[1];
+    }
+    else{
+        modelType <- "NNN";
+    }
+    return(modelType)
+}
+
+#' @export
+errorType.adam <- function(object, ...){
+    model <- modelType(object);
+    if(model=="NNN"){
+        return(switch(object$distribution,
+                      "dnorm"=,"dlaplace"=,"ds"=,"dgnorm"=,"dlogis"=,"dt"=,"dalaplace"="A",
+                      "dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"=,"dinvgauss"=,"dgamma"="M"));
+    }
+    else{
+        return(substr(model,1,1));
+    }
+}
+
+trendType <- function(object){
+    return(substr(modelType(object),2,2));
+}
+
+seasonType <- function(object){
+    model <- modelType(object);
+    return(substr(model,nchar(model),nchar(model)));
+}
+
+#' @export
+orders.adam <- function(object){
+    return(object$orders);
+}
+
 
 #### Technical methods ####
 #' @export
@@ -6470,8 +6533,8 @@ confint.adam <- function(object, parm, level=0.95, bootstrap=FALSE, ...){
         adamSD <- sqrt(abs(diag(adamVcov)));
         parametersNames <- names(adamSD);
         nParam <- length(adamSD);
-        etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-        arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
+        etsModel <- etsChecker(object);
+        arimaModel <- arimaChecker(object);
         adamCoefBounds <- matrix(0,nParam,2,
                                  dimnames=list(parametersNames,NULL));
         # Fill in the values with normal bounds
@@ -6897,9 +6960,9 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
 
     cl <- match.call();
     yInSample <- actuals(object);
-    cesModel <- smoothType(object)=="CES";
-    gumModel <- smoothType(object)=="GUM";
-    ssarimaModel <- smoothType(object)=="SSARIMA";
+    cesModel <- cesChecker(object);
+    gumModel <- gumChecker(object);
+    ssarimaModel <- ssarimaChecker(object);
 
     method <- match.arg(method);
 
@@ -7194,9 +7257,9 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             return(vcov(testModel));
         }
         else{
-            cesModel <- smoothType(object)=="CES";
-            gumModel <- smoothType(object)=="GUM";
-            ssarimaModel <- smoothType(object)=="SSARIMA";
+            cesModel <- cesChecker(object);
+            gumModel <- gumChecker(object);
+            ssarimaModel <- ssarimaChecker(object);
             if(cesModel){
                 # If this is not provided by user, use a low value. CES is sensitive, so the small steps are required
                 if(is.null(ellipsis$stepSize)){
@@ -8007,11 +8070,11 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     damped <- substr(model,3,3)=="d";
     Stype <- substr(model,nchar(model),nchar(model));
 
-    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-    # arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
-    # cesModel <- smoothType(object)=="CES";
-    gumModel <- smoothType(object)=="GUM";
-    # ssarimaModel <- smoothType(object)=="SSARIMA";
+    etsModel <- etsChecker(object);
+    # arimaModel <- arimaChecker(object);
+    # cesModel <- cesChecker(object);
+    gumModel <- gumChecker(object);
+    # ssarimaModel <- ssarimaChecker(object);
 
     # Technical parameters
     lagsModelAll <- modelLags(object);
@@ -9274,11 +9337,11 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     #
     # }
 
-    # cesModel <- smoothType(object)=="CES";
-    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
-    gumModel <- smoothType(object)=="GUM";
-    ssarimaModel <- smoothType(object)=="SSARIMA";
+    # cesModel <- cesChecker(object);
+    etsModel <- etsChecker(object);
+    arimaModel <- arimaChecker(object);
+    gumModel <- gumChecker(object);
+    ssarimaModel <- ssarimaChecker(object);
 
     refineHead <- TRUE;
 
@@ -10709,37 +10772,7 @@ pointLik.adam <- function(object, log=TRUE, ...){
     return(likValues);
 }
 
-#' @export
-modelType.adam <- function(object, ...){
-    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-    if(etsModel){
-        modelType <- substring(object$model,
-                               unlist(gregexpr("\\(",object$model))+1,
-                               unlist(gregexpr("\\)",object$model))-1)[1];
-    }
-    else{
-        modelType <- "NNN";
-    }
-    return(modelType)
-}
-
-#' @export
-errorType.adam <- function(object, ...){
-    model <- modelType(object);
-    if(model=="NNN"){
-        return(switch(object$distribution,
-                      "dnorm"=,"dlaplace"=,"ds"=,"dgnorm"=,"dlogis"=,"dt"=,"dalaplace"="A",
-                      "dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"=,"dinvgauss"=,"dgamma"="M"));
-    }
-    else{
-        return(substr(model,1,1));
-    }
-}
-
-#' @export
-orders.adam <- function(object, ...){
-    return(object$orders);
-}
+#### Simulate function ####
 
 #' @param obs Number of observations to produce in the simulated data.
 #' @param nsim Number of series to generate from the model.
