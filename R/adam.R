@@ -5204,10 +5204,11 @@ dfDiscounterFit <- function(persistence, transition,
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
                                      yInSampleBack, otBack, FALSE,
-                                     1, FALSE, adamETS)$profile;
+                                     1, FALSE, adamETS);
 
     # Get the final profile. It now contains the discounted df for the start of the data
-    return(list(profileInitial=profilesRecentTableBack, profileRecent=adamFittedBack))
+    return(list(profileInitial=profilesRecentTableBack, profileRecent=adamFittedBack$profile,
+                states=tail(t(adamFittedBack$matVt), lagsModelMax)));
 }
 
 dfDiscounter <- function(object){
@@ -5233,7 +5234,8 @@ dfDiscounter <- function(object){
                             components$componentsNumberARIMA, length(object$initial$xreg), !is.null(object$constant),
                             adamETSChecker(object))
 
-    return(list(profile1=dfs1$profileRecent, profile2=dfs2$profileRecent, profileInitial=dfs1$profileInitial))
+    return(list(profile1=dfs1$profileRecent, profile2=dfs2$profileRecent, profileInitial=dfs1$profileInitial,
+                states1=dfs1$states, states2=dfs2$states))
 }
 
 
