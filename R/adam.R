@@ -5182,6 +5182,10 @@ dfDiscounterFit <- function(persistence, transition,
     for(i in 1:nStates){
         profilesRecentTableBack[i,1:lagsAll[i]] <- 1;
     }
+
+    # if(Ttype!="N"){
+    #     profilesRecentTableBack[2,] <- 1
+    # }
     # Seasonality needs to be treated differently, because we estimate m-1 initials
     # We spread m-1 to the m elements to reflect the idea that we estimated only m-1
     # If we estimated all m, we would have 1 in every cell
@@ -5194,7 +5198,8 @@ dfDiscounterFit <- function(persistence, transition,
     }
 
     # The new data. This is just zeroes to see how the df effect evaporates
-    yInSampleBack <- matrix(0, obsInSampleBackcasting, 1);
+    # But it's not exactly zero, because otherwise multiplicative models won't work
+    yInSampleBack <- matrix(1e-100, obsInSampleBackcasting, 1);
     # New occurrence, which is 1 everywhere
     otBack <- matrix(1, obsInSampleBackcasting, 1);
 
@@ -5209,33 +5214,37 @@ dfDiscounterFit <- function(persistence, transition,
     # Get the final profile. It now contains the discounted df for the start of the data
     return(list(profileInitial=profilesRecentTableBack, profileRecent=adamFittedBack$profile,
                 states=tail(t(adamFittedBack$matVt), lagsModelMax)));
+
+    # For the ARIMA models, just sum up the profile - it seems to work fine
+    # For ETS, we need to deal with level compensating for the seasonality
+    # And with the trend building up in the level
 }
 
 dfDiscounter <- function(object){
-    lagsModelAll <- modelLags(object)
-    lagsModelMax <- max(lagsModelAll)
-    obsAll <- nobs(object) + nobs(object)
-    components <- componentsDefiner(object)
-    vecG <- matrix(object$persistence)
+    lagsModelAll <- modelLags(object);
+    lagsModelMax <- max(lagsModelAll);
+    obsAll <- nobs(object);
+    components <- componentsDefiner(object);
+    vecG <- matrix(object$persistence);
 
     dfs1 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
                             obsAll, adamProfileCreator(lagsModelAll, lagsModelMax, obsAll)$lookup,
                             errorType(object), trendType(object), seasonType(object), etsChecker(object),
                             components$componentsNumberETSSeasonal, components$componentsNumberETS,
                             components$componentsNumberARIMA, length(object$initial$xreg), !is.null(object$constant),
-                            adamETSChecker(object))
+                            adamETSChecker(object));
 
     # Record what would happen if we had a deterministic stuff
-    vecG[] <- 0
+    vecG[] <- 0;
     dfs2 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
                             obsAll, adamProfileCreator(lagsModelAll, lagsModelMax, obsAll)$lookup,
                             errorType(object), trendType(object), seasonType(object), etsChecker(object),
                             components$componentsNumberETSSeasonal, components$componentsNumberETS,
                             components$componentsNumberARIMA, length(object$initial$xreg), !is.null(object$constant),
-                            adamETSChecker(object))
+                            adamETSChecker(object));
 
     return(list(profile1=dfs1$profileRecent, profile2=dfs2$profileRecent, profileInitial=dfs1$profileInitial,
-                states1=dfs1$states, states2=dfs2$states))
+                states1=dfs1$states, states2=dfs2$states));
 }
 
 
