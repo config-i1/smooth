@@ -5150,9 +5150,11 @@ dfDiscounterSim <- function(persistence, transition,
                                            persistence, Etype, Ttype, Stype,
                                            lagsAll, indexLookupTableBack, profilesRecentTableBack,
                                            componentsNumberETSSeasonal, componentsNumberETS,
-                                           componentsNumberARIMA, xregNumber, constantRequired, adamETS)$profile[,,1];
+                                           componentsNumberARIMA, xregNumber, constantRequired, adamETS);
 
-    return(adamSimulatedBack);
+    # Get the final profile. It now contains the discounted df for the start of the data
+    return(list(profileInitial=profilesRecentTableBack, profileRecent=adamSimulatedBack$profile[,,1],
+                states=tail(t(adamSimulatedBack$arrayVt[,,1]), lagsModelMax)));
 }
 
 # The alternative thing that relies on the fitter
@@ -5184,7 +5186,8 @@ dfDiscounterFit <- function(persistence, transition,
     }
 
     # if(Ttype!="N"){
-    #     profilesRecentTableBack[2,] <- 1
+    #     # profilesRecentTableBack[2,] <- 1
+    #     transition[1,2] <- 0
     # }
     # Seasonality needs to be treated differently, because we estimate m-1 initials
     # We spread m-1 to the m elements to reflect the idea that we estimated only m-1
@@ -5227,6 +5230,7 @@ dfDiscounter <- function(object){
     components <- componentsDefiner(object);
     vecG <- matrix(object$persistence);
 
+    # dfs1 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
     dfs1 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
                             obsAll, adamProfileCreator(lagsModelAll, lagsModelMax, obsAll)$lookup,
                             errorType(object), trendType(object), seasonType(object), etsChecker(object),
@@ -5236,6 +5240,7 @@ dfDiscounter <- function(object){
 
     # Record what would happen if we had a deterministic stuff
     vecG[] <- 0;
+    # dfs2 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
     dfs2 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
                             obsAll, adamProfileCreator(lagsModelAll, lagsModelMax, obsAll)$lookup,
                             errorType(object), trendType(object), seasonType(object), etsChecker(object),
