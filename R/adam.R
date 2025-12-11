@@ -2859,24 +2859,28 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         # Fill in the matrices. This is now needed for the correct calculation of the df
-        adamCreated[] <- filler(B,
-                                etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-                                componentsNumberETS, componentsNumberETSNonSeasonal,
-                                componentsNumberETSSeasonal, componentsNumberARIMA,
-                                lags, lagsModel, lagsModelMax,
-                                adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-                                persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-                                persistenceSeasonalEstimate, persistenceXregEstimate,
-                                phiEstimate,
-                                initialType, initialEstimate,
-                                initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-                                initialArimaEstimate, initialXregEstimate,
-                                arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
-                                arRequired, maRequired, armaParameters,
-                                nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
-                                xregModel, xregNumber,
-                                xregParametersMissing, xregParametersIncluded,
-                                xregParametersEstimated, xregParametersPersistence, constantEstimate);
+        # !!!! Uncommenting this will break this:
+        # testModel <- adam(xreg, "MNM", orders=list(ar=c(3,2),i=c(0,0),ma=c(3,2)), lags=c(1,12),
+        #                   regressors="select", distribution="dlaplace")
+        # !!!! This is probably because of recreation of adamCreated several times
+        # adamCreated[] <- filler(B,
+        #                         etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+        #                         componentsNumberETS, componentsNumberETSNonSeasonal,
+        #                         componentsNumberETSSeasonal, componentsNumberARIMA,
+        #                         lags, lagsModel, lagsModelMax,
+        #                         adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
+        #                         persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
+        #                         persistenceSeasonalEstimate, persistenceXregEstimate,
+        #                         phiEstimate,
+        #                         initialType, initialEstimate,
+        #                         initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+        #                         initialArimaEstimate, initialXregEstimate,
+        #                         arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
+        #                         arRequired, maRequired, armaParameters,
+        #                         nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
+        #                         xregModel, xregNumber,
+        #                         xregParametersMissing, xregParametersIncluded,
+        #                         xregParametersEstimated, xregParametersPersistence, constantEstimate);
 
         ##### Calculate the number of degrees of freedom coming from states in case of backcasting #####
         nStatesBackcasting <- 0;
