@@ -5139,22 +5139,37 @@ dfDiscounterSim <- function(persistence, transition,
     # The errors are designed to capture how the states change
     # -1 implies that we adapt the states towards zero
     matErrors <- matrix(-1, obsInSampleBackcasting, 1);
+    matErrors <- matrix(0, obsInSampleBackcasting, 1);
     # In case of adam ETS, the values of errors should be different because -1 is not possible
-    if(adamETS){
-        matErrors[] <- 1/exp(1)-1;
-    }
+    # if(adamETS){
+    #     matErrors[] <- 1/exp(1)-1;
+    # }
+
+    # Form the discount matrix. We then use sort of equation (5.16) to get the impact of the initial state
+    discountMatrix <- transition - persistence %*% matWtBack[1,,drop=FALSE]
 
     adamSimulatedBack <- adamSimulatorWrap(matVtBack, matErrors,
                                            matrix(1, obsInSampleBackcasting, 1),
-                                           array(transition, c(nrow(transition), ncol(transition), 1)), matWtBack,
+                                           array(discountMatrix, c(nrow(transition), ncol(transition), 1)), matWtBack,
                                            persistence, Etype, Ttype, Stype,
                                            lagsAll, indexLookupTableBack, profilesRecentTableBack,
                                            componentsNumberETSSeasonal, componentsNumberETS,
                                            componentsNumberARIMA, xregNumber, constantRequired, adamETS);
 
+    # adamSimulatedBack <- adamSimulatorWrap(matVtBack, matErrors,
+    #                                        matrix(1, obsInSampleBackcasting, 1),
+    #                                        array(transition, c(nrow(transition), ncol(transition), 1)), matWtBack,
+    #                                        persistence, Etype, Ttype, Stype,
+    #                                        lagsAll, indexLookupTableBack, profilesRecentTableBack,
+    #                                        componentsNumberETSSeasonal, componentsNumberETS,
+    #                                        componentsNumberARIMA, xregNumber, constantRequired, adamETS);
+
     # Get the final profile. It now contains the discounted df for the start of the data
     return(list(profileInitial=profilesRecentTableBack, profileRecent=adamSimulatedBack$profile[,,1],
                 states=tail(t(adamSimulatedBack$arrayVt[,,1]), lagsModelMax)));
+
+    # In case of seasonality, df is: sum(rowSums(test2$states1[,c(1:3)]))
+    # The trend is still a bloody headache!
 }
 
 # The alternative thing that relies on the fitter
@@ -5230,8 +5245,8 @@ dfDiscounter <- function(object){
     components <- componentsDefiner(object);
     vecG <- matrix(object$persistence);
 
-    # dfs1 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
-    dfs1 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
+    dfs1 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
+    # dfs1 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
                             obsAll, adamProfileCreator(lagsModelAll, lagsModelMax, obsAll)$lookup,
                             errorType(object), trendType(object), seasonType(object), etsChecker(object),
                             components$componentsNumberETSSeasonal, components$componentsNumberETS,
@@ -5240,8 +5255,8 @@ dfDiscounter <- function(object){
 
     # Record what would happen if we had a deterministic stuff
     vecG[] <- 0;
-    # dfs2 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
-    dfs2 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
+    dfs2 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
+    # dfs2 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
                             obsAll, adamProfileCreator(lagsModelAll, lagsModelMax, obsAll)$lookup,
                             errorType(object), trendType(object), seasonType(object), etsChecker(object),
                             components$componentsNumberETSSeasonal, components$componentsNumberETS,
