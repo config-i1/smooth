@@ -158,9 +158,11 @@ inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
     case 'M':
         if(nETS>0){
             // Use complex numbers to avoid issues in mixed models
-            matrixVtnew.rows(0,1) = arma::real(exp(matrixF.submat(0,0,1,1) *
-                                               log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,1)))));
-            // matrixVtnew.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,1)));
+            // matrixVtnew.rows(0,1) = arma::real(exp(matrixF.submat(0,0,1,1) *
+            //                                    log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,1)))));
+            // The new code is just for completeness to reflect the potential change in weird model cases
+            matrixVtnew.rows(0,nETS-1) = arma::abs(exp(matrixF.submat(0,0,nETS-1,nETS-1) *
+                log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,nETS-1)))));
         }
         break;
     }
