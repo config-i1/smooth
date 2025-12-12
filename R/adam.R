@@ -5150,13 +5150,10 @@ dfDiscounterSim <- function(persistence, transition,
     }
 
     # The errors are designed to capture how the states change
-    # -1 implies that we adapt the states towards zero
-    matErrors <- matrix(-1, obsInSampleBackcasting, 1);
     matErrors <- matrix(0, obsInSampleBackcasting, 1);
 
     # Form the discount matrix. We then use sort of equation (5.16) to get the impact of the initial state
     discountMatrix <- transition - persistence %*% matWtBack[1,,drop=FALSE];
-    discountMatrix <<- discountMatrix
 
     adamSimulatedBack <- adamSimulatorWrap(matVtBack, matErrors,
                                            matrix(1, obsInSampleBackcasting, 1),
