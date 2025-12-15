@@ -5242,6 +5242,7 @@ componentsDefiner <- function(object){
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
     ssarimaModel <- smoothType(object)=="SSARIMA";
+    sparmaModel <- smoothType(object)=="SpARMA";
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
@@ -5260,6 +5261,10 @@ componentsDefiner <- function(object){
         lags <- lags(object);
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
+    }
+    else if(sparmaModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- length(modelLags(object));
     }
     else{
         if(!is.null(object$initial$seasonal)){
@@ -6109,6 +6114,7 @@ print.adam <- function(x, digits=4, ...){
     etsModel <- any(unlist(gregexpr("ETS",x$model))!=-1);
     arimaModel <- any(unlist(gregexpr("ARIMA",x$model))!=-1);
     cesModel <- smoothType(x)=="CES";
+    sparmaModel <- smoothType(x)=="SpARMA";
     adamETS <- adamETSChecker(x);
 
     cat("Time elapsed:",round(as.numeric(x$timeElapsed,units="secs"),2),"seconds");
@@ -6215,7 +6221,8 @@ print.adam <- function(x, digits=4, ...){
     }
 
     # If this is ARIMA model
-    if(!is.null(x$arma) && (!is.null(x$arma$ar) || !is.null(x$arma$ma))){
+    if(!sparmaModel &&
+       (!is.null(x$arma) && (!is.null(x$arma$ar) || !is.null(x$arma$ma)))){
         ordersModel <- orders(x);
         # If the order was just a vector
         if(!is.list(ordersModel)){
@@ -6251,6 +6258,11 @@ print.adam <- function(x, digits=4, ...){
             }
             print(round(maMatrix, digits));
         }
+    }
+    else if(sparmaModel){
+        ordersModel <- orders(x);
+        cat(paste0("\nAR(", ordersModel[1], "):"), round(x$arma$ar, digits));
+        cat(paste0("\nMA(",ordersModel[2],"):"), round(x$arma$ma, digits));
     }
 
     cat("\nSample size:", nobs(x));

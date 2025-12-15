@@ -52,16 +52,13 @@
 #' @examples
 #' \dontrun{
 #' # Fit SpARMA(1,1) model
-#' model <- sparma(AirPassengers, orders=c(1,1), h=12, holdout=TRUE)
-#'
-#' # Fit SpARMA(2,3) with constant
-#' model <- sparma(rnorm(100), orders=c(2,3), constant=TRUE)
+#' model <- sparma(BJSales, orders=c(2,1), h=12, holdout=TRUE)
 #'
 #' # Provide fixed parameters
 #' model <- sparma(rnorm(100), orders=c(1,1), arma=c(0.7,0.5))
 #' }
 #'
-#' export
+#' @export
 sparma <- function(data, orders=c(1,1), constant=FALSE,
                    loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
                    h=0, holdout=FALSE, arma=NULL,
@@ -69,71 +66,71 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                    bounds=c("none","usual","admissible"), silent=TRUE, ...) {
 
     # Start timer
-    startTime <- Sys.time()
+    startTime <- Sys.time();
+    cl <- match.call();
 
     # ===== ARGUMENT VALIDATION =====
-    loss <- match.arg(loss)
-    initial <- match.arg(initial)
-    bounds <- match.arg(bounds)
+    loss <- match.arg(loss);
+    initial <- match.arg(initial);
+    bounds <- match.arg(bounds);
 
     ellipsis <- list(...);
 
     # Validate orders
     if(length(orders) != 2) {
-        stop("orders must be a vector of length 2: c(p,q)")
+        stop("orders must be a vector of length 2: c(p,q)");
     }
-    p <- orders[1]
-    q <- orders[2]
+    p <- orders[1];
+    q <- orders[2];
 
     if(p < 0 || q < 0) {
-        stop("Orders must be non-negative")
+        stop("Orders must be non-negative");
     }
 
     if(p == 0 && q == 0 && !constant) {
-        stop("At least one of p or q must be greater than 0")
+        stop("At least one of p or q must be greater than 0");
     }
 
     # State space dimension
-    K <- max(p, q)
-    lags <- 1:K
+    K <- max(p, q);
+    lags <- 1:K;
 
     # Convert orders to list format
-    orders_list <- list(ar=p, i=0, ma=q)
+    orders_list <- list(ar=p, i=0, ma=q);
 
 
     # Build model string for parametersChecker
-    model <- "NNN"
-    yName <- deparse(substitute(data))
+    model <- "NNN";
+    yName <- deparse(substitute(data));
 
     # Default parameters for parametersChecker
-    outliers <- NULL
-    level <- 0.95
-    persistence <- NULL
-    phi <- NULL
-    distribution <- "dnorm"
-    occurrence <- "none"
-    ic <- "AICc"
-    regressors <- "use"
-    formula <- NULL
-    modelDo <- ""
+    outliers <- NULL;
+    level <- 0.95;
+    persistence <- NULL;
+    phi <- NULL;
+    distribution <- "dnorm";
+    occurrence <- "none";
+    ic <- "AICc";
+    regressors <- "use";
+    formula <- NULL;
+    modelDo <- "";
 
     # Call parametersChecker
-    checkerReturn <- smooth:::parametersChecker(
-        data=data, model=model, lags=lags, formula=formula,
-        orders=orders_list, constant=constant, arma=NULL,
-        outliers=outliers, level=level,
-        persistence=persistence, phi=phi, initial=initial,
-        distribution=distribution, loss=loss, h=h, holdout=holdout,
-        occurrence=occurrence, ic=ic, bounds=bounds,
-        regressors=regressors, yName=yName,
-        silent=silent, modelDo=modelDo,
-        ParentEnvironment=environment(), ellipsis=ellipsis, fast=FALSE
-    )
+    checkerReturn <- parametersChecker(data=data, model=model, lags=lags, formula=formula,
+                                       orders=orders_list, constant=constant, arma=NULL,
+                                       outliers=outliers, level=level,
+                                       persistence=persistence, phi=phi, initial=initial,
+                                       distribution=distribution, loss=loss, h=h, holdout=holdout,
+                                       occurrence=occurrence, ic=ic, bounds=bounds,
+                                       regressors=regressors, yName=yName,
+                                       silent=silent, modelDo=modelDo,
+                                       ParentEnvironment=environment(), ellipsis=ellipsis, fast=FALSE);
+
 
     #### Hack the outputs of the function to align with sparma ####
 
     if(obsInSample <= K + 1) {
-        stop("Not enough observations for the specified orders")
+        stop("Not enough observations for the specified orders");
     }
 
     # Handle arma parameter input
@@ -144,7 +141,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
             arEstimate <- maEstimate <- FALSE;
         }
         else{
-            warning("arma needs to be of length 2. I'll ignore it and estimate the parameters.")
+            warning("arma needs to be of length 2. I'll ignore it and estimate the parameters.");
 
             arEstimate <- maEstimate <- TRUE;
         }
@@ -154,391 +151,403 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
     lagsModelMax <- max(lagsModelAll);
     initialArimaNumber <- componentsNumberARIMA <- length(lagsModelAll);
     componentsNamesARIMA <- componentsNamesARIMA[lagsModelAll];
-    refineHead <- TRUE
+    refineHead <- TRUE;
 
     # These two are not used and can be ignored
     # print(nonZeroARI)
     # print(nonZeroMA)
 
     # Initial parameter values
-    if(arRequired && arEstimate) {
-        ARValue <- 0.1
-    } else if(arRequired) {
-        ARValue <- armaParameters[1]
-    } else {
-        ARValue <- 0
+    if(arRequired && arEstimate){
+        arValue <- 0.1;
+    }
+    else if(arRequired){
+        arValue <- armaParameters[1];
+    }
+    else{
+        arValue <- NULL;
     }
 
-    if(maRequired && maEstimate) {
-        MAValue <- 0.1
-    } else if(maRequired) {
-        MAValue <- armaParameters[2]
-    } else {
-        MAValue <- 0
+    if(maRequired && maEstimate){
+        maValue <- 0.1;
+    }
+    else if(maRequired){
+        maValue <- armaParameters[2];
+    }
+    else{
+        maValue <- NULL;
     }
 
-    if(constantRequired) {
-        constantValue <- mean(yInSample)
+    if(constantRequired && constantEstimate) {
+        constantValue <- mean(yInSample);
         lagsModelAll <- matrix(c(lagsModelAll,1), ncol=1);
-    } else {
-        constantValue <- 0
+    }
+    else{
+        constantValue <- NULL;
     }
 
+    # Number of initials in the AR state
+    initialStateLength <- lagsModelAll[lagsModelAll==p];
+
+
+    # Helper function: Create initial state space matrices ####
+    sparmaMatricesCreator <- function(p, q, armaParameters,
+                                      arRequired, arEstimate,
+                                      maRequired, maEstimate,
+                                      obsInSample,
+                                      lagsModelAll, lagsModelMax,
+                                      componentsNumberARIMA,
+                                      componentsNamesARIMA,
+                                      constantRequired, constantName){
+
+        # Build measurement matrix (rows = observations, cols = states)
+        matWt <- matrix(1, nrow=obsInSample, ncol=componentsNumberARIMA+constantRequired,
+                        dimnames=list(NULL, c(componentsNamesARIMA, constantName)));
+
+        vecG <- matrix(0, componentsNumberARIMA+constantRequired, 1);
+
+        # Build transition matrix F
+        matF <- matrix(0, componentsNumberARIMA+constantRequired, componentsNumberARIMA+constantRequired);
+
+        # Fill in the transition where the AR is present
+        if(arRequired && !arEstimate){
+            matF[lagsModelAll==p,] <- armaParameters[1];
+            vecG[lagsModelAll==p,] <- vecG[lagsModelAll==p,] + armaParameters[1];
+        }
+
+        # Fill in the transition where the AR is present
+        if(maRequired && !maEstimate){
+            vecG[lagsModelAll==q,] <- vecG[lagsModelAll==q,] + armaParameters[2];
+        }
+
+        if(constantRequired){
+            matF[componentsNumberARIMA+constantRequired, componentsNumberARIMA+constantRequired] <- 1;
+        }
+
+        # Initialize state matrix
+        matVt <- matrix(0, componentsNumberARIMA+constantRequired, obsInSample+lagsModelMax,
+                        dimnames=list(c(componentsNamesARIMA, constantName), NULL));
+
+        return(list(matVt = matVt, matWt = matWt, matF = matF, vecG = vecG));
+    }
+
+
+    # Helper function: Fill matrices with parameters from vector B ####
+    sparmaMatricesFiller <- function(B, matricesCreated,
+                                     arRequired, maRequired, constantRequired,
+                                     arEstimate, maEstimate, constantEstimate,
+                                     arValue, maValue, constantValue,
+                                     lagsModelAll, lagsModelMax,
+                                     initialStateLength,
+                                     p, q, initialType) {
+
+        idx <- 0
+
+        # Extract AR parameter
+        if(arRequired && arEstimate) {
+            idx[] <- idx + 1;
+            arValue <- B[idx];
+        }
+
+        # Extract MA parameter
+        if(maRequired && maEstimate) {
+            idx[] <- idx + 1;
+            maValue <- B[idx];
+        }
+
+        # Fill in the transition and persistence where the AR is present
+        if(arRequired && arEstimate){
+            matricesCreated$matF[lagsModelAll==p,] <- arValue;
+            matricesCreated$vecG[lagsModelAll==p,] <- matricesCreated$vecG[lagsModelAll==p,] + arValue;
+        }
+        # Fill in the persistence where the MA is present
+        if(maRequired && maEstimate){
+            matricesCreated$vecG[lagsModelAll==q,] <- matricesCreated$vecG[lagsModelAll==q,] + maValue;
+        }
+
+        if(initialType=="optimal"){
+            # Fill in the AR components
+            matricesCreated$matVt[lagsModelAll==p, 1:initialStateLength] <- B[idx+c(1:initialStateLength)];
+            # MA components are zero, so don't bother
+            idx[] <- idx + initialStateLength;
+        }
+
+        # Extract constant
+        if(constantRequired){
+            if(constantEstimate){
+                idx[] <- idx + 1;
+                constantValue <- B[idx];
+            }
+            matricesCreated$matVt[length(lagsModelAll), 1:lagsModelMax] <- constantValue;
+        }
+
+        return(matricesCreated);
+    }
 
     # Create state space matrices
-    matricesCreated <- sparmaMatricesCreator(K, p, q, armaParameters,
+    matricesCreated <- sparmaMatricesCreator(p, q, armaParameters,
                                              arRequired, arEstimate,
                                              maRequired, maEstimate,
                                              obsInSample,
-                                             lagsModellAll, lagsModelMax,
+                                             lagsModelAll, lagsModelMax,
                                              componentsNumberARIMA,
                                              componentsNamesARIMA,
-                                             constantRequired, constantName)
+                                             constantRequired, constantName);
 
-    matVt <- matricesCreated$matVt
-    matWt <- matricesCreated$matWt
-    matF <- matricesCreated$matF
-    vecG <- matricesCreated$vecG
+    matVt <- matricesCreated$matVt;
+    matWt <- matricesCreated$matWt;
+    matF <- matricesCreated$matF;
+    vecG <- matricesCreated$vecG;
 
     # Create profiles for C++ fitter
-    lagsModelAll <- lags
-    profilesList <- adamProfilesCreator(lagsModelAll)
-    indexLookupTable <- profilesList$indexLookupTable
-    profilesRecentTable <- profilesList$profilesRecent
+    profilesList <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll);
+    indexLookupTable <- profilesList$lookup;
+    profilesRecentInitial <- profilesRecentTable <- profilesList$recent;
+
+
+    ##### Function returns scale parameter for the provided parameters #####
+    scaler <- function(errors, obsInSample){
+        return(sqrt(sum(errors^2)/obsInSample));
+    }
 
     # Cost function using C++ fitter
-    CF <- function(B) {
+    CF <- function(B){
         # Fill matrices with parameters from B
         matricesFilled <- sparmaMatricesFiller(B, matricesCreated,
-                                               arEstimate, maEstimate, constantEstimate,
                                                arRequired, maRequired, constantRequired,
-                                               p, q, K, initialType, bounds)
+                                               arEstimate, maEstimate, constantEstimate,
+                                               arValue, maValue, constantValue,
+                                               lagsModelAll, lagsModelMax,
+                                               initialStateLength,
+                                               p, q, initialType);
+
+        profilesRecentTable[] <- matricesFilled$matVt[,1:lagsModelMax];
 
         # Fit using C++ function
-        adamFitted <- smooth:::adamFitterWrap(
-            matricesFilled$matVt, matricesFilled$matWt, matricesFilled$matF, matricesFilled$vecG,
-            lagsModelAll, indexLookupTable, profilesRecentTable,
-            Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-            componentsNumberARIMA, xregNumber, constantRequired,
-            yInSample, ot, any(initialType==c("complete","backcasting")),
-            nIterations, refineHead, adamETS
-        )
+        adamFitted <- adamFitterWrap(matricesFilled$matVt, matricesFilled$matWt, matricesFilled$matF, matricesFilled$vecG,
+                                     lagsModelAll, indexLookupTable, profilesRecentTable,
+                                     Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+                                     componentsNumberARIMA, xregNumber, constantRequired,
+                                     yInSample, ot, any(initialType==c("complete","backcasting")),
+                                     nIterations, refineHead, FALSE);
 
-        errors <- adamFitted$errors
-        yFitted <- adamFitted$yFitted
+        if(!multisteps){
+            if(loss=="likelihood"){
+                # Scale for different functions
+                scale <- scaler(adamFitted$errors, obsInSample);
 
-        # Calculate loss
-        CFValue <- switch(loss,
-                          "likelihood" = {
-                              n <- length(errors)
-                              sigma2 <- sum(errors^2) / n
-                              if(sigma2 <= 0) sigma2 <- 1e-10
-                              n * log(2 * pi * sigma2) / 2 + n / 2
-                          },
-                          "MSE" = mean(errors^2),
-                          "MAE" = mean(abs(errors)),
-                          "HAM" = mean(sqrt(abs(errors))),
-                          "LASSO" = {
-                              lambda <- 0.01
-                              mean(errors^2) + lambda * (abs(matricesFilled$ARValue) + abs(matricesFilled$MAValue))
-                          },
-                          "RIDGE" = {
-                              lambda <- 0.01
-                              mean(errors^2) + lambda * (matricesFilled$ARValue^2 + matricesFilled$MAValue^2)
-                          },
-                          "MSEh" = {
-                              if(length(errors) > h && h > 0) {
-                                  mean(errors[(length(errors)-h+1):length(errors)]^2)
-                              } else {
-                                  mean(errors^2)
-                              }
-                          },
-                          "TMSE" = mean(errors^2),
-                          "GTMSE" = mean(errors^2),
-                          "MSCE" = mean(cumsum(errors)^2),
-                          mean(errors^2)
-        )
+                # Calculate the likelihood
+                CFValue <- -sum(dnorm(x=yInSample[otLogical],
+                                      mean=adamFitted$yFitted[otLogical],
+                                      sd=scale, log=TRUE));
+            }
+            else if(loss=="MSE"){
+                CFValue <- sum(adamFitted$errors^2)/obsInSample;
+            }
+            else if(loss=="MAE"){
+                CFValue <- sum(abs(adamFitted$errors))/obsInSample;
+            }
+            else if(loss=="HAM"){
+                CFValue <- sum(sqrt(abs(adamFitted$errors)))/obsInSample;
+            }
+            else if(loss=="custom"){
+                CFValue <- lossFunction(actual=yInSample,fitted=adamFitted$yFitted,B=B);
+            }
+        }
+        else{
+            # Call for the Rcpp function to produce a matrix of multistep errors
+            adamErrors <- adamErrorerWrap(adamFitted$matVt, matWt, elements$matF,
+                                          lagsModelAll, indexLookupTable, profilesRecentTable,
+                                          Etype, Ttype, Stype,
+                                          componentsNumberETS, componentsNumberETSSeasonal,
+                                          componentsNumberARIMA, xregNumber, constantRequired, h,
+                                          yInSample, ot);
 
-        if(!is.finite(CFValue) || is.na(CFValue)) {
-            CFValue <- 1e100
+            # Not done yet: "aMSEh","aTMSE","aGTMSE","aMSCE","aGPL"
+            CFValue <- switch(loss,
+                              "MSEh"=sum(adamErrors[,h]^2)/(obsInSample-h),
+                              "TMSE"=sum(colSums(adamErrors^2)/(obsInSample-h)),
+                              "GTMSE"=sum(log(colSums(adamErrors^2)/(obsInSample-h))),
+                              "MSCE"=sum(rowSums(adamErrors)^2)/(obsInSample-h),
+                              "MAEh"=sum(abs(adamErrors[,h]))/(obsInSample-h),
+                              "TMAE"=sum(colSums(abs(adamErrors))/(obsInSample-h)),
+                              "GTMAE"=sum(log(colSums(abs(adamErrors))/(obsInSample-h))),
+                              "MACE"=sum(abs(rowSums(adamErrors)))/(obsInSample-h),
+                              "HAMh"=sum(sqrt(abs(adamErrors[,h])))/(obsInSample-h),
+                              "THAM"=sum(colSums(sqrt(abs(adamErrors)))/(obsInSample-h)),
+                              "GTHAM"=sum(log(colSums(sqrt(abs(adamErrors)))/(obsInSample-h))),
+                              "CHAM"=sum(sqrt(abs(rowSums(adamErrors))))/(obsInSample-h),
+                              "GPL"=log(det(t(adamErrors) %*% adamErrors/(obsInSample-h))),
+                              0);
         }
 
-        return(CFValue)
+        if(is.na(CFValue) || is.nan(CFValue)){
+            CFValue[] <- 1e+300;
+        }
+
+        return(CFValue);
     }
 
-    # Build initial parameter vector
-    B0 <- numeric(0)
-
-    if(arEstimate && arRequired) {
-        B0 <- c(B0, atanh(ARValue * 0.5))
-    }
-    if(maEstimate && maRequired) {
-        B0 <- c(B0, atanh(MAValue * 0.5))
-    }
-    if(constantEstimate) {
-        B0 <- c(B0, constantValue)
-    }
-    if(initialType == "optimal") {
-        B0 <- c(B0, matVt[1,])
+    #### Likelihood function ####
+    logLikFunction <- function(B){
+        return(-CF(B));
     }
 
-    # Optimize
-    if(length(B0) > 0) {
-        opt <- nloptr(
-            x0 = B0,
-            eval_f = CF,
-            opts = list(
-                algorithm = "NLOPT_LN_SBPLX",
-                maxeval = 1000,
-                xtol_rel = 1e-6,
-                ftol_rel = 1e-8
+    if(is.null(B)){
+        # Build initial parameter vector
+        B <- vector("numeric", arEstimate + maEstimate +
+                        (initialType=="optimal")*initialStateLength +
+                        constantEstimate);
+
+        idx <- 0
+        if(arEstimate) {
+            idx <- idx + 1;
+            B[idx] <- 0.75;
+        }
+        if(maEstimate) {
+            idx <- idx + 1;
+            B[idx] <- -0.75;
+        }
+        if(initialType == "optimal") {
+            B[idx + c(1:initialStateLength)] <- yInSample[c(1:initialStateLength)];
+            idx[] <- idx + initialStateLength;
+        }
+        if(constantEstimate) {
+            idx <- idx + 1;
+            B[idx] <- constantValue;
+        }
+    }
+
+    #### Parameters of the optimiser ####
+    print_level_hidden <- print_level;
+    if(print_level==41){
+        cat("Initial parameters:", B,"\n");
+        print_level[] <- 0;
+    }
+
+    maxevalUsed <- maxeval;
+    if(is.null(maxeval)){
+        maxevalUsed <- length(B) * 40;
+    }
+
+    # Optimize if there are parameters to optimise
+    if(length(B) > 0){
+        res <- nloptr(x0 = B, eval_f = CF,
+                      opts = list(algorithm = "NLOPT_LN_SBPLX",
+                                  maxeval = 100*length(B),
+                                  xtol_rel = 1e-6, ftol_rel = 1e-8
             )
         )
 
-        B <- opt$solution
-    } else {
-        B <- B0
+        B <- res$solution
+        CFValue <- res$objective;
+
+        if(print_level_hidden>0){
+            print(res);
+        }
+    }
+    else{
+        CFValue <- CF(B);
     }
 
-    # Count parameters
-    parametersNumber[1,1] <- parametersNumber[1,1] + length(B);
-
+    # Parameters estimated + variance
+    parametersNumber[1,1] <- length(B) + (loss=="likelihood")*1;
 
     # Final fit with optimized parameters
     matricesFinal <- sparmaMatricesFiller(B, matricesCreated,
-                                          arEstimate, maEstimate, constantEstimate,
                                           arRequired, maRequired, constantRequired,
-                                          p, q, K, initialType, bounds)
+                                          arEstimate, maEstimate, constantEstimate,
+                                          arValue, maValue, constantValue,
+                                          lagsModelAll, lagsModelMax,
+                                          initialStateLength,
+                                          p, q, initialType);
 
-    adamFittedFinal <- smooth:::adamFitterWrap(
-        matricesFinal$matVt, matricesFinal$matWt, matricesFinal$matF, matricesFinal$vecG,
-        lagsModelAll, indexLookupTable, profilesRecentTable,
-        Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-        componentsNumberARIMA, xregNumber, constantRequired,
-        yInSample, ot, any(initialType==c("complete","backcasting")),
-        nIterations, refineHead, adamETS
-    )
+    profilesRecentTable[] <- matricesFinal$matVt[,1:lagsModelMax];
 
-    errors <- adamFittedFinal$errors
-    yFitted <- adamFittedFinal$yFitted
-    matVt <- adamFittedFinal$matVt
+    adamFitted <- adamFitterWrap(matricesFinal$matVt, matricesFinal$matWt, matricesFinal$matF, matricesFinal$vecG,
+                                 lagsModelAll, indexLookupTable, profilesRecentTable,
+                                 Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+                                 componentsNumberARIMA, xregNumber, constantRequired,
+                                 yInSample, ot, any(initialType==c("complete","backcasting")),
+                                 nIterations, refineHead, FALSE);
+
+    errors <- adamFitted$errors;
+    yFitted <- adamFitted$yFitted;
+    # Write down the recent profile for future use
+    profilesRecentTable <- adamFitted$profile;
+    matVt[] <- adamFitted$matVt;
 
     # Calculate final loss and logLik
-    n <- obsInSample
-    sigma2 <- sum(errors^2) / n
-    if(sigma2 <= 0) sigma2 <- 1e-10
+    scale <- scaler(adamFitted$errors, obsInSample);
 
-    lossValue <- switch(loss,
-                        "likelihood" = n * log(2 * pi * sigma2) / 2 + n / 2,
-                        "MSE" = mean(errors^2),
-                        "MAE" = mean(abs(errors)),
-                        mean(errors^2))
+    logLikValue <- logLikFunction(B);
 
-    logLik <- -n * log(2 * pi * sigma2) / 2 - n / 2
-
-    # Forecasting if h > 0
-    if(h > 0) {
-        adamForecasted <- smooth:::adamForecasterWrap(
-            matricesFinal$matVt, matricesFinal$matF, matricesFinal$matWt, matricesFinal$vecG,
-            lagsModelAll, h, Etype, Ttype, Stype,
-            componentsNumberETS, componentsNumberETSSeasonal, componentsNumberARIMA,
-            xregNumber, constantRequired, obsInSample, ot
-        )
-
-        yForecast <- adamForecasted$yForecast
-        matVtForecast <- adamForecasted$matVt
-    } else {
-        yForecast <- NULL
-        matVtForecast <- NULL
+    if(any(yClasses=="ts")){
+        yForecast <- ts(rep(NA, max(1,h)), start=yForecastStart, frequency=yFrequency);
+    }
+    else{
+        yForecast <- zoo(rep(NA, max(1,h)), order.by=yForecastIndex);
     }
 
-    # Calculate accuracy using greybox::measures
-    if(holdout && h > 0) {
-        errorsHoldout <- yHoldout - yForecast
-        accuracyMeasures <- greybox::measures(yHoldout, yForecast, yInSample)
-    } else {
-        accuracyMeasures <- greybox::measures(yInSample, yFitted, yInSample)
+    # Forecasting if h > 0
+    if(h>0){
+        yForecast[] <- adamForecasterWrap(tail(matricesFinal$matWt,h), matricesFinal$matF,
+                                        lagsModelAll,
+                                        indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
+                                        profilesRecentTable,
+                                        Etype, Ttype, Stype,
+                                        componentsNumberETS, componentsNumberETSSeasonal,
+                                        componentsNumberARIMA, xregNumber, FALSE,
+                                        h);
+    }
+    else{
+        yForecast[] <- NA;
+    }
+
+    ##### Deal with the holdout sample #####
+    if(holdout && h>0){
+        errormeasures <- measures(yHoldout,yForecast,yInSample);
+    }
+    else{
+        errormeasures <- NULL;
     }
 
     # Build model name
-    modelName <- paste0("SpARMA(", p, ",", q, ")")
-    if(constantRequired) modelName <- paste0(modelName, " with constant")
+    modelName <- paste0("SpARMA(", p, ",", q, ")");
+    if(constantRequired){
+        modelName <- paste0(modelName, " with constant");
+    }
 
-    # Elapsed time
-    timeElapsed <- as.numeric(difftime(Sys.time(), startTime, units="secs"))
+    initialValue <- matricesFinal$matVt[,1:lagsModelMax];
 
-    # Build output object
-    output <- list(
-        model = modelName,
-        timeElapsed = timeElapsed,
-        data = dataOriginal,
-        holdout = yHoldout,
-        fitted = yFitted,
-        residuals = errors,
-        forecast = yForecast,
-        states = matVt,
-        persistence = matricesFinal$vecG,
-        transition = matricesFinal$matF,
-        measurement = matricesFinal$matWt[1,],
-        lagVector = lagsModelAll,
-        orders = orders,
-        constant = if(constantRequired) matricesFinal$constantValue else NULL,
-        AR = if(arRequired) matricesFinal$ARValue else NULL,
-        MA = if(maRequired) matricesFinal$MAValue else NULL,
-        initial = matricesFinal$matVt[1,],
-        initialType = initialType,
-        nParam = nParam,
-        logLik = logLik,
-        lossValue = lossValue,
-        lossFunction = loss,
-        accuracy = accuracyMeasures,
-        bounds = bounds,
-        y = yInSample,
-        obs = obsInSample,
-        obsAll = obsAll,
-        h = h,
-        holdout_used = holdout,
-        call = match.call()
-    )
+    # Record the ARMA parameters
+    if(is.null(arma)){
+        arma <- list(ar=B[1], ma=B[2]);
+    }
 
-    class(output) <- c("adam", "smooth")
+
+    ##### Return values #####
+    modelReturned <- structure(list(model=modelName, timeElapsed=Sys.time()-startTime,
+                                    call=cl, orders=orders, arma=arma, formula=formula,
+                                    data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
+                                    forecast=yForecast, states=matricesFinal$matVt, accuracy=errormeasures,
+                                    profile=profilesRecentTable, profileInitial=profilesRecentInitial,
+                                    persistence=matricesFinal$vecG[,1], transition=matricesFinal$matF,
+                                    measurement=matricesFinal$matWt, initial=initialValue, initialType=initialType,
+                                    nParam=parametersNumber,
+                                    loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
+                                    distribution=distribution, bounds=bounds,
+                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res),
+                               class=c("adam","smooth"));
 
     # Print if not silent
-    if(!silent && !is.null(yForecast)) {
-        plot(output, which=7)
+    if(!silent) {
+        plot(modelReturned, which=7)
     }
 
-    return(output)
+    return(modelReturned)
 }
 
-
-# Helper function: Create initial state space matrices
-sparmaMatricesCreator <- function(K, p, q, armaParameters,
-                                  arRequired, arEstimate,
-                                  maRequired, maEstimate,
-                                  obsInSample,
-                                  lagsModellAll, lagsModelMax,
-                                  componentsNumberARIMA,
-                                  componentsNamesARIMA,
-                                  constantRequired, constantName) {
-
-    # Build measurement matrix (rows = observations, cols = states)
-    matWt <- matrix(1, nrow=obsInSample, ncol=componentsNumberARIMA+constantRequired,
-                    dimnames=list(NULL, c(componentsNamesARIMA, constantName)));
-
-    vecG <- matrix(0, componentsNumberARIMA+constantRequired, 1);
-
-    # Build transition matrix F
-    matF <- matrix(0, componentsNumberARIMA+constantRequired, componentsNumberARIMA+constantRequired);
-
-    # Fill in the transition where the AR is present
-    if(arRequired && !arEstimate){
-        matF[lagsModellAll==p,] <- armaParameters[1];
-        vecG[lagsModellAll==p,] <- vecG[lagsModellAll==p,] + armaParameters[1];
-    }
-
-    # Fill in the transition where the AR is present
-    if(maRequired && !maEstimate){
-        vecG[lagsModellAll==q,] <- vecG[lagsModellAll==q,] + armaParameters[2];
-    }
-
-    if(constantRequired){
-        matF[componentsNumberARIMA+constantRequired, componentsNumberARIMA+constantRequired] <- 1;
-    }
-
-    # Initialize state matrix
-    matVt <- matrix(0, componentsNumberARIMA+constantRequired, obsInSample+lagsModelMax,
-                    dimnames=list(c(componentsNamesARIMA, constantName), NULL))
-
-    return(list(matVt = matVt, matWt = matWt, matF = matF, vecG = vecG));
-}
-
-
-# Helper function: Fill matrices with parameters from vector B
-sparmaMatricesFiller <- function(B, matricesCreated,
-                                 arEstimate, maEstimate, constantEstimate,
-                                 arRequired, maRequired, constantRequired,
-                                 p, q, K, initialType, bounds) {
-
-    idx <- 1
-
-    # Extract AR parameter
-    if(arEstimate && arRequired) {
-        ARVal <- B[idx]
-        idx <- idx + 1
-
-        # Apply bounds
-        if(bounds == "admissible") {
-            ARVal <- tanh(ARVal) * 0.99
-        } else if(bounds == "usual") {
-            ARVal <- tanh(ARVal)
-        }
-    } else {
-        ARVal <- matricesCreated$ARValue
-    }
-
-    # Extract MA parameter
-    if(maEstimate && maRequired) {
-        MAVal <- B[idx]
-        idx <- idx + 1
-
-        # Apply bounds
-        if(bounds == "admissible") {
-            MAVal <- tanh(MAVal) * 0.99
-        } else if(bounds == "usual") {
-            MAVal <- tanh(MAVal)
-        }
-    } else {
-        MAVal <- matricesCreated$MAValue
-    }
-
-    # Extract constant
-    if(constantEstimate) {
-        constVal <- B[idx]
-        idx <- idx + 1
-    } else {
-        constVal <- matricesCreated$constantValue
-    }
-
-    # Extract initial states
-    matVt <- matricesCreated$matVt
-    if(initialType == "optimal" && length(B) >= idx + K - 1) {
-        matVt[1,] <- B[idx:(idx+K-1)]
-    }
-
-    # Update eta and psi vectors
-    eta <- rep(0, K)
-    if(p > 0 && p <= K) {
-        eta[p] <- ARVal
-    }
-
-    psi <- rep(0, K)
-    if(q > 0 && q <= K) {
-        psi[q] <- MAVal
-    }
-
-    # Update persistence vector
-    vecG <- eta + psi
-
-    # Update transition matrix
-    matF <- matrix(0, nrow=K, ncol=K)
-    for(i in 1:K) {
-        matF[i,] <- rep(eta[i], K)
-    }
-
-    # Measurement matrix (unchanged structure)
-    matWt <- matricesCreated$matWt
-
-    return(list(
-        matVt = matVt,
-        matWt = matWt,
-        matF = matF,
-        vecG = vecG,
-        ARValue = ARVal,
-        MAValue = MAVal,
-        constantValue = constVal
-    ))
-}
 
 #'
 #'
