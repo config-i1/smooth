@@ -47,11 +47,238 @@ INITIAL_OPTIONS = Optional[
 
 class ADAM:
     """
-    ADAM (Augmented Dynamic Adaptive Model) class for time series forecasting.
+    ADAM: Augmented Dynamic Adaptive Model for Time Series Forecasting.
 
-    This class implements various time series models including ETS, ARIMA, and
-    their combinations for forecasting purposes. It handles parameter estimation,
-    model selection, and prediction.
+    ADAM is an advanced state-space modeling framework that combines **ETS** (Error, Trend,
+    Seasonal) and **ARIMA** components into a unified Single Source of Error (SSOE) model.
+    It provides a flexible, data-driven approach to time series forecasting with automatic
+    model selection, parameter estimation, and prediction intervals.
+
+    **Mathematical Form**:
+
+    The ADAM model is specified in state-space form as:
+
+    .. math::
+
+        y_t &= o_t(w(v_{t-l}) + h(x_t, a_{t-1}) + r(v_{t-l})\\epsilon_t)
+
+        v_t &= f(v_{t-l}, a_{t-1}) + g(v_{t-l}, a_{t-1}, x_t)\\epsilon_t
+
+    where:
+
+    - :math:`y_t`: Observed value at time t
+    - :math:`o_t`: Occurrence indicator (Bernoulli variable for intermittent data, 1 otherwise)
+    - :math:`v_t`: State vector (level, trend, seasonal, ARIMA components)
+    - :math:`l`: Vector of lags
+    - :math:`x_t`: Vector of exogenous variables
+    - :math:`a_t`: Parameters for exogenous variables
+    - :math:`w(\\cdot)`: Measurement function
+    - :math:`r(\\cdot)`: Error function (additive or multiplicative)
+    - :math:`f(\\cdot)`: Transition function (state evolution)
+    - :math:`g(\\cdot)`: Persistence function (smoothing parameters)
+    - :math:`\\epsilon_t`: Error term (various distributions supported)
+
+    **Key Features**:
+
+    1. **Unified Framework**: Seamlessly combines ETS and ARIMA in a single model
+    2. **Multiple Seasonality**: Supports multiple seasonal periods (e.g., daily + weekly)
+    3. **Automatic Selection**: Branch & Bound algorithm for efficient model selection
+    4. **Flexible Distributions**: Normal, Laplace, Gamma, Log-Normal, and more
+    5. **Intermittent Demand**: Built-in occurrence models for sparse data
+    6. **External Regressors**: Include covariates with adaptive or fixed coefficients
+    7. **Scikit-learn Compatible**: Familiar `.fit()` and `.predict()` API
+
+    **Model Specification**:
+
+    Models are specified using a string notation:
+
+    - **ETS Models**: "ETS" where E=Error, T=Trend, S=Seasonal
+
+      * E (Error): "A" (Additive), "M" (Multiplicative)
+      * T (Trend): "N" (None), "A" (Additive), "Ad" (Additive Damped), "M" (Multiplicative), "Md" (Multiplicative Damped)
+      * S (Seasonal): "N" (None), "A" (Additive), "M" (Multiplicative)
+
+      Examples: "ANN" (Simple Exponential Smoothing), "AAN" (Holt's Linear), "AAA" (Holt-Winters Additive)
+
+    - **Automatic Selection**:
+
+      * "ZZZ": Select best model using Branch & Bound
+      * "XXX": Select only additive components
+      * "YYY": Select only multiplicative components
+      * "ZXZ": Auto-select error and seasonal, additive trend only (**default**, safer)
+      * "FFF": Full search across all 30 ETS model types
+
+    - **ARIMA Models**: Specified via `ar_order`, `i_order`, `ma_order` parameters
+
+      * Supports seasonal ARIMA: SARIMA(p,d,q)(P,D,Q)m
+      * Multiple seasonality: e.g., hourly data with daily (24) and weekly (168) patterns
+
+    **Supported Error Distributions**:
+
+    - **Normal** (``distribution="dnorm"``): Default for additive errors
+    - **Gamma** (``distribution="dgamma"``): Default for multiplicative errors
+    - **Laplace** (``distribution="dlaplace"``): For heavy-tailed errors (MAE loss)
+    - **Log-Normal** (``distribution="dlnorm"``): For positive-only data
+    - **Inverse Gaussian** (``distribution="dinvgauss"``): For skewed positive data
+    - **S distribution** (``distribution="ds"``): For extremely heavy-tailed data
+    - **Generalized Normal** (``distribution="dgnorm"``): Flexible shape parameter
+
+    Distribution is auto-selected based on loss function if ``distribution=None``.
+
+    **Loss Functions**:
+
+    - ``loss="likelihood"``: Maximum likelihood estimation (**default**)
+    - ``loss="MSE"``: Mean Squared Error
+    - ``loss="MAE"``: Mean Absolute Error
+    - ``loss="HAM"``: Half-Absolute Moment
+    - ``loss="MSEh"``: Multi-step MSE (h-step ahead)
+    - ``loss="LASSO"``: L1 regularization for variable selection
+    - ``loss="RIDGE"``: L2 regularization for shrinkage
+
+    **Initialization Methods**:
+
+    - ``initial="optimal"``: Optimize all initial states (default)
+    - ``initial="backcasting"``: Use backcasting to initialize states
+    - ``initial="two-stage"``: Backcast then optimize
+    - ``initial="complete"``: Pure backcasting without optimization
+    - ``initial={"level": 100, ...}``: Provide custom initial states
+
+    **Workflow Example**:
+
+    .. code-block:: python
+
+        from smooth.adam_general.core.adam import ADAM
+        import numpy as np
+
+        # Generate sample data
+        y = np.array([112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118] * 3)
+
+        # Automatic model selection
+        model = ADAM(model="ZZZ", lags=[12], ic="AICc")
+        model.fit(y)
+
+        # Generate 12-step ahead forecasts with intervals
+        forecasts = model.predict(h=12, calculate_intervals=True, level=0.95)
+        print(forecasts)
+
+        # Access fitted parameters
+        print(f"Model: {model.model_type_dict['model']}")
+        print(f"Alpha: {model.persistence_level_:.3f}")
+        print(f"AICc: {model.ic_selection}")
+
+    **Attributes (After Fitting)**:
+
+    The model stores fitted results as attributes with trailing underscores (scikit-learn convention):
+
+    - ``persistence_level_``: Level smoothing parameter (α)
+    - ``persistence_trend_``: Trend smoothing parameter (β)
+    - ``persistence_seasonal_``: Seasonal smoothing parameter(s) (γ)
+    - ``phi_``: Damping parameter (φ)
+    - ``initial_states_``: Estimated initial states
+    - ``arma_parameters_``: AR/MA coefficients (if ARIMA)
+
+    Additional fitted attributes:
+
+    - ``model_type_dict``: Complete model specification
+    - ``adam_estimated``: Full estimation results
+    - ``adam_created``: State-space matrices
+    - ``ic_selection``: Information criterion value
+    - ``prepared_model``: Model prepared for forecasting
+
+    **Performance Considerations**:
+
+    - **Small Data** (T < 100): Use "backcasting" initialization, it's faster
+    - **Large Data** (T > 1000): "optimal" initialization works well
+    - **Multiple Seasonality**: Can be slow; consider simpler models first
+    - **Model Selection**: "ZZZ" with Branch & Bound is much faster than "FFF" exhaustive search
+
+    **Common Use Cases**:
+
+    1. **Automatic Forecasting**: ``ADAM(model="ZXZ", lags=[12])`` - Let the model choose
+    2. **Intermittent Demand**: ``ADAM(model="ANN", occurrence="auto")`` - For sparse data
+    3. **External Regressors**: ``ADAM(model="AAN").fit(y, X=regressors)`` - Include covariates
+    4. **Multiple Seasonality**: ``ADAM(model="AAA", lags=[24, 168])`` - Hourly data with daily/weekly patterns
+    5. **ARIMA**: ``ADAM(model="NNN", ar_order=1, i_order=1, ma_order=1)`` - Pure ARIMA(1,1,1)
+    6. **Custom Model**: ``ADAM(model="MAM", persistence={"alpha": 0.3})`` - Fix some parameters
+
+    **Comparison to R's smooth::adam**:
+
+    This Python implementation is a direct translation of the R smooth package's ``adam()`` function,
+    maintaining mathematical equivalence while adapting to scikit-learn conventions:
+
+    - R: ``adam(data, model="ZZZ", h=10)`` → Python: ``ADAM(model="ZZZ").fit(y).predict(h=10)``
+    - R: ``persistence=list(alpha=0.3)`` → Python: ``persistence={"alpha": 0.3}``
+    - R: ``orders=list(ar=c(1,1))`` → Python: ``ar_order=[1, 1]``
+
+    **References**:
+
+    - Svetunkov, I. (2023). "Smooth forecasting in R". https://openforecast.org/adam/
+    - Hyndman, R.J., et al. (2008). "Forecasting with Exponential Smoothing"
+    - Svetunkov, I. & Boylan, J.E. (2017). "State-space ARIMA for supply-chain forecasting"
+
+    See Also
+    --------
+    adam.fit : Fit the ADAM model to data
+    adam.predict : Generate point forecasts
+    adam.predict_intervals : Generate prediction intervals
+    selector : Automatic model selection function
+    estimator : Parameter estimation function
+    forecaster : Forecasting function
+
+    Examples
+    --------
+    Simple exponential smoothing::
+
+        >>> from smooth.adam_general.core.adam import ADAM
+        >>> import numpy as np
+        >>> y = np.array([112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118])
+        >>> model = ADAM(model="ANN", lags=[1])
+        >>> model.fit(y)
+        >>> forecasts = model.predict(h=6)
+        >>> print(forecasts)
+
+    Automatic model selection with multiple seasonality::
+
+        >>> model = ADAM(model="ZZZ", lags=[12], ic="AICc")
+        >>> model.fit(y)
+        >>> print(f"Selected model: {model.model_type_dict['model']}")
+
+    SARIMA(1,1,1)(1,1,1)₁₂::
+
+        >>> model = ADAM(
+        ...     model="NNN",  # Pure ARIMA
+        ...     ar_order=[1, 1],
+        ...     i_order=[1, 1],
+        ...     ma_order=[1, 1],
+        ...     lags=[1, 12]
+        ... )
+        >>> model.fit(y)
+        >>> forecasts = model.predict(h=12)
+
+    With external regressors::
+
+        >>> X = np.random.randn(len(y), 2)  # Two regressors
+        >>> X_future = np.random.randn(6, 2)  # Regressors for forecast period
+        >>> model = ADAM(model="AAN", regressors="use")
+        >>> model.fit(y, X=X)
+        >>> forecasts = model.predict(h=6, X=X_future)
+
+    Fix some parameters, estimate others::
+
+        >>> model = ADAM(
+        ...     model="AAA",
+        ...     lags=[12],
+        ...     persistence={"alpha": 0.3},  # Fix alpha, estimate beta and gamma
+        ...     initial="backcasting"
+        ... )
+        >>> model.fit(y)
+
+    Intermittent demand forecasting::
+
+        >>> sparse_data = np.array([0, 0, 15, 0, 0, 23, 0, 0, 0, 18, 0, 0])
+        >>> model = ADAM(model="ANN", occurrence="auto")
+        >>> model.fit(sparse_data)
+        >>> forecasts = model.predict(h=6)  # Accounts for zero-demand probability
     """
 
     def __init__(
@@ -246,19 +473,212 @@ class ADAM:
         X: Optional[NDArray] = None,
     ):
         """
-        Fit the ADAM model to the provided time series data.
+        Fit the ADAM model to time series data.
+
+        This method estimates the model parameters, selects the best model (if automatic selection
+        is enabled), and prepares the model for forecasting. It implements the complete ADAM
+        estimation pipeline: parameter checking, model architecture creation, state-space matrix
+        construction, parameter optimization, and model preparation.
+
+        **Estimation Process**:
+
+        1. **Parameter Validation**: Check all inputs via ``parameters_checker()``
+        2. **Model Selection** (if ``model_do="select"``): Use Branch & Bound algorithm
+        3. **Model Architecture**: Define components and lags via ``architector()``
+        4. **Matrix Creation**: Build state-space matrices via ``creator()``
+        5. **Parameter Estimation**: Optimize using NLopt via ``estimator()``
+        6. **Model Preparation**: Compute fitted values and final states via ``preparator()``
+
+        After fitting, the model stores all results as attributes:
+
+        - Estimated parameters (``persistence_level_``, ``phi_``, etc.)
+        - State-space matrices (``adam_created``)
+        - Fitted values and residuals (``prepared_model``)
+        - Information criteria (``ic_selection``)
+        - Model specification (``model_type_dict``)
 
         Parameters
         ----------
-        y : NDArray
-            Time series data (numpy array or pandas Series).
-        X : Optional[NDArray], default=None
-            Exogenous variables (regressors).
+        y : array-like, shape (T,)
+            Time series data to fit. Can be:
+
+            - ``numpy.ndarray``: Shape (T,) for univariate time series
+            - ``pandas.Series``: Will use index for time information if DatetimeIndex
+
+            Data requirements:
+
+            - **Minimum length**: Depends on model complexity. Rule of thumb: T ≥ 3 × (number of parameters)
+            - **Multiplicative models**: Require strictly positive data (y > 0)
+            - **Missing values**: Currently not supported in Python version
+            - **Frequency**: Auto-detected from pandas Series with DatetimeIndex
+
+        X : array-like, shape (T, n_features), optional
+            External regressors (explanatory variables). If provided:
+
+            - Must have same length as ``y`` (T observations)
+            - Each column is a separate regressor
+            - Used only if ``regressors`` parameter was set in ``__init__``
+            - Can be adaptive (with persistence) or fixed coefficients
+
+            Example::
+
+                >>> X = np.column_stack([trend, holidays, temperature])
+                >>> model.fit(y, X=X)
 
         Returns
         -------
         self : ADAM
-            The fitted model object.
+            The fitted model instance with populated attributes:
+
+            **Fitted Parameters** (scikit-learn style with trailing underscores):
+
+            - ``persistence_level_``: α (level smoothing), range [0, 1]
+            - ``persistence_trend_``: β (trend smoothing), range [0, α]
+            - ``persistence_seasonal_``: γ (seasonal smoothing), list if multiple
+            - ``phi_``: Damping parameter, range [0, 1]
+            - ``arma_parameters_``: AR/MA coefficients (if ARIMA)
+            - ``initial_states_``: Initial state values
+
+            **Model Components**:
+
+            - ``model_type_dict``: Complete model specification
+            - ``adam_estimated``: Optimization results including parameter vector B
+            - ``adam_created``: State-space matrices (mat_vt, mat_wt, mat_f, vec_g)
+            - ``prepared_model``: Fitted values, residuals, final states
+            - ``ic_selection``: AIC, AICc, BIC, or BICc value
+
+            **Data and Configuration**:
+
+            - ``general``: General configuration dictionary
+            - ``observations_dict``: Observation information
+            - ``lags_dict``: Lag structure
+            - ``components_dict``: Component counts
+
+        Raises
+        ------
+        ValueError
+            If data validation fails:
+
+            - y contains NaN values
+            - y has insufficient length for model complexity
+            - Multiplicative model specified for non-positive data
+            - X and y have mismatched lengths
+
+        RuntimeError
+            If optimization fails to converge. Check:
+
+            - Model specification is appropriate for data
+            - Initial values are reasonable (try different ``initial`` method)
+            - Bounds are not too restrictive
+
+        Notes
+        -----
+        **Optimization Algorithm**:
+
+        Uses NLopt's Nelder-Mead simplex algorithm by default (derivative-free, robust).
+        For large models or difficult optimization, consider:
+
+        - Changing ``initial`` method
+        - Adjusting bounds (``bounds="usual"`` vs ``bounds="admissible"``)
+        - Providing custom starting values via ``nlopt_initial`` parameter
+
+        **Computational Complexity**:
+
+        Fitting time depends on:
+
+        - Sample size T: O(T) per function evaluation
+        - Number of parameters k: ~40k function evaluations
+        - Model selection: Estimates ~10-15 models for "ZZZ"
+
+        Typical fitting times:
+
+        - T=100, simple ETS: ~0.1 seconds
+        - T=1000, ETS with 2 seasonalities: ~1-2 seconds
+        - T=1000, automatic selection: ~10-20 seconds
+
+        **Model Selection Details**:
+
+        When ``model_do="select"``:
+
+        1. Branch & Bound explores model space efficiently
+        2. Each candidate model is fully estimated
+        3. Best model selected based on ``ic`` criterion
+        4. Selected model is re-estimated with full optimization
+
+        To see which models were tested::
+
+            >>> model.fit(y)
+            >>> print(model.ic_selection)  # Dict of model names -> IC values
+
+        **Holdout Validation**:
+
+        If ``holdout=True`` in ``__init__``:
+
+        - Last ``h`` observations are withheld for validation
+        - Model estimated on first T-h observations
+        - Can use holdout for out-of-sample accuracy assessment
+
+        **Two-Stage Initialization**:
+
+        When ``initial="two-stage"``:
+
+        1. **Stage 1**: Quick backcasting estimation for initial states
+        2. **Stage 2**: Refined optimization starting from stage 1 results
+
+        Often provides better results than pure ``initial="optimal"`` for complex models.
+
+        **Memory Usage**:
+
+        - State matrix: O(n_components × (T + max_lag)) floats
+        - Modest for typical models (~1-10 MB)
+        - Multiple seasonality can increase memory usage
+
+        See Also
+        --------
+        predict : Generate forecasts from fitted model
+        predict_intervals : Generate prediction intervals
+        estimator : Underlying estimation function
+        parameters_checker : Input validation function
+
+        Examples
+        --------
+        Basic fitting::
+
+            >>> from smooth.adam_general.core.adam import ADAM
+            >>> import numpy as np
+            >>> y = np.array([112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118])
+            >>> model = ADAM(model="ANN", lags=[1])
+            >>> model.fit(y)
+            >>> print(f"Alpha: {model.persistence_level_:.3f}")
+
+        With external regressors::
+
+            >>> X = np.random.randn(len(y), 2)
+            >>> model = ADAM(model="AAN", regressors="use")
+            >>> model.fit(y, X=X)
+            >>> print(f"Regressor coefficients: {model.explanatory_dict['xreg_parameters']}")
+
+        Automatic model selection::
+
+            >>> model = ADAM(model="ZZZ", lags=[12], ic="AICc")
+            >>> model.fit(y)
+            >>> print(f"Selected: {model.model_type_dict['model']}")
+            >>> print(f"AICc: {model.ic_selection}")
+
+        Access fitted values and residuals::
+
+            >>> model.fit(y)
+            >>> fitted = model.prepared_model['y_fitted']
+            >>> residuals = model.prepared_model['residuals']
+            >>> print(f"RMSE: {np.sqrt(np.mean(residuals**2)):.3f}")
+
+        Using pandas Series with datetime index::
+
+            >>> import pandas as pd
+            >>> dates = pd.date_range('2020-01-01', periods=len(y), freq='M')
+            >>> y_series = pd.Series(y, index=dates)
+            >>> model.fit(y_series)
+            >>> # Frequency auto-detected from index
         """
         # Store fit parameters - these are now set in __init__
         # No need to call _setup_parameters as those parameters are now instance attributes

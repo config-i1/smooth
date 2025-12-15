@@ -6,7 +6,7 @@ import numpy as np
 from smooth.adam_general._adam_general import adam_fitter, adam_forecaster
 
 
-def CF(B, 
+def CF(B,
        model_type_dict,
        components_dict,
        lags_dict,
@@ -20,12 +20,232 @@ def CF(B,
        observations_dict,
        profile_dict,
        general,
-       bounds = "usual", 
-       other=None, otherParameterEstimate=False, 
+       bounds = "usual",
+       other=None, otherParameterEstimate=False,
        arPolynomialMatrix=None, maPolynomialMatrix=None,
        regressors=None):
-    
-   
+    """
+    Cost Function for ADAM model parameter estimation.
+
+    This function calculates the value of the cost function (CF) for given parameters
+    during the optimization process. The CF is minimized to find optimal parameter values
+    for the ADAM model. The function implements various loss functions (likelihood, MSE, MAE,
+    HAM, LASSO, RIDGE) and enforces parameter constraints (bounds).
+
+    The cost function is evaluated as follows:
+
+    1. **Parameter Filling**: Fill model matrices with current parameter values from vector B
+    2. **Bounds Checking**: Apply parameter constraints based on the 'bounds' setting:
+
+       - **"usual"**: Classical restrictions on smoothing parameters:
+
+         * ETS smoothing parameters: :math:`0 \\leq \\alpha, \\beta, \\gamma \\leq 1`
+         * Trend constraint: :math:`\\beta \\leq \\alpha`
+         * Seasonal constraint: :math:`\\gamma \\leq 1 - \\alpha`
+         * Damping constraint: :math:`0 \\leq \\phi \\leq 1`
+         * ARIMA stationarity: AR and MA polynomial roots outside unit circle
+
+       - **"admissible"**: Check eigenvalues of the state transition matrix to ensure stability
+       - **None**: No bounds checking
+
+    3. **Model Fitting**: Call C++ fitter to compute fitted values and errors
+    4. **Loss Calculation**: Compute loss based on specified loss function:
+
+       - **"likelihood"**: Negative log-likelihood for specified distribution
+       - **"MSE"**: Mean Squared Error
+       - **"MAE"**: Mean Absolute Error
+       - **"HAM"**: Half Absolute Moment (square root of absolute errors)
+       - **"LASSO"** / **"RIDGE"**: Regularized loss with L1/L2 penalties
+
+    Parameters
+    ----------
+    B : numpy.ndarray
+        Parameter vector containing (in order):
+
+        - ETS persistence parameters (α, β, γ)
+        - Damping parameter (φ)
+        - Initial states
+        - ARIMA parameters (AR, MA coefficients)
+        - Regression coefficients
+        - Constant term
+        - Distribution parameters (if estimated)
+
+    model_type_dict : dict
+        Model type specification containing:
+
+        - 'error_type': Error type ('A' for additive, 'M' for multiplicative)
+        - 'trend_type': Trend type ('N', 'A', 'Ad', 'M', 'Md')
+        - 'season_type': Seasonality type ('N', 'A', 'M')
+        - 'ets_model': Whether ETS components are present
+        - 'arima_model': Whether ARIMA components are present
+        - 'model_is_trendy': Whether trend is present
+        - 'model_is_seasonal': Whether seasonality is present
+
+    components_dict : dict
+        Components information containing:
+
+        - 'components_number_ets': Total number of ETS components
+        - 'components_number_ets_seasonal': Number of seasonal ETS components
+        - 'components_number_ets_non_seasonal': Number of non-seasonal ETS components
+        - 'components_number_arima': Number of ARIMA components
+
+    lags_dict : dict
+        Lag structure information containing:
+
+        - 'lags': Vector of lags for each seasonal component
+        - 'lags_model': Lags for each model component
+        - 'lags_model_all': Complete lag specification
+        - 'lags_model_max': Maximum lag value
+
+    matrices_dict : dict
+        State-space matrices from creator(), modified in-place:
+
+        - 'mat_vt': State vector matrix
+        - 'mat_wt': Measurement matrix
+        - 'mat_f': Transition matrix
+        - 'vec_g': Persistence vector
+
+    persistence_checked : dict
+        Persistence parameters specification from checker()
+    initials_checked : dict
+        Initial values specification containing:
+
+        - 'initial_type': Initialization method ('optimal', 'backcasting', 'complete')
+        - 'n_iterations': Number of backcasting iterations
+
+    arima_checked : dict
+        ARIMA specification containing:
+
+        - 'arima_model': Whether ARIMA is present
+        - 'ar_estimate': Whether to estimate AR parameters
+        - 'ma_estimate': Whether to estimate MA parameters
+        - 'ar_required': Whether AR is required
+        - 'ma_required': Whether MA is required
+        - 'ar_orders': AR orders for each lag
+        - 'ma_orders': MA orders for each lag
+
+    explanatory_checked : dict
+        External regressors specification containing:
+
+        - 'xreg_model': Whether external regressors are present
+        - 'xreg_number': Number of external regressors
+
+    phi_dict : dict
+        Damping parameter specification containing:
+
+        - 'phi_estimate': Whether to estimate damping parameter
+        - 'phi': Current damping parameter value
+
+    constants_checked : dict
+        Constant term specification containing:
+
+        - 'constant_required': Whether a constant is included
+        - 'constant_estimate': Whether to estimate the constant
+
+    observations_dict : dict
+        Observations information containing:
+
+        - 'y_in_sample': In-sample time series values
+        - 'ot': Occurrence variable (for intermittent data)
+        - 'ot_logical': Boolean mask for non-zero observations
+        - 'obs_in_sample': Number of in-sample observations
+        - 'obs_zero': Number of zero observations
+        - 'occurrence_model': Whether occurrence model is present
+
+    profile_dict : dict
+        Profile matrices for time-varying parameters containing:
+
+        - 'profiles_recent_table': Recent values for profile initialization
+        - 'index_lookup_table': Index lookup for profile access
+
+    general : dict
+        General model configuration containing:
+
+        - 'loss': Loss function ('likelihood', 'MSE', 'MAE', 'HAM', 'LASSO', 'RIDGE')
+        - 'distribution_new': Error distribution ('dnorm', 'dlaplace', 'ds', 'dgnorm', 'dlnorm', 'dgamma', 'dinvgauss')
+        - 'multisteps': Whether to use multistep loss
+        - 'lambda': Regularization parameter for LASSO/RIDGE
+        - 'denominator': Scaling denominator for LASSO/RIDGE
+        - 'y_denominator': Y-value scaling for LASSO/RIDGE
+
+    bounds : str, optional
+        Type of bounds to enforce:
+
+        - "usual": Classical parameter restrictions (default)
+        - "admissible": Admissibility constraints based on eigenvalues
+        - None: No bounds checking
+
+    other : float, optional
+        Additional distribution parameters (e.g., shape parameter for generalized normal)
+    otherParameterEstimate : bool, optional
+        Whether to estimate distribution parameters from B vector
+    arPolynomialMatrix : numpy.ndarray, optional
+        Companion matrix for AR polynomial (for bounds checking)
+    maPolynomialMatrix : numpy.ndarray, optional
+        Companion matrix for MA polynomial (for bounds checking)
+    regressors : str, optional
+        Regressor handling method ('use', 'select', 'adapt')
+
+    Returns
+    -------
+    float
+        Cost function value. Returns a large penalty (1e100 or 1e300) if constraints are
+        violated or computation fails. Otherwise returns the computed loss value based on
+        the specified loss function.
+
+    Notes
+    -----
+    The function is called repeatedly during optimization by NLopt. It performs the following:
+
+    1. Fills model matrices with current parameter values using ``filler()``
+    2. Checks parameter bounds and returns penalty if violated
+    3. Calls C++ ``adam_fitter()`` to compute fitted values and errors
+    4. Calculates and returns the appropriate loss function value
+
+    **Important Implementation Details**:
+
+    - Matrices are passed to C++ by reference and may be modified
+    - Arrays must be in Fortran order for C++ compatibility
+    - Copies are made of matrices to avoid cross-iteration contamination
+    - NaN values in CF result in a large penalty (1e300)
+
+    **Parameter Constraints**:
+
+    For "usual" bounds, violations return penalty 1e100:
+
+    - ETS smoothing parameters outside [0,1]
+    - Trend parameter β > α (violates smoothness)
+    - Seasonal parameter γ > 1-α
+    - Damping φ outside [0,1]
+    - ARIMA polynomial roots inside unit circle (non-stationary)
+
+    For "admissible" bounds, violations return penalty 1e100 × max(eigenvalue):
+
+    - Eigenvalues of state transition matrix > 1 (unstable system)
+
+    See Also
+    --------
+    log_Lik_ADAM : Calculate log-likelihood for fitted model
+    filler : Fill model matrices with parameter values
+    adam_fitter : C++ function for model fitting
+
+    References
+    ----------
+    .. [1] Svetunkov, I. (2023). "Smooth forecasting with the smooth package in R".
+           arXiv:2301.01790.
+    .. [2] Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008).
+           "Forecasting with Exponential Smoothing: The State Space Approach".
+           Springer-Verlag.
+
+    Examples
+    --------
+    This function is typically called internally during optimization::
+
+        >>> # During optimization, NLopt calls CF repeatedly
+        >>> cf_value = CF(B=initial_params, model_type_dict=..., components_dict=..., ...)
+        >>> # If cf_value is large (1e100), constraints were violated
+    """
+
     # Fill in the matrices
     adamElements = filler(B,
                         model_type_dict,
@@ -351,7 +571,228 @@ def log_Lik_ADAM(
         profile_dict,
         multisteps = False
 ):
-    
+    """
+    Calculate log-likelihood for the ADAM model.
+
+    This function computes the log-likelihood value for an ADAM model with given parameters.
+    The log-likelihood is used for model selection (via information criteria) and for
+    computing confidence intervals. The function handles various loss functions and can
+    compute both one-step-ahead and multi-step-ahead likelihoods.
+
+    The log-likelihood is calculated as:
+
+    .. math::
+
+        \\ell = -\\text{CF}(B)
+
+    where CF is the cost function value. For occurrence models (intermittent data), the
+    log-likelihood is augmented with the log-probability of the occurrence process:
+
+    .. math::
+
+        \\ell_{\\text{total}} = \\ell + \\sum_{t \\in \\mathcal{D}} \\log p_t +
+                                \\sum_{t \\notin \\mathcal{D}} \\log(1-p_t)
+
+    where :math:`\\mathcal{D}` is the set of time points with non-zero demand, and
+    :math:`p_t` is the probability of occurrence at time t.
+
+    Parameters
+    ----------
+    B : numpy.ndarray
+        Parameter vector containing (in order):
+
+        - ETS persistence parameters (α, β, γ)
+        - Damping parameter (φ)
+        - Initial states
+        - ARIMA parameters (AR, MA coefficients)
+        - Regression coefficients
+        - Constant term
+        - Distribution parameters (if estimated)
+
+    model_type_dict : dict
+        Model type specification containing:
+
+        - 'error_type': Error type ('A' for additive, 'M' for multiplicative)
+        - 'trend_type': Trend type ('N', 'A', 'Ad', 'M', 'Md')
+        - 'season_type': Seasonality type ('N', 'A', 'M')
+        - 'ets_model': Whether ETS components are present
+        - 'arima_model': Whether ARIMA components are present
+
+    components_dict : dict
+        Components information containing:
+
+        - 'components_number_ets': Total number of ETS components
+        - 'components_number_ets_seasonal': Number of seasonal ETS components
+        - 'components_number_arima': Number of ARIMA components
+
+    lags_dict : dict
+        Lag structure information containing:
+
+        - 'lags': Vector of lags for each seasonal component
+        - 'lags_model': Lags for each model component
+        - 'lags_model_all': Complete lag specification
+        - 'lags_model_max': Maximum lag value
+
+    adam_created : dict
+        State-space matrices from creator():
+
+        - 'mat_vt': State vector matrix
+        - 'mat_wt': Measurement matrix
+        - 'mat_f': Transition matrix
+        - 'vec_g': Persistence vector
+
+    persistence_dict : dict
+        Persistence parameters specification from checker()
+    initials_dict : dict
+        Initial values specification containing:
+
+        - 'initial_type': Initialization method ('optimal', 'backcasting', 'complete')
+        - 'n_iterations': Number of backcasting iterations
+
+    arima_dict : dict
+        ARIMA specification containing:
+
+        - 'arima_model': Whether ARIMA is present
+        - 'ar_estimate': Whether to estimate AR parameters
+        - 'ma_estimate': Whether to estimate MA parameters
+        - 'ar_required': Whether AR is required
+        - 'ma_required': Whether MA is required
+
+    explanatory_dict : dict
+        External regressors specification containing:
+
+        - 'xreg_model': Whether external regressors are present
+        - 'xreg_number': Number of external regressors
+
+    phi_dict : dict
+        Damping parameter specification containing:
+
+        - 'phi_estimate': Whether to estimate damping parameter
+        - 'phi': Current damping parameter value
+
+    constant_dict : dict
+        Constant term specification containing:
+
+        - 'constant_required': Whether a constant is included
+        - 'constant_estimate': Whether to estimate the constant
+
+    observations_dict : dict
+        Observations information containing:
+
+        - 'y_in_sample': In-sample time series values
+        - 'ot': Occurrence variable (for intermittent data)
+        - 'ot_logical': Boolean mask for non-zero observations
+        - 'obs_in_sample': Number of in-sample observations
+        - 'obs_zero': Number of zero observations
+
+    occurrence_dict : dict
+        Occurrence model information containing:
+
+        - 'occurrence_model': Whether occurrence model is present
+        - 'p_fitted': Fitted probabilities of occurrence
+
+    general_dict : dict
+        General model configuration containing:
+
+        - 'loss': Loss function ('likelihood', 'MSE', 'MAE', 'HAM', 'LASSO', 'RIDGE', multistep variants)
+        - 'distribution_new': Error distribution ('dnorm', 'dlaplace', 'ds', etc.)
+        - 'h': Forecast horizon (for multistep losses)
+
+    profile_dict : dict
+        Profile matrices for time-varying parameters containing:
+
+        - 'profiles_recent_table': Recent values for profile initialization
+        - 'index_lookup_table': Index lookup for profile access
+
+    multisteps : bool, optional
+        Whether to use multi-step-ahead likelihood calculation (default: False).
+        If True, computes likelihood based on multi-step forecasts.
+
+    Returns
+    -------
+    float or dict
+        Log-likelihood value. For standard likelihood calculation, returns a float.
+        The value represents the natural logarithm of the likelihood function,
+        where higher (less negative) values indicate better fit.
+
+        For LASSO/RIDGE losses, returns 0 as these do not have a proper likelihood.
+
+    Notes
+    -----
+    **Distribution Mapping**:
+
+    For non-likelihood loss functions, the function maps to appropriate distributions:
+
+    - MSE → Normal distribution (dnorm)
+    - MAE → Laplace distribution (dlaplace)
+    - HAM → S distribution (ds)
+
+    **Multi-step Likelihood**:
+
+    For multi-step loss functions (MSEh, MAEh, HAMh, etc.), concentrated likelihoods are computed:
+
+    - MSEh, TMSE, MSCE: :math:`-\\frac{T-h}{2}(\\log(2\\pi) + 1 + \\log(\\text{loss}))`
+    - MAEh, TMAE, MACE: :math:`-(T-h)(\\log(2) + 1 + \\log(\\text{loss}))`
+    - HAMh, THAM, CHAM: :math:`-(T-h)(\\log(4) + 2 + 2\\log(\\text{loss}))`
+
+    where T is the sample size and h is the forecast horizon.
+
+    **Occurrence Model**:
+
+    For intermittent data with occurrence models, the total likelihood combines:
+
+    1. Conditional likelihood given non-zero demand
+    2. Probability of occurrence/non-occurrence
+
+    **Multiplicative Models**:
+
+    For multiplicative error models in multistep context, the likelihood is adjusted by
+    the Jacobian term: :math:`-\\sum_t \\log|y_t|` to account for the log transformation.
+
+    See Also
+    --------
+    CF : Cost function used during optimization
+    ic_function : Calculate information criteria from log-likelihood
+
+    References
+    ----------
+    .. [1] Svetunkov, I. (2023). "Smooth forecasting with the smooth package in R".
+           arXiv:2301.01790.
+    .. [2] Snyder, R.D., Ord, J.K., Koehler, A.B., McLaren, K.R., and Beaumont, A.N. (2017).
+           "Forecasting compositional time series: A state space approach".
+           International Journal of Forecasting, 33(2), 502-512.
+
+    Examples
+    --------
+    Calculate log-likelihood for estimated parameters::
+
+        >>> loglik = log_Lik_ADAM(
+        ...     B=estimated_params,
+        ...     model_type_dict=model_type,
+        ...     components_dict=components,
+        ...     lags_dict=lags,
+        ...     adam_created=matrices,
+        ...     persistence_dict=persistence,
+        ...     initials_dict=initials,
+        ...     arima_dict=arima,
+        ...     explanatory_dict=explanatory,
+        ...     phi_dict=phi,
+        ...     constant_dict=constants,
+        ...     observations_dict=observations,
+        ...     occurrence_dict=occurrence,
+        ...     general_dict=general,
+        ...     profile_dict=profile
+        ... )
+        >>> print(f"Log-likelihood: {loglik}")
+
+    For multi-step likelihood::
+
+        >>> loglik_multistep = log_Lik_ADAM(
+        ...     B=estimated_params,
+        ...     ...,
+        ...     multisteps=True
+        ... )
+    """
 
     if not multisteps:
         #print(profile_dict)
