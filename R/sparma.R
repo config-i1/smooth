@@ -403,6 +403,11 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
         B <- vector("numeric", arEstimate + maEstimate +
                         (initialType=="optimal")*initialStateLength +
                         constantEstimate);
+        names(B) <- c("phi", "theta",
+                      paste0("initial",c(1:initialStateLength)),
+                      constantName)[c(arEstimate, maEstimate,
+                                      rep((initialType=="optimal"),initialStateLength),
+                                      constantEstimate)];
 
         idx <- 0
         if(arEstimate) {
@@ -444,7 +449,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
             )
         )
 
-        B <- res$solution
+        B[] <- res$solution
         CFValue <- res$objective;
 
         if(print_level_hidden>0){
