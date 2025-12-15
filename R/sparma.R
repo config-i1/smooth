@@ -153,10 +153,6 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
     componentsNamesARIMA <- componentsNamesARIMA[lagsModelAll];
     refineHead <- TRUE;
 
-    # These two are not used and can be ignored
-    # print(nonZeroARI)
-    # print(nonZeroMA)
-
     # Initial parameter values
     if(arRequired && arEstimate){
         arValue <- 0.1;
@@ -178,6 +174,11 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
         maValue <- NULL;
     }
 
+    # Places of the AR/MA components
+    # head/tail is needed to treat exactly the same p/q
+    nonZeroAR <- head(which(lagsModelAll==p),1);
+    nonZeroMA <- tail(which(lagsModelAll==q),1);
+
     if(constantRequired && constantEstimate) {
         constantValue <- mean(yInSample);
         lagsModelAll <- matrix(c(lagsModelAll,1), ncol=1);
@@ -187,7 +188,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
     }
 
     # Number of initials in the AR state
-    initialStateLength <- lagsModelAll[lagsModelAll==p];
+    initialStateLength <- lagsModelAll[nonZeroAR];
 
 
     # Helper function: Create initial state space matrices ####
@@ -196,6 +197,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                       maRequired, maEstimate,
                                       obsInSample,
                                       lagsModelAll, lagsModelMax,
+                                      nonZeroAR, nonZeroMA,
                                       componentsNumberARIMA,
                                       componentsNamesARIMA,
                                       constantRequired, constantName){
@@ -211,13 +213,13 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
 
         # Fill in the transition where the AR is present
         if(arRequired && !arEstimate){
-            matF[lagsModelAll==p,] <- armaParameters[1];
-            vecG[lagsModelAll==p,] <- vecG[lagsModelAll==p,] + armaParameters[1];
+            matF[nonZeroAR,] <- armaParameters[1];
+            vecG[nonZeroAR,] <- vecG[nonZeroAR,] + armaParameters[1];
         }
 
         # Fill in the transition where the AR is present
         if(maRequired && !maEstimate){
-            vecG[lagsModelAll==q,] <- vecG[lagsModelAll==q,] + armaParameters[2];
+            vecG[nonZeroMA,] <- vecG[nonZeroMA,] + armaParameters[2];
         }
 
         if(constantRequired){
@@ -238,6 +240,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                      arEstimate, maEstimate, constantEstimate,
                                      arValue, maValue, constantValue,
                                      lagsModelAll, lagsModelMax,
+                                     nonZeroAR, nonZeroMA,
                                      initialStateLength,
                                      p, q, initialType) {
 
@@ -257,17 +260,17 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
 
         # Fill in the transition and persistence where the AR is present
         if(arRequired && arEstimate){
-            matricesCreated$matF[lagsModelAll==p,] <- arValue;
-            matricesCreated$vecG[lagsModelAll==p,] <- matricesCreated$vecG[lagsModelAll==p,] + arValue;
+            matricesCreated$matF[nonZeroAR,1:componentsNumberARIMA] <- arValue;
+            matricesCreated$vecG[nonZeroAR,] <- matricesCreated$vecG[nonZeroAR,] + arValue;
         }
         # Fill in the persistence where the MA is present
         if(maRequired && maEstimate){
-            matricesCreated$vecG[lagsModelAll==q,] <- matricesCreated$vecG[lagsModelAll==q,] + maValue;
+            matricesCreated$vecG[nonZeroMA,] <- matricesCreated$vecG[nonZeroMA,] + maValue;
         }
 
         if(initialType=="optimal"){
             # Fill in the AR components
-            matricesCreated$matVt[lagsModelAll==p, 1:initialStateLength] <- B[idx+c(1:initialStateLength)];
+            matricesCreated$matVt[nonZeroAR, 1:initialStateLength] <- B[idx+c(1:initialStateLength)];
             # MA components are zero, so don't bother
             idx[] <- idx + initialStateLength;
         }
@@ -290,6 +293,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                              maRequired, maEstimate,
                                              obsInSample,
                                              lagsModelAll, lagsModelMax,
+                                             nonZeroAR, nonZeroMA,
                                              componentsNumberARIMA,
                                              componentsNamesARIMA,
                                              constantRequired, constantName);
@@ -318,6 +322,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                                arEstimate, maEstimate, constantEstimate,
                                                arValue, maValue, constantValue,
                                                lagsModelAll, lagsModelMax,
+                                               nonZeroAR, nonZeroMA,
                                                initialStateLength,
                                                p, q, initialType);
 
@@ -459,10 +464,11 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                           arEstimate, maEstimate, constantEstimate,
                                           arValue, maValue, constantValue,
                                           lagsModelAll, lagsModelMax,
+                                          nonZeroAR, nonZeroMA,
                                           initialStateLength,
                                           p, q, initialType);
 
-    profilesRecentTable[] <- matricesFinal$matVt[,1:lagsModelMax];
+    profilesRecentInitial[] <- profilesRecentTable[] <- matricesFinal$matVt[,1:lagsModelMax];
 
     adamFitted <- adamFitterWrap(matricesFinal$matVt, matricesFinal$matWt, matricesFinal$matF, matricesFinal$vecG,
                                  lagsModelAll, indexLookupTable, profilesRecentTable,
@@ -492,13 +498,13 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
     # Forecasting if h > 0
     if(h>0){
         yForecast[] <- adamForecasterWrap(tail(matricesFinal$matWt,h), matricesFinal$matF,
-                                        lagsModelAll,
-                                        indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
-                                        profilesRecentTable,
-                                        Etype, Ttype, Stype,
-                                        componentsNumberETS, componentsNumberETSSeasonal,
-                                        componentsNumberARIMA, xregNumber, FALSE,
-                                        h);
+                                          lagsModelAll,
+                                          indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
+                                          profilesRecentTable,
+                                          Etype, Ttype, Stype,
+                                          componentsNumberETS, componentsNumberETSSeasonal,
+                                          componentsNumberARIMA, xregNumber, constantRequired,
+                                          h);
     }
     else{
         yForecast[] <- NA;
@@ -530,7 +536,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
     modelReturned <- structure(list(model=modelName, timeElapsed=Sys.time()-startTime,
                                     call=cl, orders=orders, arma=arma, formula=formula,
                                     data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
-                                    forecast=yForecast, states=matricesFinal$matVt, accuracy=errormeasures,
+                                    forecast=yForecast, states=t(matVt), accuracy=errormeasures,
                                     profile=profilesRecentTable, profileInitial=profilesRecentInitial,
                                     persistence=matricesFinal$vecG[,1], transition=matricesFinal$matF,
                                     measurement=matricesFinal$matWt, initial=initialValue, initialType=initialType,
