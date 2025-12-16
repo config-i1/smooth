@@ -786,7 +786,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         xregModel, xregModelInitials, xregData, xregNumber, xregNames,
                         xregParametersPersistence,
                         # Constant
-                        constantRequired, constantEstimate, constantValue, constantName){
+                        constantRequired, constantEstimate, constantValue, constantName,
+                        adamCpp){
 
         # Matrix of states. Time in columns, components in rows
         matVt <- matrix(NA, componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, obsStates,
@@ -876,8 +877,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # Call polynomial
             # arimaPolynomials <- polynomialiser(NULL, arOrders, iOrders, maOrders,
             #                                    arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
-            arimaPolynomials <- lapply(adamPolynomialiser(0, arOrders, iOrders, maOrders,
-                                                          arEstimate, maEstimate, armaParameters, lags), as.vector);
+            # arimaPolynomials <- lapply(adamPolynomialiser(0, arOrders, iOrders, maOrders,
+            #                                               arEstimate, maEstimate, armaParameters, lags), as.vector);
+            arimaPolynomials <- lapply(adamCpp$polynomialise(0, arOrders, iOrders, maOrders,
+                                                             arEstimate, maEstimate, armaParameters, lags), as.vector);
             # Fill in the transition matrix
             if(nrow(nonZeroARI)>0){
                 matF[componentsNumberETS+nonZeroARI[,2],componentsNumberETS+nonZeroARI[,2]] <-
@@ -1316,7 +1319,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                        xregParametersMissing, xregParametersIncluded,
                        xregParametersEstimated, xregParametersPersistence,
                        # Constant
-                       constantEstimate){
+                       constantEstimate,
+                       adamCpp){
 
         j <- 0;
         # Fill in persistence
@@ -1366,9 +1370,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # ARMA parameters. This goes before xreg in persistence
         if(arimaModel){
             # Call the function returning ARI and MA polynomials
-            arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                          arOrders, iOrders, maOrders,
-                                                          arEstimate, maEstimate, armaParameters, lags), as.vector);
+            # arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+            #                                               arOrders, iOrders, maOrders,
+            #                                               arEstimate, maEstimate, armaParameters, lags), as.vector);
+            arimaPolynomials <- lapply(adamCpp$polynomialise(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                             arOrders, iOrders, maOrders,
+                                                             arEstimate, maEstimate, armaParameters, lags), as.vector);
 
             # Fill in the transition matrix
             if(nrow(nonZeroARI)>0){
@@ -1517,7 +1524,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             xregModel, xregNumber,
                             xregParametersEstimated, xregParametersPersistence,
                             # Constant and other stuff
-                            constantEstimate, constantName, otherParameterEstimate){
+                            constantEstimate, constantName, otherParameterEstimate,
+                            adamCpp){
         # The vector of logicals for persistence elements
         persistenceEstimateVector <- c(persistenceLevelEstimate,modelIsTrendy&persistenceTrendEstimate,
                                        modelIsSeasonal&persistenceSeasonalEstimate);
@@ -1702,9 +1710,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
             }
 
-            arimaPolynomials <- lapply(adamPolynomialiser(B[k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                          arOrders, iOrders, maOrders,
-                                                          arEstimate, maEstimate, armaParameters, lags), as.vector)
+            # arimaPolynomials <- lapply(adamPolynomialiser(B[k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+            #                                               arOrders, iOrders, maOrders,
+            #                                               arEstimate, maEstimate, armaParameters, lags), as.vector)
+            arimaPolynomials <- lapply(adamCpp$polynomialise(B[k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                             arOrders, iOrders, maOrders,
+                                                             arEstimate, maEstimate, armaParameters, lags), as.vector);
         }
 
         # Initials
@@ -1965,7 +1976,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                nonZeroARI, nonZeroMA, arimaPolynomials,
                                xregModel, xregNumber,
                                xregParametersMissing, xregParametersIncluded,
-                               xregParametersEstimated, xregParametersPersistence, constantEstimate);
+                               xregParametersEstimated, xregParametersPersistence, constantEstimate,
+                               adamCpp);
 
         # If we estimate parameters of distribution, take it from the B vector
         if(otherParameterEstimate){
@@ -2485,7 +2497,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                        nonZeroARI, nonZeroMA, arimaPolynomials,
                                        xregModel, xregNumber,
                                        xregParametersMissing, xregParametersIncluded,
-                                       xregParametersEstimated, xregParametersPersistence, constantEstimate);
+                                       xregParametersEstimated, xregParametersPersistence, constantEstimate,
+                                       adamCpp);
 
                 # Write down the initials in the recent profile
                 profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
@@ -2580,7 +2593,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
                                xregModel, xregNumber,
                                xregParametersEstimated, xregParametersPersistence,
-                               constantEstimate, constantName, otherParameterEstimate);
+                               constantEstimate, constantName, otherParameterEstimate,
+                               adamCpp);
         if(!is.null(B)){
             if(!is.null(names(B))){
                 B <- B[names(B) %in% names(BValues$B)];
@@ -2984,7 +2998,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                     nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
                                     xregModel, xregNumber,
                                     xregParametersMissing, xregParametersIncluded,
-                                    xregParametersEstimated, xregParametersPersistence, constantEstimate);
+                                    xregParametersEstimated, xregParametersPersistence, constantEstimate,
+                                    adamCpp);
 
             # Write down the initials in the recent profile
             profilesRecentTable[] <- adamCreated$matVt[,1:lagsModelMax];
@@ -3615,7 +3630,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                    nonZeroARI, nonZeroMA, arimaPolynomials,
                                    xregModel, xregNumber,
                                    xregParametersMissing, xregParametersIncluded,
-                                   xregParametersEstimated, xregParametersPersistence, constantEstimate);
+                                   xregParametersEstimated, xregParametersPersistence, constantEstimate,
+                                   adamCpp);
             list2env(adamElements, environment());
         }
 
@@ -4507,7 +4523,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                        componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
                                        xregModel, xregNumber,
                                        xregParametersEstimated, xregParametersPersistence,
-                                       constantRequired, constantName, FALSE);
+                                       constantRequired, constantName, FALSE,
+                                       adamCpp);
                 # Create the vector of initials for the optimisation
                 B <- BValues$B;
             }
@@ -9304,10 +9321,8 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     # See if constant is required
     constantRequired <- !is.null(object$constant);
 
-    # Expand persistence to include zero for the constant
-    # if(constantRequired){
-    #
-    # }
+    # Instantiate the adam C++ class
+    adamCpp <- new(adamCore);
 
     # cesModel <- smoothType(object)=="CES";
     etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
@@ -9680,9 +9695,12 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
             # arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
             #                                    arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
             #                                    armaParameters, lags);
-            arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                          arOrders, iOrders, maOrders,
-                                                          arEstimate, maEstimate, armaParameters, lags), as.vector)
+            # arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+            #                                               arOrders, iOrders, maOrders,
+            #                                               arEstimate, maEstimate, armaParameters, lags), as.vector)
+            arimaPolynomials <- lapply(adamCpp$polynomialise(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                             arOrders, iOrders, maOrders,
+                                                             arEstimate, maEstimate, armaParameters, lags), as.vector);
 
             # Fill in the transition and persistence matrices
             if(nrow(nonZeroARI)>0){
@@ -9755,9 +9773,12 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                     # arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                     #                                    arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
                     #                                    armaParameters, lags);
-                    arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                                  arOrders, iOrders, maOrders,
-                                                                  arEstimate, maEstimate, armaParameters, lags), as.vector)
+                    # arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                    #                                               arOrders, iOrders, maOrders,
+                    #                                               arEstimate, maEstimate, armaParameters, lags), as.vector)
+                    arimaPolynomials <- lapply(adamCpp$polynomialise(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                                     arOrders, iOrders, maOrders,
+                                                                     arEstimate, maEstimate, armaParameters, lags), as.vector);
                     profilesRecentArray[j+componentsNumberARIMA, 1:initialArimaNumber, i] <-
                         randomParameters[i, k+1:initialArimaNumber];
                     profilesRecentArray[j+nonZeroARI[,2], 1:initialArimaNumber, i] <-
@@ -9776,9 +9797,12 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                     # arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                     #                                    arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
                     #                                    armaParameters, lags);
-                    arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                                  arOrders, iOrders, maOrders,
-                                                                  arEstimate, maEstimate, armaParameters, lags), as.vector)
+                    # arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                    #                                               arOrders, iOrders, maOrders,
+                    #                                               arEstimate, maEstimate, armaParameters, lags), as.vector)
+                    arimaPolynomials <- lapply(adamCpp$polynomialise(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                                     arOrders, iOrders, maOrders,
+                                                                     arEstimate, maEstimate, armaParameters, lags), as.vector);
                     profilesRecentArray[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber, i] <-
                         randomParameters[i, k+1:initialArimaNumber];
                     profilesRecentArray[j+nonZeroMA[,2], 1:initialArimaNumber, i] <-

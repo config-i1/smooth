@@ -5,8 +5,12 @@ a. CF,
 b. logLikADAM
 c. preparator
 d. hessian() that calls for logLikADAM
+e. creator (because of the polynomials)
+f. initialiser (because of the polynomials)
+g. filler (because of the polynomials)
 4. Same adamCpp object is now used in the forecast method for the adam itself.
 5. simulate method for adam now also uses the class and the respective method
-
+6. adamPolynomialiser was substituted by adamCpp$polynomialise - another method for the adamCpp class
 
 10. componentsDefiner now also returns componentsNumberETSNonSeasonal
+
