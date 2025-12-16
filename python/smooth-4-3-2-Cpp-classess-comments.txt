@@ -1,0 +1,12 @@
+1. Created classes in C++
+2. Substituted adamFitter, forecaster etc with the adam methods.
+3. Created adamCpp object (initialised the class) inside the architector (line 751). This is now passed to further functions and used in subfunctions. This is also now passed to:
+a. CF,
+b. logLikADAM
+c. preparator
+d. hessian() that calls for logLikADAM
+4. Same adamCpp object is now used in the forecast method for the adam itself.
+5. simulate method for adam now also uses the class and the respective method
+
+
+10. componentsDefiner now also returns componentsNumberETSNonSeasonal
