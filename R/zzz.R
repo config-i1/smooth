@@ -24,4 +24,6 @@
 
 .onUnload <- function (libpath) {
   library.dynam.unload("smooth", libpath)
+  # Load the C++ module when package loads
+  Rcpp::loadModule("adamCore_module", TRUE)
 }
