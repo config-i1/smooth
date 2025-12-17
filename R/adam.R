@@ -2131,71 +2131,71 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(loss=="likelihood"){
                 # Scale for different functions
                 scale <- scaler(distribution, Etype, adamFitted$errors[otLogical],
-                                adamFitted$yFitted[otLogical], obsInSample, other);
+                                adamFitted$fitted[otLogical], obsInSample, other);
 
                 # Calculate the likelihood
                 ## as.complex() is needed for failsafe in case of exotic models
                 CFValue <- -sum(switch(distribution,
                                        "dnorm"=switch(Etype,
-                                                      "A"=dnorm(x=yInSample[otLogical], mean=adamFitted$yFitted[otLogical],
+                                                      "A"=dnorm(x=yInSample[otLogical], mean=adamFitted$fitted[otLogical],
                                                                 sd=scale, log=TRUE),
-                                                      "M"=dnorm(x=yInSample[otLogical], mean=adamFitted$yFitted[otLogical],
-                                                                sd=scale*adamFitted$yFitted[otLogical], log=TRUE)),
+                                                      "M"=dnorm(x=yInSample[otLogical], mean=adamFitted$fitted[otLogical],
+                                                                sd=scale*adamFitted$fitted[otLogical], log=TRUE)),
                                        "dlaplace"=switch(Etype,
-                                                         "A"=dlaplace(q=yInSample[otLogical], mu=adamFitted$yFitted[otLogical],
+                                                         "A"=dlaplace(q=yInSample[otLogical], mu=adamFitted$fitted[otLogical],
                                                                       scale=scale, log=TRUE),
-                                                         "M"=dlaplace(q=yInSample[otLogical], mu=adamFitted$yFitted[otLogical],
-                                                                      scale=scale*adamFitted$yFitted[otLogical], log=TRUE)),
+                                                         "M"=dlaplace(q=yInSample[otLogical], mu=adamFitted$fitted[otLogical],
+                                                                      scale=scale*adamFitted$fitted[otLogical], log=TRUE)),
                                        "ds"=switch(Etype,
-                                                   "A"=ds(q=yInSample[otLogical],mu=adamFitted$yFitted[otLogical],
+                                                   "A"=ds(q=yInSample[otLogical],mu=adamFitted$fitted[otLogical],
                                                           scale=scale, log=TRUE),
-                                                   "M"=ds(q=yInSample[otLogical],mu=adamFitted$yFitted[otLogical],
-                                                          scale=scale*sqrt(adamFitted$yFitted[otLogical]), log=TRUE)),
+                                                   "M"=ds(q=yInSample[otLogical],mu=adamFitted$fitted[otLogical],
+                                                          scale=scale*sqrt(adamFitted$fitted[otLogical]), log=TRUE)),
                                        "dgnorm"=switch(Etype,
-                                                       "A"=dgnorm(q=yInSample[otLogical],mu=adamFitted$yFitted[otLogical],
+                                                       "A"=dgnorm(q=yInSample[otLogical],mu=adamFitted$fitted[otLogical],
                                                                   scale=scale, shape=other, log=TRUE),
                                                        # suppressWarnings is needed, because the check is done for scalar alpha
                                                        "M"=suppressWarnings(dgnorm(q=yInSample[otLogical],
-                                                                                   mu=adamFitted$yFitted[otLogical],
-                                                                                   scale=scale*(adamFitted$yFitted[otLogical]),
+                                                                                   mu=adamFitted$fitted[otLogical],
+                                                                                   scale=scale*(adamFitted$fitted[otLogical]),
                                                                                    shape=other, log=TRUE))),
                                        # "dlogis"=switch(Etype,
                                        #                 "A"=dlogis(x=yInSample[otLogical],
-                                       #                            location=adamFitted$yFitted[otLogical],
+                                       #                            location=adamFitted$fitted[otLogical],
                                        #                            scale=scale, log=TRUE),
                                        #                 "M"=dlogis(x=yInSample[otLogical],
-                                       #                            location=adamFitted$yFitted[otLogical],
-                                       #                            scale=scale*adamFitted$yFitted[otLogical], log=TRUE)),
+                                       #                            location=adamFitted$fitted[otLogical],
+                                       #                            scale=scale*adamFitted$fitted[otLogical], log=TRUE)),
                                        # "dt"=switch(Etype,
                                        #             "A"=dt(adamFitted$errors[otLogical], df=abs(other), log=TRUE),
-                                       #             "M"=dt(adamFitted$errors[otLogical]*adamFitted$yFitted[otLogical],
+                                       #             "M"=dt(adamFitted$errors[otLogical]*adamFitted$fitted[otLogical],
                                        #                    df=abs(other), log=TRUE)),
                                        "dalaplace"=switch(Etype,
                                                           "A"=dalaplace(q=yInSample[otLogical],
-                                                                        mu=adamFitted$yFitted[otLogical],
+                                                                        mu=adamFitted$fitted[otLogical],
                                                                         scale=scale, alpha=other, log=TRUE),
                                                           "M"=dalaplace(q=yInSample[otLogical],
-                                                                        mu=adamFitted$yFitted[otLogical],
-                                                                        scale=scale*adamFitted$yFitted[otLogical],
+                                                                        mu=adamFitted$fitted[otLogical],
+                                                                        scale=scale*adamFitted$fitted[otLogical],
                                                                         alpha=other, log=TRUE)),
                                        "dlnorm"=dlnorm(x=yInSample[otLogical],
-                                                       meanlog=Re(log(as.complex(adamFitted$yFitted[otLogical])))-scale^2/2,
+                                                       meanlog=Re(log(as.complex(adamFitted$fitted[otLogical])))-scale^2/2,
                                                        sdlog=scale, log=TRUE),
                                        "dllaplace"=dlaplace(q=log(yInSample[otLogical]),
-                                                            mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
+                                                            mu=Re(log(as.complex(adamFitted$fitted[otLogical]))),
                                                             scale=scale, log=TRUE) -log(yInSample[otLogical]),
                                        "dls"=ds(q=log(yInSample[otLogical]),
-                                                mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
+                                                mu=Re(log(as.complex(adamFitted$fitted[otLogical]))),
                                                 scale=scale, log=TRUE) -log(yInSample[otLogical]),
                                        "dlgnorm"=dgnorm(q=log(yInSample[otLogical]),
-                                                        mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
+                                                        mu=Re(log(as.complex(adamFitted$fitted[otLogical]))),
                                                         scale=scale, shape=other, log=TRUE) -log(yInSample[otLogical]),
                                        # abs() is needed for rare cases, when negative values are produced for E="A" models
-                                       "dinvgauss"=dinvgauss(x=yInSample[otLogical], mean=abs(adamFitted$yFitted[otLogical]),
-                                                             dispersion=abs(scale/adamFitted$yFitted[otLogical]), log=TRUE),
+                                       "dinvgauss"=dinvgauss(x=yInSample[otLogical], mean=abs(adamFitted$fitted[otLogical]),
+                                                             dispersion=abs(scale/adamFitted$fitted[otLogical]), log=TRUE),
                                        # abs() is a failsafe mechanism for weird cases of negative values in mixed models
                                        "dgamma"=dgamma(x=yInSample[otLogical], shape=1/scale,
-                                                       scale=scale*abs(adamFitted$yFitted[otLogical]), log=TRUE)
+                                                       scale=scale*abs(adamFitted$fitted[otLogical]), log=TRUE)
                 ));
 
                 # Differential entropy for the logLik of occurrence model
@@ -2217,10 +2217,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                              # "dinvgauss" = obsZero*(0.5*(log(pi/2)+1+suppressWarnings(log(scale)))));
                                              # "dinvgauss" =0);
                                              "dinvgauss" = 0.5*(obsZero*(log(pi/2)+1+suppressWarnings(log(scale)))-
-                                                                    sum(log(adamFitted$yFitted[!otLogical]))),
+                                                                    sum(log(adamFitted$fitted[!otLogical]))),
                                              "dgamma" = obsZero*(1/scale + log(gamma(1/scale)) +
                                                                      (1-1/scale)*digamma(1/scale)) +
-                                                 sum(log(scale*adamFitted$yFitted[!otLogical]))
+                                                 sum(log(scale*adamFitted$fitted[!otLogical]))
                     );
                     # If the entropy is NA then something is wrong. It shouldn't be!
                     if(is.na(CFValueEntropy)){
@@ -2289,18 +2289,18 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                        "RIDGE"=lambda * sqrt(sum(B^2))));
             }
             else if(loss=="custom"){
-                CFValue <- lossFunction(actual=yInSample,fitted=adamFitted$yFitted,B=B);
+                CFValue <- lossFunction(actual=yInSample,fitted=adamFitted$fitted,B=B);
             }
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            # adamErrors <- adamErrorerWrap(adamFitted$matVt, adamElements$matWt, adamElements$matF,
+            # adamErrors <- adamErrorerWrap(adamFitted$states, adamElements$matWt, adamElements$matF,
             #                               lagsModelAll, indexLookupTable, profilesRecentTable,
             #                               Etype, Ttype, Stype,
             #                               componentsNumberETS, componentsNumberETSSeasonal,
             #                               componentsNumberARIMA, xregNumber, constantRequired, h,
             #                               yInSample, ot);
-            adamErrors <- adamCpp$errorer(adamFitted$matVt, adamElements$matWt, adamElements$matF,
+            adamErrors <- adamCpp$errorer(adamFitted$states, adamElements$matWt, adamElements$matF,
                                           lagsModelAll, indexLookupTable,
                                           profilesRecentTable,
                                           Etype, Ttype, Stype,
@@ -2519,7 +2519,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                           constantRequired,
                                           yInSample, ot, any(initialType==c("complete","backcasting")),
                                           nIterations, refineHead, adamETS);
-                logLikReturn[] <- logLikReturn - sum(log(abs(adamFitted$yFitted)));
+                logLikReturn[] <- logLikReturn - sum(log(abs(adamFitted$fitted)));
             }
 
             return(logLikReturn);
@@ -3025,7 +3025,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             errors <- switch(distributionNew,
                              "dlnorm"=, "dllaplace"=, "dls"=,
                              "dlgnorm"=, "dinvgauss"=, "dgamma"=switch(Etype,
-                                                                       "A"=1+adamFitted$errors/adamFitted$yFitted,
+                                                                       "A"=1+adamFitted$errors/adamFitted$fitted,
                                                                        "M"=adamFitted$errors),
                              "dnorm"=, "dlaplace"=, "ds"=, "dgnorm"=, "dlogis"=, "dt"=, "dalaplace"=,adamFitted$errors);
             # Extract the errors and amend them to correspond to the distribution
@@ -3651,8 +3651,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         #                              componentsNumberARIMA, xregNumber, constantRequired,
         #                              yInSample, ot, any(initialType==c("complete","backcasting")),
         #                              nIterations, refineHead, adamETS);
-        adamFitted <- adamCpp$fit(adamElements$matVt, adamElements$matWt,
-                                  adamElements$matF, adamElements$vecG,
+        adamFitted <- adamCpp$fit(matVt, matWt,
+                                  matF, vecG,
                                   lagsModelAll, indexLookupTable,
                                   profilesRecentTable,
                                   Etype, Ttype, Stype,
@@ -3662,7 +3662,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                   yInSample, ot, any(initialType==c("complete","backcasting")),
                                   nIterations, refineHead, adamETS);
 
-        matVt[] <- adamFitted$matVt;
+        matVt[] <- adamFitted$states;
 
         # Write down the recent profile for future use
         profilesRecentTable <- adamFitted$profile;
@@ -3694,7 +3694,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         errors[] <- adamFitted$errors;
-        yFitted[] <- adamFitted$yFitted;
+        yFitted[] <- adamFitted$fitted;
         # Check what was returned in the end
         if(any(is.nan(yFitted)) || any(is.na(yFitted))){
             warning("Something went wrong in the estimation of the model and NaNs were produced. ",
@@ -3735,7 +3735,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                             componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
                                             componentsNumberETS, componentsNumberARIMA, xregNumber,
                                             constantRequired,
-                                            horizon)$yForecast;
+                                            horizon)$forecast;
             #### Make safety checks
             # If there are NaN values
             if(any(is.nan(yForecast))){
@@ -7444,7 +7444,7 @@ rmultistep.adam <- function(object, h=10,
                             componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
                             componentsNumberETS, componentsNumberARIMA, xregNumber,
                             constantRequired, h,
-                            matrix(actuals(object),obsInSample,1))$matErrors,
+                            matrix(actuals(object),obsInSample,1))$errors,
             start=start(actuals(object)), frequency=frequency(actuals(object))));
     }
     else{
@@ -7461,7 +7461,7 @@ rmultistep.adam <- function(object, h=10,
                             componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
                             componentsNumberETS, componentsNumberARIMA, xregNumber,
                             constantRequired, h,
-                            matrix(actuals(object),obsInSample,1))$matErrors,
+                            matrix(actuals(object),obsInSample,1))$errors,
                    order.by=time(actuals(object))));
     }
 }
@@ -8252,7 +8252,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                          componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
                                          componentsNumberETS, componentsNumberARIMA, xregNumber,
                                          constantRequired,
-                                         h)$yForecast;
+                                         h)$forecast;
     }
     else{
         # If we do simulations, leave it for later
@@ -8463,7 +8463,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                        componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
                                        componentsNumberETS, componentsNumberARIMA, xregNumber,
                                        constantRequired,
-                                       adamETS)$matrixYt;
+                                       adamETS)$data;
 
         #### Note that the cumulative doesn't work with oes at the moment!
         if(cumulative){
@@ -9846,15 +9846,23 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     yt <- matrix(actuals(object));
 
     # Refit the model with the new parameter
-    adamRefitted <- adamRefitterWrap(yt, ot, arrVt, arrF, arrWt, matG,
-                                     Etype, Ttype, Stype,
-                                     lagsModelAll, indexLookupTable, profilesRecentArray,
-                                     componentsNumberETSSeasonal, componentsNumberETS,
-                                     componentsNumberARIMA, xregNumber, constantRequired,
-                                     object$initialType=="backcasting", refineHead, adamETS);
+    # adamRefitted <- adamRefitterWrap(yt, ot, arrVt, arrF, arrWt, matG,
+    #                                  Etype, Ttype, Stype,
+    #                                  lagsModelAll, indexLookupTable, profilesRecentArray,
+    #                                  componentsNumberETSSeasonal, componentsNumberETS,
+    #                                  componentsNumberARIMA, xregNumber, constantRequired,
+    #                                  object$initialType=="backcasting", refineHead, adamETS);
+    adamRefitted <- adamCpp$reapply(yt, ot, arrVt, arrF, arrWt, matG,
+                                    lagsModelAll, indexLookupTable, profilesRecentArray,
+                                    Etype, Ttype, Stype,
+                                    componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
+                                    componentsNumberETS, componentsNumberARIMA, xregNumber,
+                                    constantRequired,
+                                    object$initialType=="backcasting", refineHead, adamETS)
+
     arrVt[] <- adamRefitted$states;
     fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
-    profilesRecentArray[] <- adamRefitted$profilesRecent;
+    profilesRecentArray[] <- adamRefitted$profile;
 
     # If this was a model in logarithms (e.g. ARIMA for sm), then take exponent
     if(any(unlist(gregexpr("in logs",object$model))!=-1)){
@@ -10321,6 +10329,9 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # See if constant is required
     constantRequired <- !is.null(object$constant);
 
+    # Create the adamCpp instance
+    adamCpp <- new(adamCore);
+
     #### Simulate the data ####
     # If scale model is included, produce forecasts
     if(is.scale(object$scale)){
@@ -10368,15 +10379,25 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # Array of the simulated data
     arrayYSimulated <- array(0,c(h,nsim,nsim));
     # Start the loop... might take some time
-    arrayYSimulated[] <- adamReforecasterWrap(arrErrors,
-                                              array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim)),
-                                              objectRefitted$transition,
-                                              arrWt,
-                                              objectRefitted$persistence,
-                                              EtypeModified, Ttype, Stype,
-                                              lagsModelAll, indexLookupTable, profilesRecentArray,
-                                              componentsNumberETSSeasonal, componentsNumberETS,
-                                              componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
+    # arrayYSimulated[] <- adamReforecasterWrap(arrErrors,
+    #                                           array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim)),
+    #                                           objectRefitted$transition,
+    #                                           arrWt,
+    #                                           objectRefitted$persistence,
+    #                                           EtypeModified, Ttype, Stype,
+    #                                           lagsModelAll, indexLookupTable, profilesRecentArray,
+    #                                           componentsNumberETSSeasonal, componentsNumberETS,
+    #                                           componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
+    arrayYSimulated[] <- adamCpp$reforecast(arrErrors,
+                                            array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim)),
+                                            objectRefitted$transition,
+                                            arrWt,
+                                            objectRefitted$persistence,
+                                            lagsModelAll, indexLookupTable, profilesRecentArray,
+                                            EtypeModified, Ttype, Stype,
+                                            componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
+                                            componentsNumberETS, componentsNumberARIMA, xregNumber,
+                                            constantRequired, adamETS)$data;
 
     #### Note that the cumulative doesn't work with oes at the moment!
     if(cumulative){
@@ -10656,7 +10677,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
                                        componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
                                        componentsNumberETS, componentsNumberARIMA, xregNumber,
                                        constantRequired,
-                                       adamETS)$matrixYt;
+                                       adamETS)$data;
 
         yForecast <- vector("numeric", h);
         for(i in 1:h){
@@ -11062,18 +11083,18 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
         yIndex <- time(yInSample)
         yIndexDiff <- diff(head(yIndex,2));
         yTime <- yIndex[1]+yIndexDiff*c(1:(obsInSample-1));
-        matrixYt <- zoo(array(ySimulated$matrixYt,c(obsInSample,nsim),
+        matrixYt <- zoo(array(ySimulated$data,c(obsInSample,nsim),
                               dimnames=list(NULL,paste0("nsim",c(1:nsim)))),
                         order.by=yTime);
     }
     else{
-        matrixYt <- ts(array(ySimulated$matrixYt,c(obsInSample,nsim),
+        matrixYt <- ts(array(ySimulated$data,c(obsInSample,nsim),
                              dimnames=list(NULL,paste0("nsim",c(1:nsim)))),
                        start=start(yInSample), frequency=frequency(yInSample));
     }
 
     return(structure(list(timeElapsed=Sys.time()-startTime, model=object$model, distribution=object$distribution,
-                          data=matrixYt, states=ySimulated$arrayVt, persistence=object$persistence,
+                          data=matrixYt, states=ySimulated$states, persistence=object$persistence,
                           measurement=matWt, transition=object$transition, initial=object$initial,
                           probability=pt, occurrence=object$occurrence,
                           residuals=matErrors, other=ellipsis),

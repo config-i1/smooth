@@ -25,8 +25,8 @@ namespace Rcpp {
     // Wrapper for FitResult
     template <> SEXP wrap(const FitResult& result) {
         return List::create(
-            Named("matVt") = result.matVt,
-            Named("yFitted") = result.yFitted,
+            Named("states") = result.states,
+            Named("fitted") = result.fitted,
             Named("errors") = result.errors,
             Named("profile") = result.profile
         );
@@ -35,22 +35,38 @@ namespace Rcpp {
     // Wrapper for ForecastResult
     template <> SEXP wrap(const ForecastResult& result) {
         return List::create(
-            Named("yForecast") = result.yForecast
+            Named("forecast") = result.forecast
         );
     }
 
     // Wrapper for ErrorResult
     template <> SEXP wrap(const ErrorResult& result) {
         return List::create(
-            Named("matErrors") = result.matErrors
+            Named("errors") = result.errors
         );
     }
 
     // Wrapper for SimulateResult
     template <> SEXP wrap(const SimulateResult& result) {
         return List::create(
-            Named("arrayVt") = result.arrayVt,
-            Named("matrixYt") = result.matrixYt
+            Named("states") = result.states,
+            Named("data") = result.data
+        );
+    }
+
+    // Wrapper for refit/rreapply
+    template <> SEXP wrap(const ReapplyResult& result) {
+        return List::create(
+            Named("states") = result.states,
+            Named("fitted") = result.fitted,
+            Named("profile") = result.profile
+        );
+    }
+
+    // Wrapper for reforecast
+    template <> SEXP wrap(const ReforecastResult& result) {
+        return List::create(
+            Named("data") = result.data
         );
     }
 }
@@ -66,5 +82,7 @@ RCPP_MODULE(adamCore_module) {
     .method("fit", &adamCore::fit)
     .method("forecast", &adamCore::forecast)
     .method("error", &adamCore::error)
-    .method("simulate", &adamCore::simulate);
+    .method("simulate", &adamCore::simulate)
+    .method("reapply", &adamCore::reapply)
+    .method("reforecast", &adamCore::reforecast);
 }

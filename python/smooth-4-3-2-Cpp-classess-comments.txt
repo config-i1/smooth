@@ -11,6 +11,9 @@ g. filler (because of the polynomials)
 4. Same adamCpp object is now used in the forecast method for the adam itself.
 5. simulate method for adam now also uses the class and the respective method
 6. adamPolynomialiser was substituted by adamCpp$polynomialise - another method for the adamCpp class
+7. fitter now returns objects called states, fitted, errors and profile instead of matVt, yFitted, errors and profileRecent. This is for consistency across methods. All internal stuff in the CF needs to be amended to reflect that.
+8. simulate() now returns states instead of arrayVt
+9. errorer returns object "errors"
 
 10. componentsDefiner now also returns componentsNumberETSNonSeasonal
 
