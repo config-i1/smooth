@@ -14,6 +14,6 @@ g. filler (because of the polynomials)
 7. fitter now returns objects called states, fitted, errors and profile instead of matVt, yFitted, errors and profileRecent. This is for consistency across methods. All internal stuff in the CF needs to be amended to reflect that.
 8. simulate() now returns states instead of arrayVt
 9. errorer returns object "errors"
-
-10. componentsDefiner now also returns componentsNumberETSNonSeasonal
+10. adamCpp class now sets common parameters (coming from the architector), which are now used in all the methods. This means that the methods now accept fewer parameters.
+11. componentsDefiner now also returns componentsNumberETSNonSeasonal
 

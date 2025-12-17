@@ -748,7 +748,13 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         indexLookupTable <- adamProfiles$lookup;
 
         # Create C++ adam class, which will then use fit, forecast etc methods
-        adamCpp <- new(adamCore);
+        adamCpp <- new(adamCore,
+                       lagsModelAll, Etype, Ttype, Stype,
+                       componentsNumberETSNonSeasonal,
+                       componentsNumberETSSeasonal,
+                       componentsNumberETS, componentsNumberARIMA,
+                       xregNumber,
+                       constantRequired, adamETS);
 
         return(list(lagsModel=lagsModel,lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
                     componentsNumberETS=componentsNumberETS, componentsNumberETSSeasonal=componentsNumberETSSeasonal,
@@ -2119,13 +2125,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         #                              nIterations, refineHead, adamETS);
         adamFitted <- adamCpp$fit(adamElements$matVt, adamElements$matWt,
                                   adamElements$matF, adamElements$vecG,
-                                  lagsModelAll, indexLookupTable, profilesRecentTable,
-                                  Etype, Ttype, Stype,
-                                  componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                  componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                  constantRequired,
-                                  yInSample, ot, any(initialType==c("complete","backcasting")),
-                                  nIterations, refineHead, adamETS);
+                                  indexLookupTable, profilesRecentTable,
+                                  yInSample, ot,
+                                  any(initialType==c("complete","backcasting")), nIterations,
+                                  refineHead);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -2300,14 +2303,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             #                               componentsNumberETS, componentsNumberETSSeasonal,
             #                               componentsNumberARIMA, xregNumber, constantRequired, h,
             #                               yInSample, ot);
-            adamErrors <- adamCpp$errorer(adamFitted$states, adamElements$matWt, adamElements$matF,
-                                          lagsModelAll, indexLookupTable,
-                                          profilesRecentTable,
-                                          Etype, Ttype, Stype,
-                                          componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                          componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                          constantRequired, h,
-                                          yInSample)$matErrors;
+            adamErrors <- adamCpp$errorer(adamFitted$states, adamElements$matWt,
+                                          adamElements$matF,
+                                          indexLookupTable, profilesRecentTable,
+                                          h, yInSample)$matErrors;
 
             # Not done yet: "aMSEh","aTMSE","aGTMSE","aMSCE","aGPL"
             CFValue <- switch(loss,
@@ -2512,13 +2511,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 #                              nIterations, refineHead, adamETS);
                 adamFitted <- adamCpp$fit(adamElements$matVt, adamElements$matWt,
                                           adamElements$matF, adamElements$vecG,
-                                          lagsModelAll, indexLookupTable, profilesRecentTable,
-                                          Etype, Ttype, Stype,
-                                          componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                          componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                          constantRequired,
-                                          yInSample, ot, any(initialType==c("complete","backcasting")),
-                                          nIterations, refineHead, adamETS);
+                                          indexLookupTable, profilesRecentTable,
+                                          yInSample, ot,
+                                          any(initialType==c("complete","backcasting")), nIterations,
+                                          refineHead);
                 logLikReturn[] <- logLikReturn - sum(log(abs(adamFitted$fitted)));
             }
 
@@ -3011,15 +3007,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             #                              componentsNumberARIMA, xregNumber, constantRequired,
             #                              yInSample, ot, any(initialType==c("complete","backcasting")),
             #                              nIterations, refineHead, adamETS);
-            adamFitted <- adamCpp$fit(adamElements$matVt, adamElements$matWt,
-                                      adamElements$matF, adamElements$vecG,
-                                      lagsModelAll, indexLookupTable, profilesRecentTable,
-                                      Etype, Ttype, Stype,
-                                      componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                      componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                      constantRequired,
-                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                      nIterations, refineHead, adamETS);
+            adamFitted <- adamCpp$fit(adamCreated$matVt, adamCreated$matWt,
+                                      adamCreated$matF, adamCreated$vecG,
+                                      indexLookupTable, profilesRecentTable,
+                                      yInSample, ot,
+                                      any(initialType==c("complete","backcasting")), nIterations,
+                                      refineHead);
 
             # Extract the errors correctly
             errors <- switch(distributionNew,
@@ -3653,14 +3646,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         #                              nIterations, refineHead, adamETS);
         adamFitted <- adamCpp$fit(matVt, matWt,
                                   matF, vecG,
-                                  lagsModelAll, indexLookupTable,
-                                  profilesRecentTable,
-                                  Etype, Ttype, Stype,
-                                  componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                  componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                  constantRequired,
-                                  yInSample, ot, any(initialType==c("complete","backcasting")),
-                                  nIterations, refineHead, adamETS);
+                                  indexLookupTable, profilesRecentTable,
+                                  yInSample, ot,
+                                  any(initialType==c("complete","backcasting")), nIterations,
+                                  refineHead);
 
         matVt[] <- adamFitted$states;
 
@@ -3728,13 +3717,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             #                                   componentsNumberARIMA, xregNumber, constantRequired,
             #                                   horizon);
             yForecast[] <- adamCpp$forecast(tail(matWt,horizon), matF,
-                                            lagsModelAll,
                                             indexLookupTable[,lagsModelMax+obsInSample+c(1:horizon),drop=FALSE],
                                             profilesRecentTable,
-                                            Etype, Ttype, Stype,
-                                            componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                            componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                            constantRequired,
                                             horizon)$forecast;
             #### Make safety checks
             # If there are NaN values
@@ -7411,8 +7395,14 @@ rmultistep.adam <- function(object, h=10,
 
     constantRequired <- !is.null(object$constant);
 
-    # Instantiate the adam C++ class
-    adamCpp <- new(adamCore);
+    # Create C++ adam class, which will then use fit, forecast etc methods
+    adamCpp <- new(adamCore,
+                   lagsModelAll, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber,
+                   constantRequired, adamETS);
 
     # Function returns the matrix with multi-step errors
     if(is.occurrence(object$occurrence)){
@@ -7438,13 +7428,10 @@ rmultistep.adam <- function(object, h=10,
             #                       componentsNumberETS, componentsNumberETSSeasonal,
             #                       componentsNumberARIMA, xregNumber, constantRequired, h,
             #                       matrix(actuals(object),obsInSample,1), ot),
-            adamCpp$errorer(t(object$states), object$measurement, object$transition,
-                            lagsModelAll, indexLookupTable, profilesRecentTable,
-                            Etype, Ttype, Stype,
-                            componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                            componentsNumberETS, componentsNumberARIMA, xregNumber,
-                            constantRequired, h,
-                            matrix(actuals(object),obsInSample,1))$errors,
+            adamCpp$errorer(t(object$states), object$measurement,
+                            object$transition,
+                            indexLookupTable, profilesRecentTable,
+                            h, matrix(actuals(object),obsInSample,1))$errors,
             start=start(actuals(object)), frequency=frequency(actuals(object))));
     }
     else{
@@ -7455,13 +7442,10 @@ rmultistep.adam <- function(object, h=10,
             #                        componentsNumberETS, componentsNumberETSSeasonal,
             #                        componentsNumberARIMA, xregNumber, constantRequired, h,
             #                        matrix(actuals(object),obsInSample,1), ot),
-            adamCpp$errorer(t(object$states), object$measurement, object$transition,
-                            lagsModelAll, indexLookupTable, profilesRecentTable,
-                            Etype, Ttype, Stype,
-                            componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                            componentsNumberETS, componentsNumberARIMA, xregNumber,
-                            constantRequired, h,
-                            matrix(actuals(object),obsInSample,1))$errors,
+            adamCpp$errorer(t(object$states), object$measurement,
+                            object$transition,
+                            indexLookupTable, profilesRecentTable,
+                            h, matrix(actuals(object),obsInSample,1))$errors,
                    order.by=time(actuals(object))));
     }
 }
@@ -8233,8 +8217,14 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # See if constant is required
     constantRequired <- !is.null(object$constant);
 
-    # Create the adamCpp instance
-    adamCpp <- new(adamCore);
+    # Create C++ adam class, which will then use fit, forecast etc methods
+    adamCpp <- new(adamCore,
+                   lagsModelAll, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber,
+                   constantRequired, adamETS);
 
     # Produce point forecasts for non-multiplicative trend / seasonality
     # Do this for cases, when h<=m as well and prediction /confidence / simulated interval
@@ -8247,11 +8237,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         #                                    componentsNumberARIMA, xregNumber, constantRequired,
         #                                    h);
         adamForecast <- adamCpp$forecast(matWt, matF,
-                                         lagsModelAll, indexLookupTable, profilesRecentTable,
-                                         Etype, Ttype, Stype,
-                                         componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                         componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                         constantRequired,
+                                         indexLookupTable, profilesRecentTable,
                                          h)$forecast;
     }
     else{
@@ -8454,16 +8440,13 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         #                                 lagsModelAll, indexLookupTable, profilesRecentTable,
         #                                 componentsNumberETSSeasonal, componentsNumberETS,
         #                                 componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
-        ySimulated <- adamCpp$simulate(arrVt, matErrors,
-                                       matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
-                                       array(matF,c(dim(matF),nsim)), matWt,
-                                       matrix(vecG, componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, nsim),
-                                       lagsModelAll, indexLookupTable, profilesRecentTable,
-                                       EtypeModified, Ttype, Stype,
-                                       componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                       componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                       constantRequired,
-                                       adamETS)$data;
+        ySimulated <- adamCpp$simulate(matErrors, matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
+                                       arrVt, matWt,
+                                       array(matF,c(dim(matF),nsim)),
+                                       matrix(vecG, componentsNumberETS+componentsNumberARIMA+
+                                                  xregNumber+constantRequired, nsim),
+                                       indexLookupTable, profilesRecentTable,
+                                       EtypeModified)$data;
 
         #### Note that the cumulative doesn't work with oes at the moment!
         if(cumulative){
@@ -9318,12 +9301,6 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
         persistence <- rbind(persistence,matrix(rep(0,sum(object$nParam[,2])),ncol=1));
     }
 
-    # See if constant is required
-    constantRequired <- !is.null(object$constant);
-
-    # Instantiate the adam C++ class
-    adamCpp <- new(adamCore);
-
     # cesModel <- smoothType(object)=="CES";
     etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
     arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
@@ -9429,6 +9406,18 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
         xregParametersPersistence <- 0;
     }
     indexLookupTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$lookup;
+
+    # See if constant is required
+    constantRequired <- !is.null(object$constant);
+
+    # Create C++ adam class
+    adamCpp <- new(adamCore,
+                   lagsModelAll, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber,
+                   constantRequired, adamETS);
 
     # Generate the data from the multivariate normal
     randomParameters <- mvrnorm(nsim, coef(object), vcovAdam);
@@ -9852,13 +9841,11 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     #                                  componentsNumberETSSeasonal, componentsNumberETS,
     #                                  componentsNumberARIMA, xregNumber, constantRequired,
     #                                  object$initialType=="backcasting", refineHead, adamETS);
-    adamRefitted <- adamCpp$reapply(yt, ot, arrVt, arrF, arrWt, matG,
-                                    lagsModelAll, indexLookupTable, profilesRecentArray,
-                                    Etype, Ttype, Stype,
-                                    componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                    componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                    constantRequired,
-                                    object$initialType=="backcasting", refineHead, adamETS)
+    adamRefitted <- adamCpp$reapply(yt, ot,
+                                    arrVt, arrWt,
+                                    arrF, matG,
+                                    indexLookupTable, profilesRecentArray,
+                                    object$initialType=="backcasting", refineHead)
 
     arrVt[] <- adamRefitted$states;
     fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
@@ -10329,8 +10316,14 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # See if constant is required
     constantRequired <- !is.null(object$constant);
 
-    # Create the adamCpp instance
-    adamCpp <- new(adamCore);
+    # Create C++ adam class
+    adamCpp <- new(adamCore,
+                   lagsModelAll, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber,
+                   constantRequired, adamETS);
 
     #### Simulate the data ####
     # If scale model is included, produce forecasts
@@ -10388,16 +10381,11 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     #                                           lagsModelAll, indexLookupTable, profilesRecentArray,
     #                                           componentsNumberETSSeasonal, componentsNumberETS,
     #                                           componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
-    arrayYSimulated[] <- adamCpp$reforecast(arrErrors,
-                                            array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim)),
-                                            objectRefitted$transition,
+    arrayYSimulated[] <- adamCpp$reforecast(arrErrors, array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim)),
                                             arrWt,
-                                            objectRefitted$persistence,
-                                            lagsModelAll, indexLookupTable, profilesRecentArray,
-                                            EtypeModified, Ttype, Stype,
-                                            componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                            componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                            constantRequired, adamETS)$data;
+                                            objectRefitted$transition, objectRefitted$persistence,
+                                            indexLookupTable, profilesRecentArray,
+                                            EtypeModified)$data;
 
     #### Note that the cumulative doesn't work with oes at the moment!
     if(cumulative){
@@ -10578,8 +10566,14 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
         # See if constant is required
         constantRequired <- !is.null(object$constant);
 
-        # Create the adamCpp instance
-        adamCpp <- new(adamCore);
+        # Create C++ adam class
+        adamCpp <- new(adamCore,
+                       lagsModelAll, Etype, Ttype, Stype,
+                       componentsNumberETSNonSeasonal,
+                       componentsNumberETSSeasonal,
+                       componentsNumberETS, componentsNumberARIMA,
+                       xregNumber,
+                       constantRequired, adamETS);
 
         matVt <- t(tail(object$states,lagsModelMax));
 
@@ -10668,16 +10662,13 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
         #                                 lagsModelAll, indexLookupTable, profilesRecentTable,
         #                                 componentsNumberETSSeasonal, componentsNumberETS,
         #                                 componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
-        ySimulated <- adamCpp$simulate(arrVt, matErrors,
-                                       matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
-                                       array(matF,c(dim(matF),nsim)), matWt,
-                                       matrix(vecG, componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, nsim),
-                                       lagsModelAll, indexLookupTable, profilesRecentTable,
-                                       EtypeModified, Ttype, Stype,
-                                       componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                       componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                       constantRequired,
-                                       adamETS)$data;
+        ySimulated <- adamCpp$simulate(matErrors, matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
+                                       arrVt, matWt,
+                                       array(matF,c(dim(matF),nsim)),
+                                       matrix(vecG, componentsNumberETS+componentsNumberARIMA+
+                                                  xregNumber+constantRequired, nsim),
+                                       indexLookupTable, profilesRecentTable,
+                                       EtypeModified)$data;
 
         yForecast <- vector("numeric", h);
         for(i in 1:h){
@@ -10882,12 +10873,6 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
         persistence <- rbind(persistence,matrix(rep(0,sum(object$nParam[,2])),ncol=1));
     }
 
-    # See if constant is required
-    constantRequired <- !is.null(object$constant);
-
-    # Create the adamCpp instance
-    adamCpp <- new(adamCore);
-
     # Get componentsNumberETS, seasonal and componentsNumberARIMA
     componentsDefined <- componentsDefiner(object);
     componentsNumberETS <- componentsDefined$componentsNumberETS;
@@ -10984,6 +10969,19 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     profiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample);
     indexLookupTable <- profiles$lookup;
 
+
+    # See if constant is required
+    constantRequired <- !is.null(object$constant);
+
+    # Create C++ adam class
+    adamCpp <- new(adamCore,
+                   lagsModelAll, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber,
+                   constantRequired, adamETS);
+
     #### Prepare the necessary matrices ####
     # States are defined similar to how it is done in adam.
     arrVt <- array(t(object$states),c(ncol(object$states),nrow(object$states)+obsInSample-nobs(object),nsim),
@@ -11067,15 +11065,11 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     #                                 lagsModelAll, indexLookupTable, profilesRecentTable,
     #                                 componentsNumberETSSeasonal, componentsNumberETS,
     #                                 componentsNumberARIMA, xregNumber, constantRequired, adamETS);
-    ySimulated <- adamCpp$simulate(arrVt, matErrors,
-                                   matrix(rbinom(obsInSample*nsim, 1, pt), obsInSample, nsim),
-                                   arrF, matWt, matG,
-                                   lagsModelAll, indexLookupTable, profilesRecentTable,
-                                   EtypeModified, Ttype, Stype,
-                                   componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-                                   componentsNumberETS, componentsNumberARIMA, xregNumber,
-                                   constantRequired,
-                                   adamETS);
+    ySimulated <- adamCpp$simulate(matErrors, matrix(rbinom(obsInSample*nsim, 1, pt), obsInSample, nsim),
+                                   arrVt, matWt,
+                                   arrF, matG,
+                                   indexLookupTable, profilesRecentTable,
+                                   EtypeModified);
 
     # Set the proper time stamps for the fitted
     if(any(yClasses=="zoo")){

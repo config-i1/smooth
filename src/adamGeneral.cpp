@@ -77,7 +77,7 @@ namespace Rcpp {
 
 RCPP_MODULE(adamCore_module) {
     class_<adamCore>("adamCore")
-    .constructor()
+    .constructor<arma::uvec, char, char, char, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, bool>()
     .method("polynomialise", &adamCore::polynomialise)
     .method("fit", &adamCore::fit)
     .method("forecast", &adamCore::forecast)

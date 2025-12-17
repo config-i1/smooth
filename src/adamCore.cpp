@@ -59,12 +59,36 @@ struct ReforecastResult {
 // ============================================================================
 
 class adamCore {
+private:
+    arma::uvec lags;
+    char E;
+    char T;
+    char S;
+    unsigned int nNonSeasonal;
+    unsigned int nSeasonal;
+    unsigned int nETS;
+    unsigned int nArima;
+    unsigned int nXreg;
+    bool constant;
+    bool adamETS;
+
+public:
+    // Constructor
+    adamCore(arma::uvec lags_, char E_, char T_, char S_,
+             unsigned int nNonSeasonal_, unsigned int nSeasonal_,
+             unsigned int nETS_, unsigned int nArima_, unsigned int nXreg_,
+             bool constant_, bool adamETS_) :
+    lags(lags_), E(E_), T(T_), S(S_),
+    nNonSeasonal(nNonSeasonal_), nSeasonal(nSeasonal_),
+    nETS(nETS_), nArima(nArima_), nXreg(nXreg_),
+    constant(constant_), adamETS(adamETS_) {}
+
 public:
     // Method 1: polynomialiser - returns polynomials for ARIMA
     PolyResult polynomialise(arma::vec const &B,
                               arma::uvec const &arOrders, arma::uvec const &iOrders, arma::uvec const &maOrders,
                               bool const &arEstimate, bool const &maEstimate,
-                              SEXP armaParameters, arma::uvec const &lags){
+                              SEXP armaParameters, arma::uvec const &lagsARIMA){
 
         // Sometimes armaParameters is NULL. Treat this correctly
         arma::vec armaParametersValue;
@@ -73,9 +97,9 @@ public:
         }
 
         // Form matrices with parameters, that are then used for polynomial multiplication
-        arma::mat arParameters(max(arOrders % lags)+1, arOrders.n_elem, arma::fill::zeros);
-        arma::mat iParameters(max(iOrders % lags)+1, iOrders.n_elem, arma::fill::zeros);
-        arma::mat maParameters(max(maOrders % lags)+1, maOrders.n_elem, arma::fill::zeros);
+        arma::mat arParameters(max(arOrders % lagsARIMA)+1, arOrders.n_elem, arma::fill::zeros);
+        arma::mat iParameters(max(iOrders % lagsARIMA)+1, iOrders.n_elem, arma::fill::zeros);
+        arma::mat maParameters(max(maOrders % lagsARIMA)+1, maOrders.n_elem, arma::fill::zeros);
 
         arParameters.row(0).fill(1);
         iParameters.row(0).fill(1);
@@ -83,32 +107,32 @@ public:
 
         int nParam = 0;
         int armanParam = 0;
-        for(unsigned int i=0; i<lags.n_rows; ++i){
-            if(arOrders(i) * lags(i) != 0){
+        for(unsigned int i=0; i<lagsARIMA.n_rows; ++i){
+            if(arOrders(i) * lagsARIMA(i) != 0){
                 for(unsigned int j=0; j<arOrders(i); ++j){
                     if(arEstimate){
-                        arParameters((j+1)*lags(i),i) = -B(nParam);
+                        arParameters((j+1)*lagsARIMA(i),i) = -B(nParam);
                         nParam += 1;
                     }
                     else{
-                        arParameters((j+1)*lags(i),i) = -armaParametersValue(armanParam);
+                        arParameters((j+1)*lagsARIMA(i),i) = -armaParametersValue(armanParam);
                         armanParam += 1;
                     }
                 }
             }
 
-            if(iOrders(i) * lags(i) != 0){
-                iParameters(lags(i),i) = -1;
+            if(iOrders(i) * lagsARIMA(i) != 0){
+                iParameters(lagsARIMA(i),i) = -1;
             }
 
-            if(maOrders(i) * lags(i) != 0){
+            if(maOrders(i) * lagsARIMA(i) != 0){
                 for(unsigned int j=0; j<maOrders(i); ++j){
                     if(maEstimate){
-                        maParameters((j+1)*lags(i),i) = B(nParam);
+                        maParameters((j+1)*lagsARIMA(i),i) = B(nParam);
                         nParam += 1;
                     }
                     else{
-                        maParameters((j+1)*lags(i),i) = armaParametersValue(armanParam);
+                        maParameters((j+1)*lagsARIMA(i),i) = armaParametersValue(armanParam);
                         armanParam += 1;
                     }
                 }
@@ -116,17 +140,17 @@ public:
         }
 
         // Prepare vectors with coefficients for polynomials
-        arma::vec arPolynomial(sum(arOrders % lags)+1, arma::fill::zeros);
-        arma::vec iPolynomial(sum(iOrders % lags)+1, arma::fill::zeros);
-        arma::vec maPolynomial(sum(maOrders % lags)+1, arma::fill::zeros);
-        arma::vec ariPolynomial(sum(arOrders % lags)+sum(iOrders % lags)+1, arma::fill::zeros);
+        arma::vec arPolynomial(sum(arOrders % lagsARIMA)+1, arma::fill::zeros);
+        arma::vec iPolynomial(sum(iOrders % lagsARIMA)+1, arma::fill::zeros);
+        arma::vec maPolynomial(sum(maOrders % lagsARIMA)+1, arma::fill::zeros);
+        arma::vec ariPolynomial(sum(arOrders % lagsARIMA)+sum(iOrders % lagsARIMA)+1, arma::fill::zeros);
         arma::vec bufferPolynomial;
 
-        arPolynomial.rows(0,arOrders(0)*lags(0)) = arParameters.submat(0,0,arOrders(0)*lags(0),0);
-        iPolynomial.rows(0,iOrders(0)*lags(0)) = iParameters.submat(0,0,iOrders(0)*lags(0),0);
-        maPolynomial.rows(0,maOrders(0)*lags(0)) = maParameters.submat(0,0,maOrders(0)*lags(0),0);
+        arPolynomial.rows(0,arOrders(0)*lagsARIMA(0)) = arParameters.submat(0,0,arOrders(0)*lagsARIMA(0),0);
+        iPolynomial.rows(0,iOrders(0)*lagsARIMA(0)) = iParameters.submat(0,0,iOrders(0)*lagsARIMA(0),0);
+        maPolynomial.rows(0,maOrders(0)*lagsARIMA(0)) = maParameters.submat(0,0,maOrders(0)*lagsARIMA(0),0);
 
-        for(unsigned int i=0; i<lags.n_rows; ++i){
+        for(unsigned int i=0; i<lagsARIMA.n_rows; ++i){
             // Form polynomials
             if(i!=0){
                 bufferPolynomial = polyMult(arPolynomial, arParameters.col(i));
@@ -151,14 +175,14 @@ public:
 
         // Check if the length of polynomials is correct. Fix if needed
         // This might happen if one of parameters became equal to zero
-        if(maPolynomial.n_rows!=sum(maOrders % lags)+1){
-            maPolynomial.resize(sum(maOrders % lags)+1);
+        if(maPolynomial.n_rows!=sum(maOrders % lagsARIMA)+1){
+            maPolynomial.resize(sum(maOrders % lagsARIMA)+1);
         }
-        if(ariPolynomial.n_rows!=sum(arOrders % lags)+sum(iOrders % lags)+1){
-            ariPolynomial.resize(sum(arOrders % lags)+sum(iOrders % lags)+1);
+        if(ariPolynomial.n_rows!=sum(arOrders % lagsARIMA)+sum(iOrders % lagsARIMA)+1){
+            ariPolynomial.resize(sum(arOrders % lagsARIMA)+sum(iOrders % lagsARIMA)+1);
         }
-        if(arPolynomial.n_rows!=sum(arOrders % lags)+1){
-            arPolynomial.resize(sum(arOrders % lags)+1);
+        if(arPolynomial.n_rows!=sum(arOrders % lagsARIMA)+1){
+            arPolynomial.resize(sum(arOrders % lagsARIMA)+1);
         }
 
         PolyResult result;
@@ -172,14 +196,10 @@ public:
     // Method 2: Fitter - fits SSOE model to the data
     FitResult fit(arma::mat &matrixVt, arma::mat const &matrixWt,
                   arma::mat &matrixF, arma::vec const &vectorG,
-                  arma::uvec &lags, arma::umat const &indexLookupTable,
-                  arma::mat profilesRecent,
-                  char const &E, char const &T, char const &S,
-                  unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                  unsigned int const &nETS, unsigned int const &nArima, unsigned int const &nXreg,
-                  bool const &constant, arma::vec const &vectorYt, arma::vec const &vectorOt,
-                  bool const &backcast, unsigned int const &nIterations, bool const &refineHead,
-                  bool const &adamETS) {
+                  arma::umat const &indexLookupTable, arma::mat profilesRecent,
+                  arma::vec const &vectorYt, arma::vec const &vectorOt,
+                  bool const &backcast, unsigned int const &nIterations,
+                  bool const &refineHead) {
         /* # matrixVt should have a length of obs + lagsModelMax.
          * # matrixWt is a matrix with nrows = obs
          * # vecG should be a vector
@@ -312,12 +332,7 @@ public:
 
     // Method 3: Forecaster - produces forecasts for the adam
     ForecastResult forecast(arma::mat const &matrixWt, arma::mat const &matrixF,
-                            arma::uvec lags, arma::umat const &indexLookupTable,
-                            arma::mat profilesRecent,
-                            char const &E, char const &T, char const &S,
-                            unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                            unsigned int const &nETS, unsigned int const &nArima, unsigned int const &nXreg,
-                            bool const &constant,
+                            arma::umat const &indexLookupTable, arma::mat profilesRecent,
                             unsigned int const &horizon) {
 
         unsigned int nComponents = indexLookupTable.n_rows;
@@ -339,14 +354,10 @@ public:
     }
 
     // Method 4: Errorer - generates multistep error matrix
-    ErrorResult error(arma::mat matrixVt, arma::mat matrixWt, arma::mat matrixF,
-                          arma::uvec lags, arma::umat const &indexLookupTable,
-                          arma::mat profilesRecent,
-                          char const &E, char const &T, char const &S,
-                          unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                          unsigned int const &nETS, unsigned int const &nArima, unsigned int const &nXreg,
-                          bool const &constant, unsigned int const &horizon,
-                          arma::vec vectorYt) {
+    ErrorResult error(arma::mat matrixVt, arma::mat matrixWt,
+                      arma::mat matrixF,
+                      arma::umat const &indexLookupTable, arma::mat profilesRecent,
+                      unsigned int const &horizon, arma::vec vectorYt) {
         unsigned int obs = vectorYt.n_rows;
         unsigned int lagsModelMax = max(lags);
         // This is needed for cases, when hor>obs
@@ -369,10 +380,10 @@ public:
             matErrors.submat(0, i, hh-1, i) =
                 errorvf(vectorYt.rows(i, i+hh-1),
                         forecast(matrixWt.rows(i,i+hh-1), matrixF,
-                                   lags, indexLookupTable.cols(i+lagsModelMax,i+lagsModelMax+hh-1), profilesRecent,
-                                   E, T, S, nNonSeasonal, nSeasonal, nETS, nArima, nXreg, constant, hh).forecast,
-                                       // vectorPt.rows(i, i+hh-1),
-                                   E);
+                                 indexLookupTable.cols(i+lagsModelMax,i+lagsModelMax+hh-1), profilesRecent,
+                                 hh).forecast,
+                                 // vectorPt.rows(i, i+hh-1),
+                                 E);
         }
 
         // Cut-off the redundant last part
@@ -386,15 +397,10 @@ public:
     }
 
     // Method 5: Simulator - creates the simulated data based on the SSOE matrices
-    SimulateResult simulate(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat const &matrixOt,
-                            arma::cube const &arrayF, arma::mat const &matrixWt, arma::mat const &matrixG,
-                            arma::uvec &lags, arma::umat const &indexLookupTable,
-                            arma::mat profilesRecent,
-                            char const &E, char const &T, char const &S,
-                            unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                            unsigned int const &nETS, unsigned int const &nArima, unsigned int const &nXreg,
-                            bool const &constant,
-                            bool const &adamETS){
+    SimulateResult simulate(arma::mat const &matrixErrors, arma::mat const &matrixOt,
+                            arma::cube &arrayVt, arma::mat const &matrixWt,
+                            arma::cube const &arrayF, arma::mat const &matrixG,
+                            arma::umat const &indexLookupTable, arma::mat profilesRecent, char const &E){
 
         unsigned int obs = matrixErrors.n_rows;
         unsigned int nSeries = matrixErrors.n_cols;
@@ -451,14 +457,11 @@ public:
     }
 
     // Method 6: Refit - function reapplies ADAM to the data with different parameters
-    ReapplyResult reapply(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cube &arrayVt, arma::cube const &arrayF,
-                          arma::cube const &arrayWt, arma::mat const &matrixG,
-                          arma::uvec &lags, arma::umat const &indexLookupTable, arma::cube arrayProfilesRecent,
-                          char const &E, char const &T, char const &S,
-                          unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                          unsigned int const &nETS, unsigned int const &nArima, unsigned int const &nXreg,
-                          bool const &constant,
-                          bool const &backcast, bool const &refineHead, bool const &adamETS){
+    ReapplyResult reapply(arma::mat const &matrixYt, arma::mat const &matrixOt,
+                          arma::cube &arrayVt, arma::cube const &arrayWt,
+                          arma::cube const &arrayF, arma::mat const &matrixG,
+                          arma::umat const &indexLookupTable, arma::cube arrayProfilesRecent,
+                          bool const &backcast, bool const &refineHead){
 
         int obs = matrixYt.n_rows;
         unsigned int nSeries = matrixG.n_cols;
@@ -593,13 +596,10 @@ public:
 
     // Method 7: Reforecast - produce many forecasts given the matrices
     ReforecastResult reforecast(arma::cube const &arrayErrors, arma::cube const &arrayOt,
-                                arma::cube const &arrayF, arma::cube const &arrayWt, arma::mat const &matrixG,
-                                arma::uvec &lags, arma::umat const &indexLookupTable, arma::cube arrayProfileRecent,
-                                char const &E, char const &T, char const &S,
-                                unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                                unsigned int const &nETS,  unsigned int const &nArima, unsigned int const &nXreg,
-                                bool const &constant,
-                                bool const &adamETS){
+                                arma::cube const &arrayWt,
+                                arma::cube const &arrayF, arma::mat const &matrixG,
+                                arma::umat const &indexLookupTable, arma::cube arrayProfileRecent,
+                                char const &E){
 
         unsigned int obs = arrayErrors.n_rows;
         unsigned int nSeries = arrayErrors.n_cols;
