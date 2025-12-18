@@ -2947,7 +2947,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                 constantRequired, constantEstimate,
                                                 bounds, loss, lossFunction, distributionNew, horizon, multisteps,
                                                 denominator, yDenominator, other, otherParameterEstimate, lambda,
-                                                arPolynomialMatrix, maPolynomialMatrix, adamCpp=adamCpp),
+                                                arPolynomialMatrix, maPolynomialMatrix, adamCpp),
                                      # In case of likelihood, we typically have one more parameter to estimate - scale.
                                      nobs=obsInSample,df=nParamEstimated+(loss=="likelihood"),class="logLik");
         xregIndex <- 1;
@@ -2975,7 +2975,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                          componentsNumberARIMA, componentsNamesARIMA,
                                          xregModel, xregModelInitials, xregData, xregNumber, xregNames,
                                          xregParametersPersistence,
-                                         constantRequired, constantEstimate, constantValue, constantName);
+                                         constantRequired, constantEstimate, constantValue, constantName,
+                                         adamCpp);
             }
             # Fill in the matrices
             adamCreated[] <- filler(B,
@@ -4205,7 +4206,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                componentsNumberARIMA, componentsNamesARIMA,
                                xregModel, xregModelInitials, xregData, xregNumber, xregNames,
                                xregParametersPersistence,
-                               constantRequired, constantEstimate, constantValue, constantName);
+                               constantRequired, constantEstimate, constantValue, constantName,
+                               adamCpp);
         list2env(adamCreated, environment());
 
         parametersNumber[1,1] <- nParamEstimated;
@@ -4331,6 +4333,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             adamSelected$results[[i]]$componentsNumberETSSeasonal <- adamArchitect$componentsNumberETSSeasonal;
             adamSelected$results[[i]]$componentsNumberETSNonSeasonal <- adamArchitect$componentsNumberETSNonSeasonal;
             adamSelected$results[[i]]$componentsNamesETS <- adamArchitect$componentsNamesETS;
+            adamSelected$results[[i]]$adamCpp <- adamArchitect$adamCpp;
 
             # Create the matrices for the specific ETS model
             adamCreated <- creator(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
@@ -4353,7 +4356,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                    componentsNumberARIMA, componentsNamesARIMA,
                                    xregModel, xregModelInitials, xregData, xregNumber, xregNames,
                                    xregParametersPersistence,
-                                   constantRequired, constantEstimate, constantValue, constantName);
+                                   constantRequired, constantEstimate, constantValue, constantName,
+                                   adamCpp);
 
             adamSelected$results[[i]]$matVt <- adamCreated$matVt;
             adamSelected$results[[i]]$matWt <- adamCreated$matWt;
@@ -4417,7 +4421,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                componentsNumberARIMA, componentsNamesARIMA,
                                xregModel, xregModelInitials, xregData, xregNumber, xregNames,
                                xregParametersPersistence,
-                               constantRequired, constantEstimate, constantValue, constantName);
+                               constantRequired, constantEstimate, constantValue, constantName,
+                               adamCpp);
         list2env(adamCreated, environment());
 
         # Prepare the denominator needed for the shrinkage of explanatory variables in LASSO / RIDGE

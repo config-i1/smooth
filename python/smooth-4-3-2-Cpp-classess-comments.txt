@@ -16,5 +16,6 @@ g. filler (because of the polynomials)
 9. errorer returns object "errors"
 10. adamCpp class now sets common parameters (coming from the architector), which are now used in all the methods. This means that the methods now accept fewer parameters.
 11. estimator now returns adamCpp object to pass it to selector and other functions that might need it
+12. creator() now requires adamCpp
 12. componentsDefiner now also returns componentsNumberETSNonSeasonal
 
