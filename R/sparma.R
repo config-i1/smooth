@@ -43,11 +43,11 @@
 #' }
 #'
 #' @details
-#' The model implements: y_t = phi * y_{t-p} + theta * epsilon_{t-q} + epsilon_t
+#' The model implements: \deqn{y_t = phi * y_{t-p} + theta * epsilon_{t-q} + epsilon_t}
 #'
 #' State Space Form:
-#' - Measurement equation: y_t = w' * v_{t-l} + epsilon_t
-#' - Transition equation: v_t = F * v_{t-l} + g * epsilon_t
+#' - Measurement equation: \deqn{y_t = w' * v_{t-l} + epsilon_t}
+#' - Transition equation: \deqn{v_t = F * v_{t-l} + g * epsilon_t}
 #'
 #' @examples
 #' \dontrun{
@@ -116,7 +116,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
     modelDo <- "";
 
     # Call parametersChecker
-    checkerReturn <- parametersChecker(data=data, model=model, lags=lags, formula=formula,
+    checkerReturn <- parametersChecker(data=data, model=model, lags=lags, formulaToUse=formula,
                                        orders=orders_list, constant=constant, arma=NULL,
                                        outliers=outliers, level=level,
                                        persistence=persistence, phi=phi, initial=initial,
