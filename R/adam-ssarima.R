@@ -251,15 +251,15 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         if(arimaModel){
             # This is a failsafe for cases, when model doesn't have any parameters (e.g. I(d) with backcasting)
             if(is.null(B)){
-                arimaPolynomials <- lapply(adamPolynomialiser(0,
-                                                              arOrders, iOrders, maOrders,
-                                                              arEstimate, maEstimate, armaParameters, lags), as.vector);
+                arimaPolynomials <- lapply(adamCpp$polynomialise(0,
+                                                                 arOrders, iOrders, maOrders,
+                                                                 arEstimate, maEstimate, armaParameters, lags), as.vector);
             }
             else{
                 # Call the function returning ARI and MA polynomials
-                arimaPolynomials <- lapply(adamPolynomialiser(B[1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                              arOrders, iOrders, maOrders,
-                                                              arEstimate, maEstimate, armaParameters, lags), as.vector);
+                arimaPolynomials <- lapply(adamCpp$polynomialise(B[1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                                 arOrders, iOrders, maOrders,
+                                                                 arEstimate, maEstimate, armaParameters, lags), as.vector);
             }
 
             if(arRequired || any(iOrders>0)){
@@ -421,12 +421,18 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         # Write down the initials in the recent profile
         matVt[,1] <- profilesRecentTable[] <- elements$matVt[,1, drop=FALSE];
 
-        adamFitted <- adamFitterWrap(matVt, elements$matWt, elements$matF, elements$vecG,
-                                     lagsModelAll, indexLookupTable, profilesRecentTable,
-                                     Etype, Ttype, Stype, 0, 0,
-                                     componentsNumberARIMA, xregNumber, constantEstimate,
-                                     yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations, refineHead, FALSE);
+        # adamFitted <- adamFitterWrap(matVt, elements$matWt, elements$matF, elements$vecG,
+        #                              lagsModelAll, indexLookupTable, profilesRecentTable,
+        #                              Etype, Ttype, Stype, 0, 0,
+        #                              componentsNumberARIMA, xregNumber, constantEstimate,
+        #                              yInSample, ot, any(initialType==c("complete","backcasting")),
+        #                              nIterations, refineHead, FALSE);
+        adamFitted <- adamCpp$fit(matVt, elements$matWt,
+                                  elements$matF, elements$vecG,
+                                  indexLookupTable, profilesRecentTable,
+                                  yInSample, ot,
+                                  any(initialType==c("complete","backcasting")), nIterations,
+                                  refineHead);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -435,7 +441,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
                 # Calculate the likelihood
                 CFValue <- -sum(dnorm(x=yInSample[otLogical],
-                                      mean=adamFitted$yFitted[otLogical],
+                                      mean=adamFitted$fitted[otLogical],
                                       sd=scale, log=TRUE));
             }
             else if(loss=="MSE"){
@@ -448,17 +454,21 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                 CFValue <- sum(sqrt(abs(adamFitted$errors)))/obsInSample;
             }
             else if(loss=="custom"){
-                CFValue <- lossFunction(actual=yInSample,fitted=adamFitted$yFitted,B=B);
+                CFValue <- lossFunction(actual=yInSample,fitted=adamFitted$fitted,B=B);
             }
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            adamErrors <- adamErrorerWrap(adamFitted$matVt, elements$matWt, elements$matF,
-                                          lagsModelAll, indexLookupTable, profilesRecentTable,
-                                          Etype, Ttype, Stype,
-                                          componentsNumberETS, componentsNumberETSSeasonal,
-                                          componentsNumberARIMA, xregNumber, constantRequired, h,
-                                          yInSample, ot);
+            # adamErrors <- adamErrorerWrap(adamFitted$matVt, elements$matWt, elements$matF,
+            #                               lagsModelAll, indexLookupTable, profilesRecentTable,
+            #                               Etype, Ttype, Stype,
+            #                               componentsNumberETS, componentsNumberETSSeasonal,
+            #                               componentsNumberARIMA, xregNumber, constantRequired, h,
+            #                               yInSample, ot);
+            adamErrors <- adamCpp$ferrors(adamFitted$states, elements$matWt,
+                                          elements$matF,
+                                          indexLookupTable, profilesRecentTable,
+                                          h, yInSample)$errors;
 
             # Not done yet: "aMSEh","aTMSE","aGTMSE","aMSCE","aGPL"
             CFValue <- switch(loss,
@@ -532,18 +542,6 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         stop("Seasonal lags do not correspond to any element of SARIMA",call.=FALSE);
     }
 
-    # If zeroes are defined for some orders, drop them.
-    # if(any((arOrders + iOrders + maOrders)==0)){
-    #     orders2leave <- (arOrders + iOrders + maOrders)!=0;
-    #     if(all(!orders2leave)){
-    #         orders2leave <- lags==min(lags);
-    #     }
-    #     arOrders <- arOrders[orders2leave];
-    #     iOrders <- iOrders[orders2leave];
-    #     maOrders <- maOrders[orders2leave];
-    #     lags <- lags[orders2leave];
-    # }
-
     # Get rid of duplicates in lags
     if(length(unique(lags))!=length(lags)){
         if(dataFreq!=1){
@@ -572,6 +570,15 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     lagsModelAll <- matrix(rep(1,componentsNumberAll+xregNumber),ncol=1);
     lagsModelMax <- 1;
+
+    # Create C++ adam class, which will then use fit, forecast etc methods
+    adamCpp <- new(adamCore,
+                   lagsModelAll, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber,
+                   constantRequired, FALSE);
 
     if(!is.null(initialValueProvided)){
         initialType <- "provided";
@@ -1101,18 +1108,24 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                             arEstimate=arEstimate, maEstimate=maEstimate),
                              nobs=obsInSample, df=nParamEstimated, class="logLik");
 
-    adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-                                 lagsModelAll, indexLookupTable, profilesRecentTable,
-                                 Etype, Ttype, Stype, 0, 0,
-                                 componentsNumberARIMA, xregNumber, constantEstimate,
-                                 yInSample, ot, any(initialType==c("complete","backcasting")),
-                                 nIterations, refineHead, FALSE);
+    # adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
+    #                              lagsModelAll, indexLookupTable, profilesRecentTable,
+    #                              Etype, Ttype, Stype, 0, 0,
+    #                              componentsNumberARIMA, xregNumber, constantEstimate,
+    #                              yInSample, ot, any(initialType==c("complete","backcasting")),
+    #                              nIterations, refineHead, FALSE);
+    adamFitted <- adamCpp$fit(matVt, matWt,
+                              matF, vecG,
+                              indexLookupTable, profilesRecentTable,
+                              yInSample, ot,
+                              any(initialType==c("complete","backcasting")), nIterations,
+                              refineHead);
 
     errors[] <- adamFitted$errors;
-    yFitted[] <- adamFitted$yFitted;
+    yFitted[] <- adamFitted$fitted;
     # Write down the recent profile for future use
     profilesRecentTable <- adamFitted$profile;
-    matVt[] <- adamFitted$matVt;
+    matVt[] <- adamFitted$states;
 
     # Write down the initials in the recent profile
     profilesRecentInitial <- matVt[,1,drop=FALSE];
@@ -1126,14 +1139,18 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         yForecast <- zoo(rep(NA, max(1,h)), order.by=yForecastIndex);
     }
     if(h>0){
-        yForecast[] <- adamForecasterWrap(tail(matWt,h), matF,
-                                          lagsModelAll,
-                                          indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
-                                          profilesRecentTable,
-                                          Etype, Ttype, Stype,
-                                          componentsNumberETS, componentsNumberETSSeasonal,
-                                          componentsNumberARIMA, xregNumber, constantEstimate,
-                                          h);
+        # yForecast[] <- adamForecasterWrap(tail(matWt,h), matF,
+        #                                   lagsModelAll,
+        #                                   indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
+        #                                   profilesRecentTable,
+        #                                   Etype, Ttype, Stype,
+        #                                   componentsNumberETS, componentsNumberETSSeasonal,
+        #                                   componentsNumberARIMA, xregNumber, constantEstimate,
+        #                                   h);
+        yForecast[] <- adamCpp$forecast(tail(matWt,h), matF,
+                                        indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
+                                        profilesRecentTable,
+                                        h)$forecast;
     }
     else{
         yForecast[] <- NA;

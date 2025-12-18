@@ -190,10 +190,11 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     Etype <- "A";
     Ttype <- Stype <- "N";
 
-    componentsNumberETS <- componentsNumberETSSeasonal <- xregNumber <- 0;
+    componentsNumberETS <- componentsNumberETSSeasonal <- componentsNumberETSNonSeasonal <- xregNumber <- 0;
     constantRequired <- FALSE;
     ot <- yInSample;
     ot[] <- 1;
+
 
     CreatorSMA <- function(order){
         lagsModelAll <- matrix(1:order, ncol=1);
@@ -213,16 +214,31 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         vecG <- matrix(1/order,order);
         matVt <- matrix(0,order,obsStates);
 
+        # Create C++ adam class, which will then use fit, forecast etc methods
+        adamCpp <- new(adamCore,
+                       lagsModelAll, Etype, Ttype, Stype,
+                       componentsNumberETSNonSeasonal,
+                       componentsNumberETSSeasonal,
+                       componentsNumberETS, order,
+                       xregNumber,
+                       constantRequired, FALSE);
+
         #### Fitter and the losses calculation ####
-        adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-                                     lagsModelAll, indexLookupTable, profilesRecentTable,
-                                     Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-                                     order, xregNumber, constantRequired,
-                                     yInSample, ot, TRUE, 2, TRUE, FALSE);
+        # adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
+        #                              lagsModelAll, indexLookupTable, profilesRecentTable,
+        #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+        #                              order, xregNumber, constantRequired,
+        #                              yInSample, ot, TRUE, 2, TRUE, FALSE);
+        adamFitted <- adamCpp$fit(matVt, matWt,
+                                  matF, vecG,
+                                  indexLookupTable, profilesRecentTable,
+                                  yInSample, ot,
+                                  TRUE, 2,
+                                  TRUE);
 
         # Get scale, cf, logLik and IC
         scale <- sqrt(sum(adamFitted$errors^2)/obsInSample);
-        cfObjective <- sum(dnorm(x=yInSample, mean=adamFitted$yFitted, sd=scale, log=TRUE));
+        cfObjective <- sum(dnorm(x=yInSample, mean=adamFitted$fitted, sd=scale, log=TRUE));
         logLik <- structure(cfObjective, nobs=obsInSample, df=1, class="logLik");
         ICValue <- icFunction(logLik);
 
