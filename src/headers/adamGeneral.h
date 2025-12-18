@@ -1,8 +1,4 @@
-#include <RcppArmadillo.h>
-#include <iostream>
-#include <cmath>
-
-using namespace Rcpp;
+#pragma once
 
 /* # Function returns value of w() -- y-fitted -- used in the measurement equation */
 inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,

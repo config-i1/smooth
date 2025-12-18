@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
 project(smooth VERSION 0.0.1)
 
 if(SKBUILD)
@@ -43,35 +41,24 @@ else()
   include_directories(${ARMADILLO_INCLUDE_DIRS})
 endif()
 
-# Adam General
-pybind11_add_module(_adam_general ../src/python_examples/adamGeneral.cpp)
-target_include_directories(_adam_general PRIVATE ../src/python_examples/.)
-target_link_libraries(_adam_general PRIVATE carma::carma)
+# Adam Core - Updated to use new core implementation
+pybind11_add_module(_adamCore ../src/python/adamPython.cpp)
+
+# CRITICAL: Point to src/ directory so headers can be found
+target_include_directories(_adamCore PRIVATE ../src)
+
+target_link_libraries(_adamCore PRIVATE carma::carma)
+
 # Always link BLAS/LAPACK
-target_link_libraries(_adam_general PRIVATE ${lapackblas_libraries})
+target_link_libraries(_adamCore PRIVATE ${lapackblas_libraries})
+
 if(Armadillo_FOUND)
   if(TARGET Armadillo::armadillo)
-    target_link_libraries(_adam_general PRIVATE Armadillo::armadillo)
+    target_link_libraries(_adamCore PRIVATE Armadillo::armadillo)
   else()
-    target_link_libraries(_adam_general PRIVATE ${ARMADILLO_LIBRARIES})
+    target_link_libraries(_adamCore PRIVATE ${ARMADILLO_LIBRARIES})
   endif()
 endif()
-install(TARGETS _adam_general DESTINATION smooth/adam_general)
 
-# Install Python source files
-# install(DIRECTORY smooth DESTINATION .)
-
-# Old experimental stuff by Leo
-# code to add the pybind11 cpp module, look at demo project 
-# (https://github.com/ltsaprounis/python-cpp-experiments/tree/main) for details.
-#pybind11_add_module(_my_linalg ../src/python_examples/my_linalg.cpp)
-
-# add CARMA as a subdirectory
-#add_subdirectory(../src/libs/carma build)
-#target_link_libraries(_my_linalg
-#    PRIVATE carma::carma
-#    ${ARMADILLO_LIBRARIES}
-#)
-
-# install(TARGETS _my_linalg DESTINATION smooth/my_linalg)
-
+# Install to match module name
+install(TARGETS _adamCore DESTINATION smooth)

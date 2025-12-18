@@ -1,8 +1,4 @@
-#include <RcppArmadillo.h>
-#include <iostream>
-#include <cmath>
-
-using namespace Rcpp;
+#pragma once
 
 /* # Function is needed to estimate the correct error for ETS when multisteps model selection with r(matvt) is sorted out. */
 inline arma::mat matrixPower(arma::mat const &A, int const &power){

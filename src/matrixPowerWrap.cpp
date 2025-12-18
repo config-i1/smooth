@@ -1,5 +1,9 @@
 #include <RcppArmadillo.h>
-#include "ssGeneral.h"
+// [[Rcpp::depends(RcppArmadillo)]]
+
+using namespace Rcpp;
+
+#include "headers/matrixPowerCore.h"
 
 // [[Rcpp::export]]
 RcppExport SEXP matrixPowerWrap(SEXP matA, SEXP power){
@@ -8,5 +12,5 @@ RcppExport SEXP matrixPowerWrap(SEXP matA, SEXP power){
 
     int pow = as<int>(power);
 
-    return wrap(matrixPower(matrixA, pow));
+    return wrap(matrixPowerCore(matrixA, pow));
 }

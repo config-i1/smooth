@@ -1,10 +1,11 @@
 #include <RcppArmadillo.h>
 #include <iostream>
 #include <cmath>
-#include "adamCore.cpp"
 // [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp;
+
+#include "headers/adamCore.h"
 
 
 // ============================================================================

@@ -16,7 +16,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "xregParametersPersistence","xregModelInitials","constantName","yDenominator",
                          "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval","icFunction",
                          "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal",
-                         "nIterations","smoother","adamETS"));
+                         "nIterations","smoother","adamETS","adamCpp"));
 
 #' ADAM is Augmented Dynamic Adaptive Model
 #'
@@ -341,6 +341,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @importFrom pracma hessian
 #' @importFrom zoo zoo
 #' @importFrom utils head
+#' @importFrom methods new
 #' @rdname adam
 #' @export adam
 adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),

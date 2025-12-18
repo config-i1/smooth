@@ -1,10 +1,5 @@
-#include <RcppArmadillo.h>
-#include <iostream>
-#include <cmath>
 #include "ssGeneral.h"
 #include "adamGeneral.h"
-
-using namespace Rcpp;
 
 // ============================================================================
 // STRUCTURE DEFINITIONS

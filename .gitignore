@@ -160,11 +160,14 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-#IDEs 
+#IDEs
 .vscode
 
 # memory system file
 .DS_Store
 
-#vim swap files
+# vim swap files
 *.swp
+
+# cursor files
+.cursor/
