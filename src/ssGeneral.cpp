@@ -1,7 +1,7 @@
 #include <RcppArmadillo.h>
 #include <iostream>
 #include <cmath>
-#include "ssGeneral.h"
+#include "headers/ssGeneral.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp;

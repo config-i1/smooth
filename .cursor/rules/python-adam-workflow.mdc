@@ -1,0 +1,216 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Python ADAM Workflow and Function Relationships
+
+## Execution Flow Overview
+
+The Python ADAM implementation follows a structured pipeline that mirrors the R version in [R/adam.R](mdc:R/adam.R):
+
+```
+User Input → Validation → Architecture → Creation → Estimation → Forecasting
+```
+
+## Detailed Function Flow
+
+### 1. Model Initialization: [adam.py](mdc:python/smooth/adam_general/core/adam.py)
+
+```python
+ADAM.__init__()
+├── Store all configuration parameters
+├── Set default values for unspecified parameters  
+└── Initialize timing and state tracking
+```
+
+**Key Parameters Stored:**
+- `model`: ETS model specification (e.g., "ANN", "ZXZ")
+- `lags`: Seasonal periods
+- `ar_order`, `i_order`, `ma_order`: ARIMA components
+- `distribution`: Error distribution
+- `loss`: Loss function for estimation
+- `ic`: Information criterion for model selection
+
+### 2. Model Fitting: [adam.py](mdc:python/smooth/adam_general/core/adam.py) → [checker.py](mdc:python/smooth/adam_general/core/checker.py)
+
+```python
+ADAM.fit(y, X)
+├── _check_parameters(ts) 
+│   └── parameters_checker() [checker.py]
+│       ├── _check_model_composition()
+│       ├── _process_observations()
+│       ├── _check_lags()
+│       ├── _check_persistence()
+│       ├── _check_initial()
+│       ├── _check_arima_orders()
+│       └── _check_explanatory_vars()
+├── _execute_estimation() / _execute_selection()
+└── _prepare_results()
+```
+
+**Validation Process:**
+- Converts input data to appropriate format
+- Validates model specification strings
+- Checks parameter bounds and consistency
+- Processes missing values and outliers
+
+### 3. Model Architecture: [creator.py](mdc:python/smooth/adam_general/core/creator.py)
+
+```python
+_execute_estimation()
+├── architector() [creator.py]
+│   ├── _setup_components()     # Determine ETS/ARIMA component counts
+│   ├── _setup_lags()          # Finalize lag structure
+│   └── _create_profiles()     # Create lookup tables
+└── creator() [creator.py]     # Build state-space matrices
+    ├── _extract_model_parameters()
+    ├── _setup_matrices()       # Initialize mat_vt, mat_wt, mat_f, vec_g
+    ├── _setup_measurement_vector()
+    ├── _setup_persistence_vector()
+    ├── _handle_polynomial_setup()
+    └── _initialize_states()
+```
+
+**Matrix Creation:**
+- `mat_vt`: State vector (levels, trends, seasonals, ARIMA states)
+- `mat_wt`: Measurement matrix (how states contribute to observations)
+- `mat_f`: Transition matrix (how states evolve)
+- `vec_g`: Persistence vector (smoothing parameters)
+
+### 4. Parameter Estimation: [estimator.py](mdc:python/smooth/adam_general/core/estimator.py)
+
+```python
+estimator() [estimator.py]
+├── initialiser() [creator.py]  # Get initial parameter vector B and bounds
+├── _create_objective_function()
+│   └── CF() [utils/cost_functions.py]
+│       └── filler() [creator.py]  # Fill matrices with current B
+├── _run_optimization() [nlopt]
+├── _calculate_loglik()
+├── _generate_forecasts()
+└── _format_output()
+```
+
+**Optimization Process:**
+- Uses NLopt library for parameter optimization
+- Cost function `CF()` evaluates likelihood or other loss functions
+- `filler()` updates matrices with current parameter values during optimization
+- Applies parameter bounds and constraints
+
+### 5. Model Selection (Optional): [estimator.py](mdc:python/smooth/adam_general/core/estimator.py)
+
+```python
+_execute_selection()
+├── selector() [estimator.py]
+│   ├── _form_model_pool()     # Generate candidate models
+│   ├── For each candidate:
+│   │   ├── architector() [creator.py]
+│   │   ├── creator() [creator.py]  
+│   │   └── estimator() [estimator.py]
+│   └── _select_best_model()   # Based on IC (AICc, BIC, etc.)
+└── _execute_estimation(estimation=False)  # Setup chosen model
+```
+
+**Selection Methods:**
+- Branch and Bound for "Z" components
+- Pool-based selection for specified model lists
+- Information criteria comparison (AIC, AICc, BIC, BICc)
+
+### 6. Forecasting: [forecaster.py](mdc:python/smooth/adam_general/core/forecaster.py)
+
+```python
+ADAM.predict(h, X)
+├── _validate_prediction_inputs()
+├── _prepare_prediction_data()
+│   └── preparator() [forecaster.py]
+│       ├── _fill_matrices_if_needed()  # Uses filler() from creator.py
+│       ├── _prepare_profiles_recent_table()
+│       └── _initialize_fitted_series()
+├── _execute_prediction()
+│   └── forecaster() [forecaster.py]
+│       ├── _prepare_forecast_index()
+│       ├── _initialize_forecast_series()
+│       ├── _prepare_lookup_table()
+│       ├── _generate_point_forecasts()  # Uses adam_forecaster from _adam_general.py
+│       ├── _prepare_forecast_intervals()
+│       └── _format_forecast_output()
+└── return forecasts
+```
+
+## Key Function Relationships
+
+### Core Matrix Functions
+- **`filler()`** in [creator.py](mdc:python/smooth/adam_general/core/creator.py): Central function that populates matrices with parameter values
+- **Used by**: `CF()` cost function, `preparator()` for forecasting
+- **Purpose**: Converts parameter vector B into structured matrices
+
+### Cost Function Chain
+```python
+CF() [cost_functions.py]
+├── filler() [creator.py]           # Fill matrices with parameters
+├── adam_fitter() [_adam_general.py] # C++ fitting routine
+└── Various penalty/constraint checks
+```
+
+### State Initialization Chain
+```python
+_initialize_states() [creator.py]
+├── _initialize_ets_states()
+├── _initialize_arima_states() 
+├── _initialize_xreg_states()
+└── _initialize_constant()
+```
+
+## Data Flow Patterns
+
+### Parameter Vector (B) Flow
+1. **Initial**: `initialiser()` creates initial B vector
+2. **Optimization**: NLopt modifies B to minimize cost function
+3. **Filling**: `filler()` converts B to matrices during each evaluation
+4. **Storage**: Final B stored in model for forecasting
+
+### Matrix Flow
+1. **Creation**: `creator()` builds empty matrices
+2. **Filling**: `filler()` populates with parameters
+3. **Fitting**: C++ `adam_fitter()` processes matrices
+4. **Forecasting**: `adam_forecaster()` uses matrices for predictions
+
+### Error Handling
+- Constraint violations return large penalty values (1e100)
+- Parameter bounds enforced during optimization
+- NaN/Inf values trigger warnings and fallback procedures
+
+## Low-Level Integration
+
+### C++ Bindings: [_adam_general.py](mdc:python/smooth/adam_general/_adam_general.py)
+- **`adam_fitter()`**: Core fitting routine (equivalent to R's C++ code)
+- **`adam_forecaster()`**: Core forecasting routine
+- **Called by**: Cost functions and forecasting functions
+- **Purpose**: High-performance matrix operations
+
+### Utility Integration
+- **[utils/ic.py](mdc:python/smooth/adam_general/core/utils/ic.py)**: Information criteria calculations
+- **[utils/var_covar.py](mdc:python/smooth/adam_general/core/utils/var_covar.py)**: Variance-covariance for intervals
+- **[utils/utils.py](mdc:python/smooth/adam_general/core/utils/utils.py)**: General utilities (decomposition, likelihood)
+
+## Development Guidelines
+
+### Adding New Functionality
+1. **Validation**: Add checks to [checker.py](mdc:python/smooth/adam_general/core/checker.py)
+2. **Matrix Setup**: Extend [creator.py](mdc:python/smooth/adam_general/core/creator.py) functions
+3. **Cost Function**: Update [cost_functions.py](mdc:python/smooth/adam_general/core/utils/cost_functions.py)
+4. **Interface**: Expose through [adam.py](mdc:python/smooth/adam_general/core/adam.py) class
+
+### Testing Workflow
+- Unit tests for individual functions
+- Integration tests for complete workflows
+- Comparison tests against R implementation
+- Performance benchmarks for optimization
+
+### Debugging Tips
+- Use `verbose` parameter in ADAM class for detailed output
+- Check matrix dimensions in `creator()` functions
+- Validate parameter bounds in cost functions
+- Monitor convergence in optimization routines
+

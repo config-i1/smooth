@@ -1085,7 +1085,7 @@ def _check_initial(
 
     # Handle "optimal" or "backcasting" strings
     if isinstance(initial, str):
-        if initial.lower() in ["optimal", "backcasting"]:
+        if initial.lower() in ["optimal", "backcasting", "complete", "two-stage"]:
             result["initial_type"] = initial.lower()
             return result
         else:
@@ -1542,7 +1542,11 @@ def _calculate_ot_logical(
         ot_logical = np.ones_like(ot_logical, dtype=bool)
 
     # Determine frequency
-    freq = "1"  # Default
+    if frequency is not None:
+        freq = frequency
+    else:
+        freq = "1"  # Default
+
     if (
         hasattr(data, "index")
         and hasattr(data.index, "freq")
@@ -1574,18 +1578,18 @@ def _calculate_ot_logical(
                     y_forecast_start = last_idx + freq_delta
                 else:
                     # For numeric index
-                    if hasattr(data.index, 'freq'):
+                    if hasattr(data.index, 'freq') and data.index.freq is not None:
                         y_forecast_start = data.index[-1] + data.index.freq
                     else:
-                        # Fallback for numeric index without freq
-                        y_forecast_start = data.index[-1] + np.timedelta64(1, freq)
+                        # Fallback for numeric index without freq - use integer
+                        y_forecast_start = int(data.index[-1]) + 1
             except (ImportError, AttributeError, ValueError):
                 # Fallback: use the last index + freq
-                if hasattr(data.index, 'freq'):
+                if hasattr(data.index, 'freq') and data.index.freq is not None:
                     y_forecast_start = data.index[-1] + data.index.freq
                 else:
-                    # Ultimate fallback for numeric index
-                    y_forecast_start = data.index[-1] + np.timedelta64(1, freq)
+                    # Ultimate fallback for numeric index - use integer
+                    y_forecast_start = int(data.index[-1]) + 1
     else:
         # For non-indexed data, just use the total length
         y_forecast_start = len(y_in_sample)
@@ -1792,6 +1796,7 @@ def parameters_checker(
     persistence=None,
     phi=None,
     initial=None,
+    n_iterations=None,
     distribution="default",
     loss="likelihood",
     h=0,
@@ -1814,78 +1819,449 @@ def parameters_checker(
     ellipsis=None,
 ):
     """
-    Check and process model parameters.
+    Validate and process all ADAM model parameters before estimation.
 
-    This function validates all input parameters for an ADAM model and
-    converts them into the standardized format required by model estimation.
+    This is the central parameter validation function that checks all user inputs for
+    consistency, converts them to standardized internal formats, and sets up the complete
+    model specification. It acts as a gatekeeper before model estimation, ensuring that:
+
+    - Model specifications are valid (ETS components, ARIMA orders)
+    - Data properties are appropriate (sufficient observations, valid lags)
+    - Parameter specifications are consistent (bounds, distributions, loss functions)
+    - Initial values and persistence parameters are properly formatted
+    - Information criteria and occurrence models are correctly configured
+
+    The function performs comprehensive validation similar to R's adam() parameter checking,
+    transforming user-friendly inputs into the detailed dictionaries required by the
+    estimation engine.
+
+    **Validation Process**:
+
+    1. **Occurrence Checking**: Validate intermittent demand settings
+    2. **Lags Validation**: Ensure lags are compatible with data length
+    3. **ETS Model Parsing**: Decode model string (e.g., "AAA", "ZXZ") into components
+    4. **ARIMA Validation**: Check orders and stationarity requirements
+    5. **Distribution & Loss**: Verify compatibility (e.g., multiplicative error requires positive data)
+    6. **Outliers**: Configure outlier detection if requested
+    7. **Damping (φ)**: Validate damping parameter for damped trend models
+    8. **Persistence**: Process smoothing parameters (α, β, γ) - fixed or to be estimated
+    9. **Initial States**: Configure initialization method (optimal, backcasting, provided)
+    10. **Constants**: Set up intercept term if required
+    11. **Model Pool**: Generate model pool for automatic selection ("ZZZ", "XXX", etc.)
+    12. **Profiles**: Initialize time-varying parameter structures
+    13. **Observations**: Format data and compute necessary statistics
+    14. **Assembly**: Package all validated parameters into organized dictionaries
 
     Parameters
     ----------
-    data : array-like
-        Input time series data
-    model : str
-        Model type specification (e.g., "ANN", "ZZZ")
-    lags : list
-        List of lag values
-    orders : list, tuple, or None, optional
-        ARIMA orders
-    constant : bool or float, optional
-        Whether to include a constant term
-    outliers : str, optional
-        Outliers handling mode
-    level : float, optional
-        Confidence level
-    persistence : float, list, dict, or None, optional
-        Persistence parameter specification
-    phi : float or None, optional
-        Damping parameter
-    initial : float, list, dict, or None, optional
-        Initial values specification
-    distribution : str, optional
-        Probability distribution
-    loss : str, optional
-        Loss function name
-    h : int, optional
-        Forecast horizon
-    holdout : bool, optional
-        Whether to use holdout data
-    occurrence : str, optional
-        Occurrence type for intermittent demand
-    ic : str, optional
-        Information criterion
-    bounds : str, optional
-        Parameter bounds type
-    silent : bool, optional
-        Whether to suppress warnings
-    model_do : str, optional
-        Model action ("estimate", "select", "combine")
-    fast : bool, optional
-        Whether to use fast estimation
-    models_pool : list or None, optional
-        Pool of models for selection
-    lambda_param : float or None, optional
-        Lambda parameter for LASSO/RIDGE
-    frequency : str or None, optional
-        Time series frequency
-    interval : str, optional
-        Prediction interval type
-    interval_level : list, optional
-        Prediction interval levels
-    side : str, optional
-        Prediction interval side
-    cumulative : bool, optional
-        Whether to use cumulative forecasts
-    nsim : int, optional
-        Number of simulations
-    scenarios : int, optional
-        Number of scenarios
-    ellipsis : dict or None, optional
-        Additional parameters
+    data : array-like, pandas.Series, or pandas.DataFrame
+        Time series data for model estimation. Must be numeric and one-dimensional.
+        Can handle intermittent demand (data with zeros).
+
+        - **Length requirement**: Must have sufficient observations for the model
+          (at least max(lags) + max(orders) observations)
+        - **Missing values**: Handled by converting to numeric with ``pd.to_numeric``
+
+    model : str or list of str
+        ETS model specification or list of models for selection.
+
+        Model string format: ``E + T + S`` where:
+
+        - **E** (Error): "A" (Additive) or "M" (Multiplicative)
+        - **T** (Trend): "N" (None), "A" (Additive), "Ad" (Additive damped),
+          "M" (Multiplicative), "Md" (Multiplicative damped)
+        - **S** (Seasonality): "N" (None), "A" (Additive), "M" (Multiplicative)
+
+        Special codes for automatic selection:
+
+        - **"Z"**: Select from all options (Branch & Bound algorithm)
+        - **"X"**: Select only additive components
+        - **"Y"**: Select only multiplicative components
+        - **"C"**: Combine forecasts using IC weights
+        - **"P"**: Select between pure additive and pure multiplicative
+        - **"F"**: Full search across all 30 possible models
+        - **"S"**: Sensible 19-model pool with finite variance
+
+        Examples: "ANN" (Simple exponential smoothing), "AAA" (Holt-Winters additive),
+        "MAM" (Multiplicative error with additive trend and multiplicative seasonality),
+        "ZXZ" (Auto-select error and seasonality, only additive trend)
+
+    lags : numpy.ndarray or list
+        Seasonal lags vector. For multiple seasonality, provide multiple lags.
+
+        - Non-seasonal model: ``lags=[1]``
+        - Monthly with annual seasonality: ``lags=[1, 12]``
+        - Hourly with daily and weekly seasonality: ``lags=[1, 24, 168]``
+
+        **Important**: First lag is typically 1 for level/trend. Subsequent lags define
+        seasonal patterns. Length must not exceed number of observations.
+
+    orders : dict, list, tuple, or None, default=None
+        ARIMA component specification. If None, pure ETS model is estimated.
+
+        **Format options**:
+
+        1. **Dict format** (recommended for clarity)::
+
+            orders = {
+                'ar': [p, P],    # AR orders: non-seasonal p, seasonal P
+                'i': [d, D],     # Integration: non-seasonal d, seasonal D
+                'ma': [q, Q],    # MA orders: non-seasonal q, seasonal Q
+                'select': False  # Whether to auto-select orders
+            }
+
+        2. **List/tuple format**: ``[p, d, q]`` for non-seasonal ARIMA(p,d,q)
+
+        If ``'select': True``, automatic order selection is performed (similar to auto.arima).
+
+        Examples:
+
+        - ``orders={'ar': [1, 0], 'i': [1, 0], 'ma': [1, 0]}``: ARIMA(1,1,1)
+        - ``orders={'ar': [0, 1], 'i': [0, 1], 'ma': [0, 1]}``: Seasonal ARIMA(0,0,0)(1,1,1)
+        - ``orders=[1, 1, 1]``: Non-seasonal ARIMA(1,1,1)
+
+    constant : bool or float, default=False
+        Whether to include a constant (intercept) term in the model.
+
+        - ``False``: No constant
+        - ``True``: Estimate constant
+        - ``float``: Fixed constant value (not estimated)
+
+        The constant is particularly useful for:
+
+        - Models without trend when data has non-zero mean
+        - ARIMA models with drift
+
+    outliers : str, default="ignore"
+        Outlier detection and handling method.
+
+        - **"ignore"**: No outlier handling (default)
+        - **"detect"**: Detect outliers using tsoutliers package
+        - **"use"**: Use provided outlier indicators
+
+        *Note: Outlier handling is not fully implemented in Python version yet.*
+
+    level : float, default=0.99
+        Confidence level for outlier detection (if outliers != "ignore").
+        Typical values: 0.95 (5% significance), 0.99 (1% significance).
+
+    persistence : dict, list, float, or None, default=None
+        Smoothing parameters specification (α, β, γ).
+
+        **Format options**:
+
+        1. **None** (default): All smoothing parameters are estimated
+        2. **Dict format** for granular control::
+
+            persistence = {
+                'alpha': 0.3,     # Level smoothing (or None to estimate)
+                'beta': 0.1,      # Trend smoothing (or None to estimate)
+                'gamma': 0.05     # Seasonal smoothing (or None to estimate)
+            }
+
+        3. **List format**: ``[α, β, γ]`` with None for parameters to estimate
+        4. **Float**: Single value used for all estimated smoothing parameters (starting value)
+
+        **Constraints**: During estimation, smoothing parameters are constrained to [0,1]
+        with additional restrictions: β ≤ α, γ ≤ 1-α (usual bounds).
+
+    phi : float or None, default=None
+        Damping parameter for damped trend models (Ad or Md).
+
+        - **None**: Estimate φ (if model has damped trend)
+        - **Float in (0,1]**: Fixed damping value
+        - **1.0**: No damping (equivalent to non-damped trend)
+
+        Lower values (e.g., 0.8-0.95) produce more conservative long-term forecasts
+        by damping the trend contribution over time.
+
+    initial : str, dict, list, or None, default=None
+        Initial state values specification.
+
+        **Initialization methods**:
+
+        - **"optimal"**: Optimize initial states along with other parameters (default)
+        - **"backcasting"**: Use backcasting with 2 iterations and head refinement
+        - **"complete"**: Full backcasting without subsequent optimization
+        - **"two-stage"**: First backcast, then optimize using backcasted values as starting point
+
+        **Fixed initial values**::
+
+            initial = {
+                'level': 100,                    # Initial level
+                'trend': 5,                      # Initial trend (if trendy)
+                'seasonal': [0.9, 1.0, 1.1, ...] # Initial seasonal indices (if seasonal)
+            }
+
+        **Hybrid approach**: Dict with some values specified and others set to None for estimation.
+
+    n_iterations : int or None, default=None
+        Number of backcasting iterations when initial="backcasting" or "complete".
+
+        - **None**: Use default (2 for backcasting)
+        - **int**: Custom iteration count (typically 2-5)
+
+        More iterations improve initial state estimates but increase computation time.
+
+    distribution : str, default="default"
+        Error term probability distribution.
+
+        Supported distributions:
+
+        - **"default"**: Automatic selection based on error type and loss
+
+          * Additive error → Normal (dnorm)
+          * Multiplicative error → Gamma (dgamma)
+
+        - **"dnorm"**: Normal distribution (Gaussian)
+        - **"dlaplace"**: Laplace distribution (for MAE loss)
+        - **"ds"**: S distribution (for HAM loss)
+        - **"dgnorm"**: Generalized Normal distribution
+        - **"dlnorm"**: Log-Normal distribution
+        - **"dgamma"**: Gamma distribution (for multiplicative errors)
+        - **"dinvgauss"**: Inverse Gaussian distribution
+
+        The distribution affects likelihood calculation and prediction intervals.
+
+    loss : str, default="likelihood"
+        Loss function for parameter optimization.
+
+        **One-step losses**:
+
+        - **"likelihood"**: Maximum likelihood estimation (default)
+        - **"MSE"**: Mean Squared Error
+        - **"MAE"**: Mean Absolute Error
+        - **"HAM"**: Half Absolute Moment (geometric mean of absolute errors)
+        - **"LASSO"**: L1-regularized loss (for variable selection)
+        - **"RIDGE"**: L2-regularized loss (for shrinkage)
+
+        **Multi-step losses** (h-step ahead):
+
+        - **"MSEh"**: h-step ahead MSE
+        - **"MAEh"**: h-step ahead MAE
+        - **"HAMh"**: h-step ahead HAM
+
+        For LASSO/RIDGE, set ``lambda_param`` to control regularization strength.
+
+    h : int, default=0
+        Forecast horizon (number of steps ahead to forecast).
+
+        - Used for holdout validation if ``holdout=True``
+        - Required for multi-step losses (MSEh, MAEh, HAMh)
+        - Sets prediction interval horizon
+
+    holdout : bool, default=False
+        Whether to split data into training and holdout samples.
+
+        - ``False``: Use all data for estimation
+        - ``True``: Last ``h`` observations become holdout sample for validation
+
+        Useful for out-of-sample accuracy assessment.
+
+    occurrence : str, default="none"
+        Occurrence model for intermittent demand (data with zeros).
+
+        - **"none"**: No occurrence model (continuous demand)
+        - **"auto"**: Automatically select occurrence model
+        - **"fixed"**: Fixed probability
+        - **"general"**: General occurrence model
+        - **"odds-ratio"**: Odds-ratio based model
+        - **"inverse-odds-ratio"**: Inverse odds-ratio model
+        - **"direct"**: Direct probability model
+        - **"provided"**: User-provided occurrence indicators
+
+        Occurrence models are essential for intermittent demand forecasting (e.g., spare parts).
+
+    ic : str, default="AICc"
+        Information criterion for model selection.
+
+        - **"AIC"**: Akaike Information Criterion
+        - **"AICc"**: Corrected AIC (recommended for small samples)
+        - **"BIC"**: Bayesian Information Criterion (more parsimonious)
+        - **"BICc"**: Corrected BIC
+
+        Lower IC values indicate better models. AICc is default as it performs well
+        across sample sizes.
+
+    bounds : str, default="usual"
+        Parameter constraint type during optimization.
+
+        - **"usual"**: Classical restrictions (α,β,γ ∈ [0,1], β ≤ α, γ ≤ 1-α, φ ∈ [0,1])
+        - **"admissible"**: Stability constraints based on eigenvalues of transition matrix
+        - **"none"**: No constraints (not recommended)
+
+        "usual" bounds are recommended for most applications. "admissible" allows more
+        flexibility but may produce unstable forecasts.
+
+    silent : bool, default=False
+        Whether to suppress warning messages.
+
+        - ``False``: Display warnings about model specification issues
+        - ``True``: Silent mode (no warnings)
+
+    model_do : str, default="estimate"
+        Action to perform with the model.
+
+        - **"estimate"**: Estimate specified model
+        - **"select"**: Automatic model selection from pool
+        - **"combine"**: Combine forecasts from multiple models (*not implemented yet*)
+
+    fast : bool, default=False
+        Whether to use faster (but possibly less accurate) estimation.
+
+        - ``False``: Standard estimation
+        - ``True``: Reduced accuracy for speed (fewer iterations, looser tolerances)
+
+    models_pool : list of str or None, default=None
+        Custom pool of models for selection (when model_do="select").
+
+        Example: ``models_pool=["ANN", "AAN", "AAdN", "AAA"]``
+
+        If None, pool is generated automatically based on model specification
+        (e.g., "ZXZ" generates appropriate pool).
+
+    lambda_param : float or None, default=None
+        Regularization parameter for LASSO/RIDGE losses.
+
+        - **0**: No regularization (pure MSE)
+        - **1**: Full regularization (parameters shrunk to zero/heavily penalized)
+        - **(0,1)**: Partial regularization
+
+        Typical values: 0.01-0.1 for moderate regularization.
+
+    frequency : str or None, default=None
+        Time series frequency for date/time indexing.
+
+        Pandas frequency strings: "D" (daily), "W" (weekly), "M" (monthly),
+        "Q" (quarterly), "Y" (yearly), "H" (hourly), etc.
+
+        If None, inferred from data if it has DatetimeIndex.
+
+    interval : str, default="parametric"
+        Prediction interval calculation method.
+
+        - **"parametric"**: Analytical intervals based on assumed distribution
+        - **"simulation"**: Simulation-based intervals
+        - **"bootstrap"**: Bootstrap intervals
+
+    interval_level : list of float, default=[0.95]
+        Confidence level(s) for prediction intervals.
+
+        Examples: ``[0.80, 0.95]`` for 80% and 95% intervals.
+
+    side : str, default="both"
+        Which prediction interval bounds to compute.
+
+        - **"both"**: Lower and upper bounds
+        - **"lower"**: Lower bound only
+        - **"upper"**: Upper bound only
+
+    cumulative : bool, default=False
+        Whether to compute cumulative forecasts (sum over horizon).
+        Useful for total demand forecasting.
+
+    nsim : int, default=1000
+        Number of simulations for simulation-based prediction intervals.
+
+    scenarios : int, default=100
+        Number of scenarios for scenario-based forecasting.
+
+    ellipsis : dict or None, default=None
+        Additional parameters passed through (for extensibility).
 
     Returns
     -------
-    tuple
-        Dictionaries with validated parameters
+    tuple of 13 dict
+        Tuple containing validated and organized parameters:
+
+        1. **general_dict** : General configuration (loss, distribution, bounds, ic, h, holdout)
+        2. **observations_dict** : Data and observation-related information
+        3. **persistence_results** : Validated persistence parameters
+        4. **initials_results** : Validated initial state specifications
+        5. **arima_results** : ARIMA component specifications
+        6. **constant_dict** : Constant term configuration
+        7. **model_type_dict** : Model type information (ETS, ARIMA, components)
+        8. **components_dict** : Component counts and structure
+        9. **lags_dict** : Lag structure and related information
+        10. **occurrence_dict** : Occurrence model configuration
+        11. **phi_dict** : Damping parameter specification
+        12. **explanatory_dict** : External regressors configuration (not fully implemented)
+        13. **params_info** : Parameter count information
+
+    Raises
+    ------
+    ValueError
+        If parameters are invalid or inconsistent:
+
+        - Data is non-numeric or empty
+        - Lags exceed data length
+        - Model string is malformed
+        - ARIMA orders are negative
+        - Incompatible distribution/loss combination
+        - Insufficient data for model complexity
+
+    Notes
+    -----
+    **Parameter Checking Philosophy**:
+
+    This function aims to fail early with clear error messages rather than allowing
+    invalid configurations to proceed to estimation. It provides helpful warnings when
+    suboptimal choices are detected (e.g., multiplicative seasonality with negative data).
+
+    **Relationship to R Implementation**:
+
+    This function consolidates checks that are distributed across multiple functions in
+    the R package (adam, adamSelection, etc.). The Python version performs equivalent
+    validation but returns more structured outputs (dictionaries) rather than R's
+    list objects.
+
+    **Performance**:
+
+    Parameter checking is fast (< 1ms typically). The main computational cost is in
+    model estimation, not validation.
+
+    See Also
+    --------
+    estimator : Main estimation function that uses validated parameters
+    selector : Model selection function
+    ADAM : User-facing class that wraps parameter_checker and estimator
+
+    Examples
+    --------
+    Basic validation for simple exponential smoothing::
+
+        >>> data = np.array([10, 12, 15, 13, 16, 18, 20, 19, 22, 25])
+        >>> results = parameters_checker(
+        ...     data=data,
+        ...     model="ANN",
+        ...     lags=[1],
+        ...     silent=True
+        ... )
+        >>> general, obs, persist, initials, arima, const, model_type, *rest = results
+        >>> print(model_type['model'])
+        'ANN'
+
+    Validation with automatic model selection::
+
+        >>> results = parameters_checker(
+        ...     data=data,
+        ...     model="ZXZ",  # Auto-select error and seasonality, only additive trend
+        ...     lags=[1, 12],
+        ...     model_do="select",
+        ...     ic="AICc",
+        ...     silent=True
+        ... )
+
+    ARIMA component with fixed smoothing::
+
+        >>> results = parameters_checker(
+        ...     data=data,
+        ...     model="AAN",
+        ...     lags=[1],
+        ...     orders={'ar': [1, 0], 'i': [0, 0], 'ma': [0, 0]},
+        ...     persistence={'alpha': 0.3, 'beta': 0.1},
+        ...     silent=True
+        ... )
     """
     #####################
     # 1) Check Occurrence
@@ -1978,6 +2354,25 @@ def parameters_checker(
         xreg_model=False,  # Will be updated when xreg is implemented
         silent=silent,
     )
+
+    # Process n_iterations parameter (for backcasting)
+    # Default behavior matches R: 2 iterations for backcasting/complete, 1 otherwise
+    if n_iterations is None:
+        if init_info["initial_type"] in ["backcasting", "complete"]:
+            n_iterations = 2
+        else:
+            n_iterations = 1
+    else:
+        # Validate user-provided n_iterations
+        if not isinstance(n_iterations, int) or n_iterations < 1:
+            _warn(f"n_iterations must be a positive integer. Using default value.", silent)
+            if init_info["initial_type"] in ["backcasting", "complete"]:
+                n_iterations = 2
+            else:
+                n_iterations = 1
+
+    # Add to init_info
+    init_info["n_iterations"] = n_iterations
 
     #####################
     # 10) Check Constant
@@ -2154,6 +2549,7 @@ def parameters_checker(
         "initial_arima_number": init_info["initial_arima_number"],
         "initial_xreg_estimate": init_info["initial_xreg_estimate"],
         "initial_xreg_provided": init_info["initial_xreg_provided"],
+        "n_iterations": init_info["n_iterations"],
     }
 
     # Create ARIMA dictionary

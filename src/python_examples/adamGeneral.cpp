@@ -53,29 +53,28 @@ py::dict adamFitter(arma::mat &matrixVt,
     arma::mat &matrixFInv = matrixF;
     arma::vec const &vectorGInv = vectorG;
 
-    // if(!inv(matrixFInv, matrixF)){
-    //     matrixFInv = matrixF;
-    //     vectorGInv = vectorG;
-    // }
-    // else{
-    //     vectorGInv = matrixFInv * vectorG;
-    // }
-
     // Loop for the backcast
     for (unsigned int j=1; j<=nIterations; j=j+1) {
 
         // Refine the head (in order for it to make sense)
         // This is only needed for ETS(*,Z,*) models, with trend.
-        if(refineHead){
-            for (int i=0; i<lagsModelMax; i=i+1) {
-                matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
-                profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                               matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+        // This is not needed for lagsMax=1, because there is nothing to fill in
+        if(refineHead && (T!='N')){
+            // Record the initial profile to the first column
+            matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
+            if(lagsModelMax>1){
+                // Update the head, but only for the trend component
+                for (int i=1; i<lagsModelMax; i=i+1) {
+                    profilesRecent(indexLookupTable.col(i).rows(0,1)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
+                                   matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant).rows(0,1);
+                    matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+                }
             }
         }
         ////// Run forward
         // Loop for the model construction
-        for (int i=lagsModelMax; i<obs+lagsModelMax; i=i+1) {
+        for (int i = lagsModelMax; i < obs + lagsModelMax; i = i + 1)
+        {
             matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
 
             /* # Measurement equation and the error term */
@@ -87,21 +86,22 @@ py::dict adamFitter(arma::mat &matrixVt,
             if(vectorOt(i-lagsModelMax)==0){
                 vecErrors(i-lagsModelMax) = 0;
             }
-            else{
-                vecErrors(i-lagsModelMax) = errorf(vectorYt(i-lagsModelMax), vecYfit(i-lagsModelMax), E);
+            else
+            {
+                vecErrors(i - lagsModelMax) = errorf(vectorYt(i - lagsModelMax), vecYfit(i - lagsModelMax), E);
             }
 
             /* # Transition equation */
             profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                           matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
-                adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixF, matrixWt.row(i-lagsModelMax), E, T, S,
-                           nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                           vectorG, vecErrors(i-lagsModelMax), vecYfit(i-lagsModelMax), adamETS);
+                                                                 matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
+                                                      adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixF, matrixWt.row(i - lagsModelMax), E, T, S,
+                                                                 nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant, vectorG, vecErrors(i - lagsModelMax), vecYfit(i - lagsModelMax), adamETS);
 
             // If ot is fractional, amend the fitted value
-            if(vectorOt(i-lagsModelMax)!=0 && vectorOt(i-lagsModelMax)!=1){
+            if (vectorOt(i - lagsModelMax) != 0 && vectorOt(i - lagsModelMax) != 1)
+            {
                 // We need this multiplication for cases, when occurrence is fractional
-                vecYfit(i-lagsModelMax) = vectorOt(i-lagsModelMax)*vecYfit(i-lagsModelMax);
+                vecYfit(i - lagsModelMax) = vectorOt(i - lagsModelMax) * vecYfit(i - lagsModelMax);
             }
         }
 
@@ -133,18 +133,19 @@ py::dict adamFitter(arma::mat &matrixVt,
 
                 /* # Transition equation */
                 profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                               matrixFInv, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
-                                   adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixFInv,
-                                              matrixWt.row(i-lagsModelMax), E, T, S,
-                                              nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
-                                              vectorGInv, vecErrors(i-lagsModelMax), vecYfit(i-lagsModelMax), adamETS);
+                                                                     matrixFInv, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
+                                                          adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixFInv,
+                                                                     matrixWt.row(i - lagsModelMax), E, T, S,
+                                                                     nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
+                                                                     vectorGInv, vecErrors(i - lagsModelMax), vecYfit(i - lagsModelMax), adamETS);
             }
 
             // Fill in the head of the series.
             if(refineHead){
-                for (int i=lagsModelMax-1; i>=0; i=i-1) {
+                for (int i = lagsModelMax - 1; i >= 0; i = i - 1)
+                {
                     profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                                   matrixFInv, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                                                                         matrixFInv, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
 
                     // matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
                 }
@@ -214,6 +215,72 @@ arma::vec adamForecaster(arma::mat const &matrixWt,
     return vecYfor;
 }
 
+// # Simulator for generating multiple forecast paths
+py::dict adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat const &matrixOt,
+                       arma::cube const &arrayF, arma::mat const &matrixWt, arma::mat const &matrixG,
+                       char const &E, char const &T, char const &S, arma::uvec &lags,
+                       arma::umat const &indexLookupTable, arma::mat profilesRecent,
+                       unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
+                       unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                       bool const &adamETS) {
+
+    unsigned int obs = matrixErrors.n_rows;
+    unsigned int nSeries = matrixErrors.n_cols;
+
+    int lagsModelMax = max(lags);
+    unsigned int nETS = nNonSeasonal + nSeasonal;
+    int nComponents = lags.n_rows;
+    int obsAll = obs + lagsModelMax;
+    arma::mat profilesRecentOriginal = profilesRecent;
+
+    double yFitted;
+
+    arma::mat matrixVt(nComponents, obsAll, arma::fill::zeros);
+    arma::mat matrixF(arrayF.n_rows, arrayF.n_cols, arma::fill::zeros);
+
+    arma::mat matY(obs, nSeries);
+
+    for(unsigned int i=0; i<nSeries; i=i+1){
+        matrixVt = arrayVt.slice(i);
+        matrixF = arrayF.slice(i);
+        profilesRecent = profilesRecentOriginal;
+        for(int j=lagsModelMax; j<obsAll; j=j+1) {
+            /* # Measurement equation and the error term */
+            yFitted = adamWvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
+                                                         matrixWt.row(j-lagsModelMax), E, T, S,
+                                                         nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
+                                                         nComponents, constant);
+            matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) *
+                                             (yFitted +
+                                             adamRvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
+                                                        matrixWt.row(j-lagsModelMax), E, T, S,
+                                                        nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
+                                                            matrixErrors(j-lagsModelMax,i));
+
+            /* # Transition equation */
+            profilesRecent(indexLookupTable.col(j-lagsModelMax)) =
+                                                (adamFvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
+                                                            matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima,
+                                                            nComponents, constant) +
+                                                 adamGvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
+                                                            matrixF, matrixWt.row(j-lagsModelMax),
+                                                            E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
+                                                            nComponents, constant, matrixG.col(i),
+                                                            matrixErrors(j-lagsModelMax,i), yFitted, adamETS));
+
+            matrixVt.col(j) = profilesRecent(indexLookupTable.col(j-lagsModelMax));
+        }
+        arrayVt.slice(i) = matrixVt;
+    }
+
+    // Create a Python dictionary to return results
+    py::dict result;
+    result["arrayVt"] = arrayVt;
+    result["matrixYt"] = matY;
+
+    return result;
+}
+
 PYBIND11_MODULE(_adam_general, m)
 {
     m.doc() = "Adam code"; // module docstring
@@ -257,4 +324,23 @@ PYBIND11_MODULE(_adam_general, m)
           py::arg("nXreg"),
           py::arg("constant"),
           py::arg("horizon"));
+    m.def("adam_simulator", &adamSimulator, "simulates multiple forecast paths",
+          py::arg("arrayVt"),
+          py::arg("matrixErrors"),
+          py::arg("matrixOt"),
+          py::arg("arrayF"),
+          py::arg("matrixWt"),
+          py::arg("matrixG"),
+          py::arg("E"),
+          py::arg("T"),
+          py::arg("S"),
+          py::arg("lags"),
+          py::arg("indexLookupTable"),
+          py::arg("profilesRecent"),
+          py::arg("nNonSeasonal"),
+          py::arg("nSeasonal"),
+          py::arg("nArima"),
+          py::arg("nXreg"),
+          py::arg("constant"),
+          py::arg("adamETS"));
 }

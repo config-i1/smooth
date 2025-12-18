@@ -26,6 +26,7 @@ Imports:
     generics (>= 0.1.2),
     graphics,
     grDevices,
+    methods,
     pracma,
     statmod,
     MASS,

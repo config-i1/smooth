@@ -448,61 +448,346 @@ def estimator(
     maxtime=None,
     print_level=1,  # 1 or 0
     maxeval=None,
+    B_initial=None,
+    return_matrices=False,
 ):
     """
-    Estimate parameters for ADAM model.
+    Estimate parameters for ADAM model using non-linear optimization.
 
-    This function coordinates the process of estimating optimal parameters
-    for an ADAM model by setting up the model structure, defining optimization
-    parameters, and executing the optimization process.
+    This function coordinates the complete parameter estimation process for an ADAM
+    (Augmented Dynamic Adaptive Model) by setting up the state-space model structure,
+    initializing parameters, and executing optimization via the NLopt library. The
+    estimation minimizes a cost function (likelihood, MSE, MAE, etc.) to find optimal
+    parameter values.
+
+    The ADAM model is represented in state-space form as:
+
+    .. math::
+
+        y_t &= o_t(w(v_{t-l}) + h(x_t, a_{t-1}) + r(v_{t-l})\\epsilon_t)
+
+        v_t &= f(v_{t-l}, a_{t-1}) + g(v_{t-l}, a_{t-1}, x_t)\\epsilon_t
+
+    where:
+
+    - :math:`y_t` is the observed value at time t
+    - :math:`v_t` is the state vector
+    - :math:`o_t` is the occurrence indicator (for intermittent data)
+    - :math:`w(\\cdot)` is the measurement function
+    - :math:`h(\\cdot)` is the exogenous variables function
+    - :math:`r(\\cdot)` is the error function
+    - :math:`f(\\cdot)` is the transition function
+    - :math:`g(\\cdot)` is the persistence function
+    - :math:`\\epsilon_t` is the error term
+
+    **Estimation Algorithm**:
+
+    1. **Architecture Setup**: Call ``architector()`` to define model structure, determine
+       component counts, and set up lag structures
+    2. **Matrix Creation**: Call ``creator()`` to build initial state-space matrices
+       (measurement, transition, persistence)
+    3. **Parameter Initialization**: Call ``initialiser()`` to construct the initial
+       parameter vector B and bounds (lower/upper limits)
+    4. **Distribution Selection**: Map loss function to appropriate error distribution
+       (e.g., MSE → Normal, MAE → Laplace)
+    5. **Optimization Setup**: Configure NLopt with Nelder-Mead algorithm, set tolerances
+       and iteration limits
+    6. **Objective Function**: Create wrapper for ``CF()`` cost function
+    7. **Optimization Execution**: Run NLopt to minimize cost function
+    8. **Log-likelihood Calculation**: Compute final log-likelihood using ``log_Lik_ADAM()``
+    9. **Results Assembly**: Package estimated parameters, matrices, and diagnostics
+
+    **Optimization Method**:
+
+    Uses NLopt's Nelder-Mead (LN_NELDERMEAD) algorithm:
+
+    - Gradient-free local optimization suitable for non-smooth cost functions
+    - Tolerances: xtol_rel=1e-6, ftol_rel=1e-8, xtol_abs=1e-8
+    - Maximum evaluations: 40 × len(B) for standard models, 150 × len(B) for models
+      with external regressors
+    - Default timeout: 30 minutes
+
+    **Parameter Vector Structure**:
+
+    The optimization parameter vector B contains (in order):
+
+    1. **ETS Persistence**: α (level), β (trend), γ (seasonal)
+    2. **Damping**: φ (if damped trend is present)
+    3. **Initial States**: l₀ (level), b₀ (trend), s₀ (seasonal), ARIMA initial states
+    4. **ARIMA Parameters**: AR coefficients (φ₁, φ₂, ...), MA coefficients (θ₁, θ₂, ...)
+    5. **Regression Coefficients**: Weights for external regressors
+    6. **Constant Term**: Intercept (if included)
+    7. **Distribution Parameters**: Shape parameters for certain distributions
 
     Parameters
     ----------
     general_dict : dict
-        General model configuration parameters
+        General model configuration containing:
+
+        - 'loss': Loss function ('likelihood', 'MSE', 'MAE', 'HAM', 'LASSO', 'RIDGE')
+        - 'distribution': Error distribution specification
+        - 'bounds': Parameter bounds type ('usual', 'admissible', 'none')
+        - 'ic': Information criterion for model selection ('AIC', 'AICc', 'BIC', 'BICc')
+        - 'h': Forecast horizon
+        - 'holdout': Whether holdout sample is used
+
     model_type_dict : dict
-        Model type specification parameters
+        Model type specification containing:
+
+        - 'model': Model string (e.g., "ANN", "AAA", "MAM")
+        - 'error_type': Error type ('A' for additive, 'M' for multiplicative)
+        - 'trend_type': Trend type ('N', 'A', 'Ad', 'M', 'Md')
+        - 'season_type': Seasonality type ('N', 'A', 'M')
+        - 'ets_model': Whether ETS components are present
+        - 'arima_model': Whether ARIMA components are present
+        - 'xreg_model': Whether external regressors are present
+
     lags_dict : dict
-        Information about model lags
+        Lag structure information containing:
+
+        - 'lags': Primary lag vector (e.g., [1, 12] for monthly data with annual seasonality)
+        - 'lags_model': Lags for each state component
+        - 'lags_model_all': Complete lag specification for all components
+        - 'lags_model_max': Maximum lag value (defines pre-sample period)
+
     observations_dict : dict
-        Observed data information
+        Time series data containing:
+
+        - 'y_in_sample': Observed values for estimation
+        - 'y_holdout': Holdout sample (if applicable)
+        - 'obs_in_sample': Number of in-sample observations
+        - 'ot': Occurrence vector (1 for non-zero, 0 for zero observations)
+        - 'ot_logical': Boolean mask for non-zero observations
+
     arima_dict : dict
-        ARIMA component specification
+        ARIMA specification containing:
+
+        - 'arima_model': Whether ARIMA components exist
+        - 'ar_orders': AR order for each lag (e.g., [1, 1] for SARIMA)
+        - 'i_orders': Integration order for each lag
+        - 'ma_orders': MA order for each lag
+        - 'ar_estimate': Whether to estimate AR parameters
+        - 'ma_estimate': Whether to estimate MA parameters
+        - 'ar_required': Whether AR is included
+        - 'ma_required': Whether MA is included
+
     constant_dict : dict
-        Constant term specification
+        Constant term specification containing:
+
+        - 'constant_required': Whether model includes a constant
+        - 'constant_estimate': Whether to estimate the constant
+        - 'constant_name': Variable name for constant in B vector
+
     explanatory_dict : dict
-        External regressors specification
-    profiles_recent_table : array-like
-        Recent profiles table
+        External regressors specification containing:
+
+        - 'xreg_model': Whether regressors are present
+        - 'xreg_number': Number of regressors
+        - 'xreg_names': Names of regressor variables
+        - 'mat_xt': Regressor data matrix
+
+    profiles_recent_table : numpy.ndarray
+        Recent profile values for time-varying parameters (advanced feature)
     profiles_recent_provided : bool
-        Whether profiles were provided by user
+        Whether user provided custom profile values
     persistence_dict : dict
-        Persistence parameters specification
+        Persistence parameters containing:
+
+        - 'persistence_estimate': Whether to estimate persistence
+        - 'persistence_level_estimate': Estimate α (level smoothing)
+        - 'persistence_trend_estimate': Estimate β (trend smoothing)
+        - 'persistence_seasonal_estimate': Estimate γ (seasonal smoothing)
+        - 'persistence_level': Fixed value for α (if not estimated)
+        - 'persistence_trend': Fixed value for β (if not estimated)
+        - 'persistence_seasonal': Fixed value for γ (if not estimated)
+
     initials_dict : dict
-        Initial values specification
+        Initial states specification containing:
+
+        - 'initial_type': Initialization method:
+
+          * 'optimal': Optimize initial states
+          * 'backcasting': Use backcasting with refinement
+          * 'complete': Full backcasting without refinement
+          * 'provided': User-provided initial values
+
+        - 'initial_level': Fixed level initial (if provided)
+        - 'initial_trend': Fixed trend initial (if provided)
+        - 'initial_seasonal': Fixed seasonal initials (if provided)
+        - 'initial_level_estimate': Whether to optimize level initial
+        - 'initial_trend_estimate': Whether to optimize trend initial
+        - 'initial_seasonal_estimate': Whether to optimize seasonal initials
+        - 'n_iterations': Backcasting iteration count (typically 2)
+
     phi_dict : dict
-        Damping parameter specification
+        Damping parameter specification containing:
+
+        - 'phi_estimate': Whether to estimate damping parameter
+        - 'phi': Fixed damping value (if not estimated, typically 1.0 for undamped)
+
     components_dict : dict
-        Model components information
+        Component counts containing:
+
+        - 'components_number_ets': Total ETS components
+        - 'components_number_ets_seasonal': Number of seasonal components
+        - 'components_number_ets_non_seasonal': Number of non-seasonal ETS components
+        - 'components_number_arima': Number of ARIMA state components
+        - 'components_number_all': Total state dimension
+
     occurrence_dict : dict
-        Occurrence model information
-    multisteps : bool, optional
-        Whether to use multi-step estimation
-    lb : array-like, optional
-        Lower bounds for parameters
-    ub : array-like, optional
-        Upper bounds for parameters
+        Intermittent data specification containing:
+
+        - 'occurrence_model': Whether intermittent demand model is used
+        - 'occurrence_type': Type of occurrence model
+        - 'ot': Occurrence vector
+
+    multisteps : bool, default=False
+        Whether to use multi-step-ahead cost function (e.g., for MSEh, MAEh).
+        If True, errors are computed over h-step-ahead forecasts rather than
+        one-step-ahead.
+    lb : numpy.ndarray, optional
+        Lower bounds for parameters. If None, computed by ``initialiser()``.
+        Shape must match B.
+    ub : numpy.ndarray, optional
+        Upper bounds for parameters. If None, computed by ``initialiser()``.
+        Shape must match B.
     maxtime : float, optional
-        Maximum optimization time
-    print_level : int, optional
-        Verbosity level (0 or 1)
+        Maximum optimization time in seconds. If None, defaults to 1800 seconds (30 min).
+    print_level : int, default=1
+        Verbosity level:
+
+        - 0: Silent (no output)
+        - 1: Minimal output (currently suppressed in favor of general_dict['silent'])
+
     maxeval : int, optional
-        Maximum number of evaluations
+        Maximum number of cost function evaluations. If None, computed as:
+
+        - Standard models: 40 × len(B)
+        - Models with regressors: max(1500, 150 × len(B))
+
+    B_initial : numpy.ndarray, optional
+        Initial parameter vector to start optimization from. If provided, it overrides
+        the default initialization computed by ``initialiser()``. Useful for:
+
+        - Two-stage initialization (backcasting → optimal)
+        - Warm-starting from previous estimates
+        - Custom starting values
+
+        Shape must match the parameter vector structure.
+    return_matrices : bool, default=False
+        Whether to return state-space matrices in the result dictionary. Useful for
+        two-stage initialization where backcasted states are needed. If True, returns:
+
+        - 'matrices': Updated state-space matrices with backcasted/optimized states
+        - 'lags_dict': Updated lags dictionary
+        - 'profile_dict': Updated profile dictionary
+        - 'components_dict': Components information
 
     Returns
     -------
     dict
-        Dictionary containing estimated parameters and model information
+        Dictionary containing estimation results:
+
+        - **'B'** (numpy.ndarray): Optimized parameter vector
+        - **'CF_value'** (float): Final cost function value at optimum
+        - **'n_param_estimated'** (int): Number of estimated parameters
+        - **'log_lik_adam_value'** (dict): Log-likelihood information with keys:
+
+          * 'value': Log-likelihood value
+          * 'nobs': Number of observations
+          * 'df': Degrees of freedom (parameters + scale)
+
+        - **'arima_polynomials'** (dict): AR and MA polynomial coefficients (if ARIMA present)
+
+        If `return_matrices=True`, additionally includes:
+
+        - **'matrices'** (dict): Updated state-space matrices (mat_vt, mat_wt, mat_f, vec_g)
+        - **'lags_dict'** (dict): Lags information
+        - **'profile_dict'** (dict): Profile matrices
+        - **'components_dict'** (dict): Component counts
+
+    Raises
+    ------
+    RuntimeError
+        If optimization fails to converge or encounters numerical errors
+
+    Notes
+    -----
+    **Special Cases**:
+
+    1. **LASSO/RIDGE with λ=1**: Parameters are preset to zero, only initials are estimated
+       using MSE
+    2. **Two-stage initialization**: When initial_type='two-stage', the function is called
+       twice:
+
+       - Stage 1: initial_type='complete' (backcasting)
+       - Stage 2: initial_type='optimal' using Stage 1 results as B_initial
+
+    **Optimization Troubleshooting**:
+
+    - If CF returns 1e100, parameter constraints were violated
+    - If CF returns 1e300, NaN was encountered during computation
+    - Increase maxeval if optimization terminates prematurely
+    - Check bounds if estimated parameters are at boundaries
+
+    **Performance Considerations**:
+
+    - C++ ``adam_fitter()`` is called at each iteration (major computational cost)
+    - Larger models (many seasonalities, high ARIMA orders) require more iterations
+    - Backcasting (initial_type='backcasting' or 'complete') adds overhead but improves
+      initial state estimates
+
+    See Also
+    --------
+    architector : Set up model architecture
+    creator : Create state-space matrices
+    initialiser : Initialize parameter vector and bounds
+    CF : Cost function for optimization
+    log_Lik_ADAM : Calculate log-likelihood
+    selector : Automatic model selection
+
+    References
+    ----------
+    .. [1] Svetunkov, I. (2023). "Smooth forecasting with the smooth package in R".
+           arXiv:2301.01790.
+    .. [2] Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008).
+           "Forecasting with Exponential Smoothing: The State Space Approach".
+           Springer-Verlag.
+    .. [3] Johnson, S.G. The NLopt nonlinear-optimization package.
+           https://nlopt.readthedocs.io/
+
+    Examples
+    --------
+    Estimate parameters for an ETS(A,A,A) model::
+
+        >>> adam_estimated = estimator(
+        ...     general_dict={'loss': 'likelihood', 'distribution': 'default', 'bounds': 'usual', ...},
+        ...     model_type_dict={'model': 'AAA', 'error_type': 'A', 'trend_type': 'A', 'season_type': 'A', ...},
+        ...     lags_dict={'lags': np.array([1, 12]), ...},
+        ...     observations_dict={'y_in_sample': y_data, 'obs_in_sample': len(y_data), ...},
+        ...     arima_dict={'arima_model': False, ...},
+        ...     constant_dict={'constant_required': False, ...},
+        ...     explanatory_dict={'xreg_model': False, ...},
+        ...     profiles_recent_table=None,
+        ...     profiles_recent_provided=False,
+        ...     persistence_dict={'persistence_estimate': True, ...},
+        ...     initials_dict={'initial_type': 'optimal', ...},
+        ...     phi_dict={'phi_estimate': False, 'phi': 1.0},
+        ...     components_dict={...},
+        ...     occurrence_dict={'occurrence_model': False, ...}
+        ... )
+        >>> print(f"Estimated parameters: {adam_estimated['B']}")
+        >>> print(f"Log-likelihood: {adam_estimated['log_lik_adam_value']['value']}")
+
+    Two-stage initialization example::
+
+        >>> # Stage 1: Backcasting
+        >>> initials_dict['initial_type'] = 'complete'
+        >>> stage1 = estimator(..., return_matrices=True)
+        >>> # Stage 2: Optimal with backcasted states as initial
+        >>> initials_dict['initial_type'] = 'optimal'
+        >>> B_initial = np.concatenate([stage1['B'], extracted_initials_from_stage1])
+        >>> stage2 = estimator(..., B_initial=B_initial)
     """
     # Step 1: Set up model structure
     # Simple call of the architector
@@ -549,13 +834,35 @@ def estimator(
         observations_dict=observations_dict,
         bounds=general_dict["bounds"],
         phi_dict=phi_dict,
+        profile_dict=profile_dict,
     )
     # Get initial parameter vector and bounds
-    B = b_values["B"]
+    if B_initial is not None:
+        B = B_initial
+    else:
+        B = b_values["B"]
     if lb is None:
         lb = b_values["Bl"]
     if ub is None:
         ub = b_values["Bu"]
+    
+    # Ensure bounds are compatible with B
+    if B_initial is not None:
+        # Extend bounds if necessary
+        if len(lb) != len(B):
+            # This shouldn't happen if B_initial has correct length, but safety first
+            if len(lb) < len(B):
+                lb = np.pad(lb, (0, len(B) - len(lb)), 'constant', constant_values=-np.inf)
+                ub = np.pad(ub, (0, len(B) - len(ub)), 'constant', constant_values=np.inf)
+        
+        # Check compatibility
+        if np.any(B < lb) or np.any(B > ub):
+            # Adjust bounds to accommodate B
+            lb = np.minimum(lb, B)
+            ub = np.maximum(ub, B)
+            # Maybe relax bounds slightly
+            lb[B < lb] -= 1e-5
+            ub[B > ub] += 1e-5
 
     # Step 4: Set up ARIMA polynomials if needed
     ar_polynomial_matrix, ma_polynomial_matrix = _setup_arima_polynomials(
@@ -643,13 +950,80 @@ def estimator(
     )
 
     # Step 12: Prepare and return results
-    return {
+    result = {
         "B": B,
         "CF_value": CF_value,
         "n_param_estimated": n_param_estimated,
         "log_lik_adam_value": log_lik_adam_value,
         "arima_polynomials": adam_created["arima_polynomials"],
     }
+
+    if return_matrices:
+        # Ensure matrices are updated with final B values and backcasted states
+        # The CF function uses copies, so we need to update the originals
+        from smooth.adam_general.core.utils.cost_functions import log_Lik_ADAM
+        from smooth.adam_general._adam_general import adam_fitter
+
+        # Fill matrices with final B
+        filler(
+            B,
+            model_type_dict,
+            components_dict,
+            lags_dict,
+            adam_created,
+            persistence_dict,
+            initials_dict,
+            arima_dict,
+            explanatory_dict,
+            phi_dict,
+            constant_dict,
+        )
+
+        # Run adam_fitter with backcasting to update states
+        if initials_dict["initial_type"] in ["complete", "backcasting"]:
+            mat_vt = np.asfortranarray(adam_created["mat_vt"], dtype=np.float64)
+            mat_wt = np.asfortranarray(adam_created["mat_wt"], dtype=np.float64)
+            mat_f = np.asfortranarray(adam_created["mat_f"], dtype=np.float64)
+            vec_g = np.asfortranarray(adam_created["vec_g"], dtype=np.float64)
+            lags_model_all = np.asfortranarray(lags_dict["lags_model_all"], dtype=np.uint64).reshape(-1, 1)
+            index_lookup_table = np.asfortranarray(profile_dict["index_lookup_table"], dtype=np.uint64)
+            profiles_recent_table = np.asfortranarray(profile_dict["profiles_recent_table"], dtype=np.float64)
+            y_in_sample = np.asfortranarray(observations_dict["y_in_sample"], dtype=np.float64)
+            ot = np.asfortranarray(observations_dict["ot"], dtype=np.float64)
+
+            adam_fitter(
+                matrixVt=mat_vt,
+                matrixWt=mat_wt,
+                matrixF=mat_f,
+                vectorG=vec_g,
+                lags=lags_model_all,
+                indexLookupTable=index_lookup_table,
+                profilesRecent=profiles_recent_table,
+                E=model_type_dict["error_type"],
+                T=model_type_dict["trend_type"],
+                S=model_type_dict["season_type"],
+                nNonSeasonal=components_dict["components_number_ets"] - components_dict["components_number_ets_seasonal"],
+                nSeasonal=components_dict["components_number_ets_seasonal"],
+                nArima=components_dict.get("components_number_arima", 0),
+                nXreg=explanatory_dict["xreg_number"],
+                constant=constant_dict["constant_required"],
+                vectorYt=y_in_sample,
+                vectorOt=ot,
+                backcast=True,
+                nIterations=initials_dict.get("n_iterations", 2) or 2,
+                refineHead=True,  # Always True (fixed backcasting issue)
+                adamETS=False
+            )
+
+            # Update original matrices
+            adam_created["mat_vt"][:] = mat_vt[:]
+
+        result["matrices"] = adam_created
+        result["lags_dict"] = lags_dict
+        result["profile_dict"] = profile_dict
+        result["components_dict"] = components_dict
+
+    return result
 
 
 # Helper functions for selector
@@ -1181,47 +1555,259 @@ def selector(
     silent=False,
 ):
     """
-    Create a pool of models and select the best one based on information criteria.
+    Automatic model selection for ADAM using information criteria and Branch & Bound.
+
+    This function implements the automatic model selection procedure for ADAM models
+    by creating a pool of candidate models and selecting the best one based on an
+    information criterion (AIC, AICc, BIC, or BICc). The selection process uses a
+    **Branch and Bound algorithm** to efficiently explore the model space without
+    estimating every possible combination.
+
+    The function supports several selection modes triggered by special codes in the
+    model specification string:
+
+    - **"ZZZ"**: Select from all possible models using Branch and Bound
+    - **"XXX"**: Select only additive components (A, N)
+    - **"YYY"**: Select only multiplicative components (M, N)
+    - **"PPP"**: Select between pure additive (AAA) and pure multiplicative (MMM)
+    - **"FFF"**: Full search across all 30 ETS model types
+    - **"CCC"**: Combine models using IC weights (not fully implemented in Python yet)
+    - Mixed codes like **"ZXZ"**: Auto-select error and seasonality, only additive trend
+
+    **Selection Algorithm**:
+
+    1. **Pool Formation**: Create initial model pool based on specification:
+
+       - Identify which components (error, trend, seasonality) need selection
+       - Generate small pool for Branch and Bound exploration
+       - Generate full pool for final estimation
+
+    2. **Branch and Bound** (if applicable):
+
+       - Start with simplest model (typically "ANN")
+       - Iteratively explore promising branches (add/change components)
+       - Prune branches that cannot improve upon best IC found
+       - Significantly faster than exhaustive search
+
+    3. **Full Estimation**: Estimate all models in the final pool
+
+    4. **Selection**: Choose model with best (lowest) information criterion
+
+    **Model Pool Generation**:
+
+    The pool size depends on the specification:
+
+    - **"ZZZ"**: Up to 30 models (5 errors × 3 trends × 2 seasonalities)
+    - **"XXX"**: Up to 6 models (additive-only: A × {N,A,Ad} × {N,A})
+    - **"YYY"**: Up to 10 models (multiplicative-focused)
+    - **"FFF"**: All 30 models estimated exhaustively
+    - Custom pool: Use provided list (e.g., ["ANN", "AAN", "AAA"])
 
     Parameters
     ----------
     model_type_dict : dict
-        Model type specification parameters
+        Model specification containing:
+
+        - 'model': Model string with selection codes (e.g., "ZXZ", "FFF")
+        - 'error_type': Error component ('Z' for auto-select, or 'A'/'M' for fixed)
+        - 'trend_type': Trend component ('Z', 'X', 'Y', or specific like 'A', 'Ad', 'N')
+        - 'season_type': Seasonality component ('Z', 'X', 'Y', or 'N', 'A', 'M')
+        - 'models_pool': List of model strings (if pre-specified pool)
+        - 'allow_multiplicative': Whether multiplicative models are allowed (data-dependent)
+        - 'model_do': Action type ('select', 'combine', or 'estimate')
+
     phi_dict : dict
-        Damping parameter specification
+        Damping parameter specification containing:
+
+        - 'phi_estimate': Whether to estimate damping
+        - 'phi': Fixed damping value (if not estimated)
+
     general_dict : dict
-        General model configuration parameters
+        General configuration containing:
+
+        - 'loss': Loss function ('likelihood', 'MSE', 'MAE', etc.)
+        - 'distribution': Error distribution
+        - 'bounds': Parameter bounds type
+        - 'h': Forecast horizon
+        - 'holdout': Whether holdout validation is used
+
     lags_dict : dict
-        Information about model lags
+        Lag structure containing:
+
+        - 'lags': Primary lag vector (e.g., [1, 12])
+        - 'lags_model': Lags for each component
+        - 'lags_model_max': Maximum lag
+
     observations_dict : dict
-        Observed data information
+        Time series data containing:
+
+        - 'y_in_sample': Observed values
+        - 'obs_in_sample': Number of observations
+        - 'ot': Occurrence vector (for intermittent data)
+
     arima_dict : dict
-        ARIMA component specification
+        ARIMA specification containing:
+
+        - 'arima_model': Whether ARIMA components exist
+        - 'ar_orders': AR orders
+        - 'ma_orders': MA orders
+        - 'i_orders': Integration orders
+
     constant_dict : dict
-        Constant term specification
+        Constant term specification containing:
+
+        - 'constant_required': Whether constant is included
+        - 'constant_estimate': Whether to estimate constant
+
     explanatory_dict : dict
-        External regressors specification
+        External regressors specification containing:
+
+        - 'xreg_model': Whether regressors are present
+        - 'xreg_number': Number of regressors
+
     occurrence_dict : dict
-        Occurrence model information
+        Intermittent demand specification containing:
+
+        - 'occurrence_model': Whether occurrence model is used
+        - 'occurrence_type': Type of occurrence model
+
     components_dict : dict
-        Model components information
-    profiles_recent_table : array-like
-        Recent profiles table
+        Component counts (passed through to estimator)
+
+    profiles_recent_table : numpy.ndarray
+        Recent profile values for time-varying parameters
+
     profiles_recent_provided : bool
-        Whether profiles were provided by user
+        Whether user provided custom profiles
+
     persistence_results : dict
-        Persistence parameters specification
+        Persistence parameters containing:
+
+        - 'persistence_estimate': Whether to estimate smoothing parameters
+        - Fixed values for non-estimated parameters
+
     initials_results : dict
-        Initial values specification
-    criterion : str, optional
-        Information criterion to use for model selection
-    silent : bool, optional
-        Whether to suppress progress messages
+        Initial states specification containing:
+
+        - 'initial_type': Initialization method
+        - Flags for which initials to estimate
+
+    criterion : str, default="AICc"
+        Information criterion for model selection:
+
+        - **"AIC"**: Akaike Information Criterion (penalizes complexity moderately)
+        - **"AICc"**: Corrected AIC (recommended for small samples, **default**)
+        - **"BIC"**: Bayesian Information Criterion (more parsimonious than AIC)
+        - **"BICc"**: Corrected BIC
+
+        Lower IC values indicate better models. AICc is default as it performs
+        well across sample sizes and is the standard in forecast package.
+
+    silent : bool, default=False
+        Whether to suppress progress messages during model estimation.
+        If False, prints which models are being estimated.
 
     Returns
     -------
     dict
-        Dictionary containing results and model selection information
+        Dictionary containing selection results:
+
+        - **'results'** (list of dict): Estimation results for each model in pool.
+          Each dict contains:
+
+          * 'model': Model string (e.g., "ANN", "MAM")
+          * 'IC': Information criterion value
+          * 'loglik': Log-likelihood
+          * 'n_param': Number of parameters
+          * 'B': Estimated parameter vector
+          * Additional estimation outputs
+
+        - **'ic_selection'** (dict): Mapping of model names to IC values.
+          Keys are model strings, values are IC scores. NaN values are replaced
+          with 1e100 for comparison purposes.
+
+    Notes
+    -----
+    **Branch and Bound Algorithm**:
+
+    The Branch and Bound method is a heuristic that exploits the nested structure
+    of ETS models. It works by:
+
+    1. Starting with the simplest model (no trend, no seasonality)
+    2. "Branching" by adding/changing one component at a time
+    3. "Bounding" by not exploring branches worse than current best + tolerance
+
+    This can reduce the search from 30 models to ~10-15 models in typical cases,
+    with minimal risk of missing the global optimum.
+
+    **Performance Considerations**:
+
+    - Branch and Bound: Estimates ~10-15 models typically
+    - Full pool ("FFF"): Estimates all 30 models (slower but exhaustive)
+    - Custom pool: Estimates only specified models (fastest)
+
+    Estimation time is roughly proportional to number of models × optimization time
+    per model. For large datasets or complex models, consider using a smaller pool.
+
+    **Multiplicative Model Restrictions**:
+
+    Multiplicative error and seasonality require strictly positive data. If data
+    contains zeros or negatives, `allow_multiplicative=False` is automatically set,
+    restricting the pool to additive models only.
+
+    **Model Combination (CCC)**:
+
+    The "CCC" option for combining model forecasts using IC weights is mentioned in
+    R documentation but not fully implemented in Python version yet. Use "ZZZ" for
+    selection instead.
+
+    **Equivalent to R's auto.adam()**:
+
+    This function implements Python equivalent of R's `auto.adam()` from smooth package.
+
+    See Also
+    --------
+    estimator : Estimates a single model (called by selector for each candidate)
+    _form_model_pool : Creates the pool of candidate models
+    _run_branch_and_bound : Implements Branch & Bound algorithm
+    _estimate_all_models : Estimates all models in the pool
+
+    Examples
+    --------
+    Automatic selection with default AICc::
+
+        >>> results = selector(
+        ...     model_type_dict={'model': 'ZZZ', 'error_type': 'Z',
+        ...                      'trend_type': 'Z', 'season_type': 'Z',
+        ...                      'models_pool': None, ...},
+        ...     general_dict={'loss': 'likelihood', 'h': 10, ...},
+        ...     lags_dict={'lags': np.array([1, 12]), ...},
+        ...     observations_dict={'y_in_sample': data, ...},
+        ...     criterion='AICc',
+        ...     ...
+        ... )
+        >>> best_model = min(results['ic_selection'], key=results['ic_selection'].get)
+        >>> print(f"Best model: {best_model}, AICc: {results['ic_selection'][best_model]}")
+
+    Select from additive models only::
+
+        >>> results = selector(
+        ...     model_type_dict={'model': 'XXX', 'error_type': 'X',
+        ...                      'trend_type': 'X', 'season_type': 'X', ...},
+        ...     criterion='BIC',  # Use BIC for more parsimonious selection
+        ...     ...
+        ... )
+        >>> # Will only consider: ANN, AAN, AAdN, ANA, AAA, AAdA
+
+    Use custom pool::
+
+        >>> results = selector(
+        ...     model_type_dict={'model': 'ZZZ',
+        ...                      'models_pool': ['ANN', 'AAN', 'AAdN', 'ANA', 'AAA']},
+        ...     criterion='AICc',
+        ...     ...
+        ... )
+        >>> # Estimates only the 5 specified models
     """
     # Set the information criterion in general_dict
     general_dict["ic"] = criterion
@@ -1524,11 +2110,29 @@ def _process_initial_values(
                     i, : lags_dict["lags_model_max"]
                 ][0]
             # In cases of seasonal components, they should be at the end of the pre-heat period
+            # Only extract lag-1 values (the last one is the normalized value computed from others)
             else:
-                start_idx = lags_dict["lags_model_max"] - lags_dict["lags_model"][i][0]
-                initial_value_ets[i] = matrices_dict["mat_vt"][
+                start_idx = lags_dict["lags_model_max"] - lags_dict["lags_model"][i]
+                seasonal_full = matrices_dict["mat_vt"][
                     i, start_idx : lags_dict["lags_model_max"]
-                ]
+                ].copy()
+
+                # Renormalise seasonal initials to match R implementation
+                if np.any(~np.isnan(seasonal_full)):
+                    if model_type_dict["season_type"] == "A":
+                        seasonal_full = seasonal_full - np.nanmean(seasonal_full)
+                    elif model_type_dict["season_type"] == "M":
+                        positive_vals = seasonal_full.copy()
+                        positive_vals[positive_vals <= 0] = np.nan
+                        if np.all(np.isnan(positive_vals)):
+                            geo_mean = 1.0
+                        else:
+                            geo_mean = np.exp(np.nanmean(np.log(positive_vals)))
+                            if np.isnan(geo_mean) or geo_mean == 0:
+                                geo_mean = 1.0
+                        seasonal_full = seasonal_full / geo_mean
+
+                initial_value_ets[i] = seasonal_full[:-1]
 
         j = 0
         # Write down level in the final list
@@ -1547,13 +2151,19 @@ def _process_initial_values(
 
             # Write down the initial seasonals
             if model_type_dict["model_is_seasonal"]:
+                # Convert initial_seasonal_estimate to list if it's a boolean (for single seasonality)
+                if isinstance(initials_checked['initial_seasonal_estimate'], bool):
+                    seasonal_estimate_list = [initials_checked['initial_seasonal_estimate']] * components_dict['components_number_ets_seasonal']
+                else:
+                    seasonal_estimate_list = initials_checked['initial_seasonal_estimate']
+
                 initial_estimated[
                     j + 1 : j + 1 + components_dict["components_number_ets_seasonal"]
-                ] = initials_checked["initial_seasonal_estimate"]
+                ] = seasonal_estimate_list
                 # Remove the level from ETS list
                 initial_value_ets[0] = None
                 j += 1
-                if len(initials_checked["initial_seasonal_estimate"]) > 1:
+                if len(seasonal_estimate_list) > 1:
                     initial_value[j] = [x for x in initial_value_ets if x is not None]
                     initial_value_names[j] = "seasonal"
                     for k in range(components_dict["components_number_ets_seasonal"]):

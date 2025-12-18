@@ -3,7 +3,169 @@ import numpy as np
 
 
 def sigma(observations_dict, params_info, general, prepared_model):
-    vals = observations_dict['obs_in_sample'] - params_info['parameters_number'][0][-1]
+    """
+    Calculate error scale parameter (standard deviation) for ADAM model.
+
+    This function computes the scale parameter σ (sigma) of the error distribution,
+    which characterizes the magnitude of forecast errors. The calculation method
+    depends on the error distribution specified in the model.
+
+    The scale parameter is used for:
+
+    - **Prediction intervals**: Determines interval width
+    - **Log-likelihood**: Part of the probability density function
+    - **Model diagnostics**: Measures model fit quality
+    - **Simulation**: Governs error generation in forecasting
+
+    **Calculation Method**:
+
+    The scale is estimated as the square root of the mean squared (transformed) residuals:
+
+    .. math::
+
+        \\hat{\\sigma} = \\sqrt{\\frac{1}{T - k} \\sum_{t=1}^T r_t^2}
+
+    where:
+
+    - T = number of observations
+    - k = number of estimated parameters
+    - r_t = transformed residuals (transformation depends on distribution)
+
+    For different distributions, the residuals are transformed as:
+
+    - **Normal, Laplace, S, Generalized Normal, t, Logistic, Asymmetric Laplace**:
+      :math:`r_t = \\epsilon_t` (untransformed residuals)
+
+    - **Log-Normal, Log-Laplace, Log-S**:
+      :math:`r_t = \\log(\\epsilon_t)` (log-transformed residuals)
+
+    - **Inverse Gaussian, Gamma**:
+      :math:`r_t = \\epsilon_t` (untransformed, for multiplicative errors)
+
+    Parameters
+    ----------
+    observations_dict : dict
+        Observation information containing:
+
+        - 'obs_in_sample': Number of in-sample observations (T)
+
+    params_info : list or array
+        Parameter counts containing:
+
+        - params_info[0][-1]: Total number of parameters estimated (k)
+
+    general : dict
+        General model configuration containing:
+
+        - **'distribution'**: Error distribution name. Supported values:
+
+          * 'dnorm': Normal distribution
+          * 'dlaplace': Laplace (double exponential)
+          * 'ds': S distribution
+          * 'dgnorm': Generalized normal
+          * 'dt': Student's t
+          * 'dlogis': Logistic
+          * 'dalaplace': Asymmetric Laplace
+          * 'dlnorm': Log-normal
+          * 'dllaplace': Log-Laplace
+          * 'dls': Log-S
+          * 'dinvgauss': Inverse Gaussian
+          * 'dgamma': Gamma
+
+    prepared_model : dict
+        Prepared model from ``preparator()`` containing:
+
+        - **'residuals'**: In-sample residuals (y_t - y_fitted_t), pandas Series or ndarray.
+          May contain NaN values which are excluded from calculation.
+
+    Returns
+    -------
+    float
+        Estimated scale parameter σ (sigma). Always positive.
+
+        - For additive errors: Interpreted as standard deviation of errors
+        - For multiplicative errors: Scale of relative errors
+
+    Notes
+    -----
+    **Degrees of Freedom Adjustment**:
+
+    The denominator is T - k (degrees of freedom) to provide an unbiased estimate.
+    If T - k ≤ 0 (sample too small or too many parameters), uses biased estimator
+    with denominator T instead.
+
+    **Missing Values**:
+
+    NaN values in residuals are automatically excluded from the calculation. The
+    effective sample size is the number of non-NaN residuals.
+
+    **Distribution-Specific Notes**:
+
+    - **Log-distributions**: Work on log-scale to accommodate positive-only data.
+      The sigma is the standard deviation of log(errors), not errors themselves.
+
+    - **Gamma and Inverse Gaussian**: For multiplicative error models. The formula
+      uses residuals directly (not residuals - 1) to match R implementation.
+
+    - **Generalized Log-Normal**: Currently commented out, would require additional
+      scale extraction step.
+
+    **Relationship to Likelihood**:
+
+    The scale parameter σ appears in the likelihood function. For normal errors:
+
+    .. math::
+
+        \\log L = -\\frac{T}{2}\\log(2\\pi) - \\frac{T}{2}\\log(\\sigma^2) - \\frac{1}{2\\sigma^2}\\sum r_t^2
+
+    Maximizing likelihood is equivalent to minimizing σ² for normal distribution.
+
+    **Scale vs Variance**:
+
+    - **scale (σ)**: Square root of variance, same units as data
+    - **variance (σ²)**: Second moment, squared units
+    - **s2**: One-step-ahead variance (used in var_anal, covar_anal)
+
+    In ADAM, "scale" typically refers to σ, while "s2" refers to σ².
+
+    **Performance**:
+
+    Very fast computation (~1ms), dominated by residual squaring operation.
+
+    See Also
+    --------
+    preparator : Computes residuals used in sigma calculation
+    covar_anal : Uses s2 = sigma² for covariance matrix calculation
+    var_anal : Uses s2 for variance calculation
+    log_Lik_ADAM : Uses sigma in likelihood computation
+
+    Examples
+    --------
+    Calculate scale from fitted model::
+
+        >>> sigma_estimate = sigma(
+        ...     observations_dict={'obs_in_sample': 100},
+        ...     params_info=[[...], [...], [5]],  # 5 parameters
+        ...     general={'distribution': 'dnorm'},
+        ...     prepared_model={'residuals': residuals_series}
+        ... )
+        >>> print(f"Error standard deviation: {sigma_estimate:.4f}")
+
+    Compare scales across distributions::
+
+        >>> # Normal error model
+        >>> sigma_norm = sigma(obs_dict, params, {'distribution': 'dnorm'}, model)
+        >>> # Laplace error model
+        >>> sigma_laplace = sigma(obs_dict, params, {'distribution': 'dlaplace'}, model)
+        >>> # Laplace typically has smaller sigma for same data
+
+    Use sigma for prediction interval width::
+
+        >>> sigma_hat = sigma(obs_dict, params, general, prepared_model)
+        >>> # 95% prediction interval (for normal errors):
+        >>> interval_width = 1.96 * sigma_hat
+    """
+    vals = observations_dict['obs_in_sample'] - params_info[0][-1]
     # If the sample is too small, then use biased estimator
     if vals <= 0:
         vals = observations_dict['obs_in_sample']
@@ -17,7 +179,7 @@ def sigma(observations_dict, params_info, general, prepared_model):
     elif general['distribution'] in ['dlnorm', 'dllaplace', 'dls']:
         sigma = (np.log(residuals[non_nan_mask])**2).sum()
     #elif general['distribution'] == 'dlgnorm':
-    # we need the extract_scale() function here 
+    # we need the extract_scale() function here
     #    sigma = (np.log(residuals[non_nan_mask] - extract_scale()**2/2)**2).sum()
     elif general['distribution'] in ['dinvgauss', 'dgamma']:
         # sigma = ((residuals[non_nan_mask] - 1)**2).sum()
