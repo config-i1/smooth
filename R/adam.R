@@ -5254,6 +5254,8 @@ adamETSChecker <- function(object){
     return(adamETS);
 }
 
+'Small comment to trigger the pull'
+
 # Function defines number of components based on the model type
 componentsDefiner <- function(object){
     etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
