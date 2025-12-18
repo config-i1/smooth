@@ -2303,10 +2303,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             #                               componentsNumberETS, componentsNumberETSSeasonal,
             #                               componentsNumberARIMA, xregNumber, constantRequired, h,
             #                               yInSample, ot);
-            adamErrors <- adamCpp$errorer(adamFitted$states, adamElements$matWt,
+            adamErrors <- adamCpp$ferrors(adamFitted$states, adamElements$matWt,
                                           adamElements$matF,
                                           indexLookupTable, profilesRecentTable,
-                                          h, yInSample)$matErrors;
+                                          h, yInSample)$errors;
 
             # Not done yet: "aMSEh","aTMSE","aGTMSE","aMSCE","aGPL"
             CFValue <- switch(loss,
@@ -2573,7 +2573,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                componentsNumberARIMA, componentsNamesARIMA,
                                xregModel, xregModelInitials, xregData, xregNumber, xregNames,
                                xregParametersPersistence,
-                               constantRequired, constantEstimate, constantValue, constantName);
+                               constantRequired, constantEstimate, constantValue, constantName,
+                               adamCpp);
 
         # Initialise B
         BValues <- initialiser(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
@@ -3228,7 +3229,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     xregParametersMissing=xregParametersMissing,xregParametersIncluded=xregParametersIncluded,
                     xregParametersEstimated=xregParametersEstimated,xregParametersPersistence=xregParametersPersistence,
                     arimaPolynomials=adamCreated$arimaPolynomials,
-                    res=res));
+                    res=res,adamCpp=adamCpp));
     }
 
 
@@ -4124,7 +4125,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                componentsNumberARIMA, componentsNamesARIMA,
                                xregModel, xregModelInitials, xregData, xregNumber, xregNames,
                                xregParametersPersistence,
-                               constantRequired, constantEstimate, constantValue, constantName);
+                               constantRequired, constantEstimate, constantValue, constantName,
+                               adamCpp);
         list2env(adamCreated, environment());
 
         icSelection <- icFunction(adamEstimated$logLikADAMValue);
@@ -7361,6 +7363,8 @@ rmultistep.adam <- function(object, h=10,
 
     yClasses <- class(actuals(object));
 
+    adamETS <- adamETSChecker(object);
+
     # Model type
     model <- modelType(object);
     Etype <- switch(error,
@@ -7428,7 +7432,7 @@ rmultistep.adam <- function(object, h=10,
             #                       componentsNumberETS, componentsNumberETSSeasonal,
             #                       componentsNumberARIMA, xregNumber, constantRequired, h,
             #                       matrix(actuals(object),obsInSample,1), ot),
-            adamCpp$errorer(t(object$states), object$measurement,
+            adamCpp$ferrors(t(object$states), object$measurement,
                             object$transition,
                             indexLookupTable, profilesRecentTable,
                             h, matrix(actuals(object),obsInSample,1))$errors,
@@ -7442,7 +7446,7 @@ rmultistep.adam <- function(object, h=10,
             #                        componentsNumberETS, componentsNumberETSSeasonal,
             #                        componentsNumberARIMA, xregNumber, constantRequired, h,
             #                        matrix(actuals(object),obsInSample,1), ot),
-            adamCpp$errorer(t(object$states), object$measurement,
+            adamCpp$ferrors(t(object$states), object$measurement,
                             object$transition,
                             indexLookupTable, profilesRecentTable,
                             h, matrix(actuals(object),obsInSample,1))$errors,

@@ -81,7 +81,7 @@ RCPP_MODULE(adamCore_module) {
     .method("polynomialise", &adamCore::polynomialise)
     .method("fit", &adamCore::fit)
     .method("forecast", &adamCore::forecast)
-    .method("error", &adamCore::error)
+    .method("ferrors", &adamCore::ferrors)
     .method("simulate", &adamCore::simulate)
     .method("reapply", &adamCore::reapply)
     .method("reforecast", &adamCore::reforecast);

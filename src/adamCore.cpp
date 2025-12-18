@@ -31,7 +31,7 @@ struct ForecastResult {
     arma::vec forecast;
 };
 
-// Result structure for errorer
+// Result structure for ferrors
 struct ErrorResult {
     arma::mat errors;
 };
@@ -353,11 +353,11 @@ public:
         return result;
     }
 
-    // Method 4: Errorer - generates multistep error matrix
-    ErrorResult error(arma::mat matrixVt, arma::mat matrixWt,
-                      arma::mat matrixF,
-                      arma::umat const &indexLookupTable, arma::mat profilesRecent,
-                      unsigned int const &horizon, arma::vec vectorYt) {
+    // Method 4: Forecast Errors - generates in-sample multistep forecasts error matrix
+    ErrorResult ferrors(arma::mat matrixVt, arma::mat matrixWt,
+                        arma::mat matrixF,
+                        arma::umat const &indexLookupTable, arma::mat profilesRecent,
+                        unsigned int const &horizon, arma::vec vectorYt) {
         unsigned int obs = vectorYt.n_rows;
         unsigned int lagsModelMax = max(lags);
         // This is needed for cases, when hor>obs
