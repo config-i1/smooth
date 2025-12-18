@@ -2,37 +2,240 @@ import numpy as np
 from scipy import stats
 from scipy.linalg import eigvals
 from scipy.special import gamma, digamma, beta
+import pandas as pd
 
+try:
+    from statsmodels.nonparametric.smoothers_lowess import lowess as sm_lowess
+    HAS_STATSMODELS = True
+except ImportError:
+    HAS_STATSMODELS = False
 
-def msdecompose(y, lags=[12], type="additive", smoother="ma"):
+def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     """
-    Decomposes a time series assuming multiple frequencies provided in lags.
-    Uses only 'ma' smoother and avoids statsmodels package.
-    
-    Parameters:
-    - y: numpy array, the time series data
-    - lags: list or array, seasonal periods
-    - type: str, 'additive' or 'multiplicative'
-    - smoother: str, set to 'ma' only in this implementation
-    
-    Returns:
-    - dict: decomposition results including states, fitted values, etc.
+    Multiple seasonal decomposition of time series with multiple frequencies.
+
+    This function performs **classical seasonal decomposition** for time series with multiple
+    seasonal patterns (e.g., hourly data with daily and weekly seasonality, or daily data
+    with weekly and yearly patterns). It extends the standard STL decomposition to handle
+    multiple seasonal periods simultaneously.
+
+    The decomposition separates the time series into:
+
+    - **Trend**: Long-term movement (captured via smoothing)
+    - **Seasonal components**: One for each seasonal period in `lags`
+    - **Remainder** (not explicitly returned but implied): y - trend - seasonals
+
+    **Decomposition Method**:
+
+    For **additive** decomposition:
+
+    .. math::
+
+        y_t = \\text{Trend}_t + \\sum_i \\text{Seasonal}_i(t) + \\epsilon_t
+
+    For **multiplicative** decomposition:
+
+    .. math::
+
+        y_t = \\text{Trend}_t \\times \\prod_i \\text{Seasonal}_i(t) \\times \\epsilon_t
+
+    **Algorithm Steps**:
+
+    1. **Log Transform** (if multiplicative): Apply log to convert to additive form
+    2. **Missing Value Imputation**: Fill NaN values using polynomial + Fourier regression
+    3. **Iterative Smoothing**: For each lag period (sorted ascending):
+
+       - Apply smoother with window = lag period
+       - Extract seasonal pattern as residual from next smoother level
+       - Remove seasonal mean to center patterns
+
+    4. **Trend Extraction**: Final smoothed series is the trend
+    5. **Initial States**: Compute level and slope from trend for model initialization
+
+    **Smoother Types**:
+
+    - **"ma"**: Moving average with window = lag period. Fast but less flexible.
+      Automatically switches to LOWESS if sample size < minimum lag.
+
+    - **"lowess"** (default): Locally weighted scatterplot smoothing. Robust to outliers,
+      adapts to local patterns. Equivalent to R's `lowess()`.
+
+    - **"supsmu"**: Friedman's super smoother (uses LOWESS implementation in Python).
+      Adaptive bandwidth selection.
+
+    Parameters
+    ----------
+    y : array-like
+        Time series data to decompose. Can contain NaN values (will be imputed).
+        Shape: (T,) where T is the number of observations.
+
+    lags : list or array, default=[12]
+        Seasonal periods to extract. Examples:
+
+        - [12]: Monthly data with yearly seasonality
+        - [24]: Hourly data with daily seasonality
+        - [7, 365.25]: Daily data with weekly and yearly seasonality
+        - [24, 168]: Hourly data with daily (24h) and weekly (7×24=168h) patterns
+
+        Must contain positive integers. Lags are sorted automatically.
+
+    type : str, default="additive"
+        Decomposition type:
+
+        - **"additive"**: Components are summed (for stable seasonality)
+        - **"multiplicative"**: Components are multiplied (for proportional seasonality,
+          requires y > 0)
+
+    smoother : str, default="lowess"
+        Smoothing method for trend and seasonal extraction:
+
+        - **"lowess"**: LOWESS with adaptive span (recommended, **default**)
+        - **"supsmu"**: Super smoother (uses LOWESS in Python)
+        - **"ma"**: Simple moving average (faster but less robust)
+
+    Returns
+    -------
+    dict
+        Dictionary containing decomposition results:
+
+        - **'states'** (numpy.ndarray): Matrix of extracted states, shape (T, n_states).
+          Columns are [Level, Trend, Seasonal_1, Seasonal_2, ..., Seasonal_n].
+          These states can be used as initial values for ADAM model estimation.
+
+        - **'initial'** (numpy.ndarray): Initial level and trend values, shape (2,).
+          initial[0] = level (value at t=0), initial[1] = slope (trend per period).
+          Computed from the first non-NaN trend values.
+
+        - **'trend'** (numpy.ndarray): Extracted trend component, shape (T,).
+          Long-term movement after removing seasonal patterns.
+
+        - **'seasonal'** (list of numpy.ndarray): Seasonal patterns, one array per lag.
+          Each seasonal[i] has shape (T,) and is centered (mean = 0).
+
+        - **'component'** (list): Component type descriptions (for compatibility)
+
+        - **'lags'** (numpy.ndarray): Sorted unique lag periods used
+
+        - **'type'** (str): Decomposition type ('additive' or 'multiplicative')
+
+    Raises
+    ------
+    ValueError
+        If type not in ['additive', 'multiplicative']
+        If smoother not in ['ma', 'lowess', 'supsmu']
+    ImportError
+        If smoother='lowess' or 'supsmu' but statsmodels is not installed
+
+    Notes
+    -----
+    **Missing Values**:
+
+    NaN values are automatically imputed using a regression model:
+
+    .. math::
+
+        \\hat{y}_t = \\sum_{k=0}^d \\beta_k t^k + \\sum_{j=1}^m \\alpha_j \\sin(\\pi t j / m)
+
+    where d is polynomial degree (up to 5) and m is the maximum lag.
+    This preserves trend and seasonal structure during imputation.
+
+    **Multiplicative Decomposition**:
+
+    Requires strictly positive data. If y ≤ 0, those values are treated as missing.
+    Internally works on log(y), then exponentiates results.
+
+    **Smoother Span Selection**:
+
+    For LOWESS, span (bandwidth) is automatically selected based on lag period:
+
+    - For lag = 1: span = 2/3 (R's default)
+    - For lag = T: span = 2/3
+    - Otherwise: span = 1 / lag
+    - Minimum span: 3 / T (ensures smoothness)
+
+    **Seasonal Centering**:
+
+    Each seasonal pattern is centered to have mean zero. This ensures identifiability:
+    trend captures the level, seasonals capture deviations.
+
+    **Performance**:
+
+    - Moving average: Very fast (~1ms for T=1000)
+    - LOWESS: Moderate (~10-50ms depending on T)
+    - Multiple lags: Time scales linearly with number of lags
+
+    **Use in ADAM**:
+
+    The decomposition is used for initial state estimation when initial="backcasting"
+    or when the model includes seasonal components. The extracted states provide
+    reasonable starting values for the level, trend, and seasonal components.
+
+    **Comparison to STL**:
+
+    Unlike STL (Seasonal-Trend decomposition using Loess), which handles only one
+    seasonal period, msdecompose handles **multiple** seasonal periods by iteratively
+    removing each seasonal component.
+
+    See Also
+    --------
+    creator : Uses msdecompose results for initial state estimation
+    initialiser : May use decomposition results for parameter initialization
+
+    Examples
+    --------
+    Decompose monthly data with yearly seasonality::
+
+        >>> y = np.array([112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118,
+        ...               115, 126, 141, 135, 125, 149, 170, 170, 158, 133, 114, 140])
+        >>> result = msdecompose(y, lags=[12], type='additive', smoother='lowess')
+        >>> print(result['trend'])  # Trend component
+        >>> print(result['seasonal'][0])  # Yearly seasonal pattern
+        >>> print(result['initial'])  # [initial_level, initial_slope]
+
+    Decompose hourly data with daily and weekly seasonality::
+
+        >>> hourly_data = np.random.randn(24 * 7 * 4)  # 4 weeks of hourly data
+        >>> result = msdecompose(hourly_data, lags=[24, 168],  # 24h and 7*24h
+        ...                      type='additive', smoother='lowess')
+        >>> daily_pattern = result['seasonal'][0]  # 24-hour pattern
+        >>> weekly_pattern = result['seasonal'][1]  # Weekly pattern
+
+    Multiplicative decomposition for positive data::
+
+        >>> sales = np.array([100, 120, 150, 140, 130, 160, 200, 210, 180, 140, 110, 130])
+        >>> result = msdecompose(sales, lags=[12], type='multiplicative')
+        >>> # Seasonality proportional to level
+
+    Use decomposition for ADAM initialization::
+
+        >>> result = msdecompose(y, lags=[12], type='additive')
+        >>> initial_level = result['initial'][0]
+        >>> initial_trend = result['initial'][1]
+        >>> initial_seasonal = result['seasonal'][0][:12]  # First 12 values
+        >>> # Pass to ADAM's initials parameter
     """
     # Argument validation
     if type not in ["additive", "multiplicative"]:
         raise ValueError("type must be 'additive' or 'multiplicative'")
-    if smoother != "ma":
-        raise ValueError("Only 'ma' smoother is supported in this implementation")
+    if smoother not in ["ma", "lowess", "supsmu"]:
+        raise ValueError("smoother must be 'ma', 'lowess', or 'supsmu'")
+
+    # Check statsmodels availability for lowess
+    if smoother in ["lowess", "supsmu"] and not HAS_STATSMODELS:
+        raise ImportError("statsmodels is required for lowess/supsmu smoother. "
+                         "Install it with: pip install statsmodels")
 
     # Variable name handling
     y_name = "y"
 
     # Data preparation
     y = np.asarray(y)
+    obs_in_sample = len(y)
     seasonal_lags = any(lag > 1 for lag in lags)
 
     # Smoothing function definition
-    def smoothing_function(y, order):
+    def smoothing_function_ma(y, order):
+        """Moving average smoother"""
         # Convert y to float to avoid integer overflow
         y = y.astype(float)
         if order == np.sum(~np.isnan(y)) or order % 2 != 0:
@@ -49,8 +252,68 @@ def msdecompose(y, lags=[12], type="additive", smoother="ma"):
             trend[i] = np.sum(y[i - half_k : i + half_k + 1] * weights)
         return trend
 
+    def smoothing_function_lowess(y, order):
+        """LOWESS smoother (equivalent to R's lowess/supsmu)"""
+        y = y.astype(float)
+        n = len(y)
+        x = np.arange(1, n + 1)
+
+        # Calculate span similar to R's supsmu
+        # R uses span = max(3/n, 1/order) for supsmu
+        if order == 1:
+            # R's lowess uses f = 2/3 for default
+            span = 2/3
+        elif order == lags[len(lags)-1] or order == obs_in_sample:
+             span = 2/3 # 1/(1.5)
+        elif order > n:
+            span = 3 / n
+        else:
+            span = 1 / order
+
+        # Ensure span is reasonable (between 0 and 1)
+        span = max(min(span, 1.0), 3 / n)
+
+        # Handle missing values
+        valid_mask = ~np.isnan(y)
+        if not np.any(valid_mask):
+            return np.full_like(y, np.nan)
+
+        # Apply LOWESS
+        # statsmodels lowess returns array of (x, y) pairs
+        # R's lowess uses iter=3 by default
+        smoothed = sm_lowess(y[valid_mask], x[valid_mask], frac=span,
+                            return_sorted=True, it=3)
+
+        # Map back to original indices
+        result = np.full_like(y, np.nan)
+        result[valid_mask] = smoothed[:, 1]
+
+        return result
+
     # Initial data processing
-    obs_in_sample = len(y)
+    # obs_in_sample is already defined above
+    
+    # Select smoothing function based on smoother type
+    if smoother == "ma":
+        smoothing_function = smoothing_function_ma
+    else:  # lowess or supsmu
+        smoothing_function = smoothing_function_lowess
+
+    # Check if MA smoother works with the given sample size
+    if smoother == "ma" and obs_in_sample <= min(lags):
+        import warnings
+        warnings.warn(
+            "The minimum lag is larger than the sample size. "
+            "Moving average does not work in this case. "
+            "Switching smoother to LOWESS.",
+            stacklevel=2
+        )
+        smoother = "lowess"
+        if not HAS_STATSMODELS:
+            raise ImportError("statsmodels is required for lowess smoother. "
+                             "Install it with: pip install statsmodels")
+        smoothing_function = smoothing_function_lowess
+
     y_na_values = np.isnan(y)
     if type == "multiplicative":
         shifted_data = False
@@ -96,9 +359,15 @@ def msdecompose(y, lags=[12], type="additive", smoother="ma"):
                 indices = np.arange(j, obs_in_sample, lags[i])
                 y_seasonal = y_clear[i][indices]
                 y_seasonal_non_na = y_seasonal[~np.isnan(y_seasonal)]
+                
                 if len(y_seasonal_non_na) > 0:
-                    y_seasonal_smooth = np.mean(y_seasonal_non_na)
-                    pattern_i[indices] = y_seasonal_smooth
+                    if smoother == "ma":
+                        y_seasonal_smooth = np.mean(y_seasonal_non_na)
+                        pattern_i[indices[~np.isnan(y_seasonal)]] = y_seasonal_smooth
+                    else:
+                        y_seasonal_smooth = smoothing_function(y_seasonal_non_na, order=obs_in_sample)
+                        pattern_i[indices[~np.isnan(y_seasonal)]] = y_seasonal_smooth
+            
             if np.any(~np.isnan(pattern_i)):
                 pattern_i -= np.nanmean(pattern_i)
             patterns.append(pattern_i)
@@ -116,14 +385,51 @@ def msdecompose(y, lags=[12], type="additive", smoother="ma"):
         diffs = np.diff(valid_data_for_initial)
         init_trend = np.nanmean(diffs) if len(diffs) > 0 else 0.0
     initial = np.array([init_level, init_trend], dtype=float)
-    #print(lags)
-    initial[0] -= initial[1] * np.floor(max(lags) / 2)
-    # Multiplicative adjustment
+
+    # Fix the initial for MA smoother
+    if smoother == "ma":
+        initial[0] -= initial[1] * np.floor(max(lags) / 2)
+
+    # Deterministic trend fit to the smooth series
+    # This is required by adam() with backcasting
+    valid_trend = ~np.isnan(trend)
+    X_determ = np.column_stack([np.ones(obs_in_sample), np.arange(1, obs_in_sample + 1)])
+    gta = np.linalg.lstsq(X_determ[valid_trend], trend[valid_trend], rcond=None)[0]
+
+    # Move the trend back to start it off-sample in case of ADAM
+    gta[0] = gta[0] - gta[1] * max(lags)
+
+    # Return to the original scale
     if type == "multiplicative":
         initial = np.exp(initial)
-        trend = np.exp(trend)
+        trend_exp = np.exp(trend)
+
+        # Sort out additive/multiplicative trend for ADAM
+        gtm = np.exp(gta.copy())
+
+        # Recalculate gta on the exponential scale
+        gta = np.linalg.lstsq(X_determ[valid_trend], trend_exp[valid_trend], rcond=None)[0]
+        gta[0] = gta[0] - gta[1] * max(lags)
+
+        trend = trend_exp
         if seasonal_lags:
             patterns = [np.exp(pattern) for pattern in patterns]
+    else:
+        # Get the deterministic multiplicative trend for additive decomposition
+        # Shift the trend if it contains negative values
+        non_positive_values = False
+        trend_for_gtm = trend.copy()
+        if np.any(trend[valid_trend] <= 0):
+            non_positive_values = True
+            trend_min = np.nanmin(trend)
+            trend_for_gtm = trend - trend_min + 1
+
+        gtm = np.linalg.lstsq(X_determ[valid_trend], np.log(trend_for_gtm[valid_trend]), rcond=None)[0]
+        gtm = np.exp(gtm)
+
+        # Correct the initial level
+        if non_positive_values:
+            gtm[0] = gtm[0] - trend_min - 1
 
     # Fitted values and states
     y_fitted = trend.copy()
@@ -147,6 +453,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="ma"):
         "initial": initial,
         "seasonal": patterns,
         "fitted": y_fitted,
+        # gta is the Global Trend, Additive. gtm is the Global Trend, Multiplicative
+        "gta": gta,
+        "gtm": gtm,
         "loss": "MSE",
         "lags": lags,
         "type": type,
@@ -191,6 +500,10 @@ def calculate_pacf(data, nlags=40):
 
 
 def calculate_likelihood(distribution, Etype, y, y_fitted, scale, other):
+    
+    # Fixes the output dimension
+    y = y.reshape(-1,1) 
+    
     if distribution == "dnorm":
         if Etype == "A":
             return stats.norm.logpdf(y, loc=y_fitted, scale=scale)

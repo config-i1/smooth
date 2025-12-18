@@ -1,3 +1,3 @@
-from smooth.adam_general.core.adam import Adam
+from smooth.adam_general.core.adam import ADAM
 
-__all__ = ["Adam"]
+__all__ = ["ADAM"]

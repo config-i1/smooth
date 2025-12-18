@@ -345,12 +345,18 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         # Write down the initials in the recent profile
         matVt[,1:lagsModelMax] <- profilesRecentTable[] <- elements$vt;
 
-        adamFitted <- adamFitterWrap(matVt, elements$matWt, elements$matF, elements$vecG,
-                                     lagsModelAll, indexLookupTable, profilesRecentTable,
-                                     Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-                                     componentsNumberARIMA, xregNumber, FALSE,
-                                     yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations, refineHead, FALSE);
+        # adamFitted <- adamFitterWrap(matVt, elements$matWt, elements$matF, elements$vecG,
+        #                              lagsModelAll, indexLookupTable, profilesRecentTable,
+        #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+        #                              componentsNumberARIMA, xregNumber, FALSE,
+        #                              yInSample, ot, any(initialType==c("complete","backcasting")),
+        #                              nIterations, refineHead, FALSE);
+        adamFitted <- adamCpp$fit(matVt, elements$matWt,
+                                  elements$matF, elements$vecG,
+                                  indexLookupTable, profilesRecentTable,
+                                  yInSample, ot,
+                                  any(initialType==c("complete","backcasting")), nIterations,
+                                  refineHead);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -359,7 +365,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
 
                 # Calculate the likelihood
                 CFValue <- -sum(dnorm(x=yInSample[otLogical],
-                                      mean=adamFitted$yFitted[otLogical],
+                                      mean=adamFitted$fitted[otLogical],
                                       sd=scale, log=TRUE));
             }
             else if(loss=="MSE"){
@@ -372,17 +378,21 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
                 CFValue <- sum(sqrt(abs(adamFitted$errors)))/obsInSample;
             }
             else if(loss=="custom"){
-                CFValue <- lossFunction(actual=yInSample,fitted=adamFitted$yFitted,B=B);
+                CFValue <- lossFunction(actual=yInSample,fitted=adamFitted$fitted,B=B);
             }
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            adamErrors <- adamErrorerWrap(adamFitted$matVt, elements$matWt, elements$matF,
-                                          lagsModelAll, indexLookupTable, profilesRecentTable,
-                                          Etype, Ttype, Stype,
-                                          componentsNumberETS, componentsNumberETSSeasonal,
-                                          componentsNumberARIMA, xregNumber, constantRequired, h,
-                                          yInSample, ot);
+            # adamErrors <- adamErrorerWrap(adamFitted$matVt, elements$matWt, elements$matF,
+            #                               lagsModelAll, indexLookupTable, profilesRecentTable,
+            #                               Etype, Ttype, Stype,
+            #                               componentsNumberETS, componentsNumberETSSeasonal,
+            #                               componentsNumberARIMA, xregNumber, constantRequired, h,
+            #                               yInSample, ot);
+            adamErrors <- adamCpp$ferrors(adamFitted$states, elements$matWt,
+                                          elements$matF,
+                                          indexLookupTable, profilesRecentTable,
+                                          h, yInSample)$errors;
 
             # Not done yet: "aMSEh","aTMSE","aGTMSE","aMSCE","aGPL"
             CFValue <- switch(loss,
@@ -455,6 +465,15 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         regressors <- "integrate";
         componentsNumberAll <- componentsNumber+xregNumber;
     }
+
+    # Create C++ adam class, which will then use fit, forecast etc methods
+    adamCpp <- new(adamCore,
+                   lagsModelAll, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber,
+                   constantRequired, FALSE);
 
     matF <- diag(componentsNumber+xregNumber);
     vecG <- matrix(0,componentsNumber+xregNumber,1);
@@ -801,18 +820,24 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
     logLikValue <- structure(logLikFunction(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt),
                              nobs=obsInSample, df=nParamEstimated, class="logLik");
 
-    adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-                                 lagsModelAll, indexLookupTable, profilesRecentTable,
-                                 Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-                                 componentsNumberARIMA, xregNumber, FALSE,
-                                 yInSample, ot, any(initialType==c("complete","backcasting")),
-                                 nIterations, refineHead, FALSE);
+    # adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
+    #                              lagsModelAll, indexLookupTable, profilesRecentTable,
+    #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+    #                              componentsNumberARIMA, xregNumber, FALSE,
+    #                              yInSample, ot, any(initialType==c("complete","backcasting")),
+    #                              nIterations, refineHead, FALSE);
+    adamFitted <- adamCpp$fit(matVt, matWt,
+                              matF, vecG,
+                              indexLookupTable, profilesRecentTable,
+                              yInSample, ot,
+                              any(initialType==c("complete","backcasting")), nIterations,
+                              refineHead);
 
     errors[] <- adamFitted$errors;
-    yFitted[] <- adamFitted$yFitted;
+    yFitted[] <- adamFitted$fitted;
     # Write down the recent profile for future use
     profilesRecentTable <- adamFitted$profile;
-    matVt[] <- adamFitted$matVt;
+    matVt[] <- adamFitted$states;
     if(!any(initialType==c("complete","backcasting"))){
         profilesRecentInitial <- matVt[,1:lagsModelMax,drop=FALSE];
     }
@@ -826,14 +851,18 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         yForecast <- zoo(rep(NA, max(1,h)), order.by=yForecastIndex);
     }
     if(h>0){
-        yForecast[] <- adamForecasterWrap(tail(matWt,h), matF,
-                                          lagsModelAll,
-                                          indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
-                                          profilesRecentTable,
-                                          Etype, Ttype, Stype,
-                                          componentsNumberETS, componentsNumberETSSeasonal,
-                                          componentsNumberARIMA, xregNumber, FALSE,
-                                          h);
+        # yForecast[] <- adamForecasterWrap(tail(matWt,h), matF,
+        #                                   lagsModelAll,
+        #                                   indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
+        #                                   profilesRecentTable,
+        #                                   Etype, Ttype, Stype,
+        #                                   componentsNumberETS, componentsNumberETSSeasonal,
+        #                                   componentsNumberARIMA, xregNumber, FALSE,
+        #                                   h);
+        yForecast[] <- adamCpp$forecast(tail(matWt,h), matF,
+                                        indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
+                                        profilesRecentTable,
+                                        h)$forecast;
     }
     else{
         yForecast[] <- NA;
