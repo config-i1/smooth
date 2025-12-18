@@ -30,6 +30,8 @@ sparma(data, orders = c(1, 1), constant = FALSE, loss = c("likelihood",
 \item{bounds}{Parameter bounds}
 
 \item{silent}{Logical, whether to suppress output (default: TRUE)}
+
+\item{...}{Other parameters passed to god knows what.}
 }
 \value{
 Object of class c("adam", "smooth") containing:

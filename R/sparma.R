@@ -15,6 +15,7 @@
 #' @param initial Initialisation method for states
 #' @param bounds Parameter bounds
 #' @param silent Logical, whether to suppress output (default: TRUE)
+#' @param ... Other parameters passed to god knows what.
 #'
 #' @return Object of class c("adam", "smooth") containing:
 #' \itemize{
@@ -191,6 +192,16 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
     initialStateLength <- lagsModelAll[nonZeroAR];
 
 
+    # Create C++ adam class, which will then use fit, forecast etc methods
+    adamCpp <- new(adamCore,
+                   lagsModelAll, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber,
+                   constantRequired, FALSE);
+
+
     # Helper function: Create initial state space matrices ####
     sparmaMatricesCreator <- function(p, q, armaParameters,
                                       arRequired, arEstimate,
@@ -329,12 +340,12 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
         profilesRecentTable[] <- matricesFilled$matVt[,1:lagsModelMax];
 
         # Fit using C++ function
-        adamFitted <- adamFitterWrap(matricesFilled$matVt, matricesFilled$matWt, matricesFilled$matF, matricesFilled$vecG,
-                                     lagsModelAll, indexLookupTable, profilesRecentTable,
-                                     Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-                                     componentsNumberARIMA, xregNumber, constantRequired,
-                                     yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations, refineHead, FALSE);
+        adamFitted <- adamCpp$fit(matricesFilled$matVt, matricesFilled$matWt,
+                                  matricesFilled$matF, matricesFilled$vecG,
+                                  indexLookupTable, profilesRecentTable,
+                                  yInSample, ot,
+                                  any(initialType==c("complete","backcasting")), nIterations,
+                                  refineHead);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -343,7 +354,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
 
                 # Calculate the likelihood
                 CFValue <- -sum(dnorm(x=yInSample[otLogical],
-                                      mean=adamFitted$yFitted[otLogical],
+                                      mean=adamFitted$fitted[otLogical],
                                       sd=scale, log=TRUE));
             }
             else if(loss=="MSE"){
@@ -356,17 +367,15 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                 CFValue <- sum(sqrt(abs(adamFitted$errors)))/obsInSample;
             }
             else if(loss=="custom"){
-                CFValue <- lossFunction(actual=yInSample,fitted=adamFitted$yFitted,B=B);
+                CFValue <- lossFunction(actual=yInSample,fitted=adamFitted$fitted,B=B);
             }
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            adamErrors <- adamErrorerWrap(adamFitted$matVt, matWt, elements$matF,
-                                          lagsModelAll, indexLookupTable, profilesRecentTable,
-                                          Etype, Ttype, Stype,
-                                          componentsNumberETS, componentsNumberETSSeasonal,
-                                          componentsNumberARIMA, xregNumber, constantRequired, h,
-                                          yInSample, ot);
+            adamErrors <- adamCpp$ferrors(adamFitted$states, matWt,
+                                          matricesFilled$matF,
+                                          indexLookupTable, profilesRecentTable,
+                                          h, yInSample)$errors;
 
             # Not done yet: "aMSEh","aTMSE","aGTMSE","aMSCE","aGPL"
             CFValue <- switch(loss,
@@ -475,18 +484,29 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
 
     profilesRecentInitial[] <- profilesRecentTable[] <- matricesFinal$matVt[,1:lagsModelMax];
 
-    adamFitted <- adamFitterWrap(matricesFinal$matVt, matricesFinal$matWt, matricesFinal$matF, matricesFinal$vecG,
-                                 lagsModelAll, indexLookupTable, profilesRecentTable,
-                                 Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-                                 componentsNumberARIMA, xregNumber, constantRequired,
-                                 yInSample, ot, any(initialType==c("complete","backcasting")),
-                                 nIterations, refineHead, FALSE);
+    # Fit using C++ function
+    adamFitted <- adamCpp$fit(matricesFinal$matVt, matricesFinal$matWt,
+                              matricesFinal$matF, matricesFinal$vecG,
+                              indexLookupTable, profilesRecentTable,
+                              yInSample, ot,
+                              any(initialType==c("complete","backcasting")), nIterations,
+                              refineHead);
 
-    errors <- adamFitted$errors;
-    yFitted <- adamFitted$yFitted;
+    # Prepare fitted and error with ts / zoo
+    if(any(yClasses=="ts")){
+        yFitted <- ts(rep(NA,obsInSample), start=yStart, frequency=yFrequency);
+        errors <- ts(rep(NA,obsInSample), start=yStart, frequency=yFrequency);
+    }
+    else{
+        yFitted <- zoo(rep(NA,obsInSample), order.by=yInSampleIndex);
+        errors <- zoo(rep(NA,obsInSample), order.by=yInSampleIndex);
+    }
+
+    errors[] <- adamFitted$errors;
+    yFitted[] <- adamFitted$fitted;
     # Write down the recent profile for future use
     profilesRecentTable <- adamFitted$profile;
-    matVt[] <- adamFitted$matVt;
+    matVt[] <- adamFitted$states;
 
     # Calculate final loss and logLik
     scale <- scaler(adamFitted$errors, obsInSample);
@@ -502,14 +522,10 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
 
     # Forecasting if h > 0
     if(h>0){
-        yForecast[] <- adamForecasterWrap(tail(matricesFinal$matWt,h), matricesFinal$matF,
-                                          lagsModelAll,
-                                          indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
-                                          profilesRecentTable,
-                                          Etype, Ttype, Stype,
-                                          componentsNumberETS, componentsNumberETSSeasonal,
-                                          componentsNumberARIMA, xregNumber, constantRequired,
-                                          h);
+        yForecast[] <- adamCpp$forecast(tail(matricesFinal$matWt,h), matricesFinal$matF,
+                                        indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
+                                        profilesRecentTable,
+                                        h)$forecast;
     }
     else{
         yForecast[] <- NA;
@@ -522,6 +538,21 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
     else{
         errormeasures <- NULL;
     }
+
+    # Transform everything into appropriate classes
+    if(any(yClasses=="ts")){
+        yInSample <- ts(yInSample,start=yStart, frequency=yFrequency);
+        if(holdout){
+            yHoldout <- ts(as.matrix(yHoldout), start=yForecastStart, frequency=yFrequency);
+        }
+    }
+    else{
+        yInSample <- zoo(yInSample, order.by=yInSampleIndex);
+        if(holdout){
+            yHoldout <- zoo(as.matrix(yHoldout), order.by=yForecastIndex);
+        }
+    }
+
 
     # Build model name
     modelName <- paste0("SpARMA(", p, ",", q, ")");
@@ -551,194 +582,10 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                     scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res),
                                class=c("adam","smooth"));
 
-    # Print if not silent
+    # Plot if not silent
     if(!silent) {
         plot(modelReturned, which=7)
     }
 
     return(modelReturned)
 }
-
-
-#'
-#'
-#' #' @export
-#' print.sparma <- function(x, ...) {
-#'   cat("\nSparse ARMA Model\n")
-#'   cat("=================\n")
-#'   cat("Model:", x$model, "\n")
-#'   cat("Time elapsed:", round(x$timeElapsed, 4), "seconds\n")
-#'   cat("Initial type:", x$initialType, "\n")
-#'   cat("\nOrders: AR(", x$orders[1], "), MA(", x$orders[2], ")\n", sep="")
-#'
-#'   if(!is.null(x$AR)) {
-#'     cat("AR parameter:", round(x$AR, 4), "\n")
-#'   }
-#'   if(!is.null(x$MA)) {
-#'     cat("MA parameter:", round(x$MA, 4), "\n")
-#'   }
-#'   if(!is.null(x$constant)) {
-#'     cat("Constant:", round(x$constant, 4), "\n")
-#'   }
-#'
-#'   cat("\nSample size:", x$obs, "\n")
-#'   cat("Number of parameters:", x$nParam, "\n")
-#'   cat("Loss function:", x$lossFunction, "\n")
-#'   cat("Loss value:", round(x$lossValue, 4), "\n")
-#'   cat("Log-likelihood:", round(x$logLik, 4), "\n")
-#'
-#'   cat("\nAccuracy measures:\n")
-#'   print(round(x$accuracy, 4))
-#'
-#'   invisible(x)
-#' }
-#'
-#'
-#' #' @export
-#' summary.sparma <- function(object, ...) {
-#'   cat("\nSparse ARMA Model - Summary\n")
-#'   cat("===========================\n")
-#'   print(object)
-#'
-#'   cat("\n\nState Space Components:\n")
-#'   cat("Measurement vector (w):\n")
-#'   print(object$measurement)
-#'   cat("\nPersistence vector (g):\n")
-#'   print(object$persistence)
-#'   cat("\nTransition matrix (F):\n")
-#'   print(object$transition)
-#'
-#'   cat("\nInitial states:\n")
-#'   print(object$initial)
-#'
-#'   if(object$h > 0 && !is.null(object$forecast)) {
-#'     cat("\nForecast (", object$h, " steps ahead):\n", sep="")
-#'     print(round(object$forecast, 4))
-#'   }
-#'
-#'   invisible(object)
-#' }
-#'
-#'
-#' #' @export
-#' plot.sparma <- function(x, which=7, ...) {
-#'
-#'   if(which == 7 || which == "forecast") {
-#'     # Plot fit and forecast
-#'     if(x$holdout_used) {
-#'       allY <- c(x$y, x$holdout)
-#'       allFitted <- c(x$fitted, x$forecast)
-#'
-#'       plot(allY, type="l", col="black", lwd=2,
-#'            main=paste(x$model, "\nFitted and Forecast"),
-#'            ylab="Value", xlab="Time", ...)
-#'       lines(x$fitted, col="blue", lwd=1.5)
-#'       lines((length(x$y)+1):length(allY), x$forecast, col="red", lwd=1.5)
-#'       abline(v=length(x$y), lty=2, col="gray")
-#'       legend("topleft", legend=c("Actual", "Fitted", "Forecast", "Holdout start"),
-#'              col=c("black", "blue", "red", "gray"), lty=c(1,1,1,2),
-#'              lwd=c(2,1.5,1.5,1))
-#'     } else {
-#'       plot(x$y, type="l", col="black", lwd=2,
-#'            main=paste(x$model, "\nFitted and Forecast"),
-#'            ylab="Value", xlab="Time", ...)
-#'       lines(x$fitted, col="blue", lwd=1.5)
-#'       if(x$h > 0) {
-#'         lines((length(x$y)+1):(length(x$y)+x$h), x$forecast,
-#'               col="red", lwd=1.5)
-#'         legend("topleft", legend=c("Actual", "Fitted", "Forecast"),
-#'                col=c("black", "blue", "red"), lty=1, lwd=c(2,1.5,1.5))
-#'       } else {
-#'         legend("topleft", legend=c("Actual", "Fitted"),
-#'                col=c("black", "blue"), lty=1, lwd=c(2,1.5))
-#'       }
-#'     }
-#'   } else if(which == 1 || which == "residuals") {
-#'     # Residual plot
-#'     plot(x$residuals, type="l", main="Residuals",
-#'          ylab="Residuals", xlab="Time", ...)
-#'     abline(h=0, col="red", lty=2)
-#'   } else if(which == 2 || which == "fitted") {
-#'     # Fitted vs Actual
-#'     plot(x$y, x$fitted, main="Fitted vs Actual",
-#'          xlab="Actual", ylab="Fitted", ...)
-#'     abline(a=0, b=1, col="red", lty=2)
-#'   } else if(which == 3 || which == "states") {
-#'     # States plot
-#'     matplot(x$states, type="l", main="State Variables",
-#'             ylab="State Value", xlab="Time", ...)
-#'     legend("topleft", legend=paste("State", 1:ncol(x$states)),
-#'            col=1:ncol(x$states), lty=1:ncol(x$states))
-#'   } else if(which == 4 || which == "acf") {
-#'     # ACF of residuals
-#'     acf(x$residuals, main="ACF of Residuals", ...)
-#'   } else if(which == 5 || which == "pacf") {
-#'     # PACF of residuals
-#'     pacf(x$residuals, main="PACF of Residuals", ...)
-#'   } else if(which == 6 || which == "qq") {
-#'     # Q-Q plot
-#'     qqnorm(x$residuals, main="Normal Q-Q Plot", ...)
-#'     qqline(x$residuals, col="red")
-#'   }
-#'
-#'   invisible(x)
-#' }
-#'
-#'
-#' #' @export
-#' forecast.sparma <- function(object, h=NULL, ...) {
-#'   if(is.null(h)) {
-#'     h <- object$h
-#'   }
-#'
-#'   if(h == 0 || h == object$h) {
-#'     return(object$forecast)
-#'   }
-#'
-#'   # Re-forecast with new horizon
-#'   nStates <- length(object$initial)
-#'   matVt <- rbind(object$states, matrix(0, nrow=1, ncol=nStates))
-#'   matVt[nrow(matVt),] <- object$states[nrow(object$states),]
-#'
-#'   yForecast <- numeric(h)
-#'   constVal <- ifelse(is.null(object$constant), 0, object$constant)
-#'
-#'   for(i in 1:h) {
-#'     t <- nrow(matVt)
-#'     yForecast[i] <- sum(object$measurement * matVt[t,]) + constVal
-#'     matVt <- rbind(matVt,
-#'                    matrix(object$transition %*% matVt[t,], nrow=1))
-#'   }
-#'
-#'   return(yForecast)
-#' }
-#'
-#'
-#' #' @export
-#' coef.sparma <- function(object, ...) {
-#'   coefs <- c()
-#'
-#'   if(!is.null(object$AR)) {
-#'     coefs <- c(coefs, AR=object$AR)
-#'   }
-#'   if(!is.null(object$MA)) {
-#'     coefs <- c(coefs, MA=object$MA)
-#'   }
-#'   if(!is.null(object$constant)) {
-#'     coefs <- c(coefs, constant=object$constant)
-#'   }
-#'
-#'   return(coefs)
-#' }
-#'
-#'
-#' #' @export
-#' residuals.sparma <- function(object, ...) {
-#'   return(object$residuals)
-#' }
-#'
-#'
-#' #' @export
-#' fitted.sparma <- function(object, ...) {
-#'   return(object$fitted)
-#' }
