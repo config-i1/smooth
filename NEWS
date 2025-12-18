@@ -1,7 +1,8 @@
-smooth v4.3.2 (Release data: 2025-12-15)
+smooth v4.3.2 (Release data: 2025-12-18)
 =======
 
 Changes:
+* smooth functions now use a new C++ class called "adamCore", which implements all the necessary methods for fit, forecast etc. This change does not affect the functions' performance but allows the core to be used in both R and Python.
 * msdecompose() now also returns gta and gtm, which correspond to the parameters for the Global Trend, Additive and the Global Trend Multiplicative models. This is needed for adam().
 * New ETS initial values to make sure that the backcasting produces sensible values for the global level models.
 * Removed some heuristics in adam() for the initialisation on small samples - this is now handled by the msdecompose.
