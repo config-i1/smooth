@@ -34,6 +34,7 @@ struct ErrorResult {
 // Result structure for simulator
 struct SimulateResult {
     arma::cube states;
+    arma::cube profile;
     arma::mat data;
 };
 
@@ -404,6 +405,7 @@ public:
         int nComponents = lags.n_rows;
         int obsAll = obs + lagsModelMax;
         arma::mat profilesRecentOriginal = profilesRecent;
+        arma::cube arrayProfile(profilesRecentOriginal.n_rows, profilesRecentOriginal.n_cols, nSeries);
 
         double yFitted;
 
@@ -443,10 +445,12 @@ public:
                 matrixVt.col(j) = profilesRecent(indexLookupTable.col(j-lagsModelMax));
             }
             arrayVt.slice(i) = matrixVt;
+            arrayProfile.slice(i) = profilesRecent;
         }
 
         SimulateResult result;
         result.states = arrayVt;
+        result.profile = arrayProfile;
         result.data = matY;
         return result;
     }
