@@ -897,8 +897,11 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         # Create index lookup table
         indexLookupTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
                                            lags=lags, yIndex=yIndexAll, yClasses=yClasses)$lookup;
-        if(any(initialType==c("optimal","two-stage"))){
+        if(any(initialType==c("optimal","two-stage","provided"))){
             initialType <- "provided";
+        }
+        else{
+            initialType <- initialOriginal[1];
         }
         initialValue <- profilesRecentTable;
         initialXregEstimateOriginal <- initialXregEstimate;
@@ -994,6 +997,9 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
     # Write down the recent profile for future use
     profilesRecentTable <- adamFitted$profile;
     matVt[] <- adamFitted$states;
+    if(!any(initialType==c("complete","backcasting"))){
+        profilesRecentInitial <- matVt[,1:lagsModelMax,drop=FALSE];
+    }
 
     scale <- scaler(adamFitted$errors[otLogical], obsInSample);
 
