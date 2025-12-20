@@ -5335,7 +5335,7 @@ dfDiscounterFit <- function(persistence, transition,
 
     # Get the final profile. It now contains the discounted df for the start of the data
     return(list(profileInitial=profilesRecentTableBack, profileRecent=adamFittedBack$profile,
-                states=tail(t(adamFittedBack$matVt), lagsModelMax)));
+                states=tail(t(adamFittedBack$states), lagsModelMax)));
 
     # For the ARIMA models, just sum up the profile - it seems to work fine
     # For ETS, we need to deal with level compensating for the seasonality
@@ -5353,8 +5353,8 @@ dfDiscounter <- function(object){
         xregNumber[] <- length(object$initial$xreg);
     }
 
-    dfs1 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
-                            # dfs1 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
+    # dfs1 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
+    dfs1 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
                             obsInSample, adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$lookup,
                             errorType(object), trendType(object), seasonType(object), etsChecker(object),
                             components$componentsNumberETSSeasonal, components$componentsNumberETSNonSeasonal,
@@ -5363,18 +5363,29 @@ dfDiscounter <- function(object){
                             adamETSChecker(object));
 
     # Record what would happen if we had a deterministic stuff
-    # vecG[] <- 0;
+    vecG[] <- 0;
     # dfs2 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
-    # # dfs2 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
-    #                         obsInSample, adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$lookup,
-    #                         errorType(object), trendType(object), seasonType(object), etsChecker(object),
-    #                         components$componentsNumberETSSeasonal, components$componentsNumberETS,
-    #                         components$componentsNumberARIMA, length(object$initial$xreg), !is.null(object$constant),
-    #                         adamETSChecker(object));
+    dfs2 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
+                            obsInSample, adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$lookup,
+                            errorType(object), trendType(object), seasonType(object), etsChecker(object),
+                            components$componentsNumberETSSeasonal, components$componentsNumberETSNonSeasonal,
+                            components$componentsNumberETS, components$componentsNumberARIMA,
+                            xregNumber, !is.null(object$constant),
+                            adamETSChecker(object));
+
+    # Record the states that are way off from the (0,1) region. They evolved enough
+    discountedStates <- (dfs1$profileRecent>dfs2$profileRecent | dfs1$profileRecent<0);
+    profileRecent <- dfs1$profileRecent;
+    # Those states have no impact on the final df
+    profileRecent[discountedStates] <- 0;
+    # For the others, take a proportion from the original ones to see how much they evolved
+    profileRecent[] <- profileRecent/dfs2$profileRecent;
+    # Finally, take the sum to get the df estimate
+    # na.rm is neede to avoid 0/0
+    df <- sum(profileRecent, na.rm=TRUE);
 
     return(list(profile1=dfs1$profileRecent, profileInitial=dfs1$profileInitial,
-                # profile2=dfs2$profileRecent, states2=dfs2$states,
-                states1=dfs1$states));
+                profile2=dfs2$profileRecent, df=df));
 }
 
 #### Small technical functions returning types of models and components ####
