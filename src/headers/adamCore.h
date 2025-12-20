@@ -217,18 +217,23 @@ public:
 
         // Loop for the backcast
         for (unsigned int j=1; j<=nIterations; j=j+1) {
-
             // Refine the head (in order for it to make sense)
             // This is only needed for ETS(*,Z,Z) models, with trend.
             // This is not needed for lagsMax=1, because there is nothing to fill in
-            if(refineHead && (T!='N')){
-                // Record the initial profile to the first column
-                matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
-                if(lagsModelMax>1){
+            if(lagsModelMax>1){
+                if(refineHead && (T!='N')){
+                    // Record the initial profile to the first column
+                    matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
                     // Update the head, but only for the trend component
                     for (int i=1; i<lagsModelMax; i=i+1) {
                         profilesRecent(indexLookupTable.col(i).rows(0,1)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                                        matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant).rows(0,1);
+                        matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+                    }
+                }
+                else if(refineHead){
+                    // Record the profile to the head of time series to fill in the state matrix
+                    for (int i=0; i<lagsModelMax; i=i+1) {
                         matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
                     }
                 }
