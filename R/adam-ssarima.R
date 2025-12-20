@@ -1009,13 +1009,14 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             profilesRecentInitial <- profilesRecentTable <- adamProfiles$recent;
         }
 
-        if(initialType=="provided"){
+        if(any(initialType==c("optimal","two-stage","provided"))){
+            initialType <- "provided";
             profilesRecentInitial[,1] <- profilesRecentTable[,1] <- matVt[,1];
         }
-
-        if(any(initialType==c("optimal","two-stage"))){
-            initialType <- "provided";
+        else{
+            initialType <- initialOriginal[1];
         }
+
         initialXregEstimateOriginal <- initialXregEstimate;
         initialXregEstimate <- FALSE;
 
@@ -1128,7 +1129,9 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     matVt[] <- adamFitted$states;
 
     # Write down the initials in the recent profile
-    profilesRecentInitial <- matVt[,1,drop=FALSE];
+    if(!any(initialType==c("complete","backcasting"))){
+        profilesRecentInitial <- matVt[,1,drop=FALSE];
+    }
 
     scale <- scaler(adamFitted$errors[otLogical], obsInSample);
 

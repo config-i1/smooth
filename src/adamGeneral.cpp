@@ -51,6 +51,7 @@ namespace Rcpp {
     template <> SEXP wrap(const SimulateResult& result) {
         return List::create(
             Named("states") = result.states,
+            Named("profile") = result.profile,
             Named("data") = result.data
         );
     }
