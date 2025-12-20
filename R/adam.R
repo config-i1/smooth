@@ -5307,8 +5307,8 @@ dfDiscounter <- function(object){
     # na.rm is needed to avoid 0/0
     df <- sum(profileRecent, na.rm=TRUE);
 
-    # return(list(profile1=dfs1$profileRecent, profileInitial=profilesRecentTableBack,
-    #             profile2=dfs2$profileRecent, df=df));
+    # return(list(profile1=t(dfs1$profileRecent), profileInitial=t(profilesRecentTableBack),
+    #             profile2=t(dfs2$profileRecent), df=df));
     return(df);
 }
 
