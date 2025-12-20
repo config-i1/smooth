@@ -5182,111 +5182,12 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
     return(list(recent=profilesRecentTable,lookup=indexLookupTable));
 }
 
-#### Experimental function to figure out df of ADAM in case of backcasting ####
-# The function calculates the discounted number of degrees of freedom for the model
-# This is needed for debiasing sigma in case of adam with backcasted initials
-# dfDiscounter <- function(object, persistence=NULL, transition=NULL, measurement=NULL,
-#                          lagsAll=NULL, obsInSample=NULL){
-dfDiscounterSim <- function(persistence, transition,
-                            lagsAll, obsInSample, indexLookupTable,
-                            Etype, Ttype, Stype, etsModel,
-                            componentsNumberETSSeasonal, componentsNumberETSNonSeasonal,
-                            componentsNumberETS, componentsNumberARIMA, xregNumber,
-                            constantRequired, adamETS){
-
-    lagsModelMax <- max(lagsAll);
-
-    # Create C++ adam class, which will then use fit, forecast etc methods
-    adamCpp <- new(adamCore,
-                   lagsAll, Etype, Ttype, Stype,
-                   componentsNumberETSNonSeasonal,
-                   componentsNumberETSSeasonal,
-                   componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
-                   constantRequired, adamETS);
-
-    # This is the sample to model to reflect the backcasted period (back and forth)
-    # lagsModelMax appears because we have "refineHead"
-    obsInSampleBackcasting <- obsInSample*2+lagsModelMax-1;
-    nStates <- ncol(transition);
-    # State matrix that has columns similar to obsStates
-    matVtBack <- array(1, c(nStates, obsInSampleBackcasting + lagsModelMax, 1));
-    # Measurement matrix with the new sample
-    matWtBack <- matrix(1, obsInSampleBackcasting, nStates);
-    # indexLookupTable for the new data. This is similar to doing forth and back pass
-    indexLookupTableBack <- cbind(indexLookupTable,indexLookupTable[,(ncol(indexLookupTable)-1):1, drop=FALSE]);
-    # Create a new profile, which has 1 for the initial states
-    profilesRecentTableBack <- matrix(0, nStates, lagsModelMax);
-    for(i in 1:nStates){
-        profilesRecentTableBack[i,1:lagsAll[i]] <- 1;
-    }
-    # Seasonality needs to be treated differently, because we estimate m-1 initials
-    # We spread m-1 to the m elements to reflect the idea that we estimated only m-1
-    # If we estimated all m, we would have 1 in every cell
-    if(etsModel && Stype!="N"){
-        for(k in 1:componentsNumberETSSeasonal){
-            profilesRecentTableBack[componentsNumberETSNonSeasonal+k,
-                                    1:lagsAll[componentsNumberETSNonSeasonal+k]] <-
-                (lagsAll[componentsNumberETSNonSeasonal+k]-1)/lagsAll[componentsNumberETSNonSeasonal+k];
-        }
-    }
-    # If we have the multiplicative trend, substitute ones by exp(1).
-    # This is because log(1)=0, so the states wouldn't be updated
-    if(etsModel && Ttype=="M"){
-        profilesRecentTableBack[profilesRecentTableBack!=0] <-
-            exp(profilesRecentTableBack[profilesRecentTableBack!=0]);
-    }
-
-    # The errors are designed to capture how the states change
-    matErrors <- matrix(0, obsInSampleBackcasting, 1);
-
-    # Form the discount matrix. We then use sort of equation (5.16) to get the impact of the initial state
-    discountMatrix <- transition - persistence %*% matWtBack[1,,drop=FALSE];
-
-    adamSimulatedBack <- adamCpp$simulate(matErrors, matrix(1, obsInSampleBackcasting, 1),
-                                          matVtBack, matWtBack,
-                                          array(discountMatrix, c(nrow(transition), ncol(transition), 1)),
-                                          persistence,
-                                          indexLookupTableBack, profilesRecentTableBack,
-                                          Etype);
-
-    # If it is multiplicative trend, we did exp(1).
-    # Now we need to do log of states to get the correct effect
-    if(etsModel && Ttype=="M"){
-        profilesRecentTableBack[profilesRecentTableBack!=0] <-
-            log(profilesRecentTableBack[profilesRecentTableBack!=0]);
-        adamSimulatedBack$profile[adamSimulatedBack$profile!=0] <-
-            log(adamSimulatedBack$profile[adamSimulatedBack$profile!=0]);
-        adamSimulatedBack$states[,,1] <- log(adamSimulatedBack$states[,,1]);
-    }
-    statesFinal <- tail(t(adamSimulatedBack$states[,,1]), lagsModelMax);
-
-    # Get the final profile. It now contains the discounted df for the start of the data
-    return(list(profileInitial=profilesRecentTableBack, profileRecent=adamSimulatedBack$profile[,,1],
-                states=tail(t(adamSimulatedBack$states[,,1]), lagsModelMax)));
-
-    # return(sum(rowSums(statesFinal)));
-    # The trend is still a bloody headache!
-}
-
-# The alternative thing that relies on the fitter
+#### Functions calculating the efficient number of estimated parameters of ADAM in case of backcasting ####
+# Te function fits a simple adam with unit states to the zero data to see how they propagate over time
 dfDiscounterFit <- function(persistence, transition,
-                            lagsAll, obsInSample, indexLookupTable,
-                            Etype, Ttype, Stype, etsModel,
-                            componentsNumberETSSeasonal, componentsNumberETSNonSeasonal,
-                            componentsNumberETS, componentsNumberARIMA, xregNumber,
-                            constantRequired, adamETS){
-
-    lagsModelMax <- max(lagsAll);
-
-    # Create C++ adam class, which will then use fit, forecast etc methods
-    adamCpp <- new(adamCore,
-                   lagsAll, Etype, Ttype, Stype,
-                   componentsNumberETSNonSeasonal,
-                   componentsNumberETSSeasonal,
-                   componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
-                   constantRequired, adamETS);
+                            obsInSample, lagsModelMax,
+                            indexLookupTable, profilesRecentTableBack,
+                            etsModel, adamCpp){
 
     # This is the sample to model to reflect the backcasted period (back and forth)
     # lagsModelMax appears because we have "refineHead"
@@ -5298,26 +5199,6 @@ dfDiscounterFit <- function(persistence, transition,
     matWtBack <- matrix(1, obsInSampleBackcasting, nStates);
     # indexLookupTable for the new data. This is similar to doing forth and back pass
     indexLookupTableBack <- cbind(indexLookupTable,indexLookupTable[,(ncol(indexLookupTable)-1):1, drop=FALSE]);
-    # Create a new profile, which has 1 for the initial states
-    profilesRecentTableBack <- matrix(0, nStates, lagsModelMax);
-    for(i in 1:nStates){
-        profilesRecentTableBack[i,1:lagsAll[i]] <- 1;
-    }
-
-    # if(Ttype!="N"){
-    #     # profilesRecentTableBack[2,] <- 1
-    #     transition[1,2] <- 0
-    # }
-    # Seasonality needs to be treated differently, because we estimate m-1 initials
-    # We spread m-1 to the m elements to reflect the idea that we estimated only m-1
-    # If we estimated all m, we would have 1 in every cell
-    if(etsModel && Stype!="N"){
-        for(k in 1:componentsNumberETSSeasonal){
-            profilesRecentTableBack[componentsNumberETSNonSeasonal+k,
-                                    1:lagsAll[componentsNumberETSNonSeasonal+k]] <-
-                (lagsAll[componentsNumberETSNonSeasonal+k]-1)/lagsAll[componentsNumberETSNonSeasonal+k];
-        }
-    }
 
     # The new data. This is just zeroes to see how the df effect evaporates
     # But it's not exactly zero, because otherwise multiplicative models won't work
@@ -5334,14 +5215,12 @@ dfDiscounterFit <- function(persistence, transition,
                                   FALSE);
 
     # Get the final profile. It now contains the discounted df for the start of the data
-    return(list(profileInitial=profilesRecentTableBack, profileRecent=adamFittedBack$profile,
+    return(list(profileRecent=adamFittedBack$profile,
                 states=tail(t(adamFittedBack$states), lagsModelMax)));
-
-    # For the ARIMA models, just sum up the profile - it seems to work fine
-    # For ETS, we need to deal with level compensating for the seasonality
-    # And with the trend building up in the level
 }
 
+# The function calculates the discounted number of degrees of freedom for the model
+# This is needed for debiasing sigma in case of adam with backcasted initials
 dfDiscounter <- function(object){
     lagsModelAll <- modelLags(object);
     lagsModelMax <- max(lagsModelAll);
@@ -5353,26 +5232,70 @@ dfDiscounter <- function(object){
         xregNumber[] <- length(object$initial$xreg);
     }
 
-    # dfs1 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
-    dfs1 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
-                            obsInSample, adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$lookup,
-                            errorType(object), trendType(object), seasonType(object), etsChecker(object),
-                            components$componentsNumberETSSeasonal, components$componentsNumberETSNonSeasonal,
-                            components$componentsNumberETS, components$componentsNumberARIMA,
-                            xregNumber, !is.null(object$constant),
-                            adamETSChecker(object));
+    etsModel <- etsChecker(object);
 
-    # Record what would happen if we had a deterministic stuff
+    Etype <- errorType(object);
+    Ttype <- trendType(object);
+    Stype <- seasonType(object);
+
+    componentsNumberETSSeasonal <- components$componentsNumberETSSeasonal;
+    componentsNumberETSNonSeasonal <- components$componentsNumberETSNonSeasonal;
+    componentsNumberETS <- components$componentsNumberETS;
+    componentsNumberARIMA <- components$componentsNumberARIMA;
+
+    constantRequired <- !is.null(object$constant);
+    adamETS <- adamETSChecker(object);
+
+    # Create C++ adam class, which will then use fit, forecast etc methods
+    adamCpp <- new(adamCore,
+                   lagsModelAll, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber,
+                   constantRequired, adamETS);
+
+    adamProfileCreated <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample);
+    indexLookupTable <- adamProfileCreated$lookup;
+    profilesRecentTableBack <- adamProfileCreated$recent;
+
+    # Create a new profile, which has 1 for the initial states
+    # profilesRecentTableBack <- matrix(0, nStates, lagsModelMax);
+    for(i in 1:nrow(profilesRecentTableBack)){
+        profilesRecentTableBack[i,1:lagsModelAll[i]] <- 1;
+    }
+
+    # Seasonality needs to be treated differently, because we estimate m-1 initials
+    # We spread m-1 to the m elements to reflect the idea that we estimated only m-1
+    # If we estimated all m, we would have 1 in every cell
+    if(etsModel && Stype!="N"){
+        for(k in 1:componentsNumberETSSeasonal){
+            profilesRecentTableBack[componentsNumberETSNonSeasonal+k,
+                                    1:lagsModelAll[componentsNumberETSNonSeasonal+k]] <-
+                (lagsModelAll[componentsNumberETSNonSeasonal+k]-1)/lagsModelAll[componentsNumberETSNonSeasonal+k];
+        }
+    }
+
+    # Record the final profile to see how states evolved
+    dfs1 <- dfDiscounterFit(vecG, object$transition,
+                            obsInSample, lagsModelMax,
+                            indexLookupTable, profilesRecentTableBack,
+                            etsChecker(object), adamCpp);
+
+    # Record what would have happened if we had a deterministic stuff
     vecG[] <- 0;
-    # dfs2 <- dfDiscounterSim(vecG, object$transition, lagsModelAll,
-    dfs2 <- dfDiscounterFit(vecG, object$transition, lagsModelAll,
-                            obsInSample, adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$lookup,
-                            errorType(object), trendType(object), seasonType(object), etsChecker(object),
-                            components$componentsNumberETSSeasonal, components$componentsNumberETSNonSeasonal,
-                            components$componentsNumberETS, components$componentsNumberARIMA,
-                            xregNumber, !is.null(object$constant),
-                            adamETSChecker(object));
+    # For the deterministic, everything should be one
+    # This way, the maths with seasonality adds up
+    # i.e., we can do (profile/deterministic profile) and get sensible df
+    # Otherwise due to fractional seasonal dfs, this would result in 1 more df than needed
+    profilesRecentTableBackDeterministic <- profilesRecentTableBack;
+    profilesRecentTableBackDeterministic[profilesRecentTableBackDeterministic!=0] <- 1;
+    dfs2 <- dfDiscounterFit(vecG, object$transition,
+                            obsInSample, lagsModelMax,
+                            indexLookupTable, profilesRecentTableBackDeterministic,
+                            etsChecker(object), adamCpp);
 
+    #### Calculate df ####
     # Record the states that are way off from the (0,1) region. They evolved enough
     discountedStates <- (dfs1$profileRecent>dfs2$profileRecent | dfs1$profileRecent<0);
     profileRecent <- dfs1$profileRecent;
@@ -5381,11 +5304,12 @@ dfDiscounter <- function(object){
     # For the others, take a proportion from the original ones to see how much they evolved
     profileRecent[] <- profileRecent/dfs2$profileRecent;
     # Finally, take the sum to get the df estimate
-    # na.rm is neede to avoid 0/0
+    # na.rm is needed to avoid 0/0
     df <- sum(profileRecent, na.rm=TRUE);
 
-    return(list(profile1=dfs1$profileRecent, profileInitial=dfs1$profileInitial,
-                profile2=dfs2$profileRecent, df=df));
+    # return(list(profile1=dfs1$profileRecent, profileInitial=profilesRecentTableBack,
+    #             profile2=dfs2$profileRecent, df=df));
+    return(df);
 }
 
 #### Small technical functions returning types of models and components ####
