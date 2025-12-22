@@ -978,8 +978,23 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         B[] <- res$solution;
         CFValue <- res$objective;
 
+        nStatesBackcasting <- 0;
+        # Calculate the number of degrees of freedom coming from states in case of backcasting
+        if(any(initialType==c("backcasting","complete"))){
+            # Obtain the main elements
+            ssarimaFilled <- filler(B, matVt, matF, vecG, matWt,
+                                    arRequired=arRequired, maRequired=maRequired,
+                                    arEstimate=arEstimate, maEstimate=maEstimate);
+
+            nStatesBackcasting[] <- calculateBackcastingDF(profilesRecentTable, lagsModelAll,
+                                                           FALSE, Stype, componentsNumberETSNonSeasonal,
+                                                           componentsNumberETSSeasonal, ssarimaFilled$vecG, ssarimaFilled$matF,
+                                                           obsInSample, lagsModelMax, indexLookupTable,
+                                                           adamCpp);
+        }
+
         # Parameters estimated + variance
-        nParamEstimated <- length(B) + (loss=="likelihood")*1;
+        nParamEstimated <- length(B) + (loss=="likelihood")*1 + nStatesBackcasting;
 
         # Prepare for fitting
         elements <- filler(B, matVt, matF, vecG, matWt, arRequired=arRequired, maRequired=maRequired,
@@ -992,7 +1007,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
         # Write down the initials in the recent profile
         profilesRecentInitial <- profilesRecentTable[] <- matVt[,1,drop=FALSE];
-        parametersNumber[1,1] <- length(B);
+        parametersNumber[1,1] <- length(B) + nStatesBackcasting;
     }
     #### If we just use the provided values ####
     else{

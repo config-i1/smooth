@@ -889,12 +889,12 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         B[] <- res$solution;
         CFValue <- res$objective;
 
-        # Obtain the elements of CES
-        cesFilled <- filler(B, matVt, matF, vecG, a, b);
-
         nStatesBackcasting <- 0;
         # Calculate the number of degrees of freedom coming from states in case of backcasting
         if(any(initialType==c("backcasting","complete"))){
+            # Obtain the elements of CES
+            cesFilled <- filler(B, matVt, matF, vecG, a, b);
+
             nStatesBackcasting[] <- calculateBackcastingDF(profilesRecentTable, lagsModelAll,
                                                            FALSE, Stype, componentsNumberETSNonSeasonal,
                                                            componentsNumberETSSeasonal, cesFilled$vecG, cesFilled$matF,

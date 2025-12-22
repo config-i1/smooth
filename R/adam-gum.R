@@ -320,9 +320,9 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         return(sqrt(sum(errors^2)/obsInSample));
     }
 
-    ##### Cost function for CES #####
+    ##### Cost function for GUM #####
     CF <- function(B, matVt, matF, vecG, matWt){
-        # Obtain the elements of CES
+        # Obtain the elements of GUM
         elements <- filler(B, matVt[,1:lagsModelMax,drop=FALSE], matF, vecG, matWt);
 
         if(xregModel){
@@ -735,8 +735,21 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         B[] <- res$solution;
         CFValue <- res$objective;
 
+        nStatesBackcasting <- 0;
+        # Calculate the number of degrees of freedom coming from states in case of backcasting
+        if(any(initialType==c("backcasting","complete"))){
+            # Obtain the elements of GUM
+            gumFilled <- filler(B, matVt[,1:lagsModelMax,drop=FALSE], matF, vecG, matWt);
+
+            nStatesBackcasting[] <- calculateBackcastingDF(profilesRecentTable, lagsModelAll,
+                                                           FALSE, Stype, componentsNumberETSNonSeasonal,
+                                                           componentsNumberETSSeasonal, gumFilled$vecG, gumFilled$matF,
+                                                           obsInSample, lagsModelMax, indexLookupTable,
+                                                           adamCpp);
+        }
+
         # Parameters estimated + variance
-        nParamEstimated <- length(B) + (loss=="likelihood")*1;
+        nParamEstimated <- length(B) + (loss=="likelihood")*1 + nStatesBackcasting;
 
         # Prepare for fitting
         elements <- filler(B, matVt[,1:lagsModelMax,drop=FALSE], matF, vecG, matWt);
@@ -747,7 +760,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
 
         # Write down the initials in the recent profile
         profilesRecentInitial <- profilesRecentTable[] <- matVt[,1:lagsModelMax,drop=FALSE];
-        parametersNumber[1,1] <- length(B);
+        parametersNumber[1,1] <- length(B) + nStatesBackcasting;
     }
     #### If we just use the provided values ####
     else{
