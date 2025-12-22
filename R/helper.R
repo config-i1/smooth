@@ -9,9 +9,6 @@ calculateBackcastingDF <- function(profilesRecentTable, lagsModelAll,
                                    obsInSample, lagsModelMax, indexLookupTable,
                                    adamCpp){
 
-    # For now, switch this off
-    return(0);
-
     # The code below creates dummy states with 1 where the value was supposed to be estimated
     # Then it propagates the states to the end of sample and back
     # After that we compare it with the deterministic and get the fraction of the original df
