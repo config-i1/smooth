@@ -190,7 +190,7 @@ public:
     }
 
     // Method 2: Fitter - fits SSOE model to the data
-    FitResult fit(arma::mat &matrixVt, arma::mat const &matrixWt,
+    FitResult fit(arma::mat matrixVt, arma::mat const &matrixWt,
                   arma::mat &matrixF, arma::vec const &vectorG,
                   arma::umat const &indexLookupTable, arma::mat profilesRecent,
                   arma::vec const &vectorYt, arma::vec const &vectorOt,
