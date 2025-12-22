@@ -6196,8 +6196,12 @@ print.adam <- function(x, digits=4, ...){
     }
     else if(sparmaModel){
         ordersModel <- orders(x);
-        cat(paste0("\nAR(", ordersModel[1], "):"), round(x$arma$ar, digits));
-        cat(paste0("\nMA(",ordersModel[2],"):"), round(x$arma$ma, digits));
+        if(any(ordersModel$ar!=0)){
+            cat(paste0("\nAR(", ordersModel$ar, "):", round(x$arma$ar, digits)));
+        }
+        if(any(ordersModel$ma!=0)){
+            cat(paste0("\nMA(",ordersModel$ma,"):", round(x$arma$ma, digits)));
+        }
     }
 
     cat("\nSample size:", nobs(x));
