@@ -4567,7 +4567,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                 constantRequired, constantEstimate,
                                                 bounds, loss, lossFunction, distributionNew, horizon,
                                                 multisteps, denominator, yDenominator, other, otherParameterEstimate, lambda,
-                                                arPolynomialMatrix=NULL, maPolynomialMatrix=NULL,adamCpp)
+                                                arPolynomialMatrix=NULL, maPolynomialMatrix=NULL,
+                                                adamCpp)
                                      ,nobs=obsInSample,df=parametersNumber[1,5],class="logLik")
 
         icSelection <- icFunction(logLikADAMValue);
