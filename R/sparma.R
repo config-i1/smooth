@@ -6,7 +6,9 @@
 #' this function directly maps AR and MA orders to specific lags.
 #'
 #' @param data Vector or ts object with the data
-#' @param orders Vector c(p,q) specifying AR and MA orders (default: c(1,1))
+#' @param orders List with vectors for ar and ma, specifying, which AR and MA orders to fit
+#' e.g. orders=list(ar=c(1,4), ma=0) will fit ARMA
+#' \eqn{y_{t} = phi_1 y_{t-1} + phi_4 y_{t-4} + e_t}
 #' @param constant Logical, whether to include a constant term (default: FALSE)
 #' @param loss Loss function type.
 #' @param h Forecast horizon (default: 0)
@@ -45,10 +47,7 @@
 #'
 #' @details
 #' The model implements: \deqn{y_t = phi * y_{t-p} + theta * epsilon_{t-q} + epsilon_t}
-#'
-#' State Space Form:
-#' - Measurement equation: \deqn{y_t = w' * v_{t-l} + epsilon_t}
-#' - Transition equation: \deqn{v_t = F * v_{t-l} + g * epsilon_t}
+#' with a possibility of defining several lags for AR/MA.
 #'
 #' @examples
 #' \dontrun{
@@ -60,7 +59,7 @@
 #' }
 #'
 #' @export
-sparma <- function(data, orders=c(1,1), constant=FALSE,
+sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
                    loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
                    h=0, holdout=FALSE, arma=NULL,
                    initial=c("backcasting","optimal","two-stage","complete"),
@@ -78,27 +77,26 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
     ellipsis <- list(...);
 
     # Validate orders
-    if(length(orders) != 2) {
-        stop("orders must be a vector of length 2: c(p,q)");
+    if(length(orders)!=2) {
+        stop("orders must be a list with two vectors");
     }
-    p <- orders[1];
-    q <- orders[2];
+    p <- orders$ar;
+    q <- orders$ma;
 
-    if(p < 0 || q < 0) {
+    if(any(p<0) || any(q<0)) {
         stop("Orders must be non-negative");
     }
 
-    if(p == 0 && q == 0 && !constant) {
+    if(all(p==0) && all(q==0) && !constant) {
         stop("At least one of p or q must be greater than 0");
     }
 
     # State space dimension
     K <- max(p, q);
-    lags <- 1:K;
+    lags <- 1;
 
     # Convert orders to list format
-    orders_list <- list(ar=p, i=0, ma=q);
-
+    orders_list <- list(ar=max(p), i=0, ma=max(q));
 
     # Build model string for parametersChecker
     model <- "NNN";
@@ -139,7 +137,18 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
         if(length(arma)==2){
             armaParameters <- arma;
 
-            arEstimate <- maEstimate <- FALSE;
+            if(is.null(armaParameters$ar)){
+                arEstimate <- FALSE;
+            }
+            else{
+                arEstimate <- TRUE;
+            }
+            if(is.null(armaParameters$ma)){
+                maEstimate <- FALSE;
+            }
+            else{
+                maEstimate <- TRUE;
+            }
         }
         else{
             warning("arma needs to be of length 2. I'll ignore it and estimate the parameters.");
@@ -148,37 +157,50 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
         }
     }
 
-    lagsModelARIMA <- lagsModelAll <- matrix(sort(unique(c(p,q))), ncol=1);
+    # Fix lags, orders etc
+    ordersUnique <- sort(unique(c(p,q)));
+    lagsModelARIMA <- lagsModelARIMA[lagsModelARIMA %in% ordersUnique, ,drop=FALSE];
+
+    lagsModelAll <- lagsModelARIMA;
     lagsModelMax <- max(lagsModelAll);
     initialArimaNumber <- componentsNumberARIMA <- length(lagsModelAll);
     componentsNamesARIMA <- componentsNamesARIMA[lagsModelAll];
     refineHead <- TRUE;
 
+    # Fix the non-zero ARI/MA to have the sparse ones
+    nonZeroARI <- nonZeroARI[nonZeroARI[,2] %in% p,, drop=FALSE];
+    nonZeroMA <- nonZeroMA[nonZeroMA[,2] %in% q,, drop=FALSE];
+
+    ordersLeft <- unique(sort(c(nonZeroARI[,2], nonZeroMA[,2])));
+
+    # First column is where the thing is in the states vector
+    # The second column is the place in the polynomial
+    nonZeroARI[,1] <- which(ordersLeft %in% nonZeroARI[,2]);
+    nonZeroMA[,1] <- which(ordersLeft %in% nonZeroMA[,2]);
+
+    pLength <- length(p);
+    qLength <- length(q);
+
     # Initial parameter values
     if(arRequired && arEstimate){
-        arValue <- 0.1;
+        arValue <- rep(0.1, pLength);
     }
     else if(arRequired){
-        arValue <- armaParameters[1];
+        arValue <- armaParameters[[1]];
     }
     else{
         arValue <- NULL;
     }
 
     if(maRequired && maEstimate){
-        maValue <- 0.1;
+        maValue <- rep(0.1, qLength);
     }
     else if(maRequired){
-        maValue <- armaParameters[2];
+        maValue <- armaParameters[[2]];
     }
     else{
         maValue <- NULL;
     }
-
-    # Places of the AR/MA components
-    # head/tail is needed to treat exactly the same p/q
-    nonZeroAR <- head(which(lagsModelAll==p),1);
-    nonZeroMA <- tail(which(lagsModelAll==q),1);
 
     if(constantRequired && constantEstimate) {
         constantValue <- mean(yInSample);
@@ -187,10 +209,6 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
     else{
         constantValue <- NULL;
     }
-
-    # Number of initials in the AR state
-    initialStateLength <- lagsModelAll[nonZeroAR];
-
 
     # Create C++ adam class, which will then use fit, forecast etc methods
     adamCpp <- new(adamCore,
@@ -201,14 +219,13 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                    xregNumber,
                    constantRequired, FALSE);
 
-
     # Helper function: Create initial state space matrices ####
     sparmaMatricesCreator <- function(p, q, armaParameters,
                                       arRequired, arEstimate,
                                       maRequired, maEstimate,
                                       obsInSample,
                                       lagsModelAll, lagsModelMax,
-                                      nonZeroAR, nonZeroMA,
+                                      nonZeroARI, nonZeroMA,
                                       componentsNumberARIMA,
                                       componentsNamesARIMA,
                                       constantRequired, constantName){
@@ -224,13 +241,13 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
 
         # Fill in the transition where the AR is present
         if(arRequired && !arEstimate){
-            matF[nonZeroAR,] <- armaParameters[1];
-            vecG[nonZeroAR,] <- vecG[nonZeroAR,] + armaParameters[1];
+            matF[nonZeroARI[,1],] <- armaParameters$ar;
+            vecG[nonZeroARI[,1],] <- vecG[nonZeroARI[,1],] + armaParameters$ar;
         }
 
         # Fill in the transition where the AR is present
         if(maRequired && !maEstimate){
-            vecG[nonZeroMA,] <- vecG[nonZeroMA,] + armaParameters[2];
+            vecG[nonZeroMA[,1],] <- vecG[nonZeroMA[,1],] + armaParameters$ma;
         }
 
         if(constantRequired){
@@ -241,7 +258,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
         matVt <- matrix(0, componentsNumberARIMA+constantRequired, obsInSample+lagsModelMax,
                         dimnames=list(c(componentsNamesARIMA, constantName), NULL));
 
-        return(list(matVt = matVt, matWt = matWt, matF = matF, vecG = vecG));
+        return(list(matVt=matVt, matWt=matWt, matF=matF, vecG=vecG));
     }
 
 
@@ -251,39 +268,40 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                      arEstimate, maEstimate, constantEstimate,
                                      arValue, maValue, constantValue,
                                      lagsModelAll, lagsModelMax,
-                                     nonZeroAR, nonZeroMA,
-                                     initialStateLength,
-                                     p, q, initialType) {
+                                     nonZeroARI, nonZeroMA,
+                                     componentsNumberARIMA,
+                                     p, q, pLength, qLength,
+                                     initialType) {
 
         idx <- 0
 
         # Extract AR parameter
         if(arRequired && arEstimate) {
-            idx[] <- idx + 1;
-            arValue <- B[idx];
+            arValue <- B[idx+1:pLength];
+            idx[] <- idx + pLength;
         }
 
         # Extract MA parameter
         if(maRequired && maEstimate) {
-            idx[] <- idx + 1;
-            maValue <- B[idx];
+            maValue <- B[idx+1:qLength];
+            idx[] <- idx + qLength;
         }
 
         # Fill in the transition and persistence where the AR is present
         if(arRequired && arEstimate){
-            matricesCreated$matF[nonZeroAR,1:componentsNumberARIMA] <- arValue;
-            matricesCreated$vecG[nonZeroAR,] <- matricesCreated$vecG[nonZeroAR,] + arValue;
+            matricesCreated$matF[nonZeroARI[,1],1:componentsNumberARIMA] <- arValue;
+            matricesCreated$vecG[nonZeroARI[,1],] <- matricesCreated$vecG[nonZeroARI[,1],] + arValue;
         }
         # Fill in the persistence where the MA is present
         if(maRequired && maEstimate){
-            matricesCreated$vecG[nonZeroMA,] <- matricesCreated$vecG[nonZeroMA,] + maValue;
+            matricesCreated$vecG[nonZeroMA[,1],] <- matricesCreated$vecG[nonZeroMA[,1],] + maValue;
         }
 
         if(initialType=="optimal"){
             # Fill in the AR components
-            matricesCreated$matVt[nonZeroAR, 1:initialStateLength] <- B[idx+c(1:initialStateLength)];
+            matricesCreated$matVt[nonZeroARI[,1], 1:componentsNumberARIMA] <- B[idx+c(1:componentsNumberARIMA)];
             # MA components are zero, so don't bother
-            idx[] <- idx + initialStateLength;
+            idx[] <- idx + componentsNumberARIMA;
         }
 
         # Extract constant
@@ -304,7 +322,7 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                              maRequired, maEstimate,
                                              obsInSample,
                                              lagsModelAll, lagsModelMax,
-                                             nonZeroAR, nonZeroMA,
+                                             nonZeroARI, nonZeroMA,
                                              componentsNumberARIMA,
                                              componentsNamesARIMA,
                                              constantRequired, constantName);
@@ -333,9 +351,10 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                                arEstimate, maEstimate, constantEstimate,
                                                arValue, maValue, constantValue,
                                                lagsModelAll, lagsModelMax,
-                                               nonZeroAR, nonZeroMA,
-                                               initialStateLength,
-                                               p, q, initialType);
+                                               nonZeroARI, nonZeroMA,
+                                               componentsNumberARIMA,
+                                               p, q, pLength, qLength,
+                                               initialType);
 
         profilesRecentTable[] <- matricesFilled$matVt[,1:lagsModelMax];
 
@@ -409,27 +428,31 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
 
     if(is.null(B)){
         # Build initial parameter vector
-        B <- vector("numeric", arEstimate + maEstimate +
-                        (initialType=="optimal")*initialStateLength +
+        B <- vector("numeric", arEstimate*pLength + maEstimate*qLength +
+                        (initialType=="optimal")*componentsNumberARIMA +
                         constantEstimate);
-        names(B) <- c("phi", "theta",
-                      paste0("initial",c(1:initialStateLength)),
-                      constantName)[c(arEstimate, maEstimate,
-                                      rep((initialType=="optimal"),initialStateLength),
+        names(B) <- c(paste0("phi",p), paste0("theta",q),
+                      paste0("initial",c(1:componentsNumberARIMA)),
+                      constantName)[c(rep(arEstimate, pLength), rep(maEstimate, qLength),
+                                      rep((initialType=="optimal"),componentsNumberARIMA),
                                       constantEstimate)];
 
         idx <- 0
         if(arEstimate) {
-            idx <- idx + 1;
-            B[idx] <- 0.75;
+            pacfValues <- rep(0.1, pLength);
+            pacfValues[] <- pacf(yInSample, lag.max=max(p), plot=FALSE)$acf[nonZeroARI[,2]];
+            B[idx+1:pLength] <- pacfValues;
+            idx[] <- idx + pLength;
         }
         if(maEstimate) {
-            idx <- idx + 1;
-            B[idx] <- -0.75;
+            acfValues <- rep(-0.1, qLength);
+            acfValues[] <- acf(yInSample, lag.max=max(q), plot=FALSE)$acf[1+nonZeroMA[,2]];
+            B[idx+1:qLength] <- acfValues;
+            idx[] <- idx + qLength;
         }
         if(initialType == "optimal") {
-            B[idx + c(1:initialStateLength)] <- yInSample[c(1:initialStateLength)];
-            idx[] <- idx + initialStateLength;
+            B[idx + c(1:componentsNumberARIMA)] <- yInSample[c(1:componentsNumberARIMA)];
+            idx[] <- idx + componentsNumberARIMA;
         }
         if(constantEstimate) {
             idx <- idx + 1;
@@ -446,15 +469,16 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
 
     maxevalUsed <- maxeval;
     if(is.null(maxeval)){
-        maxevalUsed <- length(B) * 40;
+        maxevalUsed <- length(B) * 200;
     }
 
     # Optimize if there are parameters to optimise
     if(length(B) > 0){
         res <- nloptr(x0 = B, eval_f = CF,
-                      opts = list(algorithm = "NLOPT_LN_SBPLX",
-                                  maxeval = 100*length(B),
-                                  xtol_rel = 1e-6, ftol_rel = 1e-8
+                      opts = list(algorithm = algorithm,
+                                  maxeval = maxevalUsed,
+                                  xtol_rel = xtol_rel, ftol_rel = ftol_rel,
+                                  print_level=print_level_hidden
             )
         )
 
@@ -478,9 +502,10 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                                arEstimate, maEstimate, constantEstimate,
                                                arValue, maValue, constantValue,
                                                lagsModelAll, lagsModelMax,
-                                               nonZeroAR, nonZeroMA,
-                                               initialStateLength,
-                                               p, q, initialType);
+                                               nonZeroARI, nonZeroMA,
+                                               componentsNumberARIMA,
+                                               p, q, pLength, qLength,
+                                               initialType);
 
         nStatesBackcasting[] <- calculateBackcastingDF(profilesRecentTable, lagsModelAll,
                                                        FALSE, Stype, componentsNumberETSNonSeasonal,
@@ -499,9 +524,10 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
                                           arEstimate, maEstimate, constantEstimate,
                                           arValue, maValue, constantValue,
                                           lagsModelAll, lagsModelMax,
-                                          nonZeroAR, nonZeroMA,
-                                          initialStateLength,
-                                          p, q, initialType);
+                                          nonZeroARI, nonZeroMA,
+                                          componentsNumberARIMA,
+                                          p, q, pLength, qLength,
+                                          initialType);
 
     profilesRecentInitial[] <- profilesRecentTable[] <- matricesFinal$matVt[,1:lagsModelMax];
 
@@ -576,16 +602,16 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
 
 
     # Build model name
-    modelName <- paste0("SpARMA(", p, ",", q, ")");
+    modelName <- paste0("SpARMA(", paste0(p, collapse=","), ";", paste0(q, collapse=","), ")");
     if(constantRequired){
         modelName <- paste0(modelName, " with constant");
     }
 
-    initialValue <- matricesFinal$matVt[,1:lagsModelMax];
+    initialValue <- list(arma=matricesFinal$matVt[,1:lagsModelMax]);
 
     # Record the ARMA parameters
     if(is.null(arma)){
-        arma <- list(ar=B[1], ma=B[2]);
+        arma <- list(ar=B[1:pLength], ma=B[pLength+1:qLength]);
     }
 
     parametersNumber[1,4] <- (loss=="likelihood")*1;

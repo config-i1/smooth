@@ -4,16 +4,18 @@
 \alias{sparma}
 \title{Sparse ARMA Model in State Space Form}
 \usage{
-sparma(data, orders = c(1, 1), constant = FALSE, loss = c("likelihood",
-  "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh", "TMSE", "GTMSE", "MSCE"),
-  h = 0, holdout = FALSE, arma = NULL, initial = c("backcasting",
-  "optimal", "two-stage", "complete"), bounds = c("none", "usual",
-  "admissible"), silent = TRUE, ...)
+sparma(data, orders = list(ar = c(1), ma = c(1)), constant = FALSE,
+  loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
+  "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE, arma = NULL,
+  initial = c("backcasting", "optimal", "two-stage", "complete"),
+  bounds = c("none", "usual", "admissible"), silent = TRUE, ...)
 }
 \arguments{
 \item{data}{Vector or ts object with the data}
 
-\item{orders}{Vector c(p,q) specifying AR and MA orders (default: c(1,1))}
+\item{orders}{List with vectors for ar and ma, specifying, which AR and MA orders to fit
+e.g. orders=list(ar=c(1,4), ma=0) will fit ARMA
+\eqn{y_{t} = phi_1 y_{t-1} + phi_4 y_{t-4} + e_t}}
 
 \item{constant}{Logical, whether to include a constant term (default: FALSE)}
 
@@ -67,10 +69,7 @@ this function directly maps AR and MA orders to specific lags.
 }
 \details{
 The model implements: \deqn{y_t = phi * y_{t-p} + theta * epsilon_{t-q} + epsilon_t}
-
-State Space Form:
-- Measurement equation: \deqn{y_t = w' * v_{t-l} + epsilon_t}
-- Transition equation: \deqn{v_t = F * v_{t-l} + g * epsilon_t}
+with a possibility of defining several lags for AR/MA.
 }
 \examples{
 \dontrun{
