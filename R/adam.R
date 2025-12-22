@@ -2918,46 +2918,80 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # testModel <- adam(xreg, "MNM", orders=list(ar=c(3,2),i=c(0,0),ma=c(3,2)), lags=c(1,12),
         #                   regressors="select", distribution="dlaplace")
         # !!!! This is probably because of recreation of adamCreated several times
-        # adamCreated[] <- filler(B,
-        #                         etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-        #                         componentsNumberETS, componentsNumberETSNonSeasonal,
-        #                         componentsNumberETSSeasonal, componentsNumberARIMA,
-        #                         lags, lagsModel, lagsModelMax,
-        #                         adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-        #                         persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-        #                         persistenceSeasonalEstimate, persistenceXregEstimate,
-        #                         phiEstimate,
-        #                         initialType, initialEstimate,
-        #                         initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-        #                         initialArimaEstimate, initialXregEstimate,
-        #                         arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
-        #                         arRequired, maRequired, armaParameters,
-        #                         nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
-        #                         xregModel, xregNumber,
-        #                         xregParametersMissing, xregParametersIncluded,
-        #                         xregParametersEstimated, xregParametersPersistence, constantEstimate);
+        adamFilled <- filler(B,
+                             etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+                             componentsNumberETS, componentsNumberETSNonSeasonal,
+                             componentsNumberETSSeasonal, componentsNumberARIMA,
+                             lags, lagsModel, lagsModelMax,
+                             adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
+                             persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
+                             persistenceSeasonalEstimate, persistenceXregEstimate,
+                             phiEstimate,
+                             initialType, initialEstimate,
+                             initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+                             initialArimaEstimate, initialXregEstimate,
+                             arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
+                             arRequired, maRequired, armaParameters,
+                             nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
+                             xregModel, xregNumber,
+                             xregParametersMissing, xregParametersIncluded,
+                             xregParametersEstimated, xregParametersPersistence, constantEstimate,
+                             adamCpp);
 
-        ##### Calculate the number of degrees of freedom coming from states in case of backcasting #####
         nStatesBackcasting <- 0;
-        # Calculate number of efficient degrees of freedom from states
-        # if(any(initialType==c("backcasting","complete"))){
-        #
-        #     dfs <- dfDiscounter(adamCreated$vecG, adamCreated$matF, lagsModelAll,
-        #                         obsInSample, indexLookupTable,
-        #                         Etype, Ttype, Stype, etsModel,
-        #                         componentsNumberETSSeasonal, componentsNumberETS,
-        #                         componentsNumberARIMA, xregNumber, constantRequired, adamETS);
-        #
-        #     print(dfs)
-        #
-        #     dfs <- dfDiscounter2(adamCreated$vecG, adamCreated$matF, lagsModelAll,
-        #                         obsInSample, indexLookupTable,
-        #                         Etype, Ttype, Stype, etsModel,
-        #                         componentsNumberETSSeasonal, componentsNumberETS,
-        #                         componentsNumberARIMA, xregNumber, constantRequired, adamETS);
-        #
-        #     print(dfs)
-        # }
+        ##### Calculate the number of degrees of freedom coming from states in case of backcasting #####
+        if(any(initialType==c("backcasting","complete"))){
+            # The code below creates dummy states with 1 where the value was supposed to be estimated
+            # Then it propagates the states to the end of sample and back
+            # After that we compare it with the deterministic and get the fraction of the original df
+            # that is in the final state.
+            # Create a new profile, which has 1 for the initial states
+            profilesRecentTableBack <- profilesRecentTable;
+            for(i in 1:nrow(profilesRecentTableBack)){
+                profilesRecentTableBack[i,1:lagsModelAll[i]] <- 1;
+            }
+
+            # For the deterministic, everything should be one
+            # This way, the maths with seasonality adds up
+            # i.e., we can do (profile/deterministic profile) and get sensible df
+            # Otherwise due to fractional seasonal dfs, this would result in 1 more df than needed
+            profilesRecentTableBackDeterministic <- profilesRecentTableBack;
+
+            # Seasonality needs to be treated differently, because we estimate m-1 initials
+            # We spread m-1 to the m elements to reflect the idea that we estimated only m-1
+            # If we estimated all m, we would have 1 in every cell
+            if(etsModel && Stype!="N"){
+                for(k in 1:componentsNumberETSSeasonal){
+                    profilesRecentTableBack[componentsNumberETSNonSeasonal+k,
+                                            1:lagsModelAll[componentsNumberETSNonSeasonal+k]] <-
+                        (lagsModelAll[componentsNumberETSNonSeasonal+k]-1)/lagsModelAll[componentsNumberETSNonSeasonal+k];
+                }
+            }
+
+            # Record the final profile to see how states evolved
+            dfs1 <- dfDiscounterFit(adamFilled$vecG, adamFilled$matF,
+                                    obsInSample, lagsModelMax,
+                                    indexLookupTable, profilesRecentTableBack,
+                                    etsModel, adamCpp);
+
+            # Record what would have happened if we had a deterministic stuff
+            adamFilled$vecG[] <- 0;
+            dfs2 <- dfDiscounterFit(adamFilled$vecG, adamFilled$matF,
+                                    obsInSample, lagsModelMax,
+                                    indexLookupTable, profilesRecentTableBackDeterministic,
+                                    etsModel, adamCpp);
+
+            #### Calculate df ####
+            # Record the states that are way off from the (0,1) region. They evolved enough
+            discountedStates <- (dfs1$profileRecent>dfs2$profileRecent | dfs1$profileRecent<0);
+            # Those states have no impact on the final df
+            dfs1$profileRecent[discountedStates] <- 0;
+            # For the others, take a proportion from the original ones to see how much they evolved
+            dfs1$profileRecent[] <- dfs1$profileRecent/dfs2$profileRecent;
+            # Finally, take the sum to get the df estimate
+            # na.rm is needed to avoid NaNs due to 0/0
+            nStatesBackcasting[] <- sum(dfs1$profileRecent, na.rm=TRUE);
+        }
 
         nParamEstimated <- length(B) + nStatesBackcasting;
         # Return a proper logLik class
@@ -5215,8 +5249,8 @@ dfDiscounterFit <- function(persistence, transition,
                                   FALSE);
 
     # Get the final profile. It now contains the discounted df for the start of the data
-    return(list(profileRecent=adamFittedBack$profile,
-                states=tail(t(adamFittedBack$states), lagsModelMax)));
+    return(list(profileRecent=adamFittedBack$profile));
+                # states=tail(t(adamFittedBack$states), lagsModelMax)));
 }
 
 # The function calculates the discounted number of degrees of freedom for the model
@@ -5227,6 +5261,7 @@ dfDiscounter <- function(object){
     obsInSample <- nobs(object);
     components <- componentsDefiner(object);
     vecG <- matrix(object$persistence);
+    matF <- object$transition;
     xregNumber <- 0
     if(is.list(object$initial) && !is.null(object$initial$xreg)){
         xregNumber[] <- length(object$initial$xreg);
@@ -5259,6 +5294,7 @@ dfDiscounter <- function(object){
     indexLookupTable <- adamProfileCreated$lookup;
     profilesRecentTableBack <- adamProfileCreated$recent;
 
+
     # Create a new profile, which has 1 for the initial states
     # profilesRecentTableBack <- matrix(0, nStates, lagsModelMax);
     for(i in 1:nrow(profilesRecentTableBack)){
@@ -5277,10 +5313,10 @@ dfDiscounter <- function(object){
     }
 
     # Record the final profile to see how states evolved
-    dfs1 <- dfDiscounterFit(vecG, object$transition,
+    dfs1 <- dfDiscounterFit(vecG, matF,
                             obsInSample, lagsModelMax,
                             indexLookupTable, profilesRecentTableBack,
-                            etsChecker(object), adamCpp);
+                            etsModel, adamCpp);
 
     # Record what would have happened if we had a deterministic stuff
     vecG[] <- 0;
@@ -5290,10 +5326,10 @@ dfDiscounter <- function(object){
     # Otherwise due to fractional seasonal dfs, this would result in 1 more df than needed
     profilesRecentTableBackDeterministic <- profilesRecentTableBack;
     profilesRecentTableBackDeterministic[profilesRecentTableBackDeterministic!=0] <- 1;
-    dfs2 <- dfDiscounterFit(vecG, object$transition,
+    dfs2 <- dfDiscounterFit(vecG, matF,
                             obsInSample, lagsModelMax,
                             indexLookupTable, profilesRecentTableBackDeterministic,
-                            etsChecker(object), adamCpp);
+                            etsModel, adamCpp);
 
     #### Calculate df ####
     # Record the states that are way off from the (0,1) region. They evolved enough
@@ -6423,10 +6459,10 @@ print.adam <- function(x, digits=4, ...){
     }
 
     cat("\nSample size:", nobs(x));
-    cat("\nNumber of estimated parameters:", nparam(x));
-    cat("\nNumber of degrees of freedom:", nobs(x)-nparam(x));
-    if(x$nParam[2,4]>0){
-        cat("\nNumber of provided parameters:", x$nParam[2,4]);
+    cat("\nNumber of estimated parameters:", round(nparam(x), digits));
+    cat("\nNumber of degrees of freedom:", nobs(x)-round(nparam(x), digits));
+    if(x$nParam[2,5]>0){
+        cat("\nNumber of provided parameters:", x$nParam[2,5]);
     }
 
     if(x$loss=="likelihood" ||
