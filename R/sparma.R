@@ -469,8 +469,29 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
         CFValue <- CF(B);
     }
 
+    nStatesBackcasting <- 0;
+    # Calculate the number of degrees of freedom coming from states in case of backcasting
+    if(any(initialType==c("backcasting","complete"))){
+        # Fill matrices with parameters from B
+        matricesFilled <- sparmaMatricesFiller(B, matricesCreated,
+                                               arRequired, maRequired, constantRequired,
+                                               arEstimate, maEstimate, constantEstimate,
+                                               arValue, maValue, constantValue,
+                                               lagsModelAll, lagsModelMax,
+                                               nonZeroAR, nonZeroMA,
+                                               initialStateLength,
+                                               p, q, initialType);
+
+        nStatesBackcasting[] <- calculateBackcastingDF(profilesRecentTable, lagsModelAll,
+                                                       FALSE, Stype, componentsNumberETSNonSeasonal,
+                                                       componentsNumberETSSeasonal, matricesFilled$vecG, matricesFilled$matF,
+                                                       obsInSample, lagsModelMax, indexLookupTable,
+                                                       adamCpp);
+    }
+
     # Parameters estimated + variance
-    parametersNumber[1,1] <- length(B) + (loss=="likelihood")*1;
+    nParamEstimated <- length(B) + nStatesBackcasting;
+    parametersNumber[1,1] <- nParamEstimated;
 
     # Final fit with optimized parameters
     matricesFinal <- sparmaMatricesFiller(B, matricesCreated,
@@ -567,6 +588,8 @@ sparma <- function(data, orders=c(1,1), constant=FALSE,
         arma <- list(ar=B[1], ma=B[2]);
     }
 
+    parametersNumber[1,4] <- (loss=="likelihood")*1;
+    parametersNumber[1,5] <- sum(parametersNumber[1,]);
 
     ##### Return values #####
     modelReturned <- structure(list(model=modelName, timeElapsed=Sys.time()-startTime,
