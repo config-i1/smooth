@@ -611,7 +611,16 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
 
     # Record the ARMA parameters
     if(is.null(arma)){
-        arma <- list(ar=B[1:pLength], ma=B[pLength+1:qLength]);
+        arma <- vector("list", 2);
+        names(arma) <- c("ar","ma");
+        idx <- 0;
+        if(p>0){
+            arma$ar <- B[1:pLength];
+            idx[] <- idx + pLength;
+        }
+        if(q>0){
+            arma$ma <- B[idx+1:qLength];
+        }
     }
 
     parametersNumber[1,4] <- (loss=="likelihood")*1;
