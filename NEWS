@@ -1,4 +1,4 @@
-smooth v4.3.2 (Release data: 2025-12-18)
+smooth v4.3.2 (Release data: 2025-12-23)
 
 Changes:
 * smooth functions now use a new C++ class called "adamCore", which implements all the necessary methods for fit, forecast etc. This change does not affect the functions' performance but allows the core to be used in both R and Python.
@@ -9,6 +9,7 @@ Changes:
 * Tuning of the backcasting initialisation of ADAM. This should fix the problems for ADAM ARIMA and some ETS models.
 * New calculation for the number of estimated states in case of backcasting. They now can be fractional. This is based on the discount matrix. This should fix the small sample bias.
 * New function, sparma(), implementing the sparse ARMA, i.e. the one that has only specific p and q, and nothing below them. e.g., SpARMA(2,3) is: y_t = phi y_{t-2} + theta e_{t-3} + e_t.
+* adam() et al. now use smoothEigens() function to check admissible bounds.
 
 Bugfixes:
 * Fixed the issue with reusing the initials in gum, ces, msarima and ssarima.

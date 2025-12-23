@@ -479,19 +479,9 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         elements <- filler(B, matVt, matF, vecG, a, b);
 
         if(bounds=="admissible"){
-            if(xregModel){
-                # We drop the X parts from matrices
-                indices <- c(1:componentsNumber)
-                eigenValues <- abs(eigen(elements$matF[indices,indices,drop=FALSE] -
-                                             elements$vecG[indices,,drop=FALSE] %*%
-                                             matWt[obsInSample,indices,drop=FALSE],
-                                         symmetric=FALSE, only.values=TRUE)$values);
-            }
-            else{
-                eigenValues <- abs(eigen(elements$matF -
-                                             elements$vecG %*% matWt[obsInSample,,drop=FALSE],
-                                         symmetric=FALSE, only.values=TRUE)$values);
-            }
+            # Stability / invertibility condition
+            eigenValues <- abs(smoothEigens(elements$vecG, elements$matF, matWt,
+                                            lagsModelAll, xregModel, obsInSample));
             if(any(eigenValues>1+1E-50)){
                 return(1E+100*max(eigenValues));
             }
@@ -501,12 +491,6 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         # Write down the initials in the recent profile
         profilesRecentTable[] <- elements$vt;
 
-        # adamFitted <- adamFitterWrap(matVt, matWt, elements$matF, elements$vecG,
-        #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-        #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-        #                              componentsNumberARIMA, xregNumber, FALSE,
-        #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-        #                              nIterations, refineHead, FALSE);
         adamFitted <- adamCpp$fit(matVt, matWt,
                                   elements$matF, elements$vecG,
                                   indexLookupTable, profilesRecentTable,
@@ -539,12 +523,6 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            # adamErrors <- adamErrorerWrap(adamFitted$matVt, matWt, elements$matF,
-            #                               lagsModelAll, indexLookupTable, profilesRecentTable,
-            #                               Etype, Ttype, Stype,
-            #                               componentsNumberETS, componentsNumberETSSeasonal,
-            #                               componentsNumberARIMA, xregNumber, constantRequired, h,
-            #                               yInSample, ot);
             adamErrors <- adamCpp$ferrors(adamFitted$states, matWt,
                                           elements$matF,
                                           indexLookupTable, profilesRecentTable,
@@ -889,8 +867,21 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         B[] <- res$solution;
         CFValue <- res$objective;
 
+        nStatesBackcasting <- 0;
+        # Calculate the number of degrees of freedom coming from states in case of backcasting
+        if(any(initialType==c("backcasting","complete"))){
+            # Obtain the elements of CES
+            cesFilled <- filler(B, matVt, matF, vecG, a, b);
+
+            nStatesBackcasting[] <- calculateBackcastingDF(profilesRecentTable, lagsModelAll,
+                                                           FALSE, Stype, componentsNumberETSNonSeasonal,
+                                                           componentsNumberETSSeasonal, cesFilled$vecG, cesFilled$matF,
+                                                           obsInSample, lagsModelMax, indexLookupTable,
+                                                           adamCpp);
+        }
+
         # Parameters estimated + variance
-        nParamEstimated <- length(B) + (loss=="likelihood")*1;
+        nParamEstimated <- length(B) + (loss=="likelihood")*1 + nStatesBackcasting;
     }
     #### If we just use the provided values ####
     else{
@@ -979,12 +970,6 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
     logLikValue <- structure(logLikFunction(B, matVt=matVt, matF=matF, vecG=vecG, a=a, b=b),
                              nobs=obsInSample, df=nParamEstimated, class="logLik");
 
-    # adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-    #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-    #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-    #                              componentsNumberARIMA, xregNumber, FALSE,
-    #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-    #                              nIterations, refineHead, FALSE);
     adamFitted <- adamCpp$fit(matVt, matWt,
                               matF, vecG,
                               indexLookupTable, profilesRecentTable,
@@ -1010,14 +995,6 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         yForecast <- zoo(rep(NA, max(1,h)), order.by=yForecastIndex);
     }
     if(h>0){
-        # yForecast[] <- adamForecasterWrap(tail(matWt,h), matF,
-        #                                   lagsModelAll,
-        #                                   indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
-        #                                   profilesRecentTable,
-        #                                   Etype, Ttype, Stype,
-        #                                   componentsNumberETS, componentsNumberETSSeasonal,
-        #                                   componentsNumberARIMA, xregNumber, FALSE,
-        #                                   h);
         yForecast[] <- adamCpp$forecast(tail(matWt,h), matF,
                                         indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
                                         profilesRecentTable,

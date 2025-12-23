@@ -680,11 +680,37 @@ def measurement_inverter(measurement):
     """
     # Create a copy to avoid modifying the original array
     inverted = np.array(measurement, copy=True)
-    
+
     # Invert all elements
     np.divide(1, inverted, out=inverted, where=inverted!=0)
-    
+
     # Set infinite values to zero
     inverted[np.isinf(inverted)] = 0
-    
+
     return inverted
+
+def smooth_eigens(persistence, transition, measurement,
+                  lags_model_all, xreg_model, obs_in_sample,
+                  has_delta_persistence=False):
+    lags_unique = np.unique(lags_model_all)
+    lags_unique_length = len(lags_unique)
+    eigen_values = np.zeros(len(lags_model_all), dtype=complex)
+
+    # Eigen values checks do not work for xreg. So, check the average condition
+    if xreg_model and has_delta_persistence:
+        # We check the condition on average
+        return np.linalg.eigvals(
+            transition -
+            np.diag(persistence.flatten()) @
+            measurement_inverter(measurement[:obs_in_sample, :]).T @
+            measurement[:obs_in_sample, :] / obs_in_sample
+        )
+    else:
+        for i in range(lags_unique_length):
+            mask = lags_model_all == lags_unique[i]
+            eigen_values[mask] = np.linalg.eigvals(
+                transition[np.ix_(mask, mask)] -
+                persistence[mask].reshape(-1, 1) @
+                measurement[obs_in_sample - 1, mask].reshape(1, -1)
+            )
+        return eigen_values

@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.linalg import eigvals
 from smooth.adam_general.core.creator import filler
-from smooth.adam_general.core.utils.utils import measurement_inverter, scaler, calculate_likelihood, calculate_entropy, calculate_multistep_loss
+from smooth.adam_general.core.utils.utils import measurement_inverter, scaler, calculate_likelihood, calculate_entropy, calculate_multistep_loss, smooth_eigens
 import numpy as np
 from smooth.adam_general._adam_general import adam_fitter, adam_forecaster
 
@@ -341,33 +341,48 @@ def CF(B,
                 if any(eigenValues > 1):
                     return 1e100 * np.max(eigenValues)
 
-        if model_type_dict['ets_model'] or arima_checked['arima_model']:
-            if explanatory_checked['xreg_model']:
-                if regressors == "adapt":
-                    eigenValues = np.abs(eigvals(
-                        adamElements['mat_f'] -
-                        np.diag(adamElements['vec_g'].flatten()) @
-                        measurement_inverter(adamElements['mat_wt'][:observations_dict['obs_in_sample']]).T @
-                        adamElements['mat_wt'][:observations_dict['obs_in_sample']] / observations_dict['obs_in_sample']
-                    ))
-                else:
-                    indices = np.arange(components_dict['components_number_ets'] + components_dict['components_number_arima'])
-                    eigenValues = np.abs(eigvals(
-                        adamElements['mat_f'][np.ix_(indices, indices)] -
-                        adamElements['vec_g'][indices] @
-                        adamElements['mat_wt'][observations_dict['obs_in_sample']-1, indices]
-                    ))
-            else:
-                if model_type_dict['ets_model'] or (arima_checked['arima_model'] and arima_checked['ma_estimate'] and (sum(adamElements['arimaPolynomials']['maPolynomial'][1:]) >= 1 or sum(adamElements['arimaPolynomials']['maPolynomial'][1:]) < 0)):
-                    eigenValues = np.abs(eigvals(
-                        adamElements['mat_f'] -
-                        adamElements['vec_g'] @ adamElements['mat_wt'][observations_dict['obs_in_sample']-1]
-                    ))
-                else:
-                    eigenValues = np.array([0])
+        # Stability / invertibility condition for ETS/ARIMA/Dynamic regression
+        has_delta_persistence = explanatory_checked['xreg_model'] and regressors == "adapt"
+        eigenValues = np.abs(smooth_eigens(
+            adamElements['vec_g'],
+            adamElements['mat_f'],
+            adamElements['mat_wt'],
+            lags_dict['lags_model_all'],
+            explanatory_checked['xreg_model'],
+            observations_dict['obs_in_sample'],
+            has_delta_persistence
+        ))
+        if any(eigenValues > 1 + 1e-50):
+            return 1e100 * np.max(eigenValues)
 
-            if any(eigenValues > 1 + 1e-50):
-                return 1e100 * np.max(eigenValues)
+        # Old eigenvalues calculation - replaced by smooth_eigens above
+        # if model_type_dict['ets_model'] or arima_checked['arima_model']:
+        #     if explanatory_checked['xreg_model']:
+        #         if regressors == "adapt":
+        #             eigenValues = np.abs(eigvals(
+        #                 adamElements['mat_f'] -
+        #                 np.diag(adamElements['vec_g'].flatten()) @
+        #                 measurement_inverter(adamElements['mat_wt'][:observations_dict['obs_in_sample']]).T @
+        #                 adamElements['mat_wt'][:observations_dict['obs_in_sample']] / observations_dict['obs_in_sample']
+        #             ))
+        #         else:
+        #             indices = np.arange(components_dict['components_number_ets'] + components_dict['components_number_arima'])
+        #             eigenValues = np.abs(eigvals(
+        #                 adamElements['mat_f'][np.ix_(indices, indices)] -
+        #                 adamElements['vec_g'][indices] @
+        #                 adamElements['mat_wt'][observations_dict['obs_in_sample']-1, indices]
+        #             ))
+        #     else:
+        #         if model_type_dict['ets_model'] or (arima_checked['arima_model'] and arima_checked['ma_estimate'] and (sum(adamElements['arimaPolynomials']['maPolynomial'][1:]) >= 1 or sum(adamElements['arimaPolynomials']['maPolynomial'][1:]) < 0)):
+        #             eigenValues = np.abs(eigvals(
+        #                 adamElements['mat_f'] -
+        #                 adamElements['vec_g'] @ adamElements['mat_wt'][observations_dict['obs_in_sample']-1]
+        #             ))
+        #         else:
+        #             eigenValues = np.array([0])
+        #
+        #     if any(eigenValues > 1 + 1e-50):
+        #         return 1e100 * np.max(eigenValues)
 
     # Write down the initials in the recent profile
     profile_dict['profiles_recent_table'][:] = adamElements['mat_vt'][:, :lags_dict['lags_model_max']]
