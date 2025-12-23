@@ -9,9 +9,6 @@ calculateBackcastingDF <- function(profilesRecentTable, lagsModelAll,
                                    obsInSample, lagsModelMax, indexLookupTable,
                                    adamCpp){
 
-    # For now, switch this off
-    return(0);
-
     # The code below creates dummy states with 1 where the value was supposed to be estimated
     # Then it propagates the states to the end of sample and back
     # After that we compare it with the deterministic and get the fraction of the original df
@@ -192,6 +189,7 @@ dfDiscounterFit <- function(persistence, transition,
 }
 
 
+#### Small technical functions returning types of models and components ####
 # Function defines number of components based on the model type
 componentsDefiner <- function(object){
     etsModel <- etsChecker(object);
@@ -273,39 +271,28 @@ sparmaChecker <- function(object){
 
 
 #### The function that returns the eigen values for specified parameters ADAM ####
-smoothEigens <- function(object, persistence=NULL, transition=NULL, measurement=NULL){
-    if(is.null(persistence)){
-        persistence <- matrix(object$persistence);
-    }
-    if(is.null(transition)){
-        transition <- object$transition;
-    }
-    if(is.null(measurement)){
-        measurement <- object$measurement;
-    }
+smoothEigens <- function(persistence, transition, measurement,
+                         lagsModelAll, xregModel, obsInSample){
 
-    lagsAll <- modelLags(object);
-    lagsUnique <- unique(lagsAll);
+    lagsUnique <- unique(lagsModelAll);
     lagsUniqueLength <- length(lagsUnique);
     eigenValues <- vector("numeric", lagsUniqueLength);
-
     # Check eigen values per unique component (unique lag)
-
     #### !!!! Eigen values checks do not work for xreg. So, check the average condition
-    if(ncol(object$data)>1 && any(substr(names(persistence),1,5)=="delta")){
+    if(xregModel && any(substr(names(persistence),1,5)=="delta")){
         # We check the condition on average
         return(eigen((transition -
                           diag(as.vector(persistence)) %*%
-                          t(measurementInverter(measurement[1:nobs(object),,drop=FALSE])) %*%
-                          measurement[1:nobs(object),,drop=FALSE] / nobs(object)),
+                          t(measurementInverter(measurement[1:obsInSample,,drop=FALSE])) %*%
+                          measurement[1:obsInSample,,drop=FALSE] / obsInSample),
                      symmetric=FALSE, only.values=TRUE)$values);
     }
     else{
         for(i in 1:lagsUniqueLength){
-            eigenValues[which(lagsAll==lagsUnique[i])] <-
-                eigen(transition[lagsAll==lagsUnique[i], lagsAll==lagsUnique[i], drop=FALSE] -
-                          persistence[lagsAll==lagsUnique[i],,drop=FALSE] %*%
-                          measurement[nobs(object),lagsAll==lagsUnique[i],drop=FALSE],
+            eigenValues[which(lagsModelAll==lagsUnique[i])] <-
+                eigen(transition[lagsModelAll==lagsUnique[i], lagsModelAll==lagsUnique[i], drop=FALSE] -
+                          persistence[lagsModelAll==lagsUnique[i],,drop=FALSE] %*%
+                          measurement[obsInSample,lagsModelAll==lagsUnique[i],drop=FALSE],
                       symmetric=FALSE, only.values=TRUE)$values
         }
     }

@@ -325,32 +325,18 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         # Obtain the elements of GUM
         elements <- filler(B, matVt[,1:lagsModelMax,drop=FALSE], matF, vecG, matWt);
 
-        if(xregModel){
-            # We drop the X parts from matrices
-            indices <- c(1:componentsNumber)
-            eigenValues <- abs(eigen(elements$matF[indices,indices,drop=FALSE] -
-                                         elements$vecG[indices,,drop=FALSE] %*%
-                                         matWt[obsInSample,indices,drop=FALSE],
-                                     symmetric=FALSE, only.values=TRUE)$values);
-        }
-        else{
-            eigenValues <- abs(eigen(elements$matF -
-                                         elements$vecG %*% matWt[obsInSample,,drop=FALSE],
-                                     symmetric=FALSE, only.values=TRUE)$values);
-        }
-        if(any(eigenValues>1+1E-50)){
-            return(1E+100*max(eigenValues));
+        if(bounds=="admissible"){
+            # Stability / invertibility condition
+            eigenValues <- abs(smoothEigens(elements$vecG, elements$matF, matWt,
+                                            lagsModelAll, xregModel, obsInSample));
+            if(any(eigenValues>1+1E-50)){
+                return(1E+100*max(eigenValues));
+            }
         }
 
         # Write down the initials in the recent profile
         matVt[,1:lagsModelMax] <- profilesRecentTable[] <- elements$vt;
 
-        # adamFitted <- adamFitterWrap(matVt, elements$matWt, elements$matF, elements$vecG,
-        #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-        #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-        #                              componentsNumberARIMA, xregNumber, FALSE,
-        #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-        #                              nIterations, refineHead, FALSE);
         adamFitted <- adamCpp$fit(matVt, elements$matWt,
                                   elements$matF, elements$vecG,
                                   indexLookupTable, profilesRecentTable,
@@ -383,12 +369,6 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            # adamErrors <- adamErrorerWrap(adamFitted$matVt, elements$matWt, elements$matF,
-            #                               lagsModelAll, indexLookupTable, profilesRecentTable,
-            #                               Etype, Ttype, Stype,
-            #                               componentsNumberETS, componentsNumberETSSeasonal,
-            #                               componentsNumberARIMA, xregNumber, constantRequired, h,
-            #                               yInSample, ot);
             adamErrors <- adamCpp$ferrors(adamFitted$states, elements$matWt,
                                           elements$matF,
                                           indexLookupTable, profilesRecentTable,
@@ -833,12 +813,6 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
     logLikValue <- structure(logLikFunction(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt),
                              nobs=obsInSample, df=nParamEstimated, class="logLik");
 
-    # adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-    #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-    #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-    #                              componentsNumberARIMA, xregNumber, FALSE,
-    #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-    #                              nIterations, refineHead, FALSE);
     adamFitted <- adamCpp$fit(matVt, matWt,
                               matF, vecG,
                               indexLookupTable, profilesRecentTable,
@@ -864,14 +838,6 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         yForecast <- zoo(rep(NA, max(1,h)), order.by=yForecastIndex);
     }
     if(h>0){
-        # yForecast[] <- adamForecasterWrap(tail(matWt,h), matF,
-        #                                   lagsModelAll,
-        #                                   indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
-        #                                   profilesRecentTable,
-        #                                   Etype, Ttype, Stype,
-        #                                   componentsNumberETS, componentsNumberETSSeasonal,
-        #                                   componentsNumberARIMA, xregNumber, FALSE,
-        #                                   h);
         yForecast[] <- adamCpp$forecast(tail(matWt,h), matF,
                                         indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
                                         profilesRecentTable,
