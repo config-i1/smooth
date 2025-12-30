@@ -421,6 +421,52 @@ def CF(B,
     else:
         backcast_value = initials_checked['initial_type'] in ["complete", "backcasting"]
 
+    # DEBUG: Print parameter information
+    import os
+    DEBUG_CF = os.environ.get('DEBUG_CF', 'False').lower() == 'true'
+    DEBUG_MAM = os.environ.get('DEBUG_MAM', 'False').lower() == 'true'
+    is_mam = (model_type_dict.get('error_type', '') == 'M' and 
+              model_type_dict.get('trend_type', '') == 'A' and 
+              model_type_dict.get('season_type', '') == 'M')
+    
+    if DEBUG_CF:
+        print(f"\n[CF DEBUG] Model: {model_type_dict.get('error_type', '?')}{model_type_dict.get('trend_type', '?')}{model_type_dict.get('season_type', '?')}")
+        print(f"[CF DEBUG] B vector length: {len(B)}, values: {B[:min(10, len(B))]}")
+        print(f"[CF DEBUG] persistence_seasonal_estimate: {persistence_checked.get('persistence_seasonal_estimate', 'NOT FOUND')}")
+        print(f"[CF DEBUG] components_number_ets_seasonal: {components_dict.get('components_number_ets_seasonal', 'NOT FOUND')}")
+        print(f"[CF DEBUG] vec_g length: {len(vec_g)}, values: {vec_g[:min(10, len(vec_g))]}")
+        print(f"[CF DEBUG] nSeasonal passed to C++: {components_dict['components_number_ets'] - components_dict['components_number_ets_seasonal']} vs {components_dict['components_number_ets_seasonal']}")
+    
+    if DEBUG_MAM and is_mam:
+        print(f"\n[MAM DEBUG] MAM model detected")
+        print(f"[MAM DEBUG] B vector: {B}")
+        print(f"[MAM DEBUG] vec_g (persistence): {vec_g}")
+        # Find gamma index
+        if components_dict.get('components_number_ets_seasonal', 0) > 0:
+            seasonal_estimate = persistence_checked.get('persistence_seasonal_estimate', [])
+            if isinstance(seasonal_estimate, bool):
+                seasonal_estimate = [seasonal_estimate]
+            if any(seasonal_estimate):
+                # Gamma is typically the third persistence parameter (alpha, beta, gamma)
+                alpha_idx = 0
+                beta_idx = 1 if model_type_dict.get('model_is_trendy', False) else None
+                gamma_start = 2 if beta_idx is not None else 1
+                gamma_indices = []
+                j = gamma_start
+                for k in range(components_dict['components_number_ets_seasonal']):
+                    if seasonal_estimate[k] if isinstance(seasonal_estimate, list) else seasonal_estimate:
+                        gamma_indices.append(j)
+                        j += 1
+                print(f"[MAM DEBUG] Gamma indices in vec_g: {gamma_indices}")
+                if gamma_indices:
+                    print(f"[MAM DEBUG] Gamma values: {[vec_g[i] for i in gamma_indices]}")
+                    print(f"[MAM DEBUG] Gamma bounds check: should be >= 0")
+                    for idx in gamma_indices:
+                        if vec_g[idx] < 0:
+                            print(f"[MAM DEBUG] WARNING: Gamma[{idx}] = {vec_g[idx]} < 0 (violates bounds!)")
+                        elif vec_g[idx] < 1e-5:
+                            print(f"[MAM DEBUG] INFO: Gamma[{idx}] = {vec_g[idx]} (very small, near zero)")
+
     adam_fitted = adam_fitter(
         matrixVt=mat_vt,
         matrixWt=mat_wt,
@@ -430,8 +476,8 @@ def CF(B,
         indexLookupTable=index_lookup_table,
         profilesRecent=profiles_recent_table,
         E=model_type_dict['error_type'],
-        T=model_type_dict['trend_type'],
-        S=model_type_dict['season_type'],
+        T=model_type_dict['trend_type'][0] if len(model_type_dict['trend_type']) > 0 else 'N',  # Extract first char only (e.g., 'Ad' -> 'A')
+        S=model_type_dict['season_type'][0] if len(model_type_dict['season_type']) > 0 else 'N',  # Extract first char only
         nNonSeasonal=components_dict['components_number_ets'] - components_dict['components_number_ets_seasonal'],
         nSeasonal=components_dict['components_number_ets_seasonal'],
         nArima=components_dict['components_number_arima'],
@@ -444,7 +490,23 @@ def CF(B,
         refineHead=refine_head,
         adamETS=adam_ets
     )
+    
+    # DEBUG: Print profile values after adam_fitter call
+    import os
+    DEBUG_CF_PROFILE = os.environ.get('DEBUG_CF_PROFILE', 'False').lower() == 'true'
+    if DEBUG_CF_PROFILE and backcast_value:
+        print(f"\n[CF PROFILE DEBUG] After adam_fitter() call:")
+        print(f"  profiles_recent_table[:, 0] (input): {profiles_recent_table[:, 0]}")
+        print(f"  adam_fitted['profile'][:, 0] (returned): {adam_fitted['profile'][:, 0]}")
+        print(f"  adam_fitted['matVt'][:, 0] (returned): {adam_fitted['matVt'][:, 0]}")
 
+    # CRITICAL FIX: For backcasting/complete initialization, write updated states
+    # back to matrices_dict so subsequent optimizer iterations use evolved states.
+    # Without this, every iteration starts from the same initial backcasted values
+    # instead of building on the updated states from the previous iteration.
+    # This matches R's behavior where the state matrix is modified in-place.
+    if backcast_value:
+        matrices_dict['mat_vt'][:] = adam_fitted['matVt']
 
     #adam_fitted['errors'] = np.repeat()
 

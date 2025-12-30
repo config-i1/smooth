@@ -80,16 +80,26 @@ public:
 
 public:
     // Method 1: polynomialiser - returns polynomials for ARIMA
+#ifdef PYTHON_BUILD
+    PolyResult polynomialise(arma::vec const &B,
+                              arma::uvec const &arOrders, arma::uvec const &iOrders, arma::uvec const &maOrders,
+                              bool const &arEstimate, bool const &maEstimate,
+                              arma::vec armaParameters, arma::uvec const &lagsARIMA){
+
+        // In Python, armaParameters is passed directly as a vector
+        arma::vec armaParametersValue = armaParameters;
+#else
     PolyResult polynomialise(arma::vec const &B,
                               arma::uvec const &arOrders, arma::uvec const &iOrders, arma::uvec const &maOrders,
                               bool const &arEstimate, bool const &maEstimate,
                               SEXP armaParameters, arma::uvec const &lagsARIMA){
 
-        // Sometimes armaParameters is NULL. Treat this correctly
+        // Sometimes armaParameters is NULL in R. Treat this correctly
         arma::vec armaParametersValue;
         if(!Rf_isNull(armaParameters)){
             armaParametersValue = as<arma::vec>(armaParameters);
         }
+#endif
 
         // Form matrices with parameters, that are then used for polynomial multiplication
         arma::mat arParameters(max(arOrders % lagsARIMA)+1, arOrders.n_elem, arma::fill::zeros);
@@ -216,7 +226,6 @@ public:
 
         // Loop for the backcast
         for (unsigned int j=1; j<=nIterations; j=j+1) {
-
             // Refine the head (in order for it to make sense)
             // This is only needed for ETS(*,Z,Z) models, with trend.
             // This is not needed for lagsMax=1, because there is nothing to fill in

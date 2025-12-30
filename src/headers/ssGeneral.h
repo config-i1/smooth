@@ -22,7 +22,11 @@ inline double errorf(double const &yact, double &yfit, char const &E){
             return 0;
         }
         else if((yact!=0) & (yfit==0)){
+#ifdef PYTHON_BUILD
+            return std::numeric_limits<double>::infinity();
+#else
             return R_PosInf;
+#endif
         }
         else{
             return (yact - yfit) / yfit;

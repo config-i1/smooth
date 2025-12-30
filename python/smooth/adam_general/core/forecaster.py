@@ -124,14 +124,24 @@ def _initialize_forecast_series(observations_dict, general_dict):
         return None
 
     if not isinstance(observations_dict.get("y_in_sample"), pd.Series):
-        forecast_series = pd.Series(
-            np.full(general_dict["h"], np.nan),
-            index=pd.date_range(
-                start=observations_dict["y_forecast_start"],
-                periods=general_dict["h"],
-                freq=observations_dict["frequency"],
-            ),
-        )
+        # Check if frequency is valid before using date_range
+        freq = observations_dict.get("frequency", "1")
+        try:
+            if freq != "1" and isinstance(observations_dict.get("y_forecast_start"), (pd.Timestamp, str)):
+                forecast_series = pd.Series(
+                    np.full(general_dict["h"], np.nan),
+                    index=pd.date_range(
+                        start=observations_dict["y_forecast_start"],
+                        periods=general_dict["h"],
+                        freq=freq,
+                    ),
+                )
+            else:
+                # Use simple range index for non-datetime data
+                forecast_series = pd.Series(np.full(general_dict["h"], np.nan))
+        except (ValueError, TypeError):
+            # Fallback to simple range index if date_range fails
+            forecast_series = pd.Series(np.full(general_dict["h"], np.nan))
     else:
         forecast_series = pd.Series(
             np.full(general_dict["h"], np.nan),
@@ -321,8 +331,8 @@ def _generate_point_forecasts(
         indexLookupTable=index_lookup_table,
         profilesRecent=profiles_recent_table,
         E=model_type_dict["error_type"],
-        T=model_type_dict["trend_type"],
-        S=model_type_dict["season_type"],
+        T=model_type_dict["trend_type"][0] if len(model_type_dict["trend_type"]) > 0 else 'N',  # Extract first char only (e.g., 'Ad' -> 'A')
+        S=model_type_dict["season_type"][0] if len(model_type_dict["season_type"]) > 0 else 'N',  # Extract first char only
         nNonSeasonal=components_dict["components_number_ets_non_seasonal"],
         nSeasonal=components_dict["components_number_ets_seasonal"],
         nArima=components_dict.get("components_number_arima", 0),
@@ -1128,14 +1138,26 @@ def _initialize_fitted_series(observations_dict):
         Tuple of (y_fitted, errors) pandas Series
     """
     if not isinstance(observations_dict["y_in_sample"], pd.Series):
-            y_fitted = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan), 
-                            index=pd.date_range(start=observations_dict["y_start"], 
-                                            periods=observations_dict["obs_in_sample"], 
-                                            freq=observations_dict["frequency"]))
-            errors = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan), 
-                            index=pd.date_range(start=observations_dict["y_start"], 
-                                            periods=observations_dict["obs_in_sample"], 
-                                            freq=observations_dict["frequency"]))
+            # Check if frequency is valid before using date_range
+            freq = observations_dict.get("frequency", "1")
+            try:
+                if freq != "1" and isinstance(observations_dict.get("y_start"), (pd.Timestamp, str)):
+                    y_fitted = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan),
+                                    index=pd.date_range(start=observations_dict["y_start"],
+                                                    periods=observations_dict["obs_in_sample"],
+                                                    freq=freq))
+                    errors = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan),
+                                    index=pd.date_range(start=observations_dict["y_start"],
+                                                    periods=observations_dict["obs_in_sample"],
+                                                    freq=freq))
+                else:
+                    # Use simple range index for non-datetime data
+                    y_fitted = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan))
+                    errors = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan))
+            except (ValueError, TypeError):
+                # Fallback to simple range index if date_range fails
+                y_fitted = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan))
+                errors = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan))
     else:
             y_fitted = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan), index=observations_dict["y_in_sample_index"])
             errors = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan), index=observations_dict["y_in_sample_index"])
@@ -1185,6 +1207,7 @@ def _process_initial_values(
     arima_checked,
     explanatory_checked,
     initials_checked,
+    profiles_dict=None,
 ):
     """
     Process and organize initial values.
@@ -1205,6 +1228,11 @@ def _process_initial_values(
         Dictionary with external regressors information
     initials_checked : dict
         Dictionary with initial values
+    profiles_dict : dict, optional
+        Dictionary with profile information including 'profiles_recent_table'.
+        When provided, initial states are extracted from profiles_recent_table
+        (backward-refined states) instead of mat_vt (forward-pass states).
+        This matches R's implementation (R/adam.R:3854).
 
     Returns
     -------
@@ -1229,12 +1257,24 @@ def _process_initial_values(
         for i in range(len(lags_dict["lags_model"])):
             # In case of level / trend, we want to get the very first value
             if lags_dict["lags_model"][i] == 1:
-                initial_value_ets[i] = matrices_dict['mat_vt'][i, :lags_dict["lags_model_max"]][0]
+                # Extract from profiles_recent_table (backward-refined states) if available
+                # This matches R's implementation (R/adam.R:3854)
+                if profiles_dict and 'profiles_recent_table' in profiles_dict:
+                    initial_value_ets[i] = profiles_dict['profiles_recent_table'][i, 0]
+                else:
+                    # Fallback to mat_vt if profiles not available
+                    initial_value_ets[i] = matrices_dict['mat_vt'][i, :lags_dict["lags_model_max"]][0]
             # In cases of seasonal components, they should be at the end of the pre-heat period
             else:
-                #print(lags_dict["lags_model"][i][0]) # here we might have an issue for taking the first element of the list
                 start_idx = lags_dict["lags_model_max"] - lags_dict["lags_model"][i]
-                initial_value_ets[i] = matrices_dict['mat_vt'][i, start_idx:lags_dict["lags_model_max"]]
+                # Extract from profiles_recent_table (backward-refined states) if available
+                if profiles_dict and 'profiles_recent_table' in profiles_dict:
+                    initial_value_ets[i] = profiles_dict['profiles_recent_table'][
+                        i, start_idx:lags_dict["lags_model_max"]
+                    ]
+                else:
+                    # Fallback to mat_vt if profiles not available
+                    initial_value_ets[i] = matrices_dict['mat_vt'][i, start_idx:lags_dict["lags_model_max"]]
         
         j = 0
         # Write down level in the final list
@@ -1818,11 +1858,11 @@ def preparator(
     # Use conventional ETS for now (adamETS=False)
     adam_ets = False
 
-    # Check if initial_type is a list or string and compute backcast correctly
-    if isinstance(initials_checked['initial_type'], list):
-        backcast_value_prep = any([t == "complete" or t == "backcasting" for t in initials_checked['initial_type']])
-    else:
-        backcast_value_prep = initials_checked['initial_type'] in ["complete", "backcasting"]
+    # ALWAYS use backcast=False in preparator
+    # Backcasting was already done in estimator.py
+    # This second call just needs to compute fitted values, not re-backcast
+    # Running backcasting twice causes issues with multiplicative seasonality (MAM)
+    backcast_value_prep = False
 
     adam_fitted = adam_fitter(
         matrixVt=mat_vt,
@@ -1833,8 +1873,8 @@ def preparator(
         indexLookupTable=index_lookup_table,
         profilesRecent=profiles_recent_table_fortran,
         E=model_type_dict["error_type"],
-        T=model_type_dict["trend_type"],
-        S=model_type_dict["season_type"],
+        T=model_type_dict["trend_type"][0] if len(model_type_dict["trend_type"]) > 0 else 'N',  # Extract first char only (e.g., 'Ad' -> 'A')
+        S=model_type_dict["season_type"][0] if len(model_type_dict["season_type"]) > 0 else 'N',  # Extract first char only
         nNonSeasonal=components_dict["components_number_ets"]
         - components_dict["components_number_ets_seasonal"],
         nSeasonal=components_dict["components_number_ets_seasonal"],
@@ -1848,7 +1888,12 @@ def preparator(
         refineHead=refine_head,
         adamETS=adam_ets
     )
-    # 5. Correct negative or NaN values in multiplicative components
+    # 5. Update profiles_dict with the fitted profile from adam_fitter
+    # This is critical for two-stage/backcasting initialization to extract correct initial states
+    # adam_fitted["profile"] contains the backward-refined states after backcasting
+    profiles_dict["profiles_recent_table"] = adam_fitted["profile"]
+
+    # 5b. Correct negative or NaN values in multiplicative components
     matrices_dict, profiles_dict = _correct_multiplicative_components(
         matrices_dict, profiles_dict, model_type_dict, components_dict
     )
@@ -1869,6 +1914,7 @@ def preparator(
         arima_checked,
         explanatory_checked,
         initials_checked,
+        profiles_dict=profiles_dict,  # Pass profiles_dict for extracting backward-refined states
     )
 
     # 10. Handle external regressors
@@ -2445,8 +2491,8 @@ def generate_simulation_interval(
         matrixWt=mat_wt_f,
         matrixG=mat_g_f,
         E=e_type_modified,
-        T=model_type_dict["trend_type"],
-        S=model_type_dict["season_type"],
+        T=model_type_dict["trend_type"][0] if len(model_type_dict["trend_type"]) > 0 else 'N',  # Extract first char only (e.g., 'Ad' -> 'A')
+        S=model_type_dict["season_type"][0] if len(model_type_dict["season_type"]) > 0 else 'N',  # Extract first char only
         lags=lags_f,
         indexLookupTable=lookup_f,
         profilesRecent=profiles_recent,

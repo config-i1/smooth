@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List, Dict, Union, Any
 from scipy.optimize import minimize
+import os
 
 from smooth.adam_general.core.utils.utils import msdecompose, calculate_acf, calculate_pacf, measurement_inverter
 from smooth.adam_general.core.utils.polynomials import adam_polynomialiser
@@ -877,11 +878,30 @@ def _initialize_ets_seasonal_states_with_decomp(
     decomposition_type = (
         "multiplicative" if any(x == "M" for x in [e_type, s_type]) else "additive"
     )
+    # CRITICAL FIX: Use smoother="lowess" to match R's default (R/adamGeneral.R:3059)
     y_decomposition = msdecompose(
         y_in_sample.ravel(),
         [lag for lag in lags if lag != 1],
         type=decomposition_type,
+        smoother="lowess",
     )
+
+    # DEBUG: Print decomposition results
+    DEBUG_CREATOR = os.environ.get("DEBUG_CREATOR") == "True"
+    if DEBUG_CREATOR:
+        print(f"\n[CREATOR DEBUG] Using smoother='lowess' (R default)")
+        print(f"  lags passed: {[lag for lag in lags if lag != 1]}")
+        print(f"  decomposition_type: {decomposition_type}")
+    if DEBUG_CREATOR:
+        print(f"\n[PYTHON CREATOR DEBUG] msdecompose results:")
+        print(f"  decomposition_type: {decomposition_type}")
+        print(f"  gta: {y_decomposition['gta']}")
+        print(f"  gtm: {y_decomposition['gtm']}")
+        print(f"  initial: {y_decomposition['initial']}")
+        print(f"  lags passed: {[lag for lag in lags if lag != 1]}")
+        print(f"  data (first 5): {y_in_sample.ravel()[:5]}")
+        print(f"  data (last 5): {y_in_sample.ravel()[-5:]}")
+
     j = 0
 
     # Initialize level
@@ -940,6 +960,15 @@ def _initialize_ets_seasonal_states_with_decomp(
         else:
             mat_vt[j, 0:lags_model_max] = initials_checked["initial_trend"]
         j += 1
+
+    # DEBUG: Print initial states set
+    if DEBUG_CREATOR:
+        print(f"\n[PYTHON CREATOR DEBUG] Initial states set:")
+        print(f"  Model types: E={e_type}, T={t_type}, S={s_type}")
+        print(f"  Level (mat_vt[0, 0]): {mat_vt[0, 0]}")
+        if model_is_trendy:
+            print(f"  Trend (mat_vt[1, 0]): {mat_vt[1, 0]}")
+        print(f"  mat_vt[:, 0] (full initial column): {mat_vt[:, 0]}")
 
     # Initialize seasonal components
     # For pure models use stuff as is
@@ -1127,11 +1156,26 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
         "multiplicative" if any(x == "M" for x in [e_type, t_type]) else "additive"
     )
     # Use deterministic trend - this way g=0 means we fit the global model to the data
+    # CRITICAL FIX: Use smoother="lowess" to match R's default (R/adamGeneral.R:3059)
     y_decomposition = msdecompose(
         y_in_sample.ravel(),
         lags=[1],
         type=decomposition_type,
+        smoother="lowess",
     )
+
+    # DEBUG: Print decomposition results
+    import os
+    DEBUG_CREATOR = os.environ.get("DEBUG_CREATOR") == "True"
+    if DEBUG_CREATOR:
+        print(f"\n[PYTHON CREATOR DEBUG] msdecompose results (non-seasonal):")
+        print(f"  decomposition_type: {decomposition_type}")
+        print(f"  gta: {y_decomposition['gta']}")
+        print(f"  gtm: {y_decomposition['gtm']}")
+        print(f"  initial: {y_decomposition['initial']}")
+        print(f"  lags passed: [1]")
+        print(f"  data (first 5): {y_in_sample.ravel()[:5]}")
+        print(f"  data (last 5): {y_in_sample.ravel()[-5:]}")
 
     # level
     if initials_checked["initial_level_estimate"]:
@@ -1156,6 +1200,15 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
                 mat_vt[1, 0:lags_model_max] = y_decomposition["gtm"][1]
         else:
             mat_vt[1, 0:lags_model_max] = initials_checked["initial_trend"]
+
+    # DEBUG: Print final initial states
+    if DEBUG_CREATOR:
+        print(f"\n[PYTHON CREATOR DEBUG] Initial states set (non-seasonal):")
+        print(f"  Model types: E={e_type} T={t_type} S=N")
+        print(f"  Level (mat_vt[0, 0]): {mat_vt[0, 0]}")
+        if model_is_trendy:
+            print(f"  Trend (mat_vt[1, 0]): {mat_vt[1, 0]}")
+        print(f"  mat_vt[:, 0] (full initial column): {mat_vt[:, 0]}")
 
     # Failsafe in case negatives were produced
     if e_type == "M" and mat_vt[0, 0] <= 0:
@@ -1197,10 +1250,12 @@ def _initialize_arima_states(
         )
 
         if any(lag > 1 for lag in lags):
+            # CRITICAL FIX: Use smoother="ma" to match R's default
             y_decomposition = msdecompose(
                 y_in_sample,
                 [lag for lag in lags if lag != 1],
                 type="additive" if e_type == "A" else "multiplicative",
+                smoother="ma",
             )["seasonal"][-1][0]
         else:
             y_decomposition = (
@@ -2676,6 +2731,35 @@ def architector(
     # Update obs states
     observations_dict["obs_states"] = observations_dict["obs_in_sample"] + lags_dict["lags_model_max"]
 
+    # Create C++ adamCore object (like R does in architector at line 752)
+    # This object will be reused across fit, forecast, etc. for efficiency
+    try:
+        from smooth import _adamCore
+
+        # Convert lags_model_all to numpy array (it may be a list or already an array)
+        # Use uint64 as arma::uvec is typically 64-bit
+        lags_array = np.asarray(lags_dict["lags_model_all"], dtype=np.uint64).ravel()
+
+        adam_cpp = _adamCore.adamCore(
+            lags=lags_array,
+            E=model_type_dict["error_type"],  # Pass as string 'A' or 'M'
+            T=model_type_dict["trend_type"][0],  # First char as string: 'A', 'M', or 'N'
+            S=model_type_dict["season_type"][0],  # First char as string: 'A', 'M', or 'N'
+            nNonSeasonal=int(components_dict["components_number_ets_non_seasonal"]),
+            nSeasonal=int(components_dict["components_number_ets_seasonal"]),
+            nETS=int(components_dict["components_number_ets"]),
+            nArima=int(components_dict["components_number_arima"]),
+            nXreg=int(explanatory_checked.get("xreg_number", 0) if explanatory_checked else 0),
+            constant=bool(constants_checked.get("constant_required", False) if constants_checked else False),
+            adamETS=bool(model_type_dict.get("adam_ets", False))
+        )
+
+        # Store in components_dict for use by other functions
+        components_dict["adam_cpp"] = adam_cpp
+    except ImportError:
+        # C++ module not available - wrapper functions will handle it
+        components_dict["adam_cpp"] = None
+
     return model_type_dict, components_dict, lags_dict, observations_dict, profiles_dict
 
 
@@ -3062,10 +3146,26 @@ def filler(B,
             
             # gamma1, gamma2, ...
             if model_type_dict['model_is_seasonal']:
+                # DEBUG: Print seasonal persistence information
+                import os
+                DEBUG_FILLER = os.environ.get('DEBUG_FILLER', 'False').lower() == 'true'
+                if DEBUG_FILLER:
+                    print(f"\n[FILLER DEBUG] model_is_seasonal: {model_type_dict['model_is_seasonal']}")
+                    print(f"[FILLER DEBUG] persistence_seasonal_estimate: {persistence_checked.get('persistence_seasonal_estimate', 'NOT FOUND')}")
+                    print(f"[FILLER DEBUG] any(persistence_seasonal_estimate): {any(persistence_checked.get('persistence_seasonal_estimate', []))}")
+                    print(f"[FILLER DEBUG] components_number_ets_seasonal: {components_dict.get('components_number_ets_seasonal', 'NOT FOUND')}")
+                    print(f"[FILLER DEBUG] Current i (trend index): {i}, j (B index): {j}")
+                    print(f"[FILLER DEBUG] B vector length: {len(B)}, remaining B values: {B[j:j+10]}")
+                
                 if any(persistence_checked['persistence_seasonal_estimate']):
                     seasonal_indices = i + np.where(persistence_checked['persistence_seasonal_estimate'])[0] + 1
+                    if DEBUG_FILLER:
+                        print(f"[FILLER DEBUG] Seasonal indices: {seasonal_indices}")
+                        print(f"[FILLER DEBUG] Filling vec_g[{seasonal_indices}] with B[{j}:{j+sum(persistence_checked['persistence_seasonal_estimate'])}]")
                     matrices_dict['vec_g'][seasonal_indices] = B[j:j+sum(persistence_checked['persistence_seasonal_estimate'])]
                     j += sum(persistence_checked['persistence_seasonal_estimate'])
+                elif DEBUG_FILLER:
+                    print(f"[FILLER DEBUG] WARNING: No seasonal persistence estimated! persistence_seasonal_estimate={persistence_checked.get('persistence_seasonal_estimate', [])}")
                 i = components_dict['components_number_ets'] - 1
         
         # Persistence of xreg
@@ -3141,12 +3241,12 @@ def filler(B,
                     seasonal_index = components_dict['components_number_ets'] - components_dict['components_number_ets_seasonal'] + k
                     lag = lags_dict['lags'][seasonal_index]
 
-                    matrices_dict['mat_vt'][seasonal_index, :lag - 1] = B[j:j+lag]
-                    
+                    matrices_dict['mat_vt'][seasonal_index, :lag - 1] = B[j:j+lag-1]
+
                     if model_type_dict['season_type'] == "A":
-                        matrices_dict['mat_vt'][seasonal_index, lag-1] = -np.sum(B[j:j+lag])
+                        matrices_dict['mat_vt'][seasonal_index, lag-1] = -np.sum(B[j:j+lag-1])
                     else:  # "M"
-                        matrices_dict['mat_vt'][seasonal_index, lag-1] = 1 / np.prod(B[j:j+lag])
+                        matrices_dict['mat_vt'][seasonal_index, lag-1] = 1 / np.prod(B[j:j+lag-1])
 
                     j += lag - 1
     

@@ -854,15 +854,13 @@ def estimator(
             if len(lb) < len(B):
                 lb = np.pad(lb, (0, len(B) - len(lb)), 'constant', constant_values=-np.inf)
                 ub = np.pad(ub, (0, len(B) - len(ub)), 'constant', constant_values=np.inf)
-        
-        # Check compatibility
-        if np.any(B < lb) or np.any(B > ub):
-            # Adjust bounds to accommodate B
-            lb = np.minimum(lb, B)
-            ub = np.maximum(ub, B)
-            # Maybe relax bounds slightly
-            lb[B < lb] -= 1e-5
-            ub[B > ub] += 1e-5
+
+    # Make sure that the bounds are reasonable - matches R's adam.R:2755-2766
+    # If a bound is incompatible with the starting value, relax it to ±Inf
+    lb = np.where(np.isnan(lb), -np.inf, lb)
+    lb = np.where(lb > B, -np.inf, lb)
+    ub = np.where(np.isnan(ub), np.inf, ub)
+    ub = np.where(ub < B, np.inf, ub)
 
     # Step 4: Set up ARIMA polynomials if needed
     ar_polynomial_matrix, ma_polynomial_matrix = _setup_arima_polynomials(
@@ -964,6 +962,17 @@ def estimator(
         from smooth.adam_general.core.utils.cost_functions import log_Lik_ADAM
         from smooth.adam_general._adam_general import adam_fitter
 
+        # DEBUG: Print profile state before filler
+        import os
+        DEBUG_RETURN_MATRICES = os.environ.get('DEBUG_RETURN_MATRICES', 'False').lower() == 'true'
+        if DEBUG_RETURN_MATRICES:
+            print("\n[RETURN_MATRICES DEBUG] Before filler():")
+            print(f"  profile_dict['profiles_recent_table'][:, 0]: {profile_dict['profiles_recent_table'][:, 0]}")
+            print(f"  adam_created['mat_vt'][:, 0]: {adam_created['mat_vt'][:, 0]}")
+            lags_max = lags_dict.get('lags_model_max', 1)
+            if lags_max > 1:
+                print(f"  adam_created['mat_vt'][:, :{lags_max}]:\n{adam_created['mat_vt'][:, :lags_max]}")
+
         # Fill matrices with final B
         filler(
             B,
@@ -991,7 +1000,13 @@ def estimator(
             y_in_sample = np.asfortranarray(observations_dict["y_in_sample"], dtype=np.float64)
             ot = np.asfortranarray(observations_dict["ot"], dtype=np.float64)
 
-            adam_fitter(
+            # DEBUG variables
+            import os
+            DEBUG_BACKCAST = os.environ.get('DEBUG_BACKCAST', 'False').lower() == 'true'
+            DEBUG_MAM = os.environ.get('DEBUG_MAM', 'False').lower() == 'true'
+            lags_model_max = lags_dict.get("lags_model_max", 1)
+
+            adam_fitted = adam_fitter(
                 matrixVt=mat_vt,
                 matrixWt=mat_wt,
                 matrixF=mat_f,
@@ -1000,8 +1015,8 @@ def estimator(
                 indexLookupTable=index_lookup_table,
                 profilesRecent=profiles_recent_table,
                 E=model_type_dict["error_type"],
-                T=model_type_dict["trend_type"],
-                S=model_type_dict["season_type"],
+                T=model_type_dict["trend_type"][0] if len(model_type_dict["trend_type"]) > 0 else 'N',  # Extract first char only (e.g., 'Ad' -> 'A')
+                S=model_type_dict["season_type"][0] if len(model_type_dict["season_type"]) > 0 else 'N',  # Extract first char only
                 nNonSeasonal=components_dict["components_number_ets"] - components_dict["components_number_ets_seasonal"],
                 nSeasonal=components_dict["components_number_ets_seasonal"],
                 nArima=components_dict.get("components_number_arima", 0),
@@ -1015,8 +1030,120 @@ def estimator(
                 adamETS=False
             )
 
-            # Update original matrices
-            adam_created["mat_vt"][:] = mat_vt[:]
+            # Update original matrices with the returned states (which have been updated by C++)
+            adam_created["mat_vt"][:] = adam_fitted["matVt"][:]
+            # Sync profiles_recent_table from profile (FINAL states after forward pass).
+            # This matches R's behavior: profilesRecentTable <- adamFitted$profile (adam.R:3726)
+            # R extracts initial values from profilesRecentTable which has the FINAL states.
+            lags_model_max = lags_dict.get("lags_model_max", 1)
+            profile_dict["profiles_recent_table"][:, :lags_model_max] = adam_fitted["profile"][:, :lags_model_max]
+
+            # Cache fitted values, errors, and profile for preparator to reuse
+            # This matches R which only calls fit() once and reuses the results
+            adam_created["_backcast_cached"] = {
+                "yFitted": adam_fitted["yFitted"].copy(),
+                "errors": adam_fitted["errors"].copy(),
+                "profile": adam_fitted["profile"].copy(),
+            }
+
+            # Safety check: Replace negative/zero multiplicative seasonal values with 1e-6
+            # This matches R's adam.R:3743-3749 which prevents invalid values from corrupting
+            # subsequent calculations (geometric mean, etc.)
+            if model_type_dict["season_type"] == "M" and components_dict["components_number_ets_seasonal"] > 0:
+                n_non_seasonal = components_dict["components_number_ets"] - components_dict["components_number_ets_seasonal"]
+                n_seasonal = components_dict["components_number_ets_seasonal"]
+                seasonal_slice = slice(n_non_seasonal, n_non_seasonal + n_seasonal)
+
+                # Fix mat_vt
+                seasonal_mat_vt = adam_created["mat_vt"][seasonal_slice, :]
+                if np.any(seasonal_mat_vt <= 0):
+                    adam_created["mat_vt"][seasonal_slice, :] = np.where(
+                        seasonal_mat_vt <= 0, 1e-6, seasonal_mat_vt
+                    )
+
+                # Fix profiles_recent_table
+                seasonal_profiles = profile_dict["profiles_recent_table"][seasonal_slice, :]
+                if np.any(seasonal_profiles <= 0):
+                    profile_dict["profiles_recent_table"][seasonal_slice, :] = np.where(
+                        seasonal_profiles <= 0, 1e-6, seasonal_profiles
+                    )
+
+                if DEBUG_BACKCAST:
+                    print(f"\n[BACKCAST DEBUG] Applied multiplicative seasonal safety check")
+                    print(f"  Seasonal rows: {n_non_seasonal} to {n_non_seasonal + n_seasonal}")
+
+                # DEBUG_MAM: Print seasonal values for comparison with R
+                if DEBUG_MAM:
+                    print(f"\n[DEBUG_MAM] After backcasting + safety check:")
+                    print(f"  Model: E={model_type_dict['error_type']}, T={model_type_dict['trend_type']}, S={model_type_dict['season_type']}")
+                    print(f"  Seasonal row indices: {n_non_seasonal} to {n_non_seasonal + n_seasonal}")
+                    for s_idx in range(n_non_seasonal, n_non_seasonal + n_seasonal):
+                        seasonal_vals = profile_dict["profiles_recent_table"][s_idx, :lags_model_max]
+                        print(f"  profiles_recent_table[{s_idx}, 0:{lags_model_max}]: {seasonal_vals}")
+                        geo_mean = np.prod(seasonal_vals) ** (1.0 / len(seasonal_vals))
+                        print(f"    Geometric mean (prod^(1/n)): {geo_mean}")
+                        print(f"    After normalization: {seasonal_vals / geo_mean}")
+
+            # DEBUG: Print state after adam_fitter returns
+            if DEBUG_BACKCAST:
+                print("\n[BACKCAST DEBUG] After adam_fitter() returns:")
+                print(f"  adam_fitted['matVt'][:, 0]: {adam_fitted['matVt'][:, 0]}")
+                print(f"  adam_fitted['profile'][:, 0]: {adam_fitted['profile'][:, 0]}")
+                print(f"  Updated profile_dict['profiles_recent_table'][:, 0]: {profile_dict['profiles_recent_table'][:, 0]}")
+            
+            # DEBUG: Comprehensive profile matrix analysis
+            if DEBUG_BACKCAST or DEBUG_RETURN_MATRICES:
+                print("\n[PYTHON PROFILE DEBUG] Analyzing profile matrix from C++:")
+                profile = adam_fitted["profile"]
+                print(f"  profile.shape: {profile.shape} (numpy array)")
+                print(f"  profile.flags['C_CONTIGUOUS']: {profile.flags['C_CONTIGUOUS']} (row-major)")
+                print(f"  profile.flags['F_CONTIGUOUS']: {profile.flags['F_CONTIGUOUS']} (column-major)")
+                print(f"  Expected: C++ sends column-major arma::mat")
+                
+                # Print profile matrix structure
+                print(f"  Profile matrix contents (first 3x3):")
+                for i in range(min(3, profile.shape[0])):
+                    print(f"    Row {i}: {profile[i, :min(3, profile.shape[1])]}")
+                
+                print(f"\n  Extraction comparison:")
+                print(f"    profile[:, 0] (first column): {profile[:, 0] if profile.shape[1] > 0 else 'N/A'}")
+                if profile.shape[1] > 1:
+                    print(f"    profile[:, 1] (second column): {profile[:, 1]}")
+                print(f"    profile[0, :] (first row): {profile[0, :] if profile.shape[0] > 0 else 'N/A'}")
+                if profile.shape[0] > 1:
+                    print(f"    profile[1, :] (second row): {profile[1, :]}")
+                
+                print(f"\n  Comparing with matVt:")
+                print(f"    matVt[:, 0]: {adam_fitted['matVt'][:, 0]}")
+                print(f"    matVt shape: {adam_fitted['matVt'].shape}")
+            
+            # NOTE: Previously there was buggy code here that synced mat_vt FROM profile.
+            # That was WRONG because profile contains final states (~164), not initial states.
+            # The correct values are already in mat_vt from matVt (~99), so we now sync
+            # profiles_recent_table FROM mat_vt (done above after line 1085).
+
+            # DEBUG: Print final state
+            if DEBUG_BACKCAST:
+                print("\n[BACKCAST DEBUG] After syncing profiles_recent_table from mat_vt:")
+                print(f"  adam_created['mat_vt'][:, 0]: {adam_created['mat_vt'][:, 0]}")
+                print(f"  profile_dict['profiles_recent_table'][:, 0]: {profile_dict['profiles_recent_table'][:, 0]}")
+            
+            if DEBUG_RETURN_MATRICES:
+                print("\n[RETURN_MATRICES DEBUG] After adam_fitter():")
+                print(f"  adam_fitted['profile'][:, 0]: {adam_fitted['profile'][:, 0]}")
+                print(f"  adam_fitted['matVt'][:, 0]: {adam_fitted['matVt'][:, 0]}")
+                print(f"  Updated profile_dict['profiles_recent_table'][:, 0]: {profile_dict['profiles_recent_table'][:, 0]}")
+                print(f"  Updated adam_created['mat_vt'][:, 0]: {adam_created['mat_vt'][:, 0]}")
+                lags_model_max = lags_dict.get("lags_model_max", 1)
+                print(f"\n  Final mat_vt[:, :{lags_model_max}] (initial states):\n{adam_created['mat_vt'][:, :lags_model_max]}")
+                print(f"  Final profiles_recent_table[:, :{lags_model_max}]:\n{profile_dict['profiles_recent_table'][:, :lags_model_max]}")
+                # Verify final states match
+                if np.allclose(adam_created['mat_vt'][:, :lags_model_max], profile_dict['profiles_recent_table'][:, :lags_model_max]):
+                    print("  ✓ Final states verified: mat_vt and profiles_recent_table match")
+                else:
+                    print("  ✗ WARNING: Final state mismatch!")
+                    diff = adam_created['mat_vt'][:, :lags_model_max] - profile_dict['profiles_recent_table'][:, :lags_model_max]
+                    print(f"  Difference:\n{diff}")
 
         result["matrices"] = adam_created
         result["lags_dict"] = lags_dict
@@ -2036,6 +2163,7 @@ def _process_initial_values(
     arima_checked,
     explanatory_checked,
     components_dict,
+    profiles_dict=None,
 ):
     """
     Process initial values for the model.
@@ -2100,39 +2228,93 @@ def _process_initial_values(
         + explanatory_checked["xreg_model"]
     )
 
+    # DEBUG: Print extraction parameters
+    import os
+    DEBUG_PROCESS_INIT = os.environ.get('DEBUG_PROCESS_INIT', 'False').lower() == 'true'
+    if DEBUG_PROCESS_INIT:
+        print("\n[PROCESS_INIT DEBUG] Extraction parameters:")
+        print(f"  lags_model_max: {lags_dict['lags_model_max']}")
+        print(f"  lags_model: {lags_dict['lags_model']}")
+        print(f"  mat_vt shape: {matrices_dict['mat_vt'].shape}")
+        print(f"  mat_vt[:, 0] (first column): {matrices_dict['mat_vt'][:, 0]}")
+        print(f"  profiles_dict provided: {profiles_dict is not None}")
+        if profiles_dict:
+            print(f"  profiles_dict keys: {list(profiles_dict.keys())}")
+            if 'profiles_recent_table' in profiles_dict:
+                print(f"  profiles_recent_table shape: {profiles_dict['profiles_recent_table'].shape}")
+                print(f"  profiles_recent_table[:, 0]: {profiles_dict['profiles_recent_table'][:, 0]}")
+
     # Write down the initials of ETS
     if model_type_dict["ets_model"]:
         # Write down level, trend and seasonal
         for i in range(len(lags_dict["lags_model"])):
             # In case of level / trend, we want to get the very first value
             if lags_dict["lags_model"][i] == 1:
-                initial_value_ets[i] = matrices_dict["mat_vt"][
-                    i, : lags_dict["lags_model_max"]
-                ][0]
+                # CRITICAL FIX: Extract from profiles_recent_table (contains backcasted states)
+                # not from mat_vt (contains states before backward pass)
+                # This matches R's implementation (R/adam.R:3831)
+                if profiles_dict and 'profiles_recent_table' in profiles_dict:
+                    extracted_val = profiles_dict['profiles_recent_table'][i, 0]
+                    if DEBUG_PROCESS_INIT:
+                        print(f"\n[PROCESS_INIT DEBUG] Component {i} (level/trend, lag=1):")
+                        print(f"  Extracting from profiles_recent_table[{i}, 0]")
+                        print(f"  Extracted value: {extracted_val}")
+                else:
+                    extracted_val = matrices_dict["mat_vt"][
+                        i, : lags_dict["lags_model_max"]
+                    ][0]
+                    if DEBUG_PROCESS_INIT:
+                        print(f"\n[PROCESS_INIT DEBUG] Component {i} (level/trend, lag=1):")
+                        print(f"  Extracting from mat_vt[{i}, 0] (profiles not available)")
+                        print(f"  Extracted value: {extracted_val}")
+                initial_value_ets[i] = extracted_val
             # In cases of seasonal components, they should be at the end of the pre-heat period
             # Only extract lag-1 values (the last one is the normalized value computed from others)
             else:
                 start_idx = lags_dict["lags_model_max"] - lags_dict["lags_model"][i]
-                seasonal_full = matrices_dict["mat_vt"][
-                    i, start_idx : lags_dict["lags_model_max"]
-                ].copy()
+                # CRITICAL FIX: Extract from profiles_recent_table (FINAL states after backcasting)
+                # not from mat_vt (forward pass states). This matches R's implementation.
+                if profiles_dict and 'profiles_recent_table' in profiles_dict:
+                    seasonal_full = profiles_dict['profiles_recent_table'][
+                        i, start_idx : lags_dict["lags_model_max"]
+                    ].copy()
+                    source = "profiles_recent_table"
+                else:
+                    seasonal_full = matrices_dict["mat_vt"][
+                        i, start_idx : lags_dict["lags_model_max"]
+                    ].copy()
+                    source = "mat_vt"
+
+                if DEBUG_PROCESS_INIT:
+                    print(f"\n[PROCESS_INIT DEBUG] Component {i} (seasonal, lag={lags_dict['lags_model'][i]}):")
+                    print(f"  start_idx: {start_idx}, end_idx: {lags_dict['lags_model_max']}")
+                    print(f"  Extracting from {source}[{i}, {start_idx}:{lags_dict['lags_model_max']}]")
+                    print(f"  seasonal_full (before normalization): {seasonal_full}")
 
                 # Renormalise seasonal initials to match R implementation
                 if np.any(~np.isnan(seasonal_full)):
                     if model_type_dict["season_type"] == "A":
-                        seasonal_full = seasonal_full - np.nanmean(seasonal_full)
+                        mean_val = np.nanmean(seasonal_full)
+                        seasonal_full = seasonal_full - mean_val
+                        if DEBUG_PROCESS_INIT:
+                            print(f"  Normalized (A): mean={mean_val}, after: {seasonal_full}")
                     elif model_type_dict["season_type"] == "M":
-                        positive_vals = seasonal_full.copy()
-                        positive_vals[positive_vals <= 0] = np.nan
-                        if np.all(np.isnan(positive_vals)):
-                            geo_mean = 1.0
-                        else:
-                            geo_mean = np.exp(np.nanmean(np.log(positive_vals)))
-                            if np.isnan(geo_mean) or geo_mean == 0:
-                                geo_mean = 1.0
-                        seasonal_full = seasonal_full / geo_mean
+                        # Safety: Replace non-positive values with 1e-6 before geometric mean
+                        # This prevents NaN from corrupting the normalization
+                        seasonal_full = np.where(seasonal_full <= 0, 1e-6, seasonal_full)
+                        # Normalize by geometric mean to maintain product=1 constraint
+                        # Use prod(x)^(1/n) to match R's geometric mean calculation exactly
+                        # R: prod(adamBack$initial$seasonal)^{1/length(adamBack$initial$seasonal)}
+                        geo_mean = np.prod(seasonal_full) ** (1.0 / len(seasonal_full))
+                        if geo_mean > 0 and np.isfinite(geo_mean):
+                            seasonal_full = seasonal_full / geo_mean
+                        if DEBUG_PROCESS_INIT:
+                            print(f"  Normalized (M): geo_mean={geo_mean}, after: {seasonal_full}")
 
-                initial_value_ets[i] = seasonal_full[:-1]
+                final_seasonal = seasonal_full[:-1]
+                if DEBUG_PROCESS_INIT:
+                    print(f"  Final (excluding last): {final_seasonal}")
+                initial_value_ets[i] = final_seasonal
 
         j = 0
         # Write down level in the final list
@@ -2180,12 +2362,16 @@ def _process_initial_values(
         j += 1
         initial_estimated[j] = initials_checked["initial_arima_estimate"]
         if initials_checked["initial_arima_estimate"]:
-            initial_value[j] = matrices_dict["mat_vt"][
-                components_dict["components_number_ets"]
-                + components_dict.get("components_number_arima", 0)
-                - 1,
+            arima_row_idx = components_dict["components_number_ets"] + components_dict.get("components_number_arima", 0) - 1
+            arima_initial = matrices_dict["mat_vt"][
+                arima_row_idx,
                 : initials_checked["initial_arima_number"],
             ]
+            if DEBUG_PROCESS_INIT:
+                print(f"\n[PROCESS_INIT DEBUG] ARIMA initials:")
+                print(f"  Extracting from mat_vt[{arima_row_idx}, 0:{initials_checked['initial_arima_number']}]")
+                print(f"  Extracted: {arima_initial}")
+            initial_value[j] = arima_initial
         else:
             initial_value[j] = initials_checked["initial_arima"]
         initial_value_names[j] = "arima"
@@ -2195,6 +2381,14 @@ def _process_initial_values(
     initial_value = {
         name: value for name, value in zip(initial_value_names, initial_value) if name
     }
+
+    if DEBUG_PROCESS_INIT:
+        print(f"\n[PROCESS_INIT DEBUG] Final initial_value dict:")
+        for key, val in initial_value.items():
+            if isinstance(val, np.ndarray):
+                print(f"  {key}: shape={val.shape}, values={val}")
+            else:
+                print(f"  {key}: {val}")
 
     return initial_value, initial_value_ets, initial_value_names, initial_estimated
 
@@ -2665,6 +2859,7 @@ def preparator(
             arima_checked=arima_checked,
             explanatory_checked=explanatory_checked,
             components_dict=components_dict,
+            profiles_dict=profiles_dict,
         )
     )
 
