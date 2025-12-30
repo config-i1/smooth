@@ -81,12 +81,18 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
 
     if(length(p)>0){
         p <- p[p!=0];
+        if(length(p)==0){
+            p <- 0;
+        }
     }
     else{
         p <- 0;
     }
     if(length(q)>0){
         q <- q[q!=0];
+        if(length(q)==0){
+            q <- 0;
+        }
     }
     else{
         q <- 0;
