@@ -4,7 +4,7 @@ from scipy.optimize import minimize
 
 from smooth.adam_general.core.utils.utils import msdecompose, calculate_acf, calculate_pacf, measurement_inverter
 from smooth.adam_general.core.utils.polynomials import adam_polynomialiser
-from smooth.adam_general._adam_general import adam_fitter
+from smooth.adam_general._adamCore import adamCore
 
 import warnings
 # Suppress divide by zero warnings
@@ -2561,8 +2561,8 @@ def architector(
 
     Returns
     -------
-    tuple of 5 dict
-        Updated and created dictionaries:
+    tuple of 5 dict + adamCore
+        Updated and created dictionaries, plus C++ adamCore object:
 
         1. **model_type_dict**: Updated with model_is_trendy and model_is_seasonal flags
 
@@ -2589,6 +2589,8 @@ def architector(
            - 'profiles_recent_table': Matrix for recent values
            - 'profiles_recent_provided': Whether user-provided
            - 'index_lookup_table': Index mapping for profile access
+
+        6. **adam_cpp**: C++ adamCore object with fit, forecast, simulate methods
 
     Notes
     -----
@@ -2630,7 +2632,7 @@ def architector(
     --------
     Set up architecture for Holt-Winters model::
 
-        >>> model_type, components, lags, obs, profiles = architector(
+        >>> model_type, components, lags, obs, profiles, adam_cpp = architector(
         ...     model_type_dict={'ets_model': True, 'error_type': 'A',
         ...                      'trend_type': 'A', 'season_type': 'A'},
         ...     lags_dict={'lags': np.array([1, 12])},
@@ -2645,7 +2647,7 @@ def architector(
 
     Set up architecture for ARIMA(1,1,1)::
 
-        >>> model_type, components, lags, obs, profiles = architector(
+        >>> model_type, components, lags, obs, profiles, adam_cpp = architector(
         ...     model_type_dict={'ets_model': False, 'arima_model': True},
         ...     lags_dict={'lags': np.array([1])},
         ...     observations_dict={'obs_in_sample': 100, 'obs_all': 100},
@@ -2676,7 +2678,23 @@ def architector(
     # Update obs states
     observations_dict["obs_states"] = observations_dict["obs_in_sample"] + lags_dict["lags_model_max"]
 
-    return model_type_dict, components_dict, lags_dict, observations_dict, profiles_dict
+    # Create C++ adam class, which will then use fit, forecast etc methods
+    # This matches R implementation (adam.R line 752-758)
+    adam_cpp = adamCore(
+        lags=np.array(lags_dict['lags_model_all'], dtype=np.uint64),
+        E=model_type_dict['error_type'],
+        T=model_type_dict['trend_type'],
+        S=model_type_dict['season_type'],
+        nNonSeasonal=components_dict['components_number_ets_non_seasonal'],
+        nSeasonal=components_dict['components_number_ets_seasonal'],
+        nETS=components_dict['components_number_ets'],
+        nArima=components_dict.get('components_number_arima', 0),
+        nXreg=explanatory_checked.get('xreg_number', 0) if explanatory_checked else 0,
+        constant=constants_checked.get('constant_required', False) if constants_checked else False,
+        adamETS=False  # Default like R
+    )
+
+    return model_type_dict, components_dict, lags_dict, observations_dict, profiles_dict, adam_cpp
 
 
 def _setup_components(model_type_dict, arima_checked, lags_dict):

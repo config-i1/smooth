@@ -80,16 +80,16 @@ public:
 
 public:
     // Method 1: polynomialiser - returns polynomials for ARIMA
+    // For Python builds, armaParameters is passed as arma::vec directly
+    // For R builds, it uses SEXP (handled separately in R-specific wrapper)
     PolyResult polynomialise(arma::vec const &B,
                               arma::uvec const &arOrders, arma::uvec const &iOrders, arma::uvec const &maOrders,
                               bool const &arEstimate, bool const &maEstimate,
-                              SEXP armaParameters, arma::uvec const &lagsARIMA){
+                              arma::vec const &armaParameters, arma::uvec const &lagsARIMA){
 
-        // Sometimes armaParameters is NULL. Treat this correctly
-        arma::vec armaParametersValue;
-        if(!Rf_isNull(armaParameters)){
-            armaParametersValue = as<arma::vec>(armaParameters);
-        }
+        // armaParameters is passed directly as arma::vec
+        // For Python, empty vector means no parameters provided
+        arma::vec armaParametersValue = armaParameters;
 
         // Form matrices with parameters, that are then used for polynomial multiplication
         arma::mat arParameters(max(arOrders % lagsARIMA)+1, arOrders.n_elem, arma::fill::zeros);

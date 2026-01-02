@@ -8,7 +8,7 @@ from smooth.adam_general.core.utils.ic import ic_function
 from smooth.adam_general.core.creator import creator, initialiser, architector, filler
 from smooth.adam_general.core.utils.cost_functions import CF, log_Lik_ADAM
 from smooth.adam_general.core.utils.utils import scaler
-from smooth.adam_general._adam_general import adam_fitter, adam_forecaster
+# Note: adam_cpp instance is passed to functions that need C++ integration
 
 
 
@@ -234,6 +234,7 @@ def _create_objective_function(
     observations_dict,
     profile_dict,
     general_dict,
+    adam_cpp,
 ):
     """
     Create objective function for optimization.
@@ -294,6 +295,7 @@ def _create_objective_function(
             observations_dict=observations_dict,
             profile_dict=profile_dict,
             general=general_dict,
+            adam_cpp=adam_cpp,
             bounds="usual",
         )
         
@@ -352,6 +354,7 @@ def _calculate_loglik(
     occurrence_dict,
     general_dict,
     profile_dict,
+    adam_cpp,
     multisteps,
     n_param_estimated,
 ):
@@ -416,6 +419,7 @@ def _calculate_loglik(
         occurrence_dict,
         general_dict,
         profile_dict,
+        adam_cpp,
         multisteps=multisteps,
     )
 
@@ -790,8 +794,8 @@ def estimator(
         >>> stage2 = estimator(..., B_initial=B_initial)
     """
     # Step 1: Set up model structure
-    # Simple call of the architector
-    model_type_dict, components_dict, lags_dict, observations_dict, profile_dict = (
+    # Simple call of the architector - also creates adam_cpp object
+    model_type_dict, components_dict, lags_dict, observations_dict, profile_dict, adam_cpp = (
         architector(
             model_type_dict,
             lags_dict,
@@ -909,6 +913,7 @@ def estimator(
         observations_dict,
         profile_dict,
         general_dict,
+        adam_cpp,
     )
 
     # Set objective function
@@ -945,6 +950,7 @@ def estimator(
         occurrence_dict,
         general_dict,
         profile_dict,
+        adam_cpp,
         multisteps,
         n_param_estimated,
     )
@@ -956,13 +962,12 @@ def estimator(
         "n_param_estimated": n_param_estimated,
         "log_lik_adam_value": log_lik_adam_value,
         "arima_polynomials": adam_created["arima_polynomials"],
+        "adam_cpp": adam_cpp,  # Always return adam_cpp for forecasting
     }
 
     if return_matrices:
         # Ensure matrices are updated with final B values and backcasted states
         # The CF function uses copies, so we need to update the originals
-        from smooth.adam_general.core.utils.cost_functions import log_Lik_ADAM
-        from smooth.adam_general._adam_general import adam_fitter
 
         # Fill matrices with final B
         filler(
@@ -979,40 +984,29 @@ def estimator(
             constant_dict,
         )
 
-        # Run adam_fitter with backcasting to update states
+        # Run adam_cpp.fit() with backcasting to update states
         if initials_dict["initial_type"] in ["complete", "backcasting"]:
             mat_vt = np.asfortranarray(adam_created["mat_vt"], dtype=np.float64)
             mat_wt = np.asfortranarray(adam_created["mat_wt"], dtype=np.float64)
             mat_f = np.asfortranarray(adam_created["mat_f"], dtype=np.float64)
             vec_g = np.asfortranarray(adam_created["vec_g"], dtype=np.float64)
-            lags_model_all = np.asfortranarray(lags_dict["lags_model_all"], dtype=np.uint64).reshape(-1, 1)
             index_lookup_table = np.asfortranarray(profile_dict["index_lookup_table"], dtype=np.uint64)
             profiles_recent_table = np.asfortranarray(profile_dict["profiles_recent_table"], dtype=np.float64)
             y_in_sample = np.asfortranarray(observations_dict["y_in_sample"], dtype=np.float64)
             ot = np.asfortranarray(observations_dict["ot"], dtype=np.float64)
 
-            adam_fitter(
+            adam_cpp.fit(
                 matrixVt=mat_vt,
                 matrixWt=mat_wt,
                 matrixF=mat_f,
                 vectorG=vec_g,
-                lags=lags_model_all,
                 indexLookupTable=index_lookup_table,
                 profilesRecent=profiles_recent_table,
-                E=model_type_dict["error_type"],
-                T=model_type_dict["trend_type"],
-                S=model_type_dict["season_type"],
-                nNonSeasonal=components_dict["components_number_ets"] - components_dict["components_number_ets_seasonal"],
-                nSeasonal=components_dict["components_number_ets_seasonal"],
-                nArima=components_dict.get("components_number_arima", 0),
-                nXreg=explanatory_dict["xreg_number"],
-                constant=constant_dict["constant_required"],
                 vectorYt=y_in_sample,
                 vectorOt=ot,
                 backcast=True,
                 nIterations=initials_dict.get("n_iterations", 2) or 2,
                 refineHead=True,  # Always True (fixed backcasting issue)
-                adamETS=False
             )
 
             # Update original matrices
@@ -1891,143 +1885,143 @@ def selector(
     return {"results": results, "ic_selection": ic_selection_dict}
 
 
-def _generate_forecasts(
-    general_dict,
-    observations_dict,
-    matrices_dict,
-    lags_dict,
-    profiles_dict,
-    model_type_dict,
-    components_dict,
-    explanatory_checked,
-    constants_checked,
-):
-    """
-    Generate forecasts if the horizon is non-zero.
-
-    Parameters
-    ----------
-    general_dict : dict
-        General model parameters
-    observations_dict : dict
-        Observations information
-    matrices_dict : dict
-        Model matrices
-    lags_dict : dict
-        Lags information
-    profiles_dict : dict
-        Profiles information
-    model_type_dict : dict
-        Model type specification
-    components_dict : dict
-        Components information
-    explanatory_checked : dict
-        Explanatory variables specification
-    constants_checked : dict
-        Constant term specification
-
-    Returns
-    -------
-    pandas.Series
-        Forecasted values
-    """
-    # If horizon is zero, return an empty series
-    if general_dict["h"] <= 0:
-        if any(observations_dict.get("y_classes", []) == "ts"):
-            return pd.Series(
-                [np.nan],
-                index=pd.date_range(
-                    start=observations_dict["y_forecast_start"],
-                    periods=1,
-                    freq=observations_dict["y_frequency"],
-                ),
-            )
-        else:
-            return pd.Series(
-                np.full(general_dict["horizon"], np.nan),
-                index=observations_dict["y_forecast_index"],
-            )
-
-    # Create forecast Series
-    if not isinstance(observations_dict.get("y_in_sample"), pd.Series):
-        y_forecast = pd.Series(
-            np.full(general_dict["h"], np.nan),
-            index=pd.date_range(
-                start=observations_dict["y_forecast_start"],
-                periods=general_dict["h"],
-                freq=observations_dict["frequency"],
-            ),
-        )
-    else:
-        y_forecast = pd.Series(
-            np.full(general_dict["h"], np.nan),
-            index=observations_dict["y_forecast_index"],
-        )
-
-    # Generate forecasts
-    forecasts = adam_forecaster(
-        matrixWt=matrices_dict["mat_wt"][-general_dict["h"] :],
-        matrixF=matrices_dict["mat_f"],
-        lags=lags_dict["lags_model_all"],
-        indexLookupTable=profiles_dict["index_lookup_table"],
-        profilesRecent=profiles_dict["profiles_recent_table"],
-        E=model_type_dict["error_type"],
-        T=model_type_dict["trend_type"],
-        S=model_type_dict["season_type"],
-        nNonSeasonal=components_dict["components_number_ets"],
-        nSeasonal=components_dict["components_number_ets_seasonal"],
-        nArima=components_dict.get("components_number_arima", 0),
-        nXreg=explanatory_checked["xreg_number"],
-        constant=constants_checked["constant_required"],
-        horizon=general_dict["h"],
-    ).flatten()
-
-    # Fill in forecast values
-    y_forecast[:] = forecasts
-
-    # Replace NaNs with zeros
-    if np.any(np.isnan(y_forecast)):
-        y_forecast[np.isnan(y_forecast)] = 0
-
-    return y_forecast
-
-
-def _update_distribution(general_dict, model_type_dict):
-    """
-    Update distribution based on error term and loss function.
-
-    Parameters
-    ----------
-    general_dict : dict
-        General model parameters
-    model_type_dict : dict
-        Model type specification
-
-    Returns
-    -------
-    dict
-        Updated general_dict
-    """
-    general_dict_updated = general_dict.copy()
-
-    if general_dict["distribution"] == "default":
-        if general_dict["loss"] == "likelihood":
-            if model_type_dict["error_type"] == "A":
-                general_dict_updated["distribution"] = "dnorm"
-            elif model_type_dict["error_type"] == "M":
-                general_dict_updated["distribution"] = "dgamma"
-        elif general_dict["loss"] in ["MAEh", "MACE", "MAE"]:
-            general_dict_updated["distribution"] = "dlaplace"
-        elif general_dict["loss"] in ["HAMh", "CHAM", "HAM"]:
-            general_dict_updated["distribution"] = "ds"
-        elif general_dict["loss"] in ["MSEh", "MSCE", "MSE", "GPL"]:
-            general_dict_updated["distribution"] = "dnorm"
-        else:
-            general_dict_updated["distribution"] = "dnorm"
-
-    return general_dict_updated
-
-
+# def _generate_forecasts(
+#     general_dict,
+#     observations_dict,
+#     matrices_dict,
+#     lags_dict,
+#     profiles_dict,
+#     model_type_dict,
+#     components_dict,
+#     explanatory_checked,
+#     constants_checked,
+# ):
+#     """
+#     Generate forecasts if the horizon is non-zero.
+#
+#     Parameters
+#     ----------
+#     general_dict : dict
+#         General model parameters
+#     observations_dict : dict
+#         Observations information
+#     matrices_dict : dict
+#         Model matrices
+#     lags_dict : dict
+#         Lags information
+#     profiles_dict : dict
+#         Profiles information
+#     model_type_dict : dict
+#         Model type specification
+#     components_dict : dict
+#         Components information
+#     explanatory_checked : dict
+#         Explanatory variables specification
+#     constants_checked : dict
+#         Constant term specification
+#
+#     Returns
+#     -------
+#     pandas.Series
+#         Forecasted values
+#     """
+#     # If horizon is zero, return an empty series
+#     if general_dict["h"] <= 0:
+#         if any(observations_dict.get("y_classes", []) == "ts"):
+#             return pd.Series(
+#                 [np.nan],
+#                 index=pd.date_range(
+#                     start=observations_dict["y_forecast_start"],
+#                     periods=1,
+#                     freq=observations_dict["y_frequency"],
+#                 ),
+#             )
+#         else:
+#             return pd.Series(
+#                 np.full(general_dict["horizon"], np.nan),
+#                 index=observations_dict["y_forecast_index"],
+#             )
+#
+#     # Create forecast Series
+#     if not isinstance(observations_dict.get("y_in_sample"), pd.Series):
+#         y_forecast = pd.Series(
+#             np.full(general_dict["h"], np.nan),
+#             index=pd.date_range(
+#                 start=observations_dict["y_forecast_start"],
+#                 periods=general_dict["h"],
+#                 freq=observations_dict["frequency"],
+#             ),
+#         )
+#     else:
+#         y_forecast = pd.Series(
+#             np.full(general_dict["h"], np.nan),
+#             index=observations_dict["y_forecast_index"],
+#         )
+#
+#     # Generate forecasts
+#     forecasts = adam_forecaster(
+#         matrixWt=matrices_dict["mat_wt"][-general_dict["h"] :],
+#         matrixF=matrices_dict["mat_f"],
+#         lags=lags_dict["lags_model_all"],
+#         indexLookupTable=profiles_dict["index_lookup_table"],
+#         profilesRecent=profiles_dict["profiles_recent_table"],
+#         E=model_type_dict["error_type"],
+#         T=model_type_dict["trend_type"],
+#         S=model_type_dict["season_type"],
+#         nNonSeasonal=components_dict["components_number_ets"],
+#         nSeasonal=components_dict["components_number_ets_seasonal"],
+#         nArima=components_dict.get("components_number_arima", 0),
+#         nXreg=explanatory_checked["xreg_number"],
+#         constant=constants_checked["constant_required"],
+#         horizon=general_dict["h"],
+#     ).flatten()
+#
+#     # Fill in forecast values
+#     y_forecast[:] = forecasts
+#
+#     # Replace NaNs with zeros
+#     if np.any(np.isnan(y_forecast)):
+#         y_forecast[np.isnan(y_forecast)] = 0
+#
+#     return y_forecast
+#
+#
+# def _update_distribution(general_dict, model_type_dict):
+#     """
+#     Update distribution based on error term and loss function.
+#
+#     Parameters
+#     ----------
+#     general_dict : dict
+#         General model parameters
+#     model_type_dict : dict
+#         Model type specification
+#
+#     Returns
+#     -------
+#     dict
+#         Updated general_dict
+#     """
+#     general_dict_updated = general_dict.copy()
+#
+#     if general_dict["distribution"] == "default":
+#         if general_dict["loss"] == "likelihood":
+#             if model_type_dict["error_type"] == "A":
+#                 general_dict_updated["distribution"] = "dnorm"
+#             elif model_type_dict["error_type"] == "M":
+#                 general_dict_updated["distribution"] = "dgamma"
+#         elif general_dict["loss"] in ["MAEh", "MACE", "MAE"]:
+#             general_dict_updated["distribution"] = "dlaplace"
+#         elif general_dict["loss"] in ["HAMh", "CHAM", "HAM"]:
+#             general_dict_updated["distribution"] = "ds"
+#         elif general_dict["loss"] in ["MSEh", "MSCE", "MSE", "GPL"]:
+#             general_dict_updated["distribution"] = "dnorm"
+#         else:
+#             general_dict_updated["distribution"] = "dnorm"
+#
+#     return general_dict_updated
+#
+#
 def _process_initial_values(
     model_type_dict,
     lags_dict,
@@ -2197,534 +2191,534 @@ def _process_initial_values(
     }
 
     return initial_value, initial_value_ets, initial_value_names, initial_estimated
+#
+#
+# def _process_arma_parameters(B, arima_checked):
+#     """
+#     Process ARMA parameters from the estimates.
+#
+#     Parameters
+#     ----------
+#     B : dict
+#         Parameter estimates
+#     arima_checked : dict
+#         ARIMA components specification
+#
+#     Returns
+#     -------
+#     dict or None
+#         ARMA parameters list
+#     """
+#     if not arima_checked["arima_model"]:
+#         return None
+#
+#     arma_parameters_list = {}
+#
+#     # Process AR parameters
+#     if arima_checked["ar_required"] and arima_checked["ar_estimate"]:
+#         # Avoid damping parameter phi by checking name length > 3
+#         arma_parameters_list["ar"] = [
+#             b for name, b in B.items() if len(name) > 3 and name.startswith("phi")
+#         ]
+#     elif arima_checked["ar_required"] and not arima_checked["ar_estimate"]:
+#         # Avoid damping parameter phi
+#         arma_parameters_list["ar"] = [
+#             p
+#             for name, p in arima_checked["arma_parameters"].items()
+#             if name.startswith("phi")
+#         ]
+#
+#     # Process MA parameters
+#     if arima_checked["ma_required"] and arima_checked["ma_estimate"]:
+#         arma_parameters_list["ma"] = [
+#             b for name, b in B.items() if name.startswith("theta")
+#         ]
+#     elif arima_checked["ma_required"] and not arima_checked["ma_estimate"]:
+#         arma_parameters_list["ma"] = [
+#             p
+#             for name, p in arima_checked["arma_parameters"].items()
+#             if name.startswith("theta")
+#         ]
+#
+#     return arma_parameters_list
+#
+#
+# def _calculate_scale(
+#     general_dict, model_type_dict, errors, y_fitted, observations_dict, other
+# ):
+#     """
+#     Calculate scale parameter using scaler function.
+#
+#     Parameters
+#     ----------
+#     general_dict : dict
+#         General model parameters
+#     model_type_dict : dict
+#         Model type specification
+#     errors : pandas.Series
+#         Model errors
+#     y_fitted : pandas.Series
+#         Fitted values
+#     observations_dict : dict
+#         Observations information
+#     other : dict or None
+#         Other parameters
+#
+#     Returns
+#     -------
+#     float
+#         Scale parameter
+#     """
+#     return scaler(
+#         general_dict["distribution_new"],
+#         model_type_dict["error_type"],
+#         errors[observations_dict["ot_logical"]],
+#         y_fitted[observations_dict["ot_logical"]],
+#         observations_dict["obs_in_sample"],
+#         other,
+#     )
+#
+#
+# def _process_other_parameters(
+#     constants_checked, adam_estimated, general_dict, arima_checked, lags_dict
+# ):
+#     """
+#     Process other parameters including constants and ARIMA polynomials.
+#
+#     Parameters
+#     ----------
+#     constants_checked : dict
+#         Constant term specification
+#     adam_estimated : dict
+#         Estimated model parameters
+#     general_dict : dict
+#         General model parameters
+#     arima_checked : dict
+#         ARIMA components specification
+#     lags_dict : dict
+#         Lags information
+#
+#     Returns
+#     -------
+#     tuple
+#         constant_value, other_returned
+#     """
+#     # Record constant if estimated
+#     if constants_checked["constant_estimate"]:
+#         constant_value = adam_estimated["B"][constants_checked["constant_name"]]
+#     else:
+#         constant_value = None
+#
+#     # Prepare distribution parameters to return
+#     other_returned = {}
+#
+#     # Add LASSO/RIDGE lambda if applicable
+#     if general_dict["loss"] in ["LASSO", "RIDGE"]:
+#         other_returned["lambda"] = general_dict["lambda_"]
+#
+#     # Return ARIMA polynomials and indices for persistence and transition
+#     if arima_checked["arima_model"]:
+#         other_returned["polynomial"] = adam_estimated["arima_polynomials"]
+#         other_returned["ARIMA_indices"] = {
+#             "nonZeroARI": arima_checked["non_zero_ari"],
+#             "nonZeroMA": arima_checked["non_zero_ma"],
+#         }
+#         other_returned["ar_polynomial_matrix"] = np.zeros(
+#             (
+#                 sum(arima_checked["ar_orders"]) * lags_dict["lags"],
+#                 sum(arima_checked["ar_orders"]) * lags_dict["lags"],
+#             )
+#         )
+#
+#         if other_returned["ar_polynomial_matrix"].shape[0] > 1:
+#             # Set diagonal elements to 1 except first row/col
+#             other_returned["ar_polynomial_matrix"][1:-1, 2:] = np.eye(
+#                 other_returned["ar_polynomial_matrix"].shape[0] - 2
+#             )
+#
+#             if arima_checked["ar_required"]:
+#                 other_returned["ar_polynomial_matrix"][:, 0] = -arima_polynomials[
+#                     "ar_polynomial"
+#                 ][1:]
+#
+#         other_returned["arma_parameters"] = arima_checked["arma_parameters"]
+#
+#     return constant_value, other_returned
+#
+#
+# def _format_output(
+#     model_type_dict,
+#     y_fitted,
+#     errors,
+#     y_forecast,
+#     matrices_dict,
+#     profiles_dict,
+#     persistence,
+#     phi_dict,
+#     initial_value,
+#     initials_checked,
+#     initial_estimated,
+#     general_dict,
+#     arma_parameters_list,
+#     constant_value,
+#     occurrence_dict,
+#     explanatory_checked,
+#     scale,
+#     other_returned,
+#     adam_estimated,
+#     lags_dict,
+#     observations_dict,
+# ):
+#     """
+#     Format the final output for the model.
+#
+#     Parameters
+#     ----------
+#     model_type_dict : dict
+#         Model type specification
+#     y_fitted : pandas.Series
+#         Fitted values
+#     errors : pandas.Series
+#         Model errors
+#     y_forecast : pandas.Series
+#         Forecasted values
+#     matrices_dict : dict
+#         Model matrices
+#     profiles_dict : dict
+#         Profiles information
+#     persistence : array
+#         Persistence vector
+#     phi_dict : dict
+#         Damping parameter information
+#     initial_value : dict
+#         Initial values
+#     initials_checked : dict
+#         Initial values specification
+#     initial_estimated : list
+#         Which initials were estimated
+#     general_dict : dict
+#         General model parameters
+#     arma_parameters_list : dict or None
+#         ARMA parameters
+#     constant_value : float or None
+#         Constant term value
+#     occurrence_dict : dict
+#         Occurrence model information
+#     explanatory_checked : dict
+#         Explanatory variables specification
+#     scale : float
+#         Scale parameter
+#     other_returned : dict
+#         Other parameters
+#     adam_estimated : dict
+#         Estimated model parameters
+#     lags_dict : dict
+#         Lags information
+#     observations_dict : dict
+#         Observations information
+#
+#     Returns
+#     -------
+#     dict
+#         Formatted model output
+#     """
+#     # Amend the class of state matrix
+#     if not isinstance(observations_dict.get("y_in_sample"), pd.Series):
+#         mat_vt = pd.Series(
+#             matrices_dict["mat_vt"].T.flatten(),
+#             index=pd.date_range(
+#                 start=observations_dict["y_forecast_start"],
+#                 periods=len(matrices_dict["mat_vt"].T),
+#                 freq=observations_dict["frequency"],
+#             ),
+#         )
+#     else:
+#         mat_vt = pd.Series(
+#             matrices_dict["mat_vt"].T, index=observations_dict["y_forecast_index"]
+#         )
+#
+#     # Update parameters number
+#     general_dict["parameters_number"][0][2] = np.sum(
+#         general_dict["parameters_number"][0][:2]
+#     )
+#
+#     # Return the formatted output
+#     return {
+#         "model": model_type_dict["model"],
+#         "time_elapsed": None,  # here will count the time
+#         "holdout": general_dict["holdout"],
+#         "fitted": y_fitted,
+#         "residuals": errors,
+#         "forecast": y_forecast,
+#         "states": mat_vt,
+#         "profile": profiles_dict["profiles_recent_table"],
+#         "profile_initial": profiles_dict["profiles_recent_initial"],
+#         "persistence": persistence,
+#         "phi": phi_dict["phi"],
+#         "transition": matrices_dict["mat_f"],
+#         "measurement": matrices_dict["mat_wt"],
+#         "initial": initial_value,
+#         "initial_type": initials_checked["initial_type"],
+#         "initial_estimated": initial_estimated,
+#         "orders": general_dict.get("orders"),
+#         "arma": arma_parameters_list,
+#         "constant": constant_value,
+#         "n_param": general_dict["parameters_number"],
+#         "occurrence": occurrence_dict["oes_model"],
+#         "formula": explanatory_checked.get("formula"),
+#         "regressors": explanatory_checked.get("regressors"),
+#         "loss": general_dict["loss"],
+#         "loss_value": adam_estimated["CF_value"],
+#         "log_lik": adam_estimated["log_lik_adam_value"],
+#         "distribution": general_dict["distribution"],
+#         "scale": scale,
+#         "other": other_returned,
+#         "B": adam_estimated["B"],
+#         "lags": lags_dict["lags"],
+#         "lags_all": lags_dict["lags_model_all"],
+#         "FI": general_dict.get("fi"),
+#     }
 
 
-def _process_arma_parameters(B, arima_checked):
-    """
-    Process ARMA parameters from the estimates.
-
-    Parameters
-    ----------
-    B : dict
-        Parameter estimates
-    arima_checked : dict
-        ARIMA components specification
-
-    Returns
-    -------
-    dict or None
-        ARMA parameters list
-    """
-    if not arima_checked["arima_model"]:
-        return None
-
-    arma_parameters_list = {}
-
-    # Process AR parameters
-    if arima_checked["ar_required"] and arima_checked["ar_estimate"]:
-        # Avoid damping parameter phi by checking name length > 3
-        arma_parameters_list["ar"] = [
-            b for name, b in B.items() if len(name) > 3 and name.startswith("phi")
-        ]
-    elif arima_checked["ar_required"] and not arima_checked["ar_estimate"]:
-        # Avoid damping parameter phi
-        arma_parameters_list["ar"] = [
-            p
-            for name, p in arima_checked["arma_parameters"].items()
-            if name.startswith("phi")
-        ]
-
-    # Process MA parameters
-    if arima_checked["ma_required"] and arima_checked["ma_estimate"]:
-        arma_parameters_list["ma"] = [
-            b for name, b in B.items() if name.startswith("theta")
-        ]
-    elif arima_checked["ma_required"] and not arima_checked["ma_estimate"]:
-        arma_parameters_list["ma"] = [
-            p
-            for name, p in arima_checked["arma_parameters"].items()
-            if name.startswith("theta")
-        ]
-
-    return arma_parameters_list
-
-
-def _calculate_scale(
-    general_dict, model_type_dict, errors, y_fitted, observations_dict, other
-):
-    """
-    Calculate scale parameter using scaler function.
-
-    Parameters
-    ----------
-    general_dict : dict
-        General model parameters
-    model_type_dict : dict
-        Model type specification
-    errors : pandas.Series
-        Model errors
-    y_fitted : pandas.Series
-        Fitted values
-    observations_dict : dict
-        Observations information
-    other : dict or None
-        Other parameters
-
-    Returns
-    -------
-    float
-        Scale parameter
-    """
-    return scaler(
-        general_dict["distribution_new"],
-        model_type_dict["error_type"],
-        errors[observations_dict["ot_logical"]],
-        y_fitted[observations_dict["ot_logical"]],
-        observations_dict["obs_in_sample"],
-        other,
-    )
-
-
-def _process_other_parameters(
-    constants_checked, adam_estimated, general_dict, arima_checked, lags_dict
-):
-    """
-    Process other parameters including constants and ARIMA polynomials.
-
-    Parameters
-    ----------
-    constants_checked : dict
-        Constant term specification
-    adam_estimated : dict
-        Estimated model parameters
-    general_dict : dict
-        General model parameters
-    arima_checked : dict
-        ARIMA components specification
-    lags_dict : dict
-        Lags information
-
-    Returns
-    -------
-    tuple
-        constant_value, other_returned
-    """
-    # Record constant if estimated
-    if constants_checked["constant_estimate"]:
-        constant_value = adam_estimated["B"][constants_checked["constant_name"]]
-    else:
-        constant_value = None
-
-    # Prepare distribution parameters to return
-    other_returned = {}
-
-    # Add LASSO/RIDGE lambda if applicable
-    if general_dict["loss"] in ["LASSO", "RIDGE"]:
-        other_returned["lambda"] = general_dict["lambda_"]
-
-    # Return ARIMA polynomials and indices for persistence and transition
-    if arima_checked["arima_model"]:
-        other_returned["polynomial"] = adam_estimated["arima_polynomials"]
-        other_returned["ARIMA_indices"] = {
-            "nonZeroARI": arima_checked["non_zero_ari"],
-            "nonZeroMA": arima_checked["non_zero_ma"],
-        }
-        other_returned["ar_polynomial_matrix"] = np.zeros(
-            (
-                sum(arima_checked["ar_orders"]) * lags_dict["lags"],
-                sum(arima_checked["ar_orders"]) * lags_dict["lags"],
-            )
-        )
-
-        if other_returned["ar_polynomial_matrix"].shape[0] > 1:
-            # Set diagonal elements to 1 except first row/col
-            other_returned["ar_polynomial_matrix"][1:-1, 2:] = np.eye(
-                other_returned["ar_polynomial_matrix"].shape[0] - 2
-            )
-
-            if arima_checked["ar_required"]:
-                other_returned["ar_polynomial_matrix"][:, 0] = -arima_polynomials[
-                    "ar_polynomial"
-                ][1:]
-
-        other_returned["arma_parameters"] = arima_checked["arma_parameters"]
-
-    return constant_value, other_returned
-
-
-def _format_output(
-    model_type_dict,
-    y_fitted,
-    errors,
-    y_forecast,
-    matrices_dict,
-    profiles_dict,
-    persistence,
-    phi_dict,
-    initial_value,
-    initials_checked,
-    initial_estimated,
-    general_dict,
-    arma_parameters_list,
-    constant_value,
-    occurrence_dict,
-    explanatory_checked,
-    scale,
-    other_returned,
-    adam_estimated,
-    lags_dict,
-    observations_dict,
-):
-    """
-    Format the final output for the model.
-
-    Parameters
-    ----------
-    model_type_dict : dict
-        Model type specification
-    y_fitted : pandas.Series
-        Fitted values
-    errors : pandas.Series
-        Model errors
-    y_forecast : pandas.Series
-        Forecasted values
-    matrices_dict : dict
-        Model matrices
-    profiles_dict : dict
-        Profiles information
-    persistence : array
-        Persistence vector
-    phi_dict : dict
-        Damping parameter information
-    initial_value : dict
-        Initial values
-    initials_checked : dict
-        Initial values specification
-    initial_estimated : list
-        Which initials were estimated
-    general_dict : dict
-        General model parameters
-    arma_parameters_list : dict or None
-        ARMA parameters
-    constant_value : float or None
-        Constant term value
-    occurrence_dict : dict
-        Occurrence model information
-    explanatory_checked : dict
-        Explanatory variables specification
-    scale : float
-        Scale parameter
-    other_returned : dict
-        Other parameters
-    adam_estimated : dict
-        Estimated model parameters
-    lags_dict : dict
-        Lags information
-    observations_dict : dict
-        Observations information
-
-    Returns
-    -------
-    dict
-        Formatted model output
-    """
-    # Amend the class of state matrix
-    if not isinstance(observations_dict.get("y_in_sample"), pd.Series):
-        mat_vt = pd.Series(
-            matrices_dict["mat_vt"].T.flatten(),
-            index=pd.date_range(
-                start=observations_dict["y_forecast_start"],
-                periods=len(matrices_dict["mat_vt"].T),
-                freq=observations_dict["frequency"],
-            ),
-        )
-    else:
-        mat_vt = pd.Series(
-            matrices_dict["mat_vt"].T, index=observations_dict["y_forecast_index"]
-        )
-
-    # Update parameters number
-    general_dict["parameters_number"][0][2] = np.sum(
-        general_dict["parameters_number"][0][:2]
-    )
-
-    # Return the formatted output
-    return {
-        "model": model_type_dict["model"],
-        "time_elapsed": None,  # here will count the time
-        "holdout": general_dict["holdout"],
-        "fitted": y_fitted,
-        "residuals": errors,
-        "forecast": y_forecast,
-        "states": mat_vt,
-        "profile": profiles_dict["profiles_recent_table"],
-        "profile_initial": profiles_dict["profiles_recent_initial"],
-        "persistence": persistence,
-        "phi": phi_dict["phi"],
-        "transition": matrices_dict["mat_f"],
-        "measurement": matrices_dict["mat_wt"],
-        "initial": initial_value,
-        "initial_type": initials_checked["initial_type"],
-        "initial_estimated": initial_estimated,
-        "orders": general_dict.get("orders"),
-        "arma": arma_parameters_list,
-        "constant": constant_value,
-        "n_param": general_dict["parameters_number"],
-        "occurrence": occurrence_dict["oes_model"],
-        "formula": explanatory_checked.get("formula"),
-        "regressors": explanatory_checked.get("regressors"),
-        "loss": general_dict["loss"],
-        "loss_value": adam_estimated["CF_value"],
-        "log_lik": adam_estimated["log_lik_adam_value"],
-        "distribution": general_dict["distribution"],
-        "scale": scale,
-        "other": other_returned,
-        "B": adam_estimated["B"],
-        "lags": lags_dict["lags"],
-        "lags_all": lags_dict["lags_model_all"],
-        "FI": general_dict.get("fi"),
-    }
-
-
-def preparator(
-    # Model type info
-    model_type_dict,
-    # Components info
-    components_dict,
-    # Lags info
-    lags_dict,
-    # Matrices from creator
-    matrices_dict,
-    # Parameter dictionaries
-    persistence_checked,
-    initials_checked,
-    arima_checked,
-    explanatory_checked,
-    phi_dict,
-    constants_checked,
-    # Other parameters
-    observations_dict,
-    occurrence_dict,
-    general_dict,
-    profiles_dict,
-    # The parameter vector
-    adam_estimated,
-    # Optional parameters
-    bounds="usual",
-    other=None,
-):
-    """
-    Prepare final model output after estimation.
-
-    This function takes the estimated model parameters and prepares
-    the fitted values, forecasts, and other model components for output.
-
-    Parameters
-    ----------
-    model_type_dict : dict
-        Model type specification parameters
-    components_dict : dict
-        Model components information
-    lags_dict : dict
-        Information about model lags
-    matrices_dict : dict
-        Model matrices from creator
-    persistence_checked : dict
-        Processed persistence parameters
-    initials_checked : dict
-        Processed initial values
-    arima_checked : dict
-        Processed ARIMA component information
-    explanatory_checked : dict
-        Processed external regressors information
-    phi_dict : dict
-        Damping parameter information
-    constants_checked : dict
-        Processed constant term information
-    observations_dict : dict
-        Observed data information
-    occurrence_dict : dict
-        Occurrence model information
-    general_dict : dict
-        General model configuration parameters
-    profiles_dict : dict
-        Profiles information
-    adam_estimated : dict
-        Parameter estimates from optimization
-    bounds : str, optional
-        Type of bounds used
-    other : dict, optional
-        Additional parameters
-
-    Returns
-    -------
-    dict
-        Dictionary containing fitted model and forecasts
-    """
-    # Step 1: Fill in the matrices with estimated parameters
-    matrices_dict = _fill_matrices(
-        adam_estimated=adam_estimated,
-        model_type_dict=model_type_dict,
-        components_dict=components_dict,
-        lags_dict=lags_dict,
-        matrices_dict=matrices_dict,
-        persistence_checked=persistence_checked,
-        initials_checked=initials_checked,
-        arima_checked=arima_checked,
-        explanatory_checked=explanatory_checked,
-        phi_dict=phi_dict,
-        constants_checked=constants_checked,
-    )
-
-    # Step 2: Update profiles and phi
-    profiles_dict, phi_dict = _update_profiles(
-        matrices_dict=matrices_dict,
-        profiles_dict=profiles_dict,
-        lags_dict=lags_dict,
-        phi_dict=phi_dict,
-        adam_estimated=adam_estimated,
-    )
-
-    # Step 3: Prepare arrays for model fitting
-    (
-        y_in_sample,
-        ot,
-        mat_vt,
-        mat_wt,
-        mat_f,
-        vec_g,
-        lags_model_all,
-        index_lookup_table,
-        profiles_recent_table,
-    ) = _prepare_arrays(
-        matrices_dict=matrices_dict,
-        observations_dict=observations_dict,
-        profiles_dict=profiles_dict,
-        lags_dict=lags_dict,
-    )
-
-    # Step 4: Fit the model
-    adam_fitted = _fit_model(
-        mat_vt=mat_vt,
-        mat_wt=mat_wt,
-        mat_f=mat_f,
-        vec_g=vec_g,
-        lags_model_all=lags_model_all,
-        index_lookup_table=index_lookup_table,
-        profiles_recent_table=profiles_recent_table,
-        model_type_dict=model_type_dict,
-        components_dict=components_dict,
-        explanatory_checked=explanatory_checked,
-        constants_checked=constants_checked,
-        y_in_sample=y_in_sample,
-        ot=ot,
-        initials_checked=initials_checked,
-    )
-
-    # Step 5: Update matrices with fitted values
-    matrices_dict, profiles_dict = _update_matrices(
-        matrices_dict=matrices_dict,
-        profiles_dict=profiles_dict,
-        adam_fitted=adam_fitted,
-        model_type_dict=model_type_dict,
-        components_dict=components_dict,
-    )
-
-    # Step 6: Prepare fitted values and errors
-    y_fitted, errors = _prepare_fitted_values(
-        observations_dict=observations_dict,
-        adam_fitted=adam_fitted,
-        occurrence_dict=occurrence_dict,
-    )
-
-    # Step 7: Generate forecasts
-    y_forecast = _generate_forecasts(
-        general_dict=general_dict,
-        observations_dict=observations_dict,
-        matrices_dict=matrices_dict,
-        lags_dict=lags_dict,
-        profiles_dict=profiles_dict,
-        model_type_dict=model_type_dict,
-        components_dict=components_dict,
-        explanatory_checked=explanatory_checked,
-        constants_checked=constants_checked,
-    )
-
-    # Step 8: Update distribution
-    general_dict = _update_distribution(
-        general_dict=general_dict, model_type_dict=model_type_dict
-    )
-
-    # Step 9: Process initial values
-    initial_value, initial_value_ets, initial_value_names, initial_estimated = (
-        _process_initial_values(
-            model_type_dict=model_type_dict,
-            lags_dict=lags_dict,
-            matrices_dict=matrices_dict,
-            initials_checked=initials_checked,
-            arima_checked=arima_checked,
-            explanatory_checked=explanatory_checked,
-            components_dict=components_dict,
-        )
-    )
-
-    # Step 10: Get persistence values
-    persistence = np.array(matrices_dict["vec_g"]).flatten()
-
-    # Step 11: Handle explanatory variables
-    if (
-        explanatory_checked["xreg_model"]
-        and explanatory_checked.get("regressors") != "adapt"
-    ):
-        explanatory_checked["regressors"] = "use"
-    elif not explanatory_checked["xreg_model"]:
-        explanatory_checked["regressors"] = None
-
-    # Step 12: Process ARMA parameters
-    arma_parameters_list = _process_arma_parameters(
-        B=adam_estimated["B"], arima_checked=arima_checked
-    )
-
-    # Step 13: Calculate scale parameter
-    scale = _calculate_scale(
-        general_dict=general_dict,
-        model_type_dict=model_type_dict,
-        errors=errors,
-        y_fitted=y_fitted,
-        observations_dict=observations_dict,
-        other=other,
-    )
-
-    # Step 14: Process other parameters
-    constant_value, other_returned = _process_other_parameters(
-        constants_checked=constants_checked,
-        adam_estimated=adam_estimated,
-        general_dict=general_dict,
-        arima_checked=arima_checked,
-        lags_dict=lags_dict,
-    )
-
-    # Step 15: Format and return final output
-    return _format_output(
-        model_type_dict=model_type_dict,
-        y_fitted=y_fitted,
-        errors=errors,
-        y_forecast=y_forecast,
-        matrices_dict=matrices_dict,
-        profiles_dict=profiles_dict,
-        persistence=persistence,
-        phi_dict=phi_dict,
-        initial_value=initial_value,
-        initials_checked=initials_checked,
-        initial_estimated=initial_estimated,
-        general_dict=general_dict,
-        arma_parameters_list=arma_parameters_list,
-        constant_value=constant_value,
-        occurrence_dict=occurrence_dict,
-        explanatory_checked=explanatory_checked,
-        scale=scale,
-        other_returned=other_returned,
-        adam_estimated=adam_estimated,
-        lags_dict=lags_dict,
-        observations_dict=observations_dict,
-    )
+# def preparator(
+#     # Model type info
+#     model_type_dict,
+#     # Components info
+#     components_dict,
+#     # Lags info
+#     lags_dict,
+#     # Matrices from creator
+#     matrices_dict,
+#     # Parameter dictionaries
+#     persistence_checked,
+#     initials_checked,
+#     arima_checked,
+#     explanatory_checked,
+#     phi_dict,
+#     constants_checked,
+#     # Other parameters
+#     observations_dict,
+#     occurrence_dict,
+#     general_dict,
+#     profiles_dict,
+#     # The parameter vector
+#     adam_estimated,
+#     # Optional parameters
+#     bounds="usual",
+#     other=None,
+# ):
+#     """
+#     Prepare final model output after estimation.
+#
+#     This function takes the estimated model parameters and prepares
+#     the fitted values, forecasts, and other model components for output.
+#
+#     Parameters
+#     ----------
+#     model_type_dict : dict
+#         Model type specification parameters
+#     components_dict : dict
+#         Model components information
+#     lags_dict : dict
+#         Information about model lags
+#     matrices_dict : dict
+#         Model matrices from creator
+#     persistence_checked : dict
+#         Processed persistence parameters
+#     initials_checked : dict
+#         Processed initial values
+#     arima_checked : dict
+#         Processed ARIMA component information
+#     explanatory_checked : dict
+#         Processed external regressors information
+#     phi_dict : dict
+#         Damping parameter information
+#     constants_checked : dict
+#         Processed constant term information
+#     observations_dict : dict
+#         Observed data information
+#     occurrence_dict : dict
+#         Occurrence model information
+#     general_dict : dict
+#         General model configuration parameters
+#     profiles_dict : dict
+#         Profiles information
+#     adam_estimated : dict
+#         Parameter estimates from optimization
+#     bounds : str, optional
+#         Type of bounds used
+#     other : dict, optional
+#         Additional parameters
+#
+#     Returns
+#     -------
+#     dict
+#         Dictionary containing fitted model and forecasts
+#     """
+#     # Step 1: Fill in the matrices with estimated parameters
+#     matrices_dict = _fill_matrices(
+#         adam_estimated=adam_estimated,
+#         model_type_dict=model_type_dict,
+#         components_dict=components_dict,
+#         lags_dict=lags_dict,
+#         matrices_dict=matrices_dict,
+#         persistence_checked=persistence_checked,
+#         initials_checked=initials_checked,
+#         arima_checked=arima_checked,
+#         explanatory_checked=explanatory_checked,
+#         phi_dict=phi_dict,
+#         constants_checked=constants_checked,
+#     )
+#
+#     # Step 2: Update profiles and phi
+#     profiles_dict, phi_dict = _update_profiles(
+#         matrices_dict=matrices_dict,
+#         profiles_dict=profiles_dict,
+#         lags_dict=lags_dict,
+#         phi_dict=phi_dict,
+#         adam_estimated=adam_estimated,
+#     )
+#
+#     # Step 3: Prepare arrays for model fitting
+#     (
+#         y_in_sample,
+#         ot,
+#         mat_vt,
+#         mat_wt,
+#         mat_f,
+#         vec_g,
+#         lags_model_all,
+#         index_lookup_table,
+#         profiles_recent_table,
+#     ) = _prepare_arrays(
+#         matrices_dict=matrices_dict,
+#         observations_dict=observations_dict,
+#         profiles_dict=profiles_dict,
+#         lags_dict=lags_dict,
+#     )
+#
+#     # Step 4: Fit the model
+#     adam_fitted = _fit_model(
+#         mat_vt=mat_vt,
+#         mat_wt=mat_wt,
+#         mat_f=mat_f,
+#         vec_g=vec_g,
+#         lags_model_all=lags_model_all,
+#         index_lookup_table=index_lookup_table,
+#         profiles_recent_table=profiles_recent_table,
+#         model_type_dict=model_type_dict,
+#         components_dict=components_dict,
+#         explanatory_checked=explanatory_checked,
+#         constants_checked=constants_checked,
+#         y_in_sample=y_in_sample,
+#         ot=ot,
+#         initials_checked=initials_checked,
+#     )
+#
+#     # Step 5: Update matrices with fitted values
+#     matrices_dict, profiles_dict = _update_matrices(
+#         matrices_dict=matrices_dict,
+#         profiles_dict=profiles_dict,
+#         adam_fitted=adam_fitted,
+#         model_type_dict=model_type_dict,
+#         components_dict=components_dict,
+#     )
+#
+#     # Step 6: Prepare fitted values and errors
+#     y_fitted, errors = _prepare_fitted_values(
+#         observations_dict=observations_dict,
+#         adam_fitted=adam_fitted,
+#         occurrence_dict=occurrence_dict,
+#     )
+#
+#     # Step 7: Generate forecasts
+#     y_forecast = _generate_forecasts(
+#         general_dict=general_dict,
+#         observations_dict=observations_dict,
+#         matrices_dict=matrices_dict,
+#         lags_dict=lags_dict,
+#         profiles_dict=profiles_dict,
+#         model_type_dict=model_type_dict,
+#         components_dict=components_dict,
+#         explanatory_checked=explanatory_checked,
+#         constants_checked=constants_checked,
+#     )
+#
+#     # Step 8: Update distribution
+#     general_dict = _update_distribution(
+#         general_dict=general_dict, model_type_dict=model_type_dict
+#     )
+#
+#     # Step 9: Process initial values
+#     initial_value, initial_value_ets, initial_value_names, initial_estimated = (
+#         _process_initial_values(
+#             model_type_dict=model_type_dict,
+#             lags_dict=lags_dict,
+#             matrices_dict=matrices_dict,
+#             initials_checked=initials_checked,
+#             arima_checked=arima_checked,
+#             explanatory_checked=explanatory_checked,
+#             components_dict=components_dict,
+#         )
+#     )
+#
+#     # Step 10: Get persistence values
+#     persistence = np.array(matrices_dict["vec_g"]).flatten()
+#
+#     # Step 11: Handle explanatory variables
+#     if (
+#         explanatory_checked["xreg_model"]
+#         and explanatory_checked.get("regressors") != "adapt"
+#     ):
+#         explanatory_checked["regressors"] = "use"
+#     elif not explanatory_checked["xreg_model"]:
+#         explanatory_checked["regressors"] = None
+#
+#     # Step 12: Process ARMA parameters
+#     arma_parameters_list = _process_arma_parameters(
+#         B=adam_estimated["B"], arima_checked=arima_checked
+#     )
+#
+#     # Step 13: Calculate scale parameter
+#     scale = _calculate_scale(
+#         general_dict=general_dict,
+#         model_type_dict=model_type_dict,
+#         errors=errors,
+#         y_fitted=y_fitted,
+#         observations_dict=observations_dict,
+#         other=other,
+#     )
+#
+#     # Step 14: Process other parameters
+#     constant_value, other_returned = _process_other_parameters(
+#         constants_checked=constants_checked,
+#         adam_estimated=adam_estimated,
+#         general_dict=general_dict,
+#         arima_checked=arima_checked,
+#         lags_dict=lags_dict,
+#     )
+#
+#     # Step 15: Format and return final output
+#     return _format_output(
+#         model_type_dict=model_type_dict,
+#         y_fitted=y_fitted,
+#         errors=errors,
+#         y_forecast=y_forecast,
+#         matrices_dict=matrices_dict,
+#         profiles_dict=profiles_dict,
+#         persistence=persistence,
+#         phi_dict=phi_dict,
+#         initial_value=initial_value,
+#         initials_checked=initials_checked,
+#         initial_estimated=initial_estimated,
+#         general_dict=general_dict,
+#         arma_parameters_list=arma_parameters_list,
+#         constant_value=constant_value,
+#         occurrence_dict=occurrence_dict,
+#         explanatory_checked=explanatory_checked,
+#         scale=scale,
+#         other_returned=other_returned,
+#         adam_estimated=adam_estimated,
+#         lags_dict=lags_dict,
+#         observations_dict=observations_dict,
+#     )

@@ -10,8 +10,7 @@ from smooth.adam_general.core.estimator import estimator, selector, _process_ini
 from smooth.adam_general.core.creator import creator, initialiser, architector, filler
 from smooth.adam_general.core.utils.ic import ic_function
 from smooth.adam_general.core.forecaster import preparator, forecaster
-
-from smooth.adam_general._adam_general import adam_fitter, adam_forecaster
+# Note: adam_cpp instance is stored in self and passed to forecasting functions
 
 
 # Type hint groups
@@ -1227,14 +1226,18 @@ class ADAM:
                     phi_dict=self.phi_dict,
                     components_dict=self.components_dict,
                 )
+            # Extract adam_cpp from estimation results
+            self.adam_cpp = self.adam_estimated["adam_cpp"]
 
         # Build the model structure
+        # architector() returns 6 values including adam_cpp, but we already have adam_cpp from estimation
         (
             self.model_type_dict,
             self.components_dict,
             self.lags_dict,
             self.observations_dict,
             self.profile_dict,
+            _,  # adam_cpp - already stored from estimation result
         ) = architector(
             model_type_dict=self.model_type_dict,
             lags_dict=self.lags_dict,
@@ -1375,6 +1378,7 @@ class ADAM:
         self.model_type_dict = self.results[self.best_id]['model_type_dict']
         self.phi_dict = self.results[self.best_id]['phi_dict']
         self.adam_estimated = self.results[self.best_id]['adam_estimated']
+        self.adam_cpp = self.adam_estimated["adam_cpp"]
 
 
     def _update_model_from_selection(self, index, result):
@@ -1407,8 +1411,9 @@ class ADAM:
             },
         )
 
-        # Store the estimated model
+        # Store the estimated model and adam_cpp
         self.adam_estimated = result["adam_estimated"]
+        self.adam_cpp = self.adam_estimated["adam_cpp"]
 
     def _create_matrices_for_selected_model(self, index):
         """
@@ -1605,6 +1610,8 @@ class ADAM:
             profiles_dict=self.profile_dict,
             # The parameter vector
             adam_estimated=self.adam_estimated,
+            # adamCore C++ object
+            adam_cpp=self.adam_cpp,
             # Optional parameters
             bounds="usual",
             other=None,
@@ -1637,6 +1644,7 @@ class ADAM:
             components_dict=self.components_dict,
             constants_checked=self.constant_dict,
             params_info=self.params_info,
+            adam_cpp=self.adam_cpp,
             calculate_intervals=self.calculate_intervals,
             interval_method=self.interval_method,
             level=self.level,
