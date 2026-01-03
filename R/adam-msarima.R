@@ -89,14 +89,9 @@
 #' @param constant If \code{TRUE}, constant term is included in the model. Can
 #' also be a number (constant value). For \code{auto.msarima}, if \code{NULL},
 #' then the function will check if constant is needed.
-#' @param AR Vector or matrix of AR parameters. The order of parameters should
-#' be lag-wise. This means that first all the AR parameters of the firs lag
-#' should be passed, then for the second etc. AR of another \code{msarima()} can be
-#' passed here.
-#' @param MA Vector or matrix of MA parameters. The order of parameters should
-#' be lag-wise. This means that first all the MA parameters of the firs lag
-#' should be passed, then for the second etc. MA of another msarima can be
-#' passed here.
+#' @param arma Either the named list or a vector with AR / MA parameters ordered lag-wise.
+#' The number of elements should correspond to the specified orders e.g.
+#' \code{orders=list(ar=c(1,1),ma=c(1,1)), lags=c(1,4), arma=list(ar=c(0.9,0.8),ma=c(-0.3,0.3))}
 #' @param model Previously estimated MSARIMA model.
 #' @param initial Can be either character or a vector of initial states.
 #' If it is character, then it can be \code{"optimal"}, meaning that all initial
@@ -125,9 +120,7 @@
 #' \item \code{persistence} - the persistence vector. This is the place, where
 #' smoothing parameters live.
 #' \item \code{measurement} - measurement vector of the model.
-#' \item \code{AR} - the matrix of coefficients of AR terms.
-#' \item \code{I} - the matrix of coefficients of I terms.
-#' \item \code{MA} - the matrix of coefficients of MA terms.
+#' \item \code{arma} - list of AR/MA parameters
 #' \item \code{constant} - the value of the constant term.
 #' \item \code{initialType} - Type of the initial values used.
 #' \item \code{initial} - the initial values of the state vector (extracted
@@ -197,7 +190,7 @@
 #' @rdname msarima
 #' @export
 msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
-                    constant=FALSE, AR=NULL, MA=NULL, model=NULL,
+                    constant=FALSE, arma=NULL, model=NULL,
                     initial=c("backcasting","optimal","two-stage","complete"),
                     ic=c("AICc","AIC","BIC","BICc"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
@@ -240,7 +233,7 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
             return(adam(data=y, model=model,
                         orders=orders, lags=lags, constant=constant,
-                        arma=list(ar=AR,ma=MA),
+                        arma=arma,
                         loss=loss, h=h, holdout=holdout, initial=initial,
                         ic=ic, bounds=bounds[1], distribution="dnorm",
                         silent=silent, regressors=regressors[1], environment=env, ...));
@@ -365,7 +358,7 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     ourModel <- adam(data=data, model="NNN",
                      orders=orders, lags=lags, constant=constant,
-                     arma=list(ar=AR,ma=MA),
+                     arma=arma,
                      loss=loss, h=h, holdout=holdout, initial=initialValue,
                      ic=ic, bounds=bounds[1], distribution="dnorm",
                      silent=silent, regressors=regressors[1], environment=env, ...);
