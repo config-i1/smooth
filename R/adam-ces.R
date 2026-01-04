@@ -1,7 +1,3 @@
-utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimate","xregNames",
-                         "otLogical","yFrequency","yIndex",
-                         "persistenceXreg","yHoldout","distribution"));
-
 #' Complex Exponential Smoothing
 #'
 #' Function estimates CES in state space form with information potential equal
@@ -222,15 +218,27 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         initial <- list(xreg=initialX);
     }
 
+    # Default parameters for the wrapper
+    constant <- FALSE;
+    distribution <- "dnorm";
+    formula <- NULL;
+    ic <- "AICc";
+    level <- 0.99;
+    occurrence <- "none";
+    orders <- list(ar=c(0),i=c(0),ma=c(0),select=FALSE);
+    outliers <- "ignore";
+    persistence <- NULL;
+    phi <- NULL;
+
     ##### Set environment for ssInput and make all the checks #####
-    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=NULL,
-                                       orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
-                                       constant=FALSE, arma=NULL,
-                                       outliers="ignore", level=0.99,
-                                       persistence=NULL, phi=NULL, initial,
-                                       distribution="dnorm", loss, h, holdout, occurrence="none",
+    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
+                                       orders=orders,
+                                       constant=constant, arma=NULL,
+                                       outliers=outliers, level=level,
+                                       persistence=persistence, phi=phi, initial,
+                                       distribution=distribution, loss, h, holdout, occurrence=occurrence,
                                        # This is not needed by the function
-                                       ic="AICc", bounds=bounds[1],
+                                       ic=ic, bounds=bounds[1],
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
 

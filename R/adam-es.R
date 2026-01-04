@@ -37,7 +37,6 @@
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssXregParam
-#' @template ssIntervals
 #' @template ssPersistenceParam
 #' @template ssAuthor
 #' @template ssKeywords
@@ -227,7 +226,7 @@ es <- function(y, model="ZXZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
                initial=c("backcasting","optimal","two-stage","complete"),initialSeason=NULL,
                ic=c("AICc","AIC","BIC","BICc"),
                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-               h=10, holdout=FALSE,
+               h=0, holdout=FALSE,
                # cumulative=FALSE,
                # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                bounds=c("usual","admissible","none"),

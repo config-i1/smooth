@@ -1,5 +1,3 @@
-utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","regressors","modelsPool","parametersNumber"));
-
 #' Occurrence ETS, general model
 #'
 #' Function returns the general occurrence model of the of iETS model.
@@ -96,7 +94,7 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","regr
 #' @export
 oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=NULL,
                  phiA=NULL, phiB=NULL,
-                 initialA="o", initialB="o", initialSeasonA=NULL, initialSeasonB=NULL,
+                 initialA="optimal", initialB="optimal", initialSeasonA=NULL, initialSeasonB=NULL,
                  ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
                  # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                  bounds=c("usual","admissible","none"),
@@ -109,7 +107,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     # A fix for a weird case of selection, when initial disappears.
     # I don't have time to fix it right now...
     if(is.null(initialA) || is.null(initialB)){
-        initialA <- initialB <- "o"
+        initialA <- initialB <- "optimal";
     }
 
 # Start measuring the time of calculations

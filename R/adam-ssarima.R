@@ -1,7 +1,3 @@
-utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimate","xregNames",
-                         "otLogical","yFrequency","yIndex",
-                         "persistenceXreg","persistenceXregEstimate",
-                         "yHoldout","distribution"));
 
 #' State Space ARIMA
 #'
@@ -156,7 +152,6 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         seasonality <- model$seasonality;
         measurement <- model$measurement;
         transition <- model$transition;
-        persistenceOriginal <- model$persistence;
         ellipsis$B <- coef(model);
         lags <- lags(model);
         orders <- orders(model);
@@ -219,15 +214,25 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     boundsOriginal <- match.arg(bounds);
 
+    # Default parameters for the wrapper
+    distribution <- "dnorm";
+    formula <- NULL;
+    ic <- "AICc";
+    level <- 0.99;
+    occurrence <- "none";
+    outliers <- "ignore";
+    persistence <- NULL;
+    phi <- NULL;
+
     ##### Make all the checks #####
-    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=NULL,
+    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
                                        orders=orders,
                                        constant=constant, arma=arma,
-                                       outliers="ignore", level=0.99,
-                                       persistence=NULL, phi=NULL, initial,
-                                       distribution="dnorm", loss, h, holdout, occurrence="none",
+                                       outliers=outliers, level=level,
+                                       persistence=persistence, phi=phi, initial,
+                                       distribution=distribution, loss, h, holdout, occurrence=occurrence,
                                        # This is not needed by the gum() function
-                                       ic="AICc", bounds=boundsOriginal,
+                                       ic=ic, bounds=boundsOriginal,
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
 

@@ -1,23 +1,3 @@
-utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arRequired","arimaModel",
-                         "arimaPolynomials","armaParameters","componentsNamesARIMA","componentsNamesETS",
-                         "componentsNumberARIMA","componentsNumberETS","componentsNumberETSNonSeasonal",
-                         "componentsNumberETSSeasonal","digits","etsModel","ftol_abs","ftol_rel",
-                         "horizon","iOrders","iRequired","initialArima","initialArimaEstimate",
-                         "initialArimaNumber","initialLevel","initialLevelEstimate","initialSeasonal",
-                         "initialSeasonalEstimate","initialTrend","initialTrendEstimate","lagsModelARIMA",
-                         "lagsModelAll","lagsModelSeasonal","indexLookupTable","profilesRecentTable",
-                         "other","otherParameterEstimate","lambda","lossFunction",
-                         "maEstimate","maOrders","maRequired","matVt","matWt","maxtime","modelIsTrendy",
-                         "nParamEstimated","persistenceLevel","persistenceLevelEstimate",
-                         "persistenceSeasonal","persistenceSeasonalEstimate","persistenceTrend",
-                         "persistenceTrendEstimate","vecG","xtol_abs","xtol_rel","stepSize","yClasses",
-                         "yForecastIndex","yInSampleIndex","yIndexAll","yNAValues","yStart","responseName",
-                         "xregParametersMissing","xregParametersIncluded","xregParametersEstimated",
-                         "xregParametersPersistence","xregModelInitials","constantName","yDenominator",
-                         "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval","icFunction",
-                         "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal",
-                         "nIterations","smoother","adamETS","adamCpp"));
-
 #' ADAM is Augmented Dynamic Adaptive Model
 #'
 #' Function constructs an advanced Single Source of Error model, based on ETS
@@ -7682,6 +7662,23 @@ plot.adam.predict <- function(x, ...){
     }
 }
 
+#' Forecasting time series using smooth functions
+#'
+#' Function produces conditional expectation (point forecasts) and prediction
+#' intervals for the estimated model.
+#'
+#' By default the function will generate conditional expectations from the
+#' estimated model and will also produce a variety of prediction intervals
+#' based on user preferences.
+#'
+#' @aliases forecast forecast.smooth
+#' @param object Time series model for which forecasts are required.
+#' @param h Forecast horizon.
+#' @param level Confidence level. Defines width of prediction interval.
+#' @param side Defines, whether to provide \code{"both"} sides of prediction
+#' interval or only \code{"upper"}, or \code{"lower"}.
+#' @param ...  Other arguments accepted by either \link[smooth]{es},
+#' \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.
 #' @param newdata The new data needed in order to produce forecasts.
 #' @param nsim Number of iterations to do in cases of \code{interval="simulated"},
 #' \code{interval="prediction"} (for mixed and multiplicative model),
@@ -7711,8 +7708,35 @@ plot.adam.predict <- function(x, ...){
 #' @param scenarios Binary, defining whether to return scenarios produced via
 #' simulations or not. Only works if \code{interval="simulated"}. If \code{TRUE}
 #' the object will contain \code{scenarios} variable.
+#' @return Returns object of class "smooth.forecast", which contains:
+#'
+#' \itemize{
+#' \item \code{model} - the estimated model (ES / CES / GUM / SSARIMA).
+#' \item \code{method} - the name of the estimated model (ES / CES / GUM / SSARIMA).
+#' \item \code{forecast} aka \code{mean} - point forecasts of the model
+#' (conditional mean).
+#' \item \code{lower} - lower bound of prediction interval.
+#' \item \code{upper} - upper bound of prediction interval.
+#' \item \code{level} - confidence level.
+#' \item \code{interval} - binary variable (whether interval were produced or not).
+#' \item \code{scenarios} - in case of \code{forecast.adam()} and
+#' \code{interval="simulated"} returns matrix with scenarios (future paths) that were
+#' used in simulations.
+#' }
+#' @template ssAuthor
+#' @seealso \code{\link[generics]{forecast}}
+#' @references Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+#' Forecasting with exponential smoothing: the state space approach,
+#' Springer-Verlag.
+#'
+#' @keywords ts univar
+#' @examples
+#'
+#' ourModel <- es(rnorm(100,0,1), h=10)
+#' forecast(ourModel, h=10, interval="parametric")
 #'
 #' @rdname forecast.smooth
+#' @importFrom generics forecast
 #' @importFrom stats rnorm rlogis rt rlnorm rgamma
 #' @importFrom stats qnorm qlogis qt qlnorm qgamma
 #' @importFrom statmod rinvgauss qinvgauss
@@ -8759,6 +8783,9 @@ forecast.adamCombined <- function(object, h=10, newdata=NULL,
                           level=level, interval=interval, side=side, cumulative=cumulative, h=h),
                      class=c("adam.forecast","smooth.forecast","forecast")));
 }
+
+# Failsafe for now. Ideally, should be removed
+forecast.smooth <- forecast.adam;
 
 #' @export
 print.adam.forecast <- function(x, ...){
