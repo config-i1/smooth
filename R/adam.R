@@ -65,7 +65,6 @@
 #' @template ssGeneralRef
 #' @template ssIntermittentRef
 #' @template ssETSRef
-#' @template ssIntervalsRef
 #'
 #' @param model The type of ETS model. The first letter stands for the type of
 #' the error term ("A" or "M"), the second (and sometimes the third as well) is for
@@ -7724,10 +7723,12 @@ plot.adam.predict <- function(x, ...){
 #' used in simulations.
 #' }
 #' @template ssAuthor
+#' @template ssIntervalsRef
 #' @seealso \code{\link[generics]{forecast}}
-#' @references Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+#' @references \itemize{
+#' \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 #' Forecasting with exponential smoothing: the state space approach,
-#' Springer-Verlag.
+#' Springer-Verlag.}
 #'
 #' @keywords ts univar
 #' @examples

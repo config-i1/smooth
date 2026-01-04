@@ -294,32 +294,11 @@ Springer-Verlag. \doi{10.1007/978-3-540-71918-2}.
 }
 
 \itemize{
-\item Svetunkov, I., Boylan, J.E., 2023a. iETS: State Space Model for
-Intermittent Demand Forecastings. International Journal of Production
-Economics. 109013. \doi{10.1016/j.ijpe.2023.109013}
-\item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
-Linking forecasting to inventory obsolescence. European Journal of
-Operational Research, 214, 606-615.
-\item Croston, J. (1972) Forecasting and stock control for intermittent
-demands. Operational Research Quarterly, 23(3), 289-303.
-}
-
-\itemize{
 \item Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike
 weights. International Journal of Forecasting, 27, pp 238 - 251.
 \item Svetunkov, I., Boylan, J.E., 2023b. Staying Positive: Challenges and
  Solutions in Using Pure Multiplicative ETS Models. IMA Journal of
  Management Mathematics. p. 403-425. \doi{10.1093/imaman/dpad028}
-}
-
-\itemize{
-\item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to
-Generating Prediction Intervals. Management Science, Vol 45, No 2, pp
-225-237.
-\item Lichtendahl Kenneth C., Jr., Grushka-Cockayne Yael, Winkler
-Robert L., (2013) Is It Better to Average Probabilities or
-Quantiles? Management Science 59(7):1594-1611. DOI:
-\doi{10.1287/mnsc.1120.1667}
 }
 }
 \seealso{

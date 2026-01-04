@@ -44,9 +44,7 @@
 #' @template ADAMInitial
 #'
 #' @template ssGeneralRef
-#' @template ssIntermittentRef
 #' @template ssETSRef
-#' @template ssIntervalsRef
 #'
 #' @param model The type of ETS model. The first letter stands for the type of
 #' the error term ("A" or "M"), the second (and sometimes the third as well) is for
@@ -227,8 +225,6 @@ es <- function(y, model="ZXZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
                ic=c("AICc","AIC","BIC","BICc"),
                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                h=0, holdout=FALSE,
-               # cumulative=FALSE,
-               # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                bounds=c("usual","admissible","none"),
                silent=TRUE,
                xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
