@@ -240,7 +240,7 @@ vector of parameters for exogenous variables, \eqn{F_{X}} is the
 \code{transitionX} matrix and \eqn{g_{X}} is the \code{persistenceX} matrix.
 Finally, \eqn{\epsilon_{t}} is the error term.
 
-For the details see Hyndman et al.(2008).
+For the details see Svetunkov (2023) or Hyndman et al.(2008).
 
 For some more information about the model and its implementation, see the
 vignette: \code{vignette("es","smooth")}.
@@ -299,6 +299,12 @@ weights. International Journal of Forecasting, 27, pp 238 - 251.
 \item Svetunkov, I., Boylan, J.E., 2023b. Staying Positive: Challenges and
  Solutions in Using Pure Multiplicative ETS Models. IMA Journal of
  Management Mathematics. p. 403-425. \doi{10.1093/imaman/dpad028}
+}
+
+\itemize{
+\item Svetunkov, I. (2023). Forecasting and Analytics with the Augmented
+Dynamic Adaptive Model (ADAM) (1st ed.). Chapman and Hall/CRC.
+\doi{10.1201/9781003452652}, online version: \url{https://openforecast.org/adam/}.
 }
 }
 \seealso{

@@ -23,7 +23,7 @@
 #' \code{transitionX} matrix and \eqn{g_{X}} is the \code{persistenceX} matrix.
 #' Finally, \eqn{\epsilon_{t}} is the error term.
 #'
-#' For the details see Hyndman et al.(2008).
+#' For the details see Svetunkov (2023) or Hyndman et al.(2008).
 #'
 #' For some more information about the model and its implementation, see the
 #' vignette: \code{vignette("es","smooth")}.
@@ -45,6 +45,7 @@
 #'
 #' @template ssGeneralRef
 #' @template ssETSRef
+#' @template ssADAMRef
 #'
 #' @param model The type of ETS model. The first letter stands for the type of
 #' the error term ("A" or "M"), the second (and sometimes the third as well) is for
