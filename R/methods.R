@@ -2004,22 +2004,22 @@ print.smooth.sim <- function(x, ...){
             ar.i <- ma.i <- 1;
             for(i in 1:length(ar.orders)){
                 if(ar.orders[i]!=0){
-                    ARterms[1:ar.orders[i],ar.i] <- x$AR[ar.coef+(1:ar.orders[i])];
+                    ARterms[1:ar.orders[i],ar.i] <- x$arma$ar[ar.coef+(1:ar.orders[i])];
                     ar.coef <- ar.coef + ar.orders[i];
                     ar.i <- ar.i + 1;
                 }
                 if(ma.orders[i]!=0){
-                    MAterms[1:ma.orders[i],ma.i] <- x$MA[ma.coef+(1:ma.orders[i])];
+                    MAterms[1:ma.orders[i],ma.i] <- x$arma$ma[ma.coef+(1:ma.orders[i])];
                     ma.coef <- ma.coef + ma.orders[i];
                     ma.i <- ma.i + 1;
                 }
             }
 
-            if(!is.null(x$AR)){
+            if(!is.null(x$arma$ar)){
                 cat(paste0("AR parameters: \n"));
                 print(round(ARterms,digits));
             }
-            if(!is.null(x$MA)){
+            if(!is.null(x$arma$ma)){
                 cat(paste0("MA parameters: \n"));
                 print(round(MAterms,digits));
             }

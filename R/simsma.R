@@ -75,7 +75,7 @@ sim.sma <- function(order=NULL, obs=10, nsim=1,
 
     ARIMAModel <- sim.ssarima(orders=list(ar=order,i=0,ma=0), lags=1,
                               obs=obs, nsim=nsim,
-                              frequency=frequency, AR=rep(1/order,order), MA=NULL, constant=FALSE,
+                              frequency=frequency, arma=list(ar=rep(1/order,order)), constant=FALSE,
                               initial=initial, bounds="none",
                               randomizer=randomizer,
                               probability=probability, ...)
