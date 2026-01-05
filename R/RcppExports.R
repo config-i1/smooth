@@ -5,16 +5,8 @@ matrixPowerWrap <- function(matA, power) {
     .Call('_smooth_matrixPowerWrap', PACKAGE = 'smooth', matA, power)
 }
 
-polysoswrap <- function(ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, vecg, matF, fittertype, nexovars, matat, matFX, vecgX, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, ssarimaOld, lagsModelR, nonZeroARI, nonZeroMA) {
-    .Call('_smooth_polysoswrap', PACKAGE = 'smooth', ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, vecg, matF, fittertype, nexovars, matat, matFX, vecgX, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, ssarimaOld, lagsModelR, nonZeroARI, nonZeroMA)
-}
-
 forecasterwrap <- function(matvt, matF, matw, h, Etype, Ttype, Stype, lagsModel, matxt, matat, matFX) {
     .Call('_smooth_forecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, Etype, Ttype, Stype, lagsModel, matxt, matat, matFX)
-}
-
-errorerwrap <- function(matvt, matF, matw, yt, h, Etype, Ttype, Stype, lagsModel, matxt, matat, matFX, ot) {
-    .Call('_smooth_errorerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, h, Etype, Ttype, Stype, lagsModel, matxt, matat, matFX, ot)
 }
 
 occurenceFitterWrap <- function(matvt, matF, matw, vecg, ot, modellags, Etype, Ttype, Stype, Otype, matxt, matat, matFX, vecgX) {
@@ -31,9 +23,5 @@ occurenceGeneralFitterWrap <- function(ot, modellagsA, EtypeA, TtypeA, StypeA, m
 
 occurrenceGeneralOptimizerWrap <- function(ot, bounds, modellagsA, EtypeA, TtypeA, StypeA, matvtA, matFA, matwA, vecgA, matxtA, matatA, matFXA, vecgXA, modellagsB, EtypeB, TtypeB, StypeB, matvtB, matFB, matwB, vecgB, matxtB, matatB, matFXB, vecgXB) {
     .Call('_smooth_occurrenceGeneralOptimizerWrap', PACKAGE = 'smooth', ot, bounds, modellagsA, EtypeA, TtypeA, StypeA, matvtA, matFA, matwA, vecgA, matxtA, matatA, matFXA, vecgXA, modellagsB, EtypeB, TtypeB, StypeB, matvtB, matFB, matwB, vecgB, matxtB, matatB, matFXB, vecgXB)
-}
-
-simulatorwrap <- function(arrvt, matErrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags) {
-    .Call('_smooth_simulatorwrap', PACKAGE = 'smooth', arrvt, matErrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags)
 }
 

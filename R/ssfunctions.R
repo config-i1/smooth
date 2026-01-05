@@ -2146,150 +2146,151 @@ ssForecaster <- function(...){
             }
         }
 
+        #### This chunk of code is commented out because it is not used anywhere
         # Write down the forecasting interval
-        if(interval){
-            if(h==1){
-                errors.x <- as.vector(errors);
-                ev <- median(errors);
-            }
-            else{
-                errors.x <- errors.mat;
-                ev <- apply(errors.mat,2,median,na.rm=TRUE);
-            }
-            if(intervalType!="a"){
-                ev <- 0;
-            }
-
-            # We don't simulate pure additive models, pure multiplicative and
-            # additive models with multiplicative error,
-            # because they can be approximated by the pure additive ones
-            if(any(intervalType==c("p","l"))){
-                if(all(c(Etype,Stype,Ttype)!="M") |
-                   all(c(Etype,Stype,Ttype)!="A") |
-                   (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
-                    simulateIntervals <- FALSE;
-                }
-                else{
-                    simulateIntervals <- TRUE;
-                }
-            }
-            else{
-                simulateIntervals <- FALSE;
-            }
-
-            # It is not possible to produce parametric / semi / non interval for cumulative values
-            # of multiplicative model. So we use simulations instead.
-            # if(Etype=="M"){
-            #     simulateIntervals <- TRUE;
-            # }
-
-            if(simulateIntervals){
-                nSamples <- 100000;
-                matg <- matrix(vecg,nComponents,nSamples);
-                arrvt <- array(NA,c(h+lagsModelMax,nComponents,nSamples));
-                arrvt[1:lagsModelMax,,] <- rep(matvt[obsInSample+(1:lagsModelMax),],nSamples);
-                materrors <- matrix(rnorm(h*nSamples,0,sqrt(s2)),h,nSamples);
-
-                if(Etype=="M"){
-                    materrors <- exp(materrors) - 1;
-                }
-                if(all(occurrence!=c("n","p"))){
-                    matot <- matrix(rbinom(h*nSamples,1,pForecast),h,nSamples);
-                }
-                else{
-                    matot <- matrix(1,h,nSamples);
-                }
-
-                ySimulated <- simulatorwrap(arrvt,materrors,matot,array(matF,c(dim(matF),nSamples)),matw,matg,
-                                            Etype,Ttype,Stype,lagsModel)$matyt;
-
-                if(!is.null(xreg)){
-                    yForecastExo <- (c(yForecast) -
-                                         forecasterwrap(matrix(matvt[(obsInSample+1):(obsInSample+lagsModelMax),],
-                                                               nrow=lagsModelMax),
-                                                        matF, matw, h, Etype, Ttype, Stype, lagsModel,
-                                                        matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1),
-                                                        matrix(1,1,1)));
-                }
-                else{
-                    yForecastExo <- rep(0,h);
-                }
-
-                if(Etype=="M"){
-                    yForecast[] <- apply(ySimulated, 1, mean);
-                }
-
-                if(rounded){
-                    ySimulated <- ceiling(ySimulated + matrix(yForecastExo,nrow=h,ncol=nSamples));
-                    quantileType <- 1;
-                    for(i in 1:h){
-                        yForecast[i] <- median(ySimulated[i,ySimulated[i,]!=0]);
-                    }
-                    # NA means that there were no non-zero demands
-                    yForecast[is.na(yForecast)] <- 0;
-                }
-                else{
-                    ySimulated <- ySimulated + matrix(yForecastExo,nrow=h,ncol=nSamples);
-                    quantileType <- 7;
-                }
-
-                yForecast[] <- yForecast + yForecastExo;
-                yForecast[] <- pForecast * yForecast;
-
-                if(cumulative){
-                    yForecast <- ts(sum(yForecast),start=yForecastStart,frequency=dataFreq);
-                    yLower <- ts(quantile(colSums(ySimulated,na.rm=T),(1-level)/2,type=quantileType),
-                                 start=yForecastStart,frequency=dataFreq);
-                    yUpper <- ts(quantile(colSums(ySimulated,na.rm=T),(1+level)/2,type=quantileType),
-                                 start=yForecastStart,frequency=dataFreq);
-                }
-                else{
-                    # yForecast <- ts(yForecast,start=yForecastStart,frequency=dataFreq);
-                    yLower <- ts(apply(ySimulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) +
-                                     yForecastExo,
-                                 start=yForecastStart,frequency=dataFreq);
-                    yUpper <- ts(apply(ySimulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) +
-                                     yForecastExo,
-                                 start=yForecastStart,frequency=dataFreq);
-                }
-            }
-            else{
-                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalType=intervalType,
-                                           df=obsDF,
-                                           measurement=matw, transition=matF, persistence=vecg, s2=s2,
-                                           lagsModel=lagsModel, states=matvt[(obsInSample-lagsModelMax+1):obsInSample,],
-                                           cumulative=cumulative, loss=loss,
-                                           yForecast=yForecast, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
-                                           probability=pForecast);
-
-                # if(!(intervalType=="sp" & Etype=="M")){
-                    yForecast[] <- c(pForecast) * c(yForecast);
-                # }
-
-                if(cumulative){
-                    yForecast <- ts(sum(yForecast),start=yForecastStart,frequency=dataFreq);
-                }
-
-                if(Etype=="A"){
-                    yLower <- ts(c(yForecast) + quantvalues$lower,start=yForecastStart,frequency=dataFreq);
-                    yUpper <- ts(c(yForecast) + quantvalues$upper,start=yForecastStart,frequency=dataFreq);
-                }
-                else{
-                    # if(any(intervalType==c("np","sp","a"))){
-                    #     quantvalues$upper <- quantvalues$upper * yForecast;
-                    #     quantvalues$lower <- quantvalues$lower * yForecast;
-                    # }
-                    yLower <- ts(quantvalues$lower,start=yForecastStart,frequency=dataFreq);
-                    yUpper <- ts(quantvalues$upper,start=yForecastStart,frequency=dataFreq);
-                }
-
-                if(rounded){
-                    yLower <- ceiling(yLower);
-                    yUpper <- ceiling(yUpper);
-                }
-            }
-        }
-        else{
+        # if(interval){
+        #     if(h==1){
+        #         errors.x <- as.vector(errors);
+        #         ev <- median(errors);
+        #     }
+        #     else{
+        #         errors.x <- errors.mat;
+        #         ev <- apply(errors.mat,2,median,na.rm=TRUE);
+        #     }
+        #     if(intervalType!="a"){
+        #         ev <- 0;
+        #     }
+        #
+        #     # We don't simulate pure additive models, pure multiplicative and
+        #     # additive models with multiplicative error,
+        #     # because they can be approximated by the pure additive ones
+        #     if(any(intervalType==c("p","l"))){
+        #         if(all(c(Etype,Stype,Ttype)!="M") |
+        #            all(c(Etype,Stype,Ttype)!="A") |
+        #            (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
+        #             simulateIntervals <- FALSE;
+        #         }
+        #         else{
+        #             simulateIntervals <- TRUE;
+        #         }
+        #     }
+        #     else{
+        #         simulateIntervals <- FALSE;
+        #     }
+        #
+        #     # It is not possible to produce parametric / semi / non interval for cumulative values
+        #     # of multiplicative model. So we use simulations instead.
+        #     # if(Etype=="M"){
+        #     #     simulateIntervals <- TRUE;
+        #     # }
+        #
+        #     if(simulateIntervals){
+        #         nSamples <- 100000;
+        #         matg <- matrix(vecg,nComponents,nSamples);
+        #         arrvt <- array(NA,c(h+lagsModelMax,nComponents,nSamples));
+        #         arrvt[1:lagsModelMax,,] <- rep(matvt[obsInSample+(1:lagsModelMax),],nSamples);
+        #         materrors <- matrix(rnorm(h*nSamples,0,sqrt(s2)),h,nSamples);
+        #
+        #         if(Etype=="M"){
+        #             materrors <- exp(materrors) - 1;
+        #         }
+        #         if(all(occurrence!=c("n","p"))){
+        #             matot <- matrix(rbinom(h*nSamples,1,pForecast),h,nSamples);
+        #         }
+        #         else{
+        #             matot <- matrix(1,h,nSamples);
+        #         }
+        #
+        #         ySimulated <- simulatorwrap(arrvt,materrors,matot,array(matF,c(dim(matF),nSamples)),matw,matg,
+        #                                     Etype,Ttype,Stype,lagsModel)$matyt;
+        #
+        #         if(!is.null(xreg)){
+        #             yForecastExo <- (c(yForecast) -
+        #                                  forecasterwrap(matrix(matvt[(obsInSample+1):(obsInSample+lagsModelMax),],
+        #                                                        nrow=lagsModelMax),
+        #                                                 matF, matw, h, Etype, Ttype, Stype, lagsModel,
+        #                                                 matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1),
+        #                                                 matrix(1,1,1)));
+        #         }
+        #         else{
+        #             yForecastExo <- rep(0,h);
+        #         }
+        #
+        #         if(Etype=="M"){
+        #             yForecast[] <- apply(ySimulated, 1, mean);
+        #         }
+        #
+        #         if(rounded){
+        #             ySimulated <- ceiling(ySimulated + matrix(yForecastExo,nrow=h,ncol=nSamples));
+        #             quantileType <- 1;
+        #             for(i in 1:h){
+        #                 yForecast[i] <- median(ySimulated[i,ySimulated[i,]!=0]);
+        #             }
+        #             # NA means that there were no non-zero demands
+        #             yForecast[is.na(yForecast)] <- 0;
+        #         }
+        #         else{
+        #             ySimulated <- ySimulated + matrix(yForecastExo,nrow=h,ncol=nSamples);
+        #             quantileType <- 7;
+        #         }
+        #
+        #         yForecast[] <- yForecast + yForecastExo;
+        #         yForecast[] <- pForecast * yForecast;
+        #
+        #         if(cumulative){
+        #             yForecast <- ts(sum(yForecast),start=yForecastStart,frequency=dataFreq);
+        #             yLower <- ts(quantile(colSums(ySimulated,na.rm=T),(1-level)/2,type=quantileType),
+        #                          start=yForecastStart,frequency=dataFreq);
+        #             yUpper <- ts(quantile(colSums(ySimulated,na.rm=T),(1+level)/2,type=quantileType),
+        #                          start=yForecastStart,frequency=dataFreq);
+        #         }
+        #         else{
+        #             # yForecast <- ts(yForecast,start=yForecastStart,frequency=dataFreq);
+        #             yLower <- ts(apply(ySimulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) +
+        #                              yForecastExo,
+        #                          start=yForecastStart,frequency=dataFreq);
+        #             yUpper <- ts(apply(ySimulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) +
+        #                              yForecastExo,
+        #                          start=yForecastStart,frequency=dataFreq);
+        #         }
+        #     }
+        #     else{
+        #         quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalType=intervalType,
+        #                                    df=obsDF,
+        #                                    measurement=matw, transition=matF, persistence=vecg, s2=s2,
+        #                                    lagsModel=lagsModel, states=matvt[(obsInSample-lagsModelMax+1):obsInSample,],
+        #                                    cumulative=cumulative, loss=loss,
+        #                                    yForecast=yForecast, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
+        #                                    probability=pForecast);
+        #
+        #         # if(!(intervalType=="sp" & Etype=="M")){
+        #             yForecast[] <- c(pForecast) * c(yForecast);
+        #         # }
+        #
+        #         if(cumulative){
+        #             yForecast <- ts(sum(yForecast),start=yForecastStart,frequency=dataFreq);
+        #         }
+        #
+        #         if(Etype=="A"){
+        #             yLower <- ts(c(yForecast) + quantvalues$lower,start=yForecastStart,frequency=dataFreq);
+        #             yUpper <- ts(c(yForecast) + quantvalues$upper,start=yForecastStart,frequency=dataFreq);
+        #         }
+        #         else{
+        #             # if(any(intervalType==c("np","sp","a"))){
+        #             #     quantvalues$upper <- quantvalues$upper * yForecast;
+        #             #     quantvalues$lower <- quantvalues$lower * yForecast;
+        #             # }
+        #             yLower <- ts(quantvalues$lower,start=yForecastStart,frequency=dataFreq);
+        #             yUpper <- ts(quantvalues$upper,start=yForecastStart,frequency=dataFreq);
+        #         }
+        #
+        #         if(rounded){
+        #             yLower <- ceiling(yLower);
+        #             yUpper <- ceiling(yUpper);
+        #         }
+        #     }
+        # }
+        # else{
             yLower <- NA;
             yUpper <- NA;
             if(rounded){
@@ -2302,7 +2303,7 @@ ssForecaster <- function(...){
             # else{
             #     yForecast <- ts(yForecast,start=yForecastStart,frequency=dataFreq);
             # }
-        }
+        # }
     }
     else{
         yLower <- NA;
