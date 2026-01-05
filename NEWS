@@ -1,8 +1,10 @@
-smooth v4.5.0 (Release data: 2026-01-04)
+smooth v4.5.0 (Release data: 2026-01-05)
 =======
 
 Changes:
 * Removed the old es(), ssarima(), msarima(), ces() and gum(). We now use the ones that use ADAM core.
+* sim.es(), sim.ces(), sim.ssarima(), sim.gum() now use the adamCore.
+* Removed the redundant old C++ code.
 
 
 smooth v4.3.2 (Release data: 2025-12-23)
