@@ -80,17 +80,17 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
                     initial=NULL,
                     randomizer=c("rnorm","rt","rlaplace","rs"),
                     probability=1, ...){
-# Function simulates the data using CES state space framework
-#
-# seasonality - the type of seasonality to produce.
-# frequency - the frequency of the data. In the case of seasonal models must be > 1.
-# a, b - complex smoothing parameters.
-# initial - the vector of initial states,
-#    If NULL it will be generated.
-# obs - the number of observations in each time series.
-# nsim - the number of series needed to be generated.
-# randomizer - the type of the random number generator function
-# ... - the parameters passed to the randomizer.
+    # Function simulates the data using CES state space framework
+    #
+    # seasonality - the type of seasonality to produce.
+    # frequency - the frequency of the data. In the case of seasonal models must be > 1.
+    # a, b - complex smoothing parameters.
+    # initial - the vector of initial states,
+    #    If NULL it will be generated.
+    # obs - the number of observations in each time series.
+    # nsim - the number of series needed to be generated.
+    # randomizer - the type of the random number generator function
+    # ... - the parameters passed to the randomizer.
 
     randomizer <- randomizer[1];
 
@@ -114,7 +114,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         return(aValue);
     }
 
-#### Check values and preset parameters ####
+    #### Check values and preset parameters ####
     seasonality <- match.arg(seasonality);
 
     if(seasonality!="none" & frequency==1){
@@ -130,8 +130,8 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     else{
         a$generate <- FALSE;
         if(!(((Re(a$value)-2.5)^2 + Im(a$value)^2 > 1.25) &
-                   ((Re(a$value)-0.5)^2 + (Im(a$value)-1)^2 > 0.25) &
-                   (Re(a$value)-1.5)^2 + (Im(a$value)-0.5)^2 < 1.5)){
+             ((Re(a$value)-0.5)^2 + (Im(a$value)-1)^2 > 0.25) &
+             (Re(a$value)-1.5)^2 + (Im(a$value)-0.5)^2 < 1.5)){
             warning("The provided complex smoothing parameter a leads to non-stable model!",call.=FALSE);
         }
     }
@@ -156,7 +156,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     }
 
     a$number <- 2;
-# Define lags, number of components and number of parameters
+    # Define lags, number of components and number of parameters
     if(seasonality=="none"){
         # No seasonality
         lagsModelMax <- 1;
@@ -196,7 +196,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     }
 
     initialValue <- initial;
-# Initial values
+    # Initial values
     if(!is.null(initialValue)){
         if(length(initialValue) != lagsModelMax*componentsNumber){
             warning(paste0("Wrong length of initial vector. Should be ",lagsModelMax*componentsNumber,
@@ -214,25 +214,25 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         initialGenerate <- TRUE;
     }
 
-# In the case of wrong nsim, make it natural number. The same is for obs and frequency.
+    # In the case of wrong nsim, make it natural number. The same is for obs and frequency.
     nsim <- abs(round(nsim,0));
     obs <- abs(round(obs,0));
     obsStates <- obs + lagsModelMax;
     frequency <- abs(round(frequency,0));
 
-# Define arrays
+    # Define arrays
     arrVt <- array(NA,c(componentsNumber,obsStates,nsim),dimnames=list(componentsNames,NULL,NULL));
     arrF <- array(0,c(componentsNumber,componentsNumber,nsim));
     matG <- matrix(0,componentsNumber,nsim);
 
     matErrors <- matrix(NA,obs,nsim);
-    matyt <- matrix(NA,obs,nsim);
+    matYt <- matrix(NA,obs,nsim);
     matOt <- matrix(NA,obs,nsim);
     matInitialValue <- array(NA,c(lagsModelMax,componentsNumber,nsim));
     aValue <- matrix(NA,2,nsim);
     bValue <- matrix(NA,b$number,nsim);
 
-# Check the vector of probabilities
+    # Check the vector of probabilities
     if(is.vector(probability)){
         if(any(probability!=probability[1])){
             if(length(probability)!=obs){
@@ -249,8 +249,8 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         }
     }
 
-#### Generate stuff if needed ####
-# First deal with initials
+    #### Generate stuff if needed ####
+    # First deal with initials
     if(initialGenerate){
         matInitialValue[,,] <- runif(componentsNumber*nsim*lagsModelMax,0,1000);
         if(all(seasonality!=c("none","simple"))){
@@ -262,7 +262,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     }
     arrVt[,1:lagsModelMax,] <- matInitialValue;
 
-# Now let's do parameters with transition + persistence
+    # Now let's do parameters with transition + persistence
     if(a$generate){
         aValue[,] <- AGenerator(nsim);
     }
@@ -352,7 +352,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         }
     }
 
-# Generate ones for the possible intermittency
+    # Generate ones for the possible intermittency
     if(all(probability == 1)){
         matOt[,] <- 1;
     }
@@ -376,12 +376,12 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     componentsNumberETS <- componentsNumberETSSeasonal <- componentsNumberETSNonSeasonal <- 0;
 
     lagsModelAll <- matrix(c(switch(seasonality,
-                                                 "none"=c(1,1),
-                                                 "simple"=rep(lagsModelSeasonal,each=2),
-                                                 "partial"=c(1,1,lagsModelSeasonal),
-                                                 "full"=c(1,1,rep(lagsModelSeasonal,each=2))),
-                                          rep(1, xregNumber)),
-                                        ncol=1);
+                                    "none"=c(1,1),
+                                    "simple"=rep(lagsModelSeasonal,each=2),
+                                    "partial"=c(1,1,lagsModelSeasonal),
+                                    "full"=c(1,1,rep(lagsModelSeasonal,each=2))),
+                             rep(1, xregNumber)),
+                           ncol=1);
 
     Etype <- "A";
     Stype <- Ttype <- "N";
@@ -409,16 +409,16 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
                                       indexLookupTable, profilesRecentArray,
                                       Etype);
 
-#### Simulate the data ####
+    #### Simulate the data ####
 
     if(all(probability == 1)){
-        matyt <- simulateddata$data;
+        matYt <- simulateddata$data;
     }
     else{
-        matyt <- round(simulateddata$data,0);
+        matYt <- round(simulateddata$data,0);
     }
     arrVt[] <- simulateddata$states;
-    profilesRecentTable <- simulateddata$profile;
+    profilesRecentArray[] <- simulateddata$profile;
 
     if(any(randomizer==c("rnorm","rt"))){
         veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(matErrors^2)));
@@ -430,7 +430,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         veclikelihood <- -2*obs*(log(2*exp(1)) + log(0.5*colMeans(sqrt(abs(matErrors)))));
     }
     else if(randomizer=="rlnorm"){
-        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(matErrors^2))) - colSums(log(matyt));
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(matErrors^2))) - colSums(log(matYt));
     }
     # If this is something unknown, forget about it
     else{
@@ -438,14 +438,14 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     }
 
     if(nsim==1){
-        matyt <- ts(matyt[,1],frequency=frequency);
+        matYt <- ts(matYt[,1],frequency=frequency);
         matErrors <- ts(matErrors[,1],frequency=frequency);
         arrVt <- ts(arrVt[,,1],frequency=frequency,start=c(0,frequency-lagsModelMax+1));
         matOt <- ts(matOt[,1],frequency=frequency);
         matInitialValue <- matInitialValue[,,1];
     }
     else{
-        matyt <- ts(matyt,frequency=frequency);
+        matYt <- ts(matYt,frequency=frequency);
         matErrors <- ts(matErrors,frequency=frequency);
         matOt <- ts(matOt,frequency=frequency);
     }
@@ -463,9 +463,9 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         bValue <- complex(real=bValue[1,],imaginary=bValue[2,]);
     }
 
-    model <- list(model=modelname, profile=profilesRecentTable,
+    model <- list(model=modelname, profile=profilesRecentArray,
                   a=aValue, b=bValue, initial=matInitialValue,
-                  data=matyt, states=arrVt, residuals=matErrors,
+                  data=matYt, states=arrVt, residuals=matErrors,
                   occurrence=matOt, logLik=veclikelihood);
     return(structure(model,class="smooth.sim"));
 }

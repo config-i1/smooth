@@ -62,8 +62,8 @@ List of the following values is returned:
 \item \code{model} - Name of CES model.
 \item \code{a} - Value of complex smoothing parameter a. If \code{nsim>1}, then
 this is a vector.
-\item \code{b} - Value of complex smoothing parameter b. If \code{seasonality="n"}
-or \code{seasonality="s"}, then this is equal to NULL. If \code{nsim>1},
+\item \code{b} - Value of complex smoothing parameter b. If \code{seasonality="none"}
+or \code{seasonality="simple"}, then this is equal to NULL. If \code{nsim>1},
 then this is a vector.
 \item \code{initial} - Initial values of CES in a form of matrix. If \code{nsim>1},
 then this is an array.
