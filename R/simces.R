@@ -47,6 +47,7 @@
 #' then this is a vector.
 #' \item \code{initial} - Initial values of CES in a form of matrix. If \code{nsim>1},
 #' then this is an array.
+#' \item \code{profile} - The final profile produced in the simulation.
 #' \item \code{data} - Time series vector (or matrix if \code{nsim>1}) of the generated
 #' series.
 #' \item \code{states} - Matrix (or array if \code{nsim>1}) of states. States are in
@@ -228,7 +229,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     matErrors <- matrix(NA,obs,nsim);
     matYt <- matrix(NA,obs,nsim);
     matOt <- matrix(NA,obs,nsim);
-    matInitialValue <- array(NA,c(lagsModelMax,componentsNumber,nsim));
+    matInitialValue <- array(NA,c(componentsNumber,lagsModelMax,nsim));
     aValue <- matrix(NA,2,nsim);
     bValue <- matrix(NA,b$number,nsim);
 
@@ -254,13 +255,13 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     if(initialGenerate){
         matInitialValue[,,] <- runif(componentsNumber*nsim*lagsModelMax,0,1000);
         if(all(seasonality!=c("none","simple"))){
-            matInitialValue[1:2,1:lagsModelMax,] <- rep(matInitialValue[lagsModelMax,1:2,],each=lagsModelMax);
+            matInitialValue[1:2,1:lagsModelMax,] <- rep(matInitialValue[1:2,lagsModelMax,],each=lagsModelMax);
         }
     }
     else{
-        matInitialValue[,1:lagsModelMax,] <- rep(initialValue,nsim);
+        matInitialValue[,1:lagsModelMax,] <- rep(initialValue,each=nsim);
     }
-    arrVt[,1:lagsModelMax,] <- matInitialValue;
+    arrVt[1:componentsNumber,1:lagsModelMax,] <- matInitialValue;
 
     # Now let's do parameters with transition + persistence
     if(a$generate){
@@ -330,7 +331,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         # Center errors just in case
         matErrors <- matErrors - colMeans(matErrors);
         # Change variance to make some sense. Errors should not be rediculously high and not too low.
-        matErrors <- matErrors * sqrt(abs(colMeans(as.matrix(arrVt[1:lagsModelMax,1,]))));
+        matErrors <- matErrors * sqrt(abs(colMeans(as.matrix(arrVt[1,1:lagsModelMax,]))));
         if(randomizer=="rs"){
             matErrors <- matErrors / 4;
         }
@@ -344,11 +345,11 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
             matErrors <- matErrors - 0.5;
             # Make a meaningful variance of data. Something resembling to var=1.
             matErrors <- matErrors / rep(sqrt(colMeans(matErrors^2)) *
-                                             sqrt(abs(colMeans(as.matrix(arrVt[1:lagsModelMax,1,])))),each=obs);
+                                             sqrt(abs(colMeans(as.matrix(arrVt[1,1:lagsModelMax,])))),each=obs);
         }
         else if(randomizer=="rt"){
             # Make a meaningful variance of data.
-            matErrors <- matErrors * rep(sqrt(abs(colMeans(as.matrix(arrVt[1:lagsModelMax,1,])))),each=obs);
+            matErrors <- matErrors * rep(sqrt(abs(colMeans(as.matrix(arrVt[1,1:lagsModelMax,])))),each=obs);
         }
     }
 
@@ -369,17 +370,17 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     # Create all the necessary matrices and vectors
     componentsNumberARIMA <- componentsNumber <- switch(seasonality,
                                                         "none"=2,
-                                                        "simple"=2*nSeasonal,
+                                                        "simple"=nSeasonal,
                                                         "partial"=2+nSeasonal,
-                                                        "full"=2+2*nSeasonal);
+                                                        "full"=2+nSeasonal);
 
     componentsNumberETS <- componentsNumberETSSeasonal <- componentsNumberETSNonSeasonal <- 0;
 
     lagsModelAll <- matrix(c(switch(seasonality,
                                     "none"=c(1,1),
-                                    "simple"=rep(lagsModelSeasonal,each=2),
+                                    "simple"=lagsModelSeasonal,
                                     "partial"=c(1,1,lagsModelSeasonal),
-                                    "full"=c(1,1,rep(lagsModelSeasonal,each=2))),
+                                    "full"=c(1,1,lagsModelSeasonal)),
                              rep(1, xregNumber)),
                            ncol=1);
 
@@ -402,14 +403,13 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
                    xregNumber,
                    constantRequired, adamETS);
 
+    #### Simulate the data ####
     simulateddata <- adamCpp$simulate(matErrors, matOt,
                                       arrVt, matWt,
                                       arrF,
                                       matG,
                                       indexLookupTable, profilesRecentArray,
                                       Etype);
-
-    #### Simulate the data ####
 
     if(all(probability == 1)){
         matYt <- simulateddata$data;

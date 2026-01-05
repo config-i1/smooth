@@ -55,6 +55,7 @@
 #' \item \code{phi} - Value of damping parameter used in time series generation.
 #' \item \code{initial} - Vector (or matrix) of initial values.
 #' \item \code{initialSeason} - Vector (or matrix) of initial seasonal coefficients.
+#' \item \code{profile} - The final profile produced in the simulation.
 #' \item \code{probability} - vector of probabilities used in the simulation.
 #' \item \code{intermittent} - type of the intermittent model used.
 #' \item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
@@ -89,7 +90,7 @@
 #'
 #' # Create 60 observations of monthly data using MAM model
 #' # with errors from uniform distribution
-#' ETSMAM <- sim.es(model="MAM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),
+#' ETSMAM <- sim.es(model="MAdM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),
 #'            phi=0.8,frequency=12,obs=60,randomizer="runif",min=-0.5,max=0.5)
 #'
 #' # Create 80 observations of quarterly data using MMM model
@@ -439,12 +440,17 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
                     exp(mean(log(arrVt[componentsNumber+1,1:lagsModelMax,i])));
             }
         }
+        initialSeason <- matrix(arrVt[componentsNumber+1,1:lagsModelMax,],nrow=nsim);
+        # Count seasonal as a component
+        componentsNumber[] <- componentsNumber+1;
     }
     # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
     else if(componentSeasonal & !is.null(initialSeason)){
         arrVt[componentsNumber+1,1:lagsModelMax,] <- rep(initialSeason,nsim);
+        initialSeason <- matrix(arrVt[componentsNumber+1,1:lagsModelMax,],nrow=nsim);
+        # Count seasonal as a component
+        componentsNumber[] <- componentsNumber+1;
     }
-    initialSeason <- matrix(arrVt[componentsNumber+1,1:lagsModelMax,],nrow=nsim);
 
     # Check if any argument was passed in dots
     if(length(ellipsis)==0){
@@ -473,8 +479,6 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
                     matErrors <- matErrors * 0.1;
                 }
                 matErrors <- exp(matErrors) - 1;
-                #            exceedingerrors <- apply(abs(matErrors),2,max)>1;
-                #            matErrors[,exceedingerrors] <- 0.95 * matErrors[,exceedingerrors] / apply(abs(matrix(matErrors[,exceedingerrors],obs)),2,max);
             }
             else if(Etype=="A"){
                 # Change variance to make some sense. Errors should not be rediculously high and not too low.
@@ -517,7 +521,6 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
         matOt[,] <- rbinom(obs*nsim,1,probability);
     }
 
-
     #### Variables for the adamCore ####
     xregNumber <- 0;
     constantRequired <- FALSE;
@@ -542,15 +545,13 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
                    xregNumber,
                    constantRequired, adamETS);
 
+    #### Simulate the data ####
     simulateddata <- adamCpp$simulate(matErrors, matOt,
                                       arrVt, matWt,
                                       arrF,
                                       matG,
                                       indexLookupTable, profilesRecentArray,
                                       Etype);
-
-    #### Simulate the data ####
-    # simulateddata <- simulatorwrap(arrVt,matErrors,matOt,arrF,matWt,matG,Etype,Ttype,Stype,lagsModel);
 
     matYt <- simulateddata$data;
     arrVt[] <- simulateddata$states;
@@ -606,8 +607,9 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 
     model <- list(model=model, data=matYt, states=arrVt, persistence=matG, phi=phi,
+                  initial=initial, initialSeason=initialSeason,
                   profile=profilesRecentArray,
-                  initial=initial, initialSeason=initialSeason, probability=probability, intermittent=intermittent,
+                  probability=probability, intermittent=intermittent,
                   residuals=matErrors, occurrence=matOt, logLik=veclikelihood, other=ellipsis);
     return(structure(model,class="smooth.sim"));
 }
