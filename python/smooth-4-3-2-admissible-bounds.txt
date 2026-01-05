@@ -1,0 +1,1 @@
+1. The CF function of ADAM (lines 2077 - 2081) now uses smoothEigens() function (from the helper.R script) that calculates the eigenvalues for the state space model. This is needed to simplify the code and to make the correct calculation for the admissible bounds.

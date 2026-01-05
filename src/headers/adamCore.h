@@ -401,7 +401,7 @@ public:
     SimulateResult simulate(arma::mat const &matrixErrors, arma::mat const &matrixOt,
                             arma::cube &arrayVt, arma::mat const &matrixWt,
                             arma::cube const &arrayF, arma::mat const &matrixG,
-                            arma::umat const &indexLookupTable, arma::mat profilesRecent, char const &E){
+                            arma::umat const &indexLookupTable, arma::cube arrayProfile, char const &E){
 
         unsigned int obs = matrixErrors.n_rows;
         unsigned int nSeries = matrixErrors.n_cols;
@@ -409,20 +409,19 @@ public:
         int lagsModelMax = max(lags);
         int nComponents = lags.n_rows;
         int obsAll = obs + lagsModelMax;
-        arma::mat profilesRecentOriginal = profilesRecent;
-        arma::cube arrayProfile(profilesRecentOriginal.n_rows, profilesRecentOriginal.n_cols, nSeries);
 
         double yFitted;
 
         arma::mat matrixVt(nComponents, obsAll, arma::fill::zeros);
         arma::mat matrixF(arrayF.n_rows, arrayF.n_cols, arma::fill::zeros);
+        arma::mat profilesRecent(arrayProfile.n_rows, arrayProfile.n_cols, arma::fill::zeros);
 
         arma::mat matY(obs, nSeries);
 
         for(unsigned int i=0; i<nSeries; i=i+1){
             matrixVt = arrayVt.slice(i);
             matrixF = arrayF.slice(i);
-            profilesRecent = profilesRecentOriginal;
+            profilesRecent = arrayProfile.slice(i);
             for(int j=lagsModelMax; j<obsAll; j=j+1) {
                 /* # Measurement equation and the error term */
                 yFitted = adamWvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),

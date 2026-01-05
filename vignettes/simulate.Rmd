@@ -24,6 +24,7 @@ require(smooth)
 ## Exponential Smoothing
 We start with an Exponential Smoothing. For example, monthly data generated from ETS(A,N,N), 120 observations:
 ```{r sim_es_ANN}
+set.seed(41)
 ourSimulation <- sim.es("ANN", frequency=12, obs=120)
 ```
 
@@ -104,7 +105,8 @@ plot(ourSimulation)
 
 If we want to provide some specific parameters, then we should follow the structure: from lower lag to lag from lower order to higher order. For example, the same model with predefined MA terms will be:
 ```{r sim_ssarima_(0,1,1)(1,0,2)_12_drift_predefined}
-ourSimulation <- sim.ssarima(orders=list(ar=c(0,1),i=c(1,0),ma=c(1,2)), lags=c(1,12), constant=TRUE, MA=c(0.5,0.2,0.3), obs=120)
+ourSimulation <- sim.ssarima(orders=list(ar=c(0,1),i=c(1,0),ma=c(1,2)),
+                             lags=c(1,12), constant=TRUE, arma=list(ma=c(0.5,0.2,0.3)), obs=120)
 ourSimulation
 ```
 
@@ -164,13 +166,14 @@ ourSimulation
 
 We can produce one out of three possible seasonal CES models. For example, Let's generate data from "Simple CES", which does not have a level:
 ```{r sim_ces_(s)}
+set.seed(41)
 ourSimulation <- sim.ces("s",frequency=24, obs=240, nsim=1)
 plot(ourSimulation)
 ```
 
 Now let's be more creative and mess around with the generated initial values of the previous model. We will make some of them equal to zero and regenerate the data:
 ```{r sim_ces_(s)_messing_arround}
-ourSimulation$initial[c(1:5,20:24),] <- 0
+ourSimulation$initial[,c(1:5,20:24)] <- 0
 ourSimulation <- sim.ces("s",frequency=24, obs=120, nsim=1, initial=ourSimulation$initial, randomizer="rt", df=4)
 plot(ourSimulation)
 ```

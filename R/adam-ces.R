@@ -1,7 +1,3 @@
-utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimate","xregNames",
-                         "otLogical","yFrequency","yIndex",
-                         "persistenceXreg","yHoldout","distribution"));
-
 #' Complex Exponential Smoothing
 #'
 #' Function estimates CES in state space form with information potential equal
@@ -222,15 +218,27 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         initial <- list(xreg=initialX);
     }
 
+    # Default parameters for the wrapper
+    constant <- FALSE;
+    distribution <- "dnorm";
+    formula <- NULL;
+    ic <- "AICc";
+    level <- 0.99;
+    occurrence <- "none";
+    orders <- list(ar=c(0),i=c(0),ma=c(0),select=FALSE);
+    outliers <- "ignore";
+    persistence <- NULL;
+    phi <- NULL;
+
     ##### Set environment for ssInput and make all the checks #####
-    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=NULL,
-                                       orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
-                                       constant=FALSE, arma=NULL,
-                                       outliers="ignore", level=0.99,
-                                       persistence=NULL, phi=NULL, initial,
-                                       distribution="dnorm", loss, h, holdout, occurrence="none",
+    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
+                                       orders=orders,
+                                       constant=constant, arma=NULL,
+                                       outliers=outliers, level=level,
+                                       persistence=persistence, phi=phi, initial,
+                                       distribution=distribution, loss, h, holdout, occurrence=occurrence,
                                        # This is not needed by the function
-                                       ic="AICc", bounds=bounds[1],
+                                       ic=ic, bounds=bounds[1],
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
 
@@ -479,19 +487,9 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         elements <- filler(B, matVt, matF, vecG, a, b);
 
         if(bounds=="admissible"){
-            if(xregModel){
-                # We drop the X parts from matrices
-                indices <- c(1:componentsNumber)
-                eigenValues <- abs(eigen(elements$matF[indices,indices,drop=FALSE] -
-                                             elements$vecG[indices,,drop=FALSE] %*%
-                                             matWt[obsInSample,indices,drop=FALSE],
-                                         symmetric=FALSE, only.values=TRUE)$values);
-            }
-            else{
-                eigenValues <- abs(eigen(elements$matF -
-                                             elements$vecG %*% matWt[obsInSample,,drop=FALSE],
-                                         symmetric=FALSE, only.values=TRUE)$values);
-            }
+            # Stability / invertibility condition
+            eigenValues <- abs(smoothEigens(elements$vecG, elements$matF, matWt,
+                                            lagsModelAll, xregModel, obsInSample));
             if(any(eigenValues>1+1E-50)){
                 return(1E+100*max(eigenValues));
             }
@@ -501,12 +499,6 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         # Write down the initials in the recent profile
         profilesRecentTable[] <- elements$vt;
 
-        # adamFitted <- adamFitterWrap(matVt, matWt, elements$matF, elements$vecG,
-        #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-        #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-        #                              componentsNumberARIMA, xregNumber, FALSE,
-        #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-        #                              nIterations, refineHead, FALSE);
         adamFitted <- adamCpp$fit(matVt, matWt,
                                   elements$matF, elements$vecG,
                                   indexLookupTable, profilesRecentTable,
@@ -539,12 +531,6 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            # adamErrors <- adamErrorerWrap(adamFitted$matVt, matWt, elements$matF,
-            #                               lagsModelAll, indexLookupTable, profilesRecentTable,
-            #                               Etype, Ttype, Stype,
-            #                               componentsNumberETS, componentsNumberETSSeasonal,
-            #                               componentsNumberARIMA, xregNumber, constantRequired, h,
-            #                               yInSample, ot);
             adamErrors <- adamCpp$ferrors(adamFitted$states, matWt,
                                           elements$matF,
                                           indexLookupTable, profilesRecentTable,
@@ -992,12 +978,6 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
     logLikValue <- structure(logLikFunction(B, matVt=matVt, matF=matF, vecG=vecG, a=a, b=b),
                              nobs=obsInSample, df=nParamEstimated, class="logLik");
 
-    # adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-    #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-    #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-    #                              componentsNumberARIMA, xregNumber, FALSE,
-    #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-    #                              nIterations, refineHead, FALSE);
     adamFitted <- adamCpp$fit(matVt, matWt,
                               matF, vecG,
                               indexLookupTable, profilesRecentTable,
@@ -1023,14 +1003,6 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         yForecast <- zoo(rep(NA, max(1,h)), order.by=yForecastIndex);
     }
     if(h>0){
-        # yForecast[] <- adamForecasterWrap(tail(matWt,h), matF,
-        #                                   lagsModelAll,
-        #                                   indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
-        #                                   profilesRecentTable,
-        #                                   Etype, Ttype, Stype,
-        #                                   componentsNumberETS, componentsNumberETSSeasonal,
-        #                                   componentsNumberARIMA, xregNumber, FALSE,
-        #                                   h);
         yForecast[] <- adamCpp$forecast(tail(matWt,h), matF,
                                         indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
                                         profilesRecentTable,

@@ -1,5 +1,3 @@
-utils::globalVariables(c("yInSample","obs","occurrenceModelProvided","occurrenceModel","occurrenceModel"))
-
 intermittentParametersSetter <- function(occurrence="n",...){
 # Function returns basic parameters based on occurrence type
     ellipsis <- list(...);
@@ -70,34 +68,4 @@ intermittentParametersSetter <- function(occurrence="n",...){
     assign("pFitted",pFitted,ParentEnvironment);
     assign("pForecast",pForecast,ParentEnvironment);
     assign("nParamOccurrence",nParamOccurrence,ParentEnvironment);
-}
-
-intermittentMaker <- function(occurrence="n",...){
-# Function returns all the necessary stuff from occurrence models
-    ellipsis <- list(...);
-    ParentEnvironment <- ellipsis[['ParentEnvironment']];
-
-##### If occurrence is not absent or provided, then work normally #####
-    if(all(occurrence!=c("n","p"))){
-        if(!occurrenceModelProvided){
-            occurrenceModel <- oes(ot, model=occurrenceModel, occurrence=occurrence, h=h);
-        }
-        else{
-            occurrenceModel <- oes(ot, model=occurrenceModel, h=h);
-        }
-        nParamOccurrence <- nparam(occurrenceModel);
-        pFitted[,] <- fitted(occurrenceModel);
-        pForecast <- occurrenceModel$forecast;
-        occurrence <- occurrenceModel$occurrence;
-    }
-    else{
-        occurrenceModel <- NULL;
-        nParamOccurrence <- 0;
-    }
-
-    assign("occurrence",occurrence,ParentEnvironment);
-    assign("pFitted",pFitted,ParentEnvironment);
-    assign("pForecast",pForecast,ParentEnvironment);
-    assign("nParamOccurrence",nParamOccurrence,ParentEnvironment);
-    assign("occurrenceModel",occurrenceModel,ParentEnvironment);
 }

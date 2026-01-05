@@ -4,10 +4,10 @@
 \alias{oes}
 \title{Occurrence ETS model}
 \usage{
-oes(y, model = "MNN", persistence = NULL, initial = "o",
+oes(y, model = "MNN", persistence = NULL, initial = "optimal",
   initialSeason = NULL, phi = NULL, occurrence = c("fixed", "general",
   "odds-ratio", "inverse-odds-ratio", "direct", "auto", "none"),
-  ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
+  ic = c("AICc", "AIC", "BIC", "BICc"), h = 0, holdout = FALSE,
   bounds = c("usual", "admissible", "none"), silent = c("all", "graph",
   "legend", "output", "none"), xreg = NULL, regressors = c("use",
   "select"), initialX = NULL, ...)

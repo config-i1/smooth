@@ -78,6 +78,7 @@ parameters used in the simulation.
 \item \code{phi} - Value of damping parameter used in time series generation.
 \item \code{initial} - Vector (or matrix) of initial values.
 \item \code{initialSeason} - Vector (or matrix) of initial seasonal coefficients.
+\item \code{profile} - The final profile produced in the simulation.
 \item \code{probability} - vector of probabilities used in the simulation.
 \item \code{intermittent} - type of the intermittent model used.
 \item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
@@ -118,7 +119,7 @@ plot(ETSANN$states)
 
 # Create 60 observations of monthly data using MAM model
 # with errors from uniform distribution
-ETSMAM <- sim.es(model="MAM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),
+ETSMAM <- sim.es(model="MAdM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),
            phi=0.8,frequency=12,obs=60,randomizer="runif",min=-0.5,max=0.5)
 
 # Create 80 observations of quarterly data using MMM model

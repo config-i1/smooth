@@ -23,7 +23,7 @@
 #' \code{transitionX} matrix and \eqn{g_{X}} is the \code{persistenceX} matrix.
 #' Finally, \eqn{\epsilon_{t}} is the error term.
 #'
-#' For the details see Hyndman et al.(2008).
+#' For the details see Svetunkov (2023) or Hyndman et al.(2008).
 #'
 #' For some more information about the model and its implementation, see the
 #' vignette: \code{vignette("es","smooth")}.
@@ -37,7 +37,6 @@
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssXregParam
-#' @template ssIntervals
 #' @template ssPersistenceParam
 #' @template ssAuthor
 #' @template ssKeywords
@@ -45,9 +44,8 @@
 #' @template ADAMInitial
 #'
 #' @template ssGeneralRef
-#' @template ssIntermittentRef
 #' @template ssETSRef
-#' @template ssIntervalsRef
+#' @template ssADAMRef
 #'
 #' @param model The type of ETS model. The first letter stands for the type of
 #' the error term ("A" or "M"), the second (and sometimes the third as well) is for
@@ -227,9 +225,7 @@ es <- function(y, model="ZXZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
                initial=c("backcasting","optimal","two-stage","complete"),initialSeason=NULL,
                ic=c("AICc","AIC","BIC","BICc"),
                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-               h=10, holdout=FALSE,
-               # cumulative=FALSE,
-               # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
+               h=0, holdout=FALSE,
                bounds=c("usual","admissible","none"),
                silent=TRUE,
                xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){

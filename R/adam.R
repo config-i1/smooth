@@ -1,23 +1,3 @@
-utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arRequired","arimaModel",
-                         "arimaPolynomials","armaParameters","componentsNamesARIMA","componentsNamesETS",
-                         "componentsNumberARIMA","componentsNumberETS","componentsNumberETSNonSeasonal",
-                         "componentsNumberETSSeasonal","digits","etsModel","ftol_abs","ftol_rel",
-                         "horizon","iOrders","iRequired","initialArima","initialArimaEstimate",
-                         "initialArimaNumber","initialLevel","initialLevelEstimate","initialSeasonal",
-                         "initialSeasonalEstimate","initialTrend","initialTrendEstimate","lagsModelARIMA",
-                         "lagsModelAll","lagsModelSeasonal","indexLookupTable","profilesRecentTable",
-                         "other","otherParameterEstimate","lambda","lossFunction",
-                         "maEstimate","maOrders","maRequired","matVt","matWt","maxtime","modelIsTrendy",
-                         "nParamEstimated","persistenceLevel","persistenceLevelEstimate",
-                         "persistenceSeasonal","persistenceSeasonalEstimate","persistenceTrend",
-                         "persistenceTrendEstimate","vecG","xtol_abs","xtol_rel","stepSize","yClasses",
-                         "yForecastIndex","yInSampleIndex","yIndexAll","yNAValues","yStart","responseName",
-                         "xregParametersMissing","xregParametersIncluded","xregParametersEstimated",
-                         "xregParametersPersistence","xregModelInitials","constantName","yDenominator",
-                         "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval","icFunction",
-                         "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal",
-                         "nIterations","smoother","adamETS","adamCpp"));
-
 #' ADAM is Augmented Dynamic Adaptive Model
 #'
 #' Function constructs an advanced Single Source of Error model, based on ETS
@@ -85,7 +65,6 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @template ssGeneralRef
 #' @template ssIntermittentRef
 #' @template ssETSRef
-#' @template ssIntervalsRef
 #'
 #' @param model The type of ETS model. The first letter stands for the type of
 #' the error term ("A" or "M"), the second (and sometimes the third as well) is for
@@ -882,10 +861,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # If the arma parameters were provided, fill in the persistence
         if(arimaModel && (!arEstimate && !maEstimate)){
             # Call polynomial
-            # arimaPolynomials <- polynomialiser(NULL, arOrders, iOrders, maOrders,
-            #                                    arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
-            # arimaPolynomials <- lapply(adamPolynomialiser(0, arOrders, iOrders, maOrders,
-            #                                               arEstimate, maEstimate, armaParameters, lags), as.vector);
             arimaPolynomials <- lapply(adamCpp$polynomialise(0, arOrders, iOrders, maOrders,
                                                              arEstimate, maEstimate, armaParameters, lags), as.vector);
             # Fill in the transition matrix
@@ -1377,9 +1352,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # ARMA parameters. This goes before xreg in persistence
         if(arimaModel){
             # Call the function returning ARI and MA polynomials
-            # arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-            #                                               arOrders, iOrders, maOrders,
-            #                                               arEstimate, maEstimate, armaParameters, lags), as.vector);
             arimaPolynomials <- lapply(adamCpp$polynomialise(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                              arOrders, iOrders, maOrders,
                                                              arEstimate, maEstimate, armaParameters, lags), as.vector);
@@ -1717,9 +1689,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
             }
 
-            # arimaPolynomials <- lapply(adamPolynomialiser(B[k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-            #                                               arOrders, iOrders, maOrders,
-            #                                               arEstimate, maEstimate, armaParameters, lags), as.vector)
             arimaPolynomials <- lapply(adamCpp$polynomialise(B[k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                              arOrders, iOrders, maOrders,
                                                              arEstimate, maEstimate, armaParameters, lags), as.vector);
@@ -2073,42 +2042,48 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
             }
 
-            # Stability / invertibility condition for ETS / ARIMA.
-            if(etsModel || arimaModel){
-                if(xregModel){
-                    if(regressors=="adapt"){
-                        # We check the condition on average
-                        eigenValues <- abs(eigen((adamElements$matF -
-                                                      diag(as.vector(adamElements$vecG)) %*%
-                                                      t(measurementInverter(adamElements$matWt[1:obsInSample,,drop=FALSE])) %*%
-                                                      adamElements$matWt[1:obsInSample,,drop=FALSE] / obsInSample),
-                                                 symmetric=FALSE, only.values=TRUE)$values);
-                    }
-                    else{
-                        # We drop the X parts from matrices
-                        indices <- c(1:(componentsNumberETS+componentsNumberARIMA))
-                        eigenValues <- abs(eigen(adamElements$matF[indices,indices,drop=FALSE] -
-                                                     adamElements$vecG[indices,,drop=FALSE] %*%
-                                                     adamElements$matWt[obsInSample,indices,drop=FALSE],
-                                                 symmetric=FALSE, only.values=TRUE)$values);
-                    }
-                }
-                else{
-                    # If this is ETS or ARIMA with polynomials outside standard bounds, do proper check
-                    if(etsModel || (arimaModel && maEstimate && (sum(adamElements$arimaPolynomials$maPolynomial[-1])>=1 |
-                                                                 sum(adamElements$arimaPolynomials$maPolynomial[-1])<0))){
-                        eigenValues <- abs(eigen(adamElements$matF -
-                                                     adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
-                                                 symmetric=FALSE, only.values=TRUE)$values);
-                    }
-                    else{
-                        eigenValues <- 0;
-                    }
-                }
-                if(any(eigenValues>1+1E-50)){
-                    return(1E+100*max(eigenValues));
-                }
+            # Stability / invertibility condition for ETS/ARIMA/Dynamic regression.
+            eigenValues <- abs(smoothEigens(adamElements$vecG, adamElements$matF, adamElements$matWt,
+                                            lagsModelAll, xregModel, obsInSample));
+            if(any(eigenValues>1+1E-50)){
+                return(1E+100*max(eigenValues));
             }
+
+            # if(etsModel || arimaModel){
+            #     if(xregModel){
+            #         if(regressors=="adapt"){
+            #             # We check the condition on average
+            #             eigenValues <- abs(eigen((adamElements$matF -
+            #                                           diag(as.vector(adamElements$vecG)) %*%
+            #                                           t(measurementInverter(adamElements$matWt[1:obsInSample,,drop=FALSE])) %*%
+            #                                           adamElements$matWt[1:obsInSample,,drop=FALSE] / obsInSample),
+            #                                      symmetric=FALSE, only.values=TRUE)$values);
+            #         }
+            #         else{
+            #             # We drop the X parts from matrices
+            #             indices <- c(1:(componentsNumberETS+componentsNumberARIMA))
+            #             eigenValues <- abs(eigen(adamElements$matF[indices,indices,drop=FALSE] -
+            #                                          adamElements$vecG[indices,,drop=FALSE] %*%
+            #                                          adamElements$matWt[obsInSample,indices,drop=FALSE],
+            #                                      symmetric=FALSE, only.values=TRUE)$values);
+            #         }
+            #     }
+            #     else{
+            #         # If this is ETS or ARIMA with polynomials outside standard bounds, do proper check
+            #         if(etsModel || (arimaModel && maEstimate && (sum(adamElements$arimaPolynomials$maPolynomial[-1])>=1 |
+            #                                                      sum(adamElements$arimaPolynomials$maPolynomial[-1])<0))){
+            #             eigenValues <- abs(eigen(adamElements$matF -
+            #                                          adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
+            #                                      symmetric=FALSE, only.values=TRUE)$values);
+            #         }
+            #         else{
+            #             eigenValues <- 0;
+            #         }
+            #     }
+            #     if(any(eigenValues>1+1E-50)){
+            #         return(1E+100*max(eigenValues));
+            #     }
+            # }
         }
 
         # Write down the initials in the recent profile
@@ -2118,12 +2093,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # print(profilesRecentTable)
 
         #### Fitter and the losses calculation ####
-        # adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
-        #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-        #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-        #                              componentsNumberARIMA, xregNumber, constantRequired,
-        #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-        #                              nIterations, refineHead, adamETS);
         adamFitted <- adamCpp$fit(adamElements$matVt, adamElements$matWt,
                                   adamElements$matF, adamElements$vecG,
                                   indexLookupTable, profilesRecentTable,
@@ -2298,12 +2267,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            # adamErrors <- adamErrorerWrap(adamFitted$states, adamElements$matWt, adamElements$matF,
-            #                               lagsModelAll, indexLookupTable, profilesRecentTable,
-            #                               Etype, Ttype, Stype,
-            #                               componentsNumberETS, componentsNumberETSSeasonal,
-            #                               componentsNumberARIMA, xregNumber, constantRequired, h,
-            #                               yInSample, ot);
             adamErrors <- adamCpp$ferrors(adamFitted$states, adamElements$matWt,
                                           adamElements$matF,
                                           indexLookupTable, profilesRecentTable,
@@ -2504,12 +2467,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
 
                 # Fit the model again to extract the fitted values
-                # adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
-                #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-                #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-                #                              componentsNumberARIMA, xregNumber, constantRequired,
-                #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-                #                              nIterations, refineHead, adamETS);
                 adamFitted <- adamCpp$fit(adamElements$matVt, adamElements$matWt,
                                           adamElements$matF, adamElements$vecG,
                                           indexLookupTable, profilesRecentTable,
@@ -3024,12 +2981,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             profilesRecentTable[] <- adamCreated$matVt[,1:lagsModelMax];
 
             # Fit the model to the data
-            # adamFitted <- adamFitterWrap(adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-            #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-            #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-            #                              componentsNumberARIMA, xregNumber, constantRequired,
-            #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-            #                              nIterations, refineHead, adamETS);
             adamFitted <- adamCpp$fit(adamCreated$matVt, adamCreated$matWt,
                                       adamCreated$matF, adamCreated$vecG,
                                       indexLookupTable, profilesRecentTable,
@@ -3661,12 +3612,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         profilesRecentInitial <- matVt[,1:lagsModelMax, drop=FALSE];
 
         # Fit the model to the data
-        # adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-        #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-        #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-        #                              componentsNumberARIMA, xregNumber, constantRequired,
-        #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-        #                              nIterations, refineHead, adamETS);
         adamFitted <- adamCpp$fit(matVt, matWt,
                                   matF, vecG,
                                   indexLookupTable, profilesRecentTable,
@@ -3731,14 +3676,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 yForecast <- zoo(rep(NA, horizon), order.by=yForecastIndex);
             }
 
-            # yForecast[] <- adamForecasterWrap(tail(matWt,horizon), matF,
-            #                                   lagsModelAll,
-            #                                   indexLookupTable[,lagsModelMax+obsInSample+c(1:horizon),drop=FALSE],
-            #                                   profilesRecentTable,
-            #                                   Etype, Ttype, Stype,
-            #                                   componentsNumberETS, componentsNumberETSSeasonal,
-            #                                   componentsNumberARIMA, xregNumber, constantRequired,
-            #                                   horizon);
             yForecast[] <- adamCpp$forecast(tail(matWt,horizon), matF,
                                             indexLookupTable[,lagsModelMax+obsInSample+c(1:horizon),drop=FALSE],
                                             profilesRecentTable,
@@ -6197,10 +6134,10 @@ print.adam <- function(x, digits=4, ...){
     else if(sparmaModel){
         ordersModel <- orders(x);
         if(any(ordersModel$ar!=0)){
-            cat(paste0("\nAR(", ordersModel$ar, "):", round(x$arma$ar, digits)));
+            cat(paste0("\nAR(", ordersModel$ar, "): ", round(x$arma$ar, digits)));
         }
         if(any(ordersModel$ma!=0)){
-            cat(paste0("\nMA(",ordersModel$ma,"):", round(x$arma$ma, digits)));
+            cat(paste0("\nMA(",ordersModel$ma,"): ", round(x$arma$ma, digits)));
         }
     }
 
@@ -6305,8 +6242,12 @@ measurementInverter <- function(measurement){
 }
 
 # The function returns TRUE if the condition is violated
-eigenValues <- function(object, persistence){
-    return(any(abs(smoothEigens(object, persistence))>1+1E-10));
+eigenValues <- function(object, persistence=NULL){
+    if(is.null(persistence)){
+        persistence <- object$persistence;
+    }
+    return(any(abs(smoothEigens(matrix(persistence), object$transition, object$measurement,
+                                modelLags(object), ncol(object$data)>1, nobs(object)))>1+1E-10));
 }
 
 # The function that returns the bounds for persistence parameters, based on eigen values
@@ -7720,6 +7661,23 @@ plot.adam.predict <- function(x, ...){
     }
 }
 
+#' Forecasting time series using smooth functions
+#'
+#' Function produces conditional expectation (point forecasts) and prediction
+#' intervals for the estimated model.
+#'
+#' By default the function will generate conditional expectations from the
+#' estimated model and will also produce a variety of prediction intervals
+#' based on user preferences.
+#'
+#' @aliases forecast forecast.smooth
+#' @param object Time series model for which forecasts are required.
+#' @param h Forecast horizon.
+#' @param level Confidence level. Defines width of prediction interval.
+#' @param side Defines, whether to provide \code{"both"} sides of prediction
+#' interval or only \code{"upper"}, or \code{"lower"}.
+#' @param ...  Other arguments accepted by either \link[smooth]{es},
+#' \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.
 #' @param newdata The new data needed in order to produce forecasts.
 #' @param nsim Number of iterations to do in cases of \code{interval="simulated"},
 #' \code{interval="prediction"} (for mixed and multiplicative model),
@@ -7749,8 +7707,37 @@ plot.adam.predict <- function(x, ...){
 #' @param scenarios Binary, defining whether to return scenarios produced via
 #' simulations or not. Only works if \code{interval="simulated"}. If \code{TRUE}
 #' the object will contain \code{scenarios} variable.
+#' @return Returns object of class "smooth.forecast", which contains:
+#'
+#' \itemize{
+#' \item \code{model} - the estimated model (ES / CES / GUM / SSARIMA).
+#' \item \code{method} - the name of the estimated model (ES / CES / GUM / SSARIMA).
+#' \item \code{forecast} aka \code{mean} - point forecasts of the model
+#' (conditional mean).
+#' \item \code{lower} - lower bound of prediction interval.
+#' \item \code{upper} - upper bound of prediction interval.
+#' \item \code{level} - confidence level.
+#' \item \code{interval} - binary variable (whether interval were produced or not).
+#' \item \code{scenarios} - in case of \code{forecast.adam()} and
+#' \code{interval="simulated"} returns matrix with scenarios (future paths) that were
+#' used in simulations.
+#' }
+#' @template ssAuthor
+#' @template ssIntervalsRef
+#' @seealso \code{\link[generics]{forecast}}
+#' @references \itemize{
+#' \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+#' Forecasting with exponential smoothing: the state space approach,
+#' Springer-Verlag.}
+#'
+#' @keywords ts univar
+#' @examples
+#'
+#' ourModel <- es(rnorm(100,0,1), h=10)
+#' forecast(ourModel, h=10, interval="parametric")
 #'
 #' @rdname forecast.smooth
+#' @importFrom generics forecast
 #' @importFrom stats rnorm rlogis rt rlnorm rgamma
 #' @importFrom stats qnorm qlogis qt qlnorm qgamma
 #' @importFrom statmod rinvgauss qinvgauss
@@ -8025,12 +8012,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # Do this for cases, when h<=m as well and prediction /confidence / simulated interval
     if(Ttype!="M" && (Stype!="M" | (Stype=="M" & h<=lagsModelMin)) ||
        any(interval==c("nonparametric","semiparametric","empirical","approximate"))){
-        # adamForecast <- adamForecasterWrap(matWt, matF,
-        #                                    lagsModelAll, indexLookupTable, profilesRecentTable,
-        #                                    Etype, Ttype, Stype,
-        #                                    componentsNumberETS, componentsNumberETSSeasonal,
-        #                                    componentsNumberARIMA, xregNumber, constantRequired,
-        #                                    h);
         adamForecast <- adamCpp$forecast(matWt, matF,
                                          indexLookupTable, profilesRecentTable,
                                          h)$forecast;
@@ -8227,20 +8208,16 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
 
         # States, Errors, Ot, Transition, Measurement, Persistence
-        # ySimulated <- adamSimulatorWrap(arrVt, matErrors,
-        #                                 matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
-        #                                 array(matF,c(dim(matF),nsim)), matWt,
-        #                                 matrix(vecG, componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, nsim),
-        #                                 EtypeModified, Ttype, Stype,
-        #                                 lagsModelAll, indexLookupTable, profilesRecentTable,
-        #                                 componentsNumberETSSeasonal, componentsNumberETS,
-        #                                 componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
         ySimulated <- adamCpp$simulate(matErrors, matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
                                        arrVt, matWt,
                                        array(matF,c(dim(matF),nsim)),
                                        matrix(vecG, componentsNumberETS+componentsNumberARIMA+
                                                   xregNumber+constantRequired, nsim),
-                                       indexLookupTable, profilesRecentTable,
+                                       indexLookupTable,
+                                       array(profilesRecentTable,
+                                             c(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired,
+                                               lagsModelMax,
+                                               nsim)),
                                        EtypeModified)$data;
 
         #### Note that the cumulative doesn't work with oes at the moment!
@@ -8812,6 +8789,9 @@ forecast.adamCombined <- function(object, h=10, newdata=NULL,
                      class=c("adam.forecast","smooth.forecast","forecast")));
 }
 
+# Failsafe for now. Ideally, should be removed
+forecast.smooth <- forecast.adam;
+
 #' @export
 print.adam.forecast <- function(x, ...){
     if(x$interval!="none"){
@@ -9116,20 +9096,16 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
         }
 
         # States, Errors, Ot, Transition, Measurement, Persistence
-        # ySimulated <- adamSimulatorWrap(arrVt, matErrors,
-        #                                 matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
-        #                                 array(matF,c(dim(matF),nsim)), matWt,
-        #                                 matrix(vecG, componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, nsim),
-        #                                 EtypeModified, Ttype, Stype,
-        #                                 lagsModelAll, indexLookupTable, profilesRecentTable,
-        #                                 componentsNumberETSSeasonal, componentsNumberETS,
-        #                                 componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
         ySimulated <- adamCpp$simulate(matErrors, matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
                                        arrVt, matWt,
                                        array(matF,c(dim(matF),nsim)),
                                        matrix(vecG, componentsNumberETS+componentsNumberARIMA+
                                                   xregNumber+constantRequired, nsim),
-                                       indexLookupTable, profilesRecentTable,
+                                       indexLookupTable,
+                                       array(profilesRecentTable,
+                                             c(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired,
+                                               lagsModelMax,
+                                               nsim)),
                                        EtypeModified)$data;
 
         yForecast <- vector("numeric", h);
@@ -9490,17 +9466,14 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     }
 
     # Refit the model with the new parameter
-    # ySimulated <- adamSimulatorWrap(arrVt, matErrors,
-    #                                 matrix(rbinom(obsInSample*nsim, 1, pt), obsInSample, nsim),
-    #                                 arrF, matWt, matG,
-    #                                 EtypeModified, Ttype, Stype,
-    #                                 lagsModelAll, indexLookupTable, profilesRecentTable,
-    #                                 componentsNumberETSSeasonal, componentsNumberETS,
-    #                                 componentsNumberARIMA, xregNumber, constantRequired, adamETS);
     ySimulated <- adamCpp$simulate(matErrors, matrix(rbinom(obsInSample*nsim, 1, pt), obsInSample, nsim),
                                    arrVt, matWt,
                                    arrF, matG,
-                                   indexLookupTable, profilesRecentTable,
+                                   indexLookupTable,
+                                   array(profilesRecentTable,
+                                         c(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired,
+                                           lagsModelMax,
+                                           nsim)),
                                    EtypeModified);
 
     # Set the proper time stamps for the fitted

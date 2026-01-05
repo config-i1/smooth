@@ -76,12 +76,30 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
 
     ellipsis <- list(...);
 
-    # Validate orders
-    if(length(orders)!=2) {
-        stop("orders must be a list with two vectors");
-    }
     p <- orders$ar;
     q <- orders$ma;
+
+    if(length(p)>0){
+        p <- p[p!=0];
+        if(length(p)==0){
+            p <- 0;
+        }
+    }
+    else{
+        p <- 0;
+    }
+    if(length(q)>0){
+        q <- q[q!=0];
+        if(length(q)==0){
+            q <- 0;
+        }
+    }
+    else{
+        q <- 0;
+    }
+    # Rerecord in case this was amended
+    orders$ar <- p;
+    orders$ma <- q;
 
     if(any(p<0) || any(q<0)) {
         stop("Orders must be non-negative");
@@ -611,7 +629,16 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
 
     # Record the ARMA parameters
     if(is.null(arma)){
-        arma <- list(ar=B[1:pLength], ma=B[pLength+1:qLength]);
+        arma <- vector("list", 2);
+        names(arma) <- c("ar","ma");
+        idx <- 0;
+        if(any(p>0)){
+            arma$ar <- B[1:pLength];
+            idx[] <- idx + pLength;
+        }
+        if(any(q>0)){
+            arma$ma <- B[idx+1:qLength];
+        }
     }
 
     parametersNumber[1,4] <- (loss=="likelihood")*1;

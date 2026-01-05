@@ -2,8 +2,8 @@
 % Please edit documentation in R/adam.R, R/methods.R, R/msdecompose.R
 \name{forecast.adam}
 \alias{forecast.adam}
-\alias{forecast.smooth}
 \alias{forecast}
+\alias{forecast.smooth}
 \alias{forecast.oes}
 \alias{forecast.msdecompose}
 \title{Forecasting time series using smooth functions}
@@ -13,10 +13,6 @@
   "simulated", "approximate", "semiparametric", "nonparametric", "empirical",
   "complete"), level = 0.95, side = c("both", "upper", "lower"),
   cumulative = FALSE, nsim = NULL, scenarios = FALSE, ...)
-
-\method{forecast}{smooth}(object, h = 10, interval = c("parametric",
-  "semiparametric", "nonparametric", "none"), level = 0.95,
-  side = c("both", "upper", "lower"), ...)
 
 \method{forecast}{oes}(object, h = 10, ...)
 
@@ -110,9 +106,20 @@ forecast(ourModel, h=10, interval="parametric")
 
 }
 \references{
-Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+\itemize{
+\item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to
+Generating Prediction Intervals. Management Science, Vol 45, No 2, pp
+225-237.
+\item Lichtendahl Kenneth C., Jr., Grushka-Cockayne Yael, Winkler
+Robert L., (2013) Is It Better to Average Probabilities or
+Quantiles? Management Science 59(7):1594-1611. DOI:
+\doi{10.1287/mnsc.1120.1667}
+}
+
+\itemize{
+\item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 Forecasting with exponential smoothing: the state space approach,
-Springer-Verlag.
+Springer-Verlag.}
 }
 \seealso{
 \code{\link[generics]{forecast}}
