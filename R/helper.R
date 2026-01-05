@@ -54,7 +54,8 @@ calculateBackcastingDF <- function(profilesRecentTable, lagsModelAll,
     # na.rm is needed to avoid NaNs due to 0/0
     nStatesBackcasting <- sum(dfs1$profileRecent, na.rm=TRUE);
 
-    return(nStatesBackcasting);
+    return(0)
+    # return(nStatesBackcasting);
 }
 
 # The function calculates the discounted number of degrees of freedom for the model
