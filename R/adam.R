@@ -8213,7 +8213,11 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                        array(matF,c(dim(matF),nsim)),
                                        matrix(vecG, componentsNumberETS+componentsNumberARIMA+
                                                   xregNumber+constantRequired, nsim),
-                                       indexLookupTable, profilesRecentTable,
+                                       indexLookupTable,
+                                       array(profilesRecentTable,
+                                             c(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired,
+                                               lagsModelMax,
+                                               nsim)),
                                        EtypeModified)$data;
 
         #### Note that the cumulative doesn't work with oes at the moment!
@@ -9097,7 +9101,11 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
                                        array(matF,c(dim(matF),nsim)),
                                        matrix(vecG, componentsNumberETS+componentsNumberARIMA+
                                                   xregNumber+constantRequired, nsim),
-                                       indexLookupTable, profilesRecentTable,
+                                       indexLookupTable,
+                                       array(profilesRecentTable,
+                                             c(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired,
+                                               lagsModelMax,
+                                               nsim)),
                                        EtypeModified)$data;
 
         yForecast <- vector("numeric", h);
@@ -9461,7 +9469,11 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     ySimulated <- adamCpp$simulate(matErrors, matrix(rbinom(obsInSample*nsim, 1, pt), obsInSample, nsim),
                                    arrVt, matWt,
                                    arrF, matG,
-                                   indexLookupTable, profilesRecentTable,
+                                   indexLookupTable,
+                                   array(profilesRecentTable,
+                                         c(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired,
+                                           lagsModelMax,
+                                           nsim)),
                                    EtypeModified);
 
     # Set the proper time stamps for the fitted
