@@ -1,4 +1,4 @@
-smooth v4.4.0 (Release data: 2026-01-05)
+smooth v4.4.0 (Release data: 2026-01-06)
 =======
 
 Changes:
@@ -6,6 +6,8 @@ Changes:
 * sim.es(), sim.ces(), sim.ssarima(), sim.gum() now use the adamCore.
 * Removed the redundant old C++ code.
 
+Bugfixes:
+* A fix in sparma to allow high orders
 
 smooth v4.3.2 (Release data: 2025-12-23)
 =======
