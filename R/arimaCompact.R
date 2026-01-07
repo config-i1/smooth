@@ -36,6 +36,10 @@
 #     testModels <- vector("list", nSeasonal*nNonSeasonal);
 #     stop <- FALSE;
 #     m <- 1;
+#     if(!silent){
+#         cat("Checking models...");
+#     }
+#
 #     for(i in 1:nSeasonal){
 #         for(j in 1:nNonSeasonal){
 #             testModels[[m]] <- msarima(y, orders=list(ar=c(arimaNonSeasonal[j,1],arimaSeasonal[i,1]),
@@ -48,7 +52,7 @@
 #             # If SARIMA(0,1,1)(1,1,2) is worse than SARIMA(0,1,1)(0,1,1), stop
 #             # etc
 #             if(!silent){
-#                 cat("\n",testModels[[m]]$model,": ", IC(testModels[[m]]));
+#                 cat(paste0("\n",testModels[[m]]$model,": ", round(IC(testModels[[m]]),4)));
 #             }
 #             if(j==1 && i>1){
 #                 if(IC(testModels[[m-nNonSeasonal]])<IC(testModels[[m]])){
@@ -77,6 +81,7 @@
 #     testModels[[m]]$timeElapsed <- Sys.time()-startTime;
 #
 #     if(!silent){
+#         cat("\nDone!\n");
 #         plot(testModels[[m]],7);
 #     }
 #
