@@ -1,4 +1,5 @@
-# arimaCompact <- function(y, lags=c(1,frequency(y)), ic=c("AICc","AIC","BIC","BICc"), ...){
+# arimaCompact <- function(y, lags=c(1,frequency(y)), ic=c("AICc","AIC","BIC","BICc"),
+#                          silent=TRUE, ...){
 #
 #     # Start measuring the time of calculations
 #     startTime <- Sys.time();
@@ -40,10 +41,15 @@
 #             testModels[[m]] <- msarima(y, orders=list(ar=c(arimaNonSeasonal[j,1],arimaSeasonal[i,1]),
 #                                                       i=c(arimaNonSeasonal[j,2],arimaSeasonal[i,2]),
 #                                                       ma=c(arimaNonSeasonal[j,3],arimaSeasonal[i,3])),
-#                                        constant=arimaNonSeasonal[j,4]==1, lags=lags, ...);
+#                                        constant=arimaNonSeasonal[j,4]==1, lags=lags, silent=TRUE,
+#                                        ...);
+#             names(testModels)[m] <- testModels[[m]]$model;
 #             # If SARIMA(0,1,1)(0,1,1) is worse than ARIMA(0,1,1), don't check other seasonal models
 #             # If SARIMA(0,1,1)(1,1,2) is worse than SARIMA(0,1,1)(0,1,1), stop
 #             # etc
+#             if(!silent){
+#                 cat("\n",testModels[[m]]$model,": ", IC(testModels[[m]]));
+#             }
 #             if(j==1 && i>1){
 #                 if(IC(testModels[[m-nNonSeasonal]])<IC(testModels[[m]])){
 #                     stop[] <- TRUE;
@@ -62,10 +68,17 @@
 #     if(any(nullModels)){
 #         testModels <- testModels[!nullModels];
 #     }
+#     # Extract ICs
+#     testICs <- sapply(testModels, IC);
 #     # Find the best one
-#     m <- which.min(sapply(testModels, IC));
+#     m <- which.min(testICs);
+#     testModels[[m]]$ICs <- testICs;
 #     # Amend computational time
 #     testModels[[m]]$timeElapsed <- Sys.time()-startTime;
+#
+#     if(!silent){
+#         plot(testModels[[m]],7);
+#     }
 #
 #     return(testModels[[m]]);
 # }
