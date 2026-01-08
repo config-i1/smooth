@@ -990,7 +990,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
                                                            FALSE, Stype, componentsNumberETSNonSeasonal,
                                                            componentsNumberETSSeasonal, ssarimaFilled$vecG, ssarimaFilled$matF,
                                                            obsInSample, lagsModelMax, indexLookupTable,
-                                                           adamCpp);
+                                                           adamCpp, dfForBack);
         }
 
         # Parameters estimated + variance

@@ -731,7 +731,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
                                                            FALSE, Stype, componentsNumberETSNonSeasonal,
                                                            componentsNumberETSSeasonal, gumFilled$vecG, gumFilled$matF,
                                                            obsInSample, lagsModelMax, indexLookupTable,
-                                                           adamCpp);
+                                                           adamCpp, dfForBack);
         }
 
         # Parameters estimated + variance

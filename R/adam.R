@@ -2898,7 +2898,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                            etsModel, Stype, componentsNumberETSNonSeasonal,
                                                            componentsNumberETSSeasonal, adamFilled$vecG, adamFilled$matF,
                                                            obsInSample, lagsModelMax, indexLookupTable,
-                                                           adamCpp);
+                                                           adamCpp, dfForBack);
         }
 
         nParamEstimated <- length(B) + nStatesBackcasting;

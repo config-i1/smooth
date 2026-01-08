@@ -885,7 +885,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                                                            FALSE, Stype, componentsNumberETSNonSeasonal,
                                                            componentsNumberETSSeasonal, cesFilled$vecG, cesFilled$matF,
                                                            obsInSample, lagsModelMax, indexLookupTable,
-                                                           adamCpp);
+                                                           adamCpp, dfForBack);
         }
 
         # Parameters estimated + variance
