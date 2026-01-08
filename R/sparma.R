@@ -132,9 +132,12 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
     formula <- NULL;
     modelDo <- "";
 
+    # Create a list of dummy parameters to trick the checker
+    armaToTrickTheChecker <- list(ar=rep(0.1,p), ma=rep(0.1,q));
+
     # Call parametersChecker
     checkerReturn <- parametersChecker(data=data, model=model, lags=lags, formulaToUse=formula,
-                                       orders=orders_list, constant=constant, arma=NULL,
+                                       orders=orders_list, constant=constant, arma=armaToTrickTheChecker,
                                        outliers=outliers, level=level,
                                        persistence=persistence, phi=phi, initial=initial,
                                        distribution=distribution, loss=loss, h=h, holdout=holdout,
@@ -143,6 +146,9 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
                                        silent=silent, modelDo=modelDo,
                                        ParentEnvironment=environment(), ellipsis=ellipsis, fast=FALSE);
 
+    # Reset the parameters. This is to address the trick to the checker
+    armaParameters <- arma;
+    arEstimate <- maEstimate <- TRUE;
 
     #### Hack the outputs of the function to align with sparma ####
 
