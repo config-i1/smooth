@@ -34,6 +34,7 @@ struct ErrorResult {
 // Result structure for simulator
 struct SimulateResult {
     arma::cube states;
+    arma::cube profile;
     arma::mat data;
 };
 
@@ -199,7 +200,7 @@ public:
     }
 
     // Method 2: Fitter - fits SSOE model to the data
-    FitResult fit(arma::mat &matrixVt, arma::mat const &matrixWt,
+    FitResult fit(arma::mat matrixVt, arma::mat const &matrixWt,
                   arma::mat &matrixF, arma::vec const &vectorG,
                   arma::umat const &indexLookupTable, arma::mat profilesRecent,
                   arma::vec const &vectorYt, arma::vec const &vectorOt,
@@ -229,14 +230,20 @@ public:
             // Refine the head (in order for it to make sense)
             // This is only needed for ETS(*,Z,Z) models, with trend.
             // This is not needed for lagsMax=1, because there is nothing to fill in
-            if(refineHead && (T!='N')){
-                // Record the initial profile to the first column
-                matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
-                if(lagsModelMax>1){
+            if(lagsModelMax>1){
+                if(refineHead && (T!='N')){
+                    // Record the initial profile to the first column
+                    matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
                     // Update the head, but only for the trend component
                     for (int i=1; i<lagsModelMax; i=i+1) {
                         profilesRecent(indexLookupTable.col(i).rows(0,1)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                                        matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant).rows(0,1);
+                        matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+                    }
+                }
+                else if(refineHead){
+                    // Record the profile to the head of time series to fill in the state matrix
+                    for (int i=0; i<lagsModelMax; i=i+1) {
                         matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
                     }
                 }
@@ -413,6 +420,7 @@ public:
         int nComponents = lags.n_rows;
         int obsAll = obs + lagsModelMax;
         arma::mat profilesRecentOriginal = profilesRecent;
+        arma::cube arrayProfile(profilesRecentOriginal.n_rows, profilesRecentOriginal.n_cols, nSeries);
 
         double yFitted;
 
@@ -452,10 +460,12 @@ public:
                 matrixVt.col(j) = profilesRecent(indexLookupTable.col(j-lagsModelMax));
             }
             arrayVt.slice(i) = matrixVt;
+            arrayProfile.slice(i) = profilesRecent;
         }
 
         SimulateResult result;
         result.states = arrayVt;
+        result.profile = arrayProfile;
         result.data = matY;
         return result;
     }

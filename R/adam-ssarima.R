@@ -382,51 +382,52 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     }
                 }
 
-                # Stability/Invertibility condition of ARIMA
-                if(xregModel){
-                    if(regressors=="adapt"){
-                        # We check the condition on average
-                        eigenValues <- abs(eigen((elements$matF -
-                                                      diag(as.vector(elements$vecG)) %*%
-                                                      t(measurementInverter(elements$matWt[1:obsInSample,,drop=FALSE])) %*%
-                                                      elements$matWt[1:obsInSample,,drop=FALSE] / obsInSample),
-                                                 symmetric=FALSE, only.values=TRUE)$values);
-                    }
-                    else{
-                        # We drop the X parts from matrices
-                        indices <- c(1:(componentsNumberARIMA))
-                        eigenValues <- abs(eigen(elements$matF[indices,indices,drop=FALSE] -
-                                                     elements$vecG[indices,,drop=FALSE] %*%
-                                                     elements$matWt[obsInSample,indices,drop=FALSE],
-                                                 symmetric=FALSE, only.values=TRUE)$values);
-                    }
-                }
-                else{
-                    if(arimaModel && maEstimate && (sum(elements$arimaPolynomials$maPolynomial[-1])>=1 |
-                                                                 sum(elements$arimaPolynomials$maPolynomial[-1])<0)){
-                        eigenValues <- abs(eigen(elements$matF -
-                                                     elements$vecG %*% elements$matWt[obsInSample,,drop=FALSE],
-                                                 symmetric=FALSE, only.values=TRUE)$values);
-                    }
-                    else{
-                        eigenValues <- 0;
-                    }
-                }
+                # Stability / invertibility condition
+                eigenValues <- abs(smoothEigens(elements$vecG, elements$matF, matWt,
+                                                lagsModelAll, xregModel, obsInSample));
                 if(any(eigenValues>1+1E-50)){
                     return(1E+100*max(eigenValues));
                 }
+
+                # # Stability/Invertibility condition of ARIMA
+                # if(xregModel){
+                #     if(regressors=="adapt"){
+                #         # We check the condition on average
+                #         eigenValues <- abs(eigen((elements$matF -
+                #                                       diag(as.vector(elements$vecG)) %*%
+                #                                       t(measurementInverter(elements$matWt[1:obsInSample,,drop=FALSE])) %*%
+                #                                       elements$matWt[1:obsInSample,,drop=FALSE] / obsInSample),
+                #                                  symmetric=FALSE, only.values=TRUE)$values);
+                #     }
+                #     else{
+                #         # We drop the X parts from matrices
+                #         indices <- c(1:(componentsNumberARIMA))
+                #         eigenValues <- abs(eigen(elements$matF[indices,indices,drop=FALSE] -
+                #                                      elements$vecG[indices,,drop=FALSE] %*%
+                #                                      elements$matWt[obsInSample,indices,drop=FALSE],
+                #                                  symmetric=FALSE, only.values=TRUE)$values);
+                #     }
+                # }
+                # else{
+                #     if(arimaModel && maEstimate && (sum(elements$arimaPolynomials$maPolynomial[-1])>=1 |
+                #                                                  sum(elements$arimaPolynomials$maPolynomial[-1])<0)){
+                #         eigenValues <- abs(eigen(elements$matF -
+                #                                      elements$vecG %*% elements$matWt[obsInSample,,drop=FALSE],
+                #                                  symmetric=FALSE, only.values=TRUE)$values);
+                #     }
+                #     else{
+                #         eigenValues <- 0;
+                #     }
+                # }
+                # if(any(eigenValues>1+1E-50)){
+                #     return(1E+100*max(eigenValues));
+                # }
             }
         }
 
         # Write down the initials in the recent profile
         matVt[,1] <- profilesRecentTable[] <- elements$matVt[,1, drop=FALSE];
 
-        # adamFitted <- adamFitterWrap(matVt, elements$matWt, elements$matF, elements$vecG,
-        #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-        #                              Etype, Ttype, Stype, 0, 0,
-        #                              componentsNumberARIMA, xregNumber, constantEstimate,
-        #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-        #                              nIterations, refineHead, FALSE);
         adamFitted <- adamCpp$fit(matVt, elements$matWt,
                                   elements$matF, elements$vecG,
                                   indexLookupTable, profilesRecentTable,
@@ -459,12 +460,6 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            # adamErrors <- adamErrorerWrap(adamFitted$matVt, elements$matWt, elements$matF,
-            #                               lagsModelAll, indexLookupTable, profilesRecentTable,
-            #                               Etype, Ttype, Stype,
-            #                               componentsNumberETS, componentsNumberETSSeasonal,
-            #                               componentsNumberARIMA, xregNumber, constantRequired, h,
-            #                               yInSample, ot);
             adamErrors <- adamCpp$ferrors(adamFitted$states, elements$matWt,
                                           elements$matF,
                                           indexLookupTable, profilesRecentTable,
@@ -978,8 +973,23 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         B[] <- res$solution;
         CFValue <- res$objective;
 
+        nStatesBackcasting <- 0;
+        # Calculate the number of degrees of freedom coming from states in case of backcasting
+        if(any(initialType==c("backcasting","complete"))){
+            # Obtain the main elements
+            ssarimaFilled <- filler(B, matVt, matF, vecG, matWt,
+                                    arRequired=arRequired, maRequired=maRequired,
+                                    arEstimate=arEstimate, maEstimate=maEstimate);
+
+            nStatesBackcasting[] <- calculateBackcastingDF(profilesRecentTable, lagsModelAll,
+                                                           FALSE, Stype, componentsNumberETSNonSeasonal,
+                                                           componentsNumberETSSeasonal, ssarimaFilled$vecG, ssarimaFilled$matF,
+                                                           obsInSample, lagsModelMax, indexLookupTable,
+                                                           adamCpp);
+        }
+
         # Parameters estimated + variance
-        nParamEstimated <- length(B) + (loss=="likelihood")*1;
+        nParamEstimated <- length(B) + (loss=="likelihood")*1 + nStatesBackcasting;
 
         # Prepare for fitting
         elements <- filler(B, matVt, matF, vecG, matWt, arRequired=arRequired, maRequired=maRequired,
@@ -992,7 +1002,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
         # Write down the initials in the recent profile
         profilesRecentInitial <- profilesRecentTable[] <- matVt[,1,drop=FALSE];
-        parametersNumber[1,1] <- length(B);
+        parametersNumber[1,1] <- length(B) + nStatesBackcasting;
     }
     #### If we just use the provided values ####
     else{
@@ -1009,13 +1019,14 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             profilesRecentInitial <- profilesRecentTable <- adamProfiles$recent;
         }
 
-        if(initialType=="provided"){
+        if(any(initialType==c("optimal","two-stage","provided"))){
+            initialType <- "provided";
             profilesRecentInitial[,1] <- profilesRecentTable[,1] <- matVt[,1];
         }
-
-        if(any(initialType==c("optimal","two-stage"))){
-            initialType <- "provided";
+        else{
+            initialType <- initialOriginal[1];
         }
+
         initialXregEstimateOriginal <- initialXregEstimate;
         initialXregEstimate <- FALSE;
 
@@ -1108,12 +1119,6 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                             arEstimate=arEstimate, maEstimate=maEstimate),
                              nobs=obsInSample, df=nParamEstimated, class="logLik");
 
-    # adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-    #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-    #                              Etype, Ttype, Stype, 0, 0,
-    #                              componentsNumberARIMA, xregNumber, constantEstimate,
-    #                              yInSample, ot, any(initialType==c("complete","backcasting")),
-    #                              nIterations, refineHead, FALSE);
     adamFitted <- adamCpp$fit(matVt, matWt,
                               matF, vecG,
                               indexLookupTable, profilesRecentTable,
@@ -1128,7 +1133,9 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     matVt[] <- adamFitted$states;
 
     # Write down the initials in the recent profile
-    profilesRecentInitial <- matVt[,1,drop=FALSE];
+    if(!any(initialType==c("complete","backcasting"))){
+        profilesRecentInitial <- matVt[,1,drop=FALSE];
+    }
 
     scale <- scaler(adamFitted$errors[otLogical], obsInSample);
 
@@ -1139,14 +1146,6 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         yForecast <- zoo(rep(NA, max(1,h)), order.by=yForecastIndex);
     }
     if(h>0){
-        # yForecast[] <- adamForecasterWrap(tail(matWt,h), matF,
-        #                                   lagsModelAll,
-        #                                   indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
-        #                                   profilesRecentTable,
-        #                                   Etype, Ttype, Stype,
-        #                                   componentsNumberETS, componentsNumberETSSeasonal,
-        #                                   componentsNumberARIMA, xregNumber, constantEstimate,
-        #                                   h);
         yForecast[] <- adamCpp$forecast(tail(matWt,h), matF,
                                         indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
                                         profilesRecentTable,

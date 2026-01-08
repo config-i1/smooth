@@ -2880,7 +2880,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 initialType <- "provided";
                 initialEstimate <- initialLevelEstimate <- FALSE;
                 warning("I did not have enough of non-zero observations, so I used Naive.",call.=FALSE);
-                modelDo <- "nothing"
+                modelDo <- "use"
                 model <- "ANN";
                 Etype <- "A";
                 Ttype <- "N";
@@ -2900,7 +2900,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 occurrenceModelProvided <- occurrenceModel <- FALSE;
                 occurrence <- "none";
                 warning("You have a sample with zeroes only. Your forecast will be zero.",call.=FALSE);
-                modelDo <- "nothing"
+                modelDo <- "use"
                 model <- "ANN";
                 Etype <- "A";
                 Ttype <- "N";

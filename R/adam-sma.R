@@ -239,7 +239,20 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         # Get scale, cf, logLik and IC
         scale <- sqrt(sum(adamFitted$errors^2)/obsInSample);
         cfObjective <- sum(dnorm(x=yInSample, mean=adamFitted$fitted, sd=scale, log=TRUE));
-        logLik <- structure(cfObjective, nobs=obsInSample, df=1, class="logLik");
+
+        nStatesBackcasting <- 0;
+        #### This is switched off because in sma() the initial values have almost no effect
+        # on the final values. This is because the weights are 1/n, and the difference
+        # between g=0 and g=1/n is almost non-existent
+
+        # Calculate the number of degrees of freedom coming from states in case of backcasting
+        # nStatesBackcasting[] <- calculateBackcastingDF(profilesRecentTable, lagsModelAll,
+        #                                                FALSE, Stype, componentsNumberETSNonSeasonal,
+        #                                                componentsNumberETSSeasonal, vecG, matF,
+        #                                                obsInSample, lagsModelMax, indexLookupTable,
+        #                                                adamCpp);
+
+        logLik <- structure(cfObjective, nobs=obsInSample, df=1+nStatesBackcasting, class="logLik");
         ICValue <- icFunction(logLik);
 
         return(ICValue);
