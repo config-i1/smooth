@@ -5,3 +5,4 @@ Lines in the new code: 911 - 914, 935, 945, 950, 955.
 In addition, lines 1101 - 1104 and 1140 - 1143 introduce failsafe mechanisms in case of negative initial level.
 Furthermore, the large chunk of code (901, 1016-1099) is now commented out because this is handled by the msdecompose function.
 Finally, the default smoother in ADAM (calling for msdecompose) now is lowess.
+

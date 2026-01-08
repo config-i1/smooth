@@ -374,15 +374,46 @@ def CF(B,
     # Convert pandas Series/DataFrames to numpy arrays
     y_in_sample = np.asarray(observations_dict['y_in_sample'], dtype=np.float64)
     ot = np.asarray(observations_dict['ot'], dtype=np.float64)
-    # CRITICAL FIX: C++ adamFitter takes matrixVt by reference and modifies it!
-    # We must pass a COPY to avoid polluting adamElements across optimization iterations
-    mat_vt = np.asfortranarray(adamElements['mat_vt'].copy(), dtype=np.float64)
+    # For backcasting mode, R allows mat_vt modifications to persist across iterations
+    # This provides beneficial state accumulation that helps the optimizer converge
+    # For non-backcasting modes, we still copy to avoid unintended state pollution
+    if isinstance(initials_checked['initial_type'], list):
+        is_backcasting = any([t in ["complete", "backcasting"] for t in initials_checked['initial_type']])
+    else:
+        is_backcasting = initials_checked['initial_type'] in ["complete", "backcasting"]
+
+    if is_backcasting:
+        # Let C++ modifications persist for backcasting (matches R behavior)
+        mat_vt = np.asfortranarray(adamElements['mat_vt'], dtype=np.float64)
+    else:
+        # Copy for non-backcasting to avoid state pollution
+        mat_vt = np.asfortranarray(adamElements['mat_vt'].copy(), dtype=np.float64)
+
+    # DEBUG: Print mat_vt BEFORE backcasting - REMOVE AFTER FIX
+    import os
+    if os.environ.get('DEBUG_BACKCASTING') and not hasattr(CF, '_first_call_done'):
+        CF._first_call_done = True
+        print(f"DEBUG CF: mat_vt shape = {mat_vt.shape}")
+        print(f"DEBUG CF: lags_model_max = {lags_dict['lags_model_max']}")
+        print(f"DEBUG CF: vec_g = {adamElements['vec_g'].flatten()}")
+        print(f"DEBUG CF: mat_f =\n{adamElements['mat_f']}")
+        print(f"DEBUG CF: mat_wt first 3 rows =\n{adamElements['mat_wt'][:3,:]}")
+        print(f"DEBUG CF: profiles_recent_table shape = {profile_dict['profiles_recent_table'].shape}")
+        print(f"DEBUG CF: profiles_recent_table =\n{profile_dict['profiles_recent_table']}")
+        print(f"DEBUG CF: index_lookup_table shape = {profile_dict['index_lookup_table'].shape}")
+        print(f"DEBUG CF: index_lookup_table first 3 cols =\n{profile_dict['index_lookup_table'][:,:3]}")
+        print(f"DEBUG CF: lags_model_all = {lags_dict['lags_model_all']}")
+        print(f"DEBUG CF: components_number_ets = {components_dict.get('components_number_ets', 'N/A')}")
+        print(f"DEBUG CF: components_number_ets_non_seasonal = {components_dict.get('components_number_ets_non_seasonal', 'N/A')}")
+        print(f"DEBUG CF BEFORE backcast: mat_vt[0,0] (level) = {mat_vt[0,0]:.10f}")
+        if mat_vt.shape[0] > 1:
+            print(f"DEBUG CF BEFORE backcast: mat_vt[1,0] (trend) = {mat_vt[1,0]:.10f}")
     mat_wt = np.asfortranarray(adamElements['mat_wt'], dtype=np.float64)
     mat_f = np.asfortranarray(adamElements['mat_f'].copy(), dtype=np.float64)  # Also copy mat_f since it's passed by reference
     vec_g = np.asfortranarray(adamElements['vec_g'], dtype=np.float64) # Make sure it's a 1D array
     lags_model_all = np.asfortranarray(lags_dict['lags_model_all'], dtype=np.uint64).reshape(-1,1)  # Make sure it's a 1D array
     index_lookup_table = np.asfortranarray(profile_dict['index_lookup_table'], dtype=np.uint64)
-    profiles_recent_table = np.asfortranarray(profile_dict['profiles_recent_table'], dtype=np.float64)
+    profiles_recent_table = np.asfortranarray(profile_dict['profiles_recent_table'].copy(), dtype=np.float64)
 
     # Print detailed debug information
     # print('mat_vt shape:', mat_vt.shape, 'dtype:', mat_vt.dtype)
@@ -437,6 +468,19 @@ def CF(B,
         refineHead=refine_head
     )
 
+    # For backcasting, propagate modified states back to adamElements (matches R behavior)
+    # This allows state accumulation across optimizer iterations
+    if is_backcasting:
+        # Copy the modified mat_vt back to adamElements so changes persist
+        adamElements['mat_vt'][:] = mat_vt[:]
+
+    # DEBUG: Temporary debug prints to compare with R - REMOVE AFTER FIX
+    import os
+    if os.environ.get('DEBUG_BACKCASTING') and backcast_value:
+        print(f"DEBUG CF: mat_vt[0,0] (level) after backcast = {mat_vt[0,0]:.10f}")
+        if mat_vt.shape[0] > 1:
+            print(f"DEBUG CF: mat_vt[1,0] (trend) after backcast = {mat_vt[1,0]:.10f}")
+        print(f"DEBUG CF: backcast_value = {backcast_value}, nIterations = {initials_checked['n_iterations']}")
 
     #adam_fitted.errors = np.repeat()
 

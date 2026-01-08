@@ -882,6 +882,18 @@ def _initialize_ets_seasonal_states_with_decomp(
         [lag for lag in lags if lag != 1],
         type=decomposition_type,
     )
+
+    # Debug output for comparing with R
+    import os
+    if os.environ.get("DEBUG_PROCESS_INIT"):
+        print(f"[DEBUG] msdecompose type: {decomposition_type}")
+        print(f"[DEBUG] msdecompose gta: {y_decomposition['gta']}")
+        print(f"[DEBUG] msdecompose gtm: {y_decomposition['gtm']}")
+        print(f"[DEBUG] msdecompose initial: {y_decomposition['initial']}")
+        if y_decomposition['seasonal']:
+            for i, s in enumerate(y_decomposition['seasonal']):
+                print(f"[DEBUG] msdecompose seasonal[{i}]: {s[:min(12, len(s))]}")
+
     j = 0
 
     # Initialize level
@@ -991,6 +1003,18 @@ def _initialize_ets_seasonal_states_with_decomp(
     # Failsafe in case negatives were produced
     if e_type == "M" and mat_vt[0, 0] <= 0:
         mat_vt[0, 0:lags_model_max] = y_in_sample[0]
+
+    # Debug output for mat_vt after initialization
+    import os
+    if os.environ.get("DEBUG_PROCESS_INIT"):
+        print(f"[DEBUG] mat_vt level (row 0): {mat_vt[0, :lags_model_max]}")
+        if model_is_trendy:
+            print(f"[DEBUG] mat_vt trend (row 1): {mat_vt[1, :lags_model_max]}")
+        if components_number_ets_seasonal > 0:
+            start_row = 2 if model_is_trendy else 1
+            for i in range(components_number_ets_seasonal):
+                row = start_row + i
+                print(f"[DEBUG] mat_vt seasonal[{i}] (row {row}): {mat_vt[row, :min(12, lags_model[row])]}")
 
     return mat_vt
 
@@ -1704,7 +1728,9 @@ def initialiser(
                     initial_values = [0.01, 0.005] + [0.001] * components_dict["components_number_ets_seasonal"]
                     B[j:j+sum(persistence_estimate_vector)] = [val for val, estimate in zip(initial_values, persistence_estimate_vector) if estimate]
                 elif model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "M" and model_type_dict["season_type"] == "A":
-                    B[j:j+sum(persistence_estimate_vector)] = [0, 0] + [0] * components_dict["components_number_ets_seasonal"]
+                    # Match R: c(0.01,0.005,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)]
+                    initial_values = [0.01, 0.005] + [0.01] * components_dict["components_number_ets_seasonal"]
+                    B[j:j+sum(persistence_estimate_vector)] = [val for val, estimate in zip(initial_values, persistence_estimate_vector) if estimate]
                 elif model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "A":
                     if initials_checked['initial_type'] in ["complete", "backcasting"]:
                         # Match R: c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)]
@@ -2933,7 +2959,8 @@ def filler(B,
            arima_checked,
            explanatory_checked,
            phi_dict,
-           constants_checked):
+           constants_checked,
+           adam_cpp=None):
     """
     Fill state-space matrices with parameter values from optimization vector B.
 
@@ -3099,40 +3126,58 @@ def filler(B,
         matrices_dict['mat_wt'][:, 1] = B[j-1]
         matrices_dict['mat_f'][0:2, 1] = B[j-1]
     
-    # ARMA parameters
-    if arima_checked['arima_model']:
-        # Call the function returning ARI and MA polynomials
-        try:
-            arima_polynomials = adam_polynomialiser(
-                B[j:j+sum(np.array(arima_checked['ar_orders'])*arima_checked['ar_estimate'] + 
-                         np.array(arima_checked['ma_orders'])*arima_checked['ma_estimate'])],
-                arima_checked['ar_orders'],
-                arima_checked['ma_orders'],
-                arima_checked['i_orders'],
-                arima_checked['ar_estimate'],
-                arima_checked['ma_estimate'],
-                arima_checked['arma_parameters'],
-                lags_dict['lags']
-            )
-            arima_polynomials = {k: np.array(v) for k, v in arima_polynomials.items()}
-            
-            # Fill in the transition matrix
-            if len(arima_checked['non_zero_ari']) > 0:
-                matrices_dict['mat_f'][components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1], 
-                       components_dict['components_number_ets']:components_dict['components_number_ets'] + components_dict['components_number_arima'] + constants_checked['constant_estimate']] = \
-                     -arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]]
-            
-            # Fill in the persistence vector
-            if len(arima_checked['non_zero_ari']) > 0:
-                matrices_dict['vec_g'][components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1]] = -arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]]
-            if len(arima_checked['non_zero_ma']) > 0:
-                matrices_dict['vec_g'][components_dict['components_number_ets'] + arima_checked['non_zero_ma'][:, 1]] += arima_polynomials['maPolynomial'][arima_checked['non_zero_ma'][:, 0]]
-        except Exception as e:
-            # print(f"DEBUG - Error in ARIMA processing: {e}")
-            pass
+    # ARMA parameters - R lines 1377-1401
+    if arima_checked['arima_model'] and adam_cpp is not None:
+        # Calculate number of ARMA parameters to extract from B
+        n_ar_params = sum(arima_checked['ar_orders']) if arima_checked['ar_estimate'] else 0
+        n_ma_params = sum(arima_checked['ma_orders']) if arima_checked['ma_estimate'] else 0
+        n_arma_params = n_ar_params + n_ma_params
         
-        j += sum(np.array(arima_checked['ar_orders'])*arima_checked['ar_estimate'] + 
-                np.array(arima_checked['ma_orders'])*arima_checked['ma_estimate'])
+        # Call the function returning ARI and MA polynomials - R line 1383-1385
+        # adamCpp$polynomialise(B[j+1:sum(...)], arOrders, iOrders, maOrders, ...)
+        arima_polynomials = adam_polynomialiser(
+            adam_cpp,
+            B[j:j+n_arma_params] if n_arma_params > 0 else np.array([0.0]),
+            arima_checked['ar_orders'],
+            arima_checked['i_orders'],
+            arima_checked['ma_orders'],
+            arima_checked['ar_estimate'],
+            arima_checked['ma_estimate'],
+            arima_checked['arma_parameters'] if arima_checked['arma_parameters'] else [],
+            lags_dict['lags']
+        )
+        
+        # Get array views for indexing
+        non_zero_ari = arima_checked['non_zero_ari']
+        non_zero_ma = arima_checked['non_zero_ma']
+        components_number_ets = components_dict['components_number_ets']
+        
+        # Fill in the transition matrix - R lines 1388-1391
+        if len(non_zero_ari) > 0:
+            for row_idx in range(len(non_zero_ari)):
+                poly_idx = non_zero_ari[row_idx, 0]
+                state_idx = non_zero_ari[row_idx, 1]
+                # R: matF[componentsNumberETS+nonZeroARI[,2], componentsNumberETS+1:...] <- -ariPolynomial[nonZeroARI[,1]]
+                matrices_dict['mat_f'][components_number_ets + state_idx, 
+                                       components_number_ets:components_number_ets + components_dict['components_number_arima'] + constants_checked.get('constant_required', 0)] = \
+                    -arima_polynomials['ari_polynomial'][poly_idx]
+        
+        # Fill in the persistence vector - R lines 1392-1399
+        if len(non_zero_ari) > 0:
+            for row_idx in range(len(non_zero_ari)):
+                poly_idx = non_zero_ari[row_idx, 0]
+                state_idx = non_zero_ari[row_idx, 1]
+                # R: vecG[componentsNumberETS+nonZeroARI[,2]] <- -ariPolynomial[nonZeroARI[,1]]
+                matrices_dict['vec_g'][components_number_ets + state_idx] = -arima_polynomials['ari_polynomial'][poly_idx]
+        
+        if len(non_zero_ma) > 0:
+            for row_idx in range(len(non_zero_ma)):
+                poly_idx = non_zero_ma[row_idx, 0]
+                state_idx = non_zero_ma[row_idx, 1]
+                # R: vecG[...+nonZeroMA[,2]] += maPolynomial[nonZeroMA[,1]]
+                matrices_dict['vec_g'][components_number_ets + state_idx] += arima_polynomials['ma_polynomial'][poly_idx]
+        
+        j += n_arma_params
     
     # Initials of ETS
     if model_type_dict['ets_model'] and initials_checked['initial_type'] not in ['complete', 'backcasting'] and initials_checked['initial_estimate']:

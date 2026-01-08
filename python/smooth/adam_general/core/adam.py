@@ -1010,182 +1010,232 @@ class ADAM:
 
     def _run_two_stage_initialization(self):
         """
-        Run two-stage initialization matching R's recursive approach (adam.R:2625-2767).
+        Run two-stage initialization (matching R behavior):
+        1. Call estimator with initial='complete' and return_matrices=True (like R's eval(clNew))
+        2. Extract persistence/ARMA params from Stage 1's fitted B
+        3. Extract initial states from Stage 1's fitted mat_vt
+        4. Run Stage 2 optimization with initial='optimal' using these as starting values
 
-        Stage 1: Create a fresh ADAM instance with initial="complete" and fast=True,
-                 which runs the ENTIRE pipeline (parameters_checker -> architector ->
-                 creator -> estimator) with fresh data structures.
-        Stage 2: Use Stage 1 results (persistence + backcasted initial states) as
-                 starting values for optimization with initial="optimal".
-
-        This matches R's behavior where adam() is called recursively with
-        clNew$initial <- "complete" (line 2636) and clNew$fast <- TRUE (line 2648).
+        Key insight: Instead of creating a full ADAM object for Stage 1 (which causes 
+        frequency errors during _prepare_results), we call estimator() directly with 
+        return_matrices=True. This gives us access to the backcasted mat_vt without
+        going through the full fitting pipeline.
         """
         import os
-        DEBUG_TWOSTAGE = os.environ.get('DEBUG_TWOSTAGE', 'False').lower() == 'true'
 
-        if DEBUG_TWOSTAGE:
-            print("\n[PYTHON TWOSTAGE DEBUG] Starting two-stage initialization")
-            print(f"  Creating fresh ADAM instance with initial='complete', fast=True")
-
-        # =================================================================
-        # Stage 1: Create fresh ADAM instance with initial="complete"
-        # This matches R's recursive call: clNew$initial <- "complete" (adam.R:2636)
-        # =================================================================
-
-        # Build orders dict if ARIMA is used
-        orders = None
-        if any(param != 0 for param in [self.ar_order, self.i_order, self.ma_order]):
-            orders = {
-                "ar": self.ar_order,
-                "i": self.i_order,
-                "ma": self.ma_order,
-                "select": self.arima_select,
-            }
-
-        stage1_model = ADAM(
-            model=self.model,
-            lags=self.lags,
-            ar_order=self.ar_order,
-            i_order=self.i_order,
-            ma_order=self.ma_order,
-            arima_select=self.arima_select,
-            constant=self.constant,
-            regressors=self.regressors,
-            distribution=self.distribution,
-            loss=self.loss,
-            loss_horizon=self.loss_horizon,
-            outliers=self.outliers,
-            outliers_level=self.outliers_level,
-            ic=self.ic,
-            bounds=self.bounds,
-            occurrence=self.occurrence,
-            persistence=self.persistence,
-            phi=self.phi,
-            initial="complete",  # KEY: Use "complete" for backcasting
-            n_iterations=self.n_iterations,
-            arma=self.arma,
-            verbose=0,  # Silent for Stage 1
-            h=self.h,
-            holdout=self.holdout,
-            model_do="estimate",
-            fast=True,  # KEY: Match R's clNew$fast <- TRUE (adam.R:2648)
-            models_pool=self.models_pool,
-            lambda_param=self.lambda_param,
-            frequency=self.frequency,
-            profiles_recent_provided=self.profiles_recent_provided,
-            profiles_recent_table=self.profiles_recent_table,
-            nlopt_initial=self.nlopt_initial,
-            nlopt_upper=self.nlopt_upper,
-            nlopt_lower=self.nlopt_lower,
-            nlopt_kargs=self.nlopt_kargs,
-            reg_lambda=self.reg_lambda,
-            gnorm_shape=self.gnorm_shape,
-        )
-
-        # Fit Stage 1 model to the same data
-        stage1_model.fit(self._y_data, X=self._X_data)
-
-        if DEBUG_TWOSTAGE:
-            print(f"\n[PYTHON TWOSTAGE DEBUG] Stage 1 (complete) results:")
-            print(f"  B_stage1: {stage1_model.adam_estimated['B']}")
-            print(f"  Stage 1 model type: {stage1_model.model_type_dict.get('model', 'N/A')}")
-
-        # =================================================================
-        # Extract results from Stage 1
-        # Matches R's adam.R:2673-2733:
-        # 1. Calculate nParametersBack (persistence + phi + ARIMA params only)
-        # 2. Copy ONLY B[1:nParametersBack] from Stage 1
-        # 3. Place new initial states at positions nParametersBack+1:end
-        # =================================================================
-
-        B_stage1 = stage1_model.adam_estimated["B"]
-
-        # Calculate nParametersBack - matches R's adam.R:2673-2677
-        # This is the number of persistence/xreg_persistence/phi/ARIMA params (NOT initial states)
-        persistence_estimate_vector = [
-            self.persistence_results.get('persistence_level_estimate', False),
-            self.model_type_dict.get("model_is_trendy", False) and self.persistence_results.get('persistence_trend_estimate', False),
-            self.model_type_dict.get("model_is_seasonal", False) and any(self.persistence_results.get('persistence_seasonal_estimate', [False]))
-        ]
-        n_persistence = sum(persistence_estimate_vector)
-        n_xreg_persistence = (
-            self.explanatory_dict.get('xreg_model', False) *
-            self.persistence_results.get('persistence_xreg_estimate', False) *
-            max(self.explanatory_dict.get('xreg_parameters_persistence', [0]) or [0])
-        )
-        n_phi = 1 if self.phi_dict.get('phi_estimate', False) else 0
-        n_ar = sum(self.arima_results.get('ar_orders', []) or []) if self.arima_results.get('ar_estimate', False) else 0
-        n_ma = sum(self.arima_results.get('ma_orders', []) or []) if self.arima_results.get('ma_estimate', False) else 0
-        n_params_back = n_persistence + n_xreg_persistence + n_phi + n_ar + n_ma
-
-        if DEBUG_TWOSTAGE:
-            print(f"\n[PYTHON TWOSTAGE DEBUG] nParametersBack calculation:")
-            print(f"  n_persistence: {n_persistence}")
-            print(f"  n_xreg_persistence: {n_xreg_persistence}")
-            print(f"  n_phi: {n_phi}")
-            print(f"  n_ar: {n_ar}, n_ma: {n_ma}")
-            print(f"  n_params_back: {n_params_back}")
-            print(f"  B_stage1 length: {len(B_stage1)}")
-
-        # Extract initial states from Stage 1's fitted model
-        # R uses adamBack$initial which contains the backcasted states
-        initial_value = self._extract_stage1_initials(stage1_model)
-
-        if DEBUG_TWOSTAGE:
-            print(f"\n[PYTHON TWOSTAGE DEBUG] Extracted initial_value dict:")
-            for key, val in initial_value.items():
-                if isinstance(val, np.ndarray):
-                    print(f"  {key}: shape={val.shape}, values={val}")
-                elif isinstance(val, list):
-                    print(f"  {key}: list with {len(val)} elements")
-                    for i, v in enumerate(val):
-                        if isinstance(v, np.ndarray):
-                            print(f"    [{i}]: shape={v.shape}, values={v}")
-                        else:
-                            print(f"    [{i}]: {v}")
-                else:
-                    print(f"  {key}: {val}")
-
-        # Convert initial_value dict to list (matching R's unlist() behavior)
-        initial_states = self._build_initial_states_list(initial_value)
-
-        if DEBUG_TWOSTAGE:
-            print(f"\n[PYTHON TWOSTAGE DEBUG] initial_states list:")
-            print(f"  Length: {len(initial_states)}")
-            print(f"  Values: {initial_states}")
-
-        # Build B_initial matching R's structure (adam.R:2729):
-        # Take ONLY the first n_params_back elements from Stage 1's B
-        # Then concatenate with new initial states
-        # This matches: B[1:nParametersBack] <- adamBack$B[1:nParametersBack]
-        #               B[nParametersBack + 1:length(initials)] <- initialsUnlisted
-        params_from_stage1 = B_stage1[:n_params_back]
-        B_initial = np.concatenate([params_from_stage1, np.array(initial_states)])
-
-        if DEBUG_TWOSTAGE:
-            print(f"\n[PYTHON TWOSTAGE DEBUG] Final B_initial (before stage 2):")
-            print(f"  Length: {len(B_initial)}")
-            print(f"  params_from_stage1 length: {len(params_from_stage1)}")
-            print(f"  initial_states length: {len(initial_states)}")
-            print(f"  B_initial: {B_initial}")
-            print(f"  B_initial breakdown:")
-            print(f"    B[0:{n_params_back}] (persistence/phi/ARIMA from Stage1): {B_initial[:n_params_back]}")
-            print(f"    B[{n_params_back}:] (new initial states): {B_initial[n_params_back:]}")
-
-        # =================================================================
-        # Stage 2: Run optimization with initial="optimal" using B_initial
-        # =================================================================
-
-        # Save and set initial type to "optimal" for Stage 2
+        # Store original initial type for restoration
         original_initial_type = self.initials_results["initial_type"]
-        self.initials_results["initial_type"] = "optimal"
+        original_n_iterations = self.initials_results.get("n_iterations", 2)
 
-        if DEBUG_TWOSTAGE:
-            print(f"\n[PYTHON TWOSTAGE DEBUG] Starting Stage 2 with initial='optimal'")
-            print(f"  Using B_initial as starting values")
+        # =========================================================================
+        # STAGE 1: Call estimator with initial='complete' and return_matrices=True
+        # This matches R's: adamBack <- suppressWarnings(eval(clNew, envir=env));
+        # Using estimator directly avoids frequency errors from _prepare_results()
+        # =========================================================================
 
-        # Run estimation for Stage 2, passing B_initial as starting values
+        # Temporarily switch to 'complete' for Stage 1
+        stage1_initials = self.initials_results.copy()
+        stage1_initials["initial_type"] = "complete"
+        stage1_initials["n_iterations"] = 2
+
+        if os.environ.get('DEBUG_TWOSTAGE'):
+            print(f"DEBUG Two-Stage S1: Running Stage 1 with initial='complete', return_matrices=True")
+            print(f"DEBUG Two-Stage S1: self.lags_dict = {self.lags_dict}")
+            print(f"DEBUG Two-Stage S1: self.lags = {getattr(self, 'lags', 'N/A')}")
+            print(f"DEBUG Two-Stage S1: stage1_initials = {stage1_initials}")
+            print(f"DEBUG Two-Stage S1: self.initials_results (original) = {self.initials_results}")
+
+        # Call estimator for Stage 1 with return_matrices=True to get mat_vt
+        adam_estimated_s1 = estimator(
+            general_dict=self.general,
+            model_type_dict=self.model_type_dict,
+            lags_dict=self.lags_dict,
+            observations_dict=self.observations_dict,
+            arima_dict=self.arima_results,
+            constant_dict=self.constant_dict,
+            explanatory_dict=self.explanatory_dict,
+            profiles_recent_table=self.profiles_recent_table,
+            profiles_recent_provided=self.profiles_recent_provided,
+            persistence_dict=self.persistence_results,
+            initials_dict=stage1_initials,
+            occurrence_dict=self.occurrence_dict,
+            phi_dict=self.phi_dict,
+            components_dict=self.components_dict,
+            return_matrices=True,  # This gives us access to mat_vt!
+        )
+
+        if os.environ.get('DEBUG_TWOSTAGE'):
+            print(f"DEBUG Two-Stage S1: Stage 1 completed")
+            print(f"DEBUG Two-Stage S1: B_stage1 = {adam_estimated_s1['B']}")
+
+        # =========================================================================
+        # Extract from Stage 1 results
+        # =========================================================================
+
+        # Extract B from Stage 1 (for "complete", this has persistence + phi + ARMA, NO initials)
+        B_stage1 = adam_estimated_s1["B"]
+        n_params_stage1 = len(B_stage1)
+
+        # Get the fitted mat_vt from Stage 1 (return_matrices=True stores it here)
+        mat_vt_s1 = adam_estimated_s1["matrices"]["mat_vt"]
+        lags_dict_s1 = adam_estimated_s1["lags_dict"]
+        lags_model_s1 = lags_dict_s1["lags_model"]
+        lags_model_max_s1 = lags_dict_s1["lags_model_max"]
+
+        if os.environ.get('DEBUG_TWOSTAGE'):
+            print(f"DEBUG Two-Stage S1: mat_vt shape = {mat_vt_s1.shape}")
+            print(f"DEBUG Two-Stage S1: mat_vt[:, 0] = {mat_vt_s1[:, 0]}")
+            print(f"DEBUG Two-Stage S1: lags_model = {lags_model_s1}")
+            print(f"DEBUG Two-Stage S1: lags_model_max = {lags_model_max_s1}")
+
+        # =========================================================================
+        # STAGE 2: Set up B vector with optimal initialization
+        # =========================================================================
+
+        # NOTE: Keep initial_type as 'two-stage' like R does (R line 2824: initialType=initialType)
+        # Python treats 'two-stage' same as 'optimal' for filler/CF purposes
+
+
+        # Need to call architector and creator for Stage 2 to get proper structure
+        from smooth.adam_general.core.creator import architector, creator, initialiser
+
+        model_type_dict_s2, components_dict_s2, lags_dict_s2, observations_dict_s2, profile_dict_s2, adam_cpp_s2 = (
+            architector(
+                self.model_type_dict,
+                self.lags_dict,
+                self.observations_dict,
+                self.arima_results,
+                self.constant_dict,
+                self.explanatory_dict,
+                self.profiles_recent_table,
+                self.profiles_recent_provided,
+            )
+        )
+
+        adam_created_s2 = creator(
+            model_type_dict_s2,
+            lags_dict_s2,
+            profile_dict_s2,
+            observations_dict_s2,
+            self.persistence_results,
+            self.initials_results,
+            self.arima_results,
+            self.constant_dict,
+            self.phi_dict,
+            components_dict_s2,
+            self.explanatory_dict,
+        )
+
+        # Get fresh B vector for Stage 2 (with initial='optimal', this includes initials)
+        b_values_s2 = initialiser(
+            model_type_dict=model_type_dict_s2,
+            components_dict=components_dict_s2,
+            lags_dict=lags_dict_s2,
+            adam_created=adam_created_s2,
+            persistence_checked=self.persistence_results,
+            initials_checked=self.initials_results,
+            arima_checked=self.arima_results,
+            constants_checked=self.constant_dict,
+            explanatory_checked=self.explanatory_dict,
+            observations_dict=observations_dict_s2,
+            bounds=self.general["bounds"],
+            phi_dict=self.phi_dict,
+            profile_dict=profile_dict_s2,
+        )
+
+        B = b_values_s2["B"].copy()
+
+        # Copy persistence/phi/ARMA parameters from Stage 1 to Stage 2's B
+        # R: B[1:nParametersBack] <- adamBack$B[1:nParametersBack];
+        B[:n_params_stage1] = B_stage1[:n_params_stage1]
+
+        # =========================================================================
+        # Extract initial states from Stage 1's fitted mat_vt
+        # This matches R's lines 3770-3843 and adamBack$initial extraction
+        # =========================================================================
+
+        initial_states = []
+        current_row = 0
+
+        # Level - R: head(matVt[i, 1:lagsModelMax], 1) = column 0 (first value)
+        if self.initials_results.get("initial_level_estimate", False):
+            initial_states.append(mat_vt_s1[current_row, 0])
+            current_row += 1
+        elif self.model_type_dict.get("ets_model", False):
+            current_row += 1  # Skip level row if not estimated
+
+        # Trend - R: head(matVt[i, 1:lagsModelMax], 1) = column 0 (first value)
+        if self.model_type_dict.get("model_is_trendy", False):
+            if self.initials_results.get("initial_trend_estimate", False):
+                initial_states.append(mat_vt_s1[current_row, 0])
+            current_row += 1
+
+        # Seasonal components - R: tail(matVt[i, 1:lagsModelMax], lagsModel[i])
+        if self.model_type_dict.get("model_is_seasonal", False):
+            n_seasonal = components_dict_s2.get("components_number_ets_seasonal", 0)
+            seasonal_estimate = self.initials_results.get("initial_seasonal_estimate", [False] * n_seasonal)
+            if not isinstance(seasonal_estimate, list):
+                seasonal_estimate = [seasonal_estimate] * n_seasonal
+
+            for i in range(n_seasonal):
+                lag = lags_model_s1[current_row]
+                if seasonal_estimate[i] if i < len(seasonal_estimate) else False:
+                    start_idx = lags_model_max_s1 - lag
+                    # Extract full seasonal vector (tail of matVt)
+                    full_seasonal = mat_vt_s1[current_row, start_idx:lags_model_max_s1].copy()
+
+                    # Renormalize per R's lines 2657-2676
+                    if self.model_type_dict.get("season_type", "N") == "A":
+                        full_seasonal = full_seasonal - np.mean(full_seasonal)
+                    elif self.model_type_dict.get("season_type", "N") == "M":
+                        if np.all(full_seasonal > 0):
+                            geo_mean = np.exp(np.mean(np.log(full_seasonal)))
+                            full_seasonal = full_seasonal / geo_mean
+
+                    # Truncate to m-1 (R's line 2666/2675)
+                    initial_states.extend(full_seasonal[:-1].tolist())
+                current_row += 1
+
+        # ARIMA initials (if estimated)
+        if self.arima_results.get("arima_model", False):
+            n_arima = self.arima_results.get("initial_arima_number", 0)
+            if self.initials_results.get("initial_arima_estimate", False) and n_arima > 0:
+                # Extract from mat_vt
+                for i in range(n_arima):
+                    initial_states.append(mat_vt_s1[current_row + i, lags_model_max_s1 - 1])
+
+        # Put extracted initials into B (after persistence/phi/ARMA parameters)
+        # R: B[nParametersBack + c(1:length(initialsUnlisted))] <- initialsUnlisted;
+        if len(initial_states) > 0:
+            B[n_params_stage1:n_params_stage1 + len(initial_states)] = initial_states
+
+        if os.environ.get('DEBUG_TWOSTAGE'):
+            print(f"DEBUG Two-Stage S2: initial_states extracted = {initial_states}")
+            print(f"DEBUG Two-Stage S2: B after combining = {B}")
+
+        # =========================================================================
+        # Bounds adjustment per R's adam.R lines 2700-2716
+        # =========================================================================
+        Bl = b_values_s2["Bl"].copy()
+        Bu = b_values_s2["Bu"].copy()
+
+        # Handle NaN bounds (R: if(any(is.na(lb))) lb[is.na(lb)] <- -Inf)
+        Bl[np.isnan(Bl)] = -np.inf
+        Bu[np.isnan(Bu)] = np.inf
+
+        # R's critical bounds adjustment: expand bounds if B falls outside them
+        # R: if(any(lb>B)) lb[lb>B] <- -Inf
+        # R: if(any(ub<B)) ub[ub<B] <- Inf
+        Bl[Bl > B] = -np.inf
+        Bu[Bu < B] = np.inf
+
+        if os.environ.get('DEBUG_TWOSTAGE'):
+            print(f"DEBUG Two-Stage S2: Bl = {Bl}")
+            print(f"DEBUG Two-Stage S2: Bu = {Bu}")
+
+        # =========================================================================
+        # Run Stage 2 estimation with the combined B and adjusted bounds
+        # =========================================================================
         self.adam_estimated = estimator(
             general_dict=self.general,
             model_type_dict=self.model_type_dict,
@@ -1197,208 +1247,18 @@ class ADAM:
             profiles_recent_table=self.profiles_recent_table,
             profiles_recent_provided=self.profiles_recent_provided,
             persistence_dict=self.persistence_results,
-            initials_dict=self.initials_results,
+            initials_dict=stage1_initials,
             occurrence_dict=self.occurrence_dict,
             phi_dict=self.phi_dict,
             components_dict=self.components_dict,
-            B_initial=B_initial
+            B_initial=B,
+            lb=Bl,
+            ub=Bu,
         )
 
-        # Restore initial type
+        # Restore initial type and n_iterations
         self.initials_results["initial_type"] = original_initial_type
-
-        if DEBUG_TWOSTAGE:
-            print(f"\n[PYTHON TWOSTAGE DEBUG] Stage 2 complete")
-            print(f"  Final B: {self.adam_estimated['B']}")
-
-    def _extract_stage1_initials(self, stage1_model):
-        """
-        Extract initial values from Stage 1 model matching R's adamBack$initial.
-
-        This calls predict() on Stage 1 to trigger preparator(), which computes
-        the 'initial' field using _process_initial_values(). This field contains
-        the backcasted initial states extracted from profiles_recent_table.
-
-        R renormalizes seasonal components in the two-stage-specific code (adam.R:2687-2715):
-        - Renormalizes (subtract mean for 'A', divide by geometric mean for 'M')
-        - Truncates last element (it's redundant since sum=0 or product=1)
-
-        Parameters
-        ----------
-        stage1_model : ADAM
-            The fitted Stage 1 ADAM model with initial="complete"
-
-        Returns
-        -------
-        dict
-            Dictionary with keys like 'level', 'trend', 'seasonal', etc.
-            containing the extracted and renormalized initial states.
-        """
-        import os
-        import copy
-        DEBUG_TWOSTAGE = os.environ.get('DEBUG_TWOSTAGE', 'False').lower() == 'true'
-        DEBUG_MAM = os.environ.get('DEBUG_MAM', 'False').lower() == 'true'
-
-        # Call predict() to trigger preparator() which computes the 'initial' field
-        # preparator() calls _process_initial_values() which extracts from profiles_recent_table
-        stage1_model.predict(h=1)
-
-        # Now prepared_model is available with the 'initial' field
-        if not hasattr(stage1_model, 'prepared_model') or stage1_model.prepared_model is None:
-            raise ValueError("Stage 1 model prepared_model not available after predict()")
-
-        # Get initial values from prepared_model
-        # This is the equivalent of R's adamBack$initial (adam.R:2722)
-        initial_value = copy.deepcopy(stage1_model.prepared_model['initial'])
-
-        if DEBUG_TWOSTAGE:
-            print(f"\n[PYTHON TWOSTAGE DEBUG] Stage 1 extraction (before renormalization):")
-            print(f"  Using stage1_model.prepared_model['initial'] (matches R's adamBack$initial)")
-            for key, val in initial_value.items():
-                if hasattr(val, 'shape'):
-                    print(f"  {key}: shape={val.shape}, values={val}")
-                elif isinstance(val, list):
-                    print(f"  {key}: list with {len(val)} elements")
-                else:
-                    print(f"  {key}: {val}")
-
-        # Renormalize seasonal initials and truncate to lag-1 elements
-        # This matches R's adam.R:2687-2715
-        if 'seasonal' in initial_value and stage1_model.model_type_dict.get("model_is_seasonal"):
-            season_type = stage1_model.model_type_dict.get("season_type", "A")
-            seasonal = initial_value['seasonal']
-
-            if DEBUG_TWOSTAGE:
-                print(f"\n[PYTHON TWOSTAGE DEBUG] Seasonal renormalization:")
-                print(f"  season_type: {season_type}")
-                print(f"  seasonal before: {seasonal}")
-
-            # Handle both single and multiple seasonalities
-            if isinstance(seasonal, list):
-                # Multiple seasonalities
-                for i, s in enumerate(seasonal):
-                    if isinstance(s, np.ndarray) and len(s) > 0:
-                        # Renormalize
-                        if season_type == "A":
-                            s = s - np.mean(s)
-                        elif season_type == "M":
-                            # Safety: Replace non-positive values with 1e-6
-                            s = np.where(s <= 0, 1e-6, s)
-                            # Use prod(x)^(1/n) to match R's geometric mean calculation exactly
-                            # R: prod(adamBack$initial$seasonal[[i]])^{1/length(...)}
-                            geo_mean = np.prod(s) ** (1.0 / len(s))
-                            if DEBUG_MAM:
-                                print(f"\n[DEBUG_MAM] Two-stage seasonal normalization (multi, {i}):")
-                                print(f"  Raw seasonal (after safety check): {s}")
-                                print(f"  Geometric mean (prod^(1/n)): {geo_mean}")
-                            if geo_mean > 0 and np.isfinite(geo_mean):
-                                s = s / geo_mean
-                            if DEBUG_MAM:
-                                print(f"  After normalization: {s}")
-                                print(f"  After truncation (:-1): {s[:-1]}")
-                        # Truncate to lag-1 elements
-                        seasonal[i] = s[:-1]
-            elif isinstance(seasonal, np.ndarray) and len(seasonal) > 0:
-                # Single seasonality
-                if season_type == "A":
-                    seasonal = seasonal - np.mean(seasonal)
-                elif season_type == "M":
-                    # Safety: Replace non-positive values with 1e-6
-                    seasonal = np.where(seasonal <= 0, 1e-6, seasonal)
-                    # Use prod(x)^(1/n) to match R's geometric mean calculation exactly
-                    # R: prod(adamBack$initial$seasonal)^{1/length(adamBack$initial$seasonal)}
-                    geo_mean = np.prod(seasonal) ** (1.0 / len(seasonal))
-                    if DEBUG_MAM:
-                        print(f"\n[DEBUG_MAM] Two-stage seasonal normalization (single):")
-                        print(f"  Raw seasonal (after safety check): {seasonal}")
-                        print(f"  Geometric mean (prod^(1/n)): {geo_mean}")
-                    if geo_mean > 0 and np.isfinite(geo_mean):
-                        seasonal = seasonal / geo_mean
-                    if DEBUG_MAM:
-                        print(f"  After normalization: {seasonal}")
-                        print(f"  After truncation (:-1): {seasonal[:-1]}")
-                # Truncate to lag-1 elements
-                initial_value['seasonal'] = seasonal[:-1]
-
-            if DEBUG_TWOSTAGE:
-                print(f"  seasonal after: {initial_value['seasonal']}")
-
-        if DEBUG_TWOSTAGE:
-            print(f"\n[PYTHON TWOSTAGE DEBUG] Final initial_value dict:")
-            for key, val in initial_value.items():
-                if hasattr(val, 'shape'):
-                    print(f"  {key}: shape={val.shape}, values={val}")
-                elif isinstance(val, list):
-                    print(f"  {key}: list with {len(val)} elements")
-                else:
-                    print(f"  {key}: {val}")
-
-        return initial_value
-
-    def _build_initial_states_list(self, initial_value):
-        """
-        Convert initial_value dict to list matching R's unlist() order.
-
-        R unlist() returns values in order: level, trend, seasonal(s), arima, xreg
-        (adam.R:2732-2733)
-
-        Parameters
-        ----------
-        initial_value : dict
-            Dictionary from _extract_stage1_initials() with keys like
-            'level', 'trend', 'seasonal', 'arima', 'xreg'
-
-        Returns
-        -------
-        list
-            Flat list of initial state values in the correct order
-        """
-        initial_states = []
-
-        # Level
-        if "level" in initial_value:
-            initial_states.append(initial_value["level"])
-
-        # Trend
-        if "trend" in initial_value:
-            initial_states.append(initial_value["trend"])
-
-        # Seasonal - already normalized by _process_initial_values
-        # R renormalizes seasonals before unlisting (adam.R:2657-2677)
-        if "seasonal" in initial_value:
-            seasonal_vals = initial_value["seasonal"]
-            # Handle both single seasonality (array) and multiple seasonalities (list of arrays)
-            if isinstance(seasonal_vals, list):
-                # Multiple seasonalities: flatten the list
-                for seasonal_array in seasonal_vals:
-                    if isinstance(seasonal_array, (list, np.ndarray)):
-                        initial_states.extend(seasonal_array)
-                    else:
-                        initial_states.append(seasonal_array)
-            elif isinstance(seasonal_vals, np.ndarray):
-                # Single seasonality: extend with array values
-                initial_states.extend(seasonal_vals)
-            else:
-                # Fallback: append as single value
-                initial_states.append(seasonal_vals)
-
-        # ARIMA initial states
-        if "arima" in initial_value:
-            arima_vals = initial_value["arima"]
-            if isinstance(arima_vals, (list, np.ndarray)):
-                initial_states.extend(arima_vals)
-            else:
-                initial_states.append(arima_vals)
-
-        # Xreg initial states (if present)
-        if "xreg" in initial_value:
-            xreg_vals = initial_value["xreg"]
-            if isinstance(xreg_vals, (list, np.ndarray)):
-                initial_states.extend(xreg_vals)
-            else:
-                initial_states.append(xreg_vals)
-
-        return initial_states
+        self.initials_results["n_iterations"] = original_n_iterations
 
     def _execute_estimation(self, estimation = True):
         """

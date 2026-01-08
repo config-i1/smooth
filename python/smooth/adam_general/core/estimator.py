@@ -274,6 +274,9 @@ def _create_objective_function(
         Objective function for optimizer
     """
     iteration_count = [0]
+    best_cf = [float('inf')]
+    max_alpha = [0.0]
+    
     def objective_wrapper(x, grad):
         """
         Wrapper for the objective function.
@@ -299,6 +302,27 @@ def _create_objective_function(
             bounds="usual",
         )
         
+        # Debug tracing when DEBUG_OPTIMIZER is set
+        import os
+        if os.environ.get('DEBUG_OPTIMIZER'):
+            # Track best and max alpha
+            if cf_value < best_cf[0]:
+                best_cf[0] = cf_value
+            if len(x) > 0 and x[0] > max_alpha[0]:
+                max_alpha[0] = x[0]
+            
+            # Print every iteration or just key ones
+            if iteration_count[0] <= 10 or iteration_count[0] % 10 == 0:
+                alpha_str = f"{x[0]:.6f}" if len(x) > 0 else "N/A"
+                beta_str = f"{x[1]:.6f}" if len(x) > 1 else "N/A"
+                print(f"Iter {iteration_count[0]:3d}: alpha={alpha_str}, beta={beta_str} -> CF={cf_value:.6f}")
+            
+            # Print summary at the end
+            if iteration_count[0] == 80:  # maxeval for AAN is 2*40=80
+                print(f"\n*** OPTIMIZATION SUMMARY ***")
+                print(f"Best CF found: {best_cf[0]:.6f}")
+                print(f"Max alpha explored: {max_alpha[0]:.6f}")
+                print(f"R finds alpha=1.0 with CF=710.07")
 
         # Limit extreme values to prevent numerical instability
         if not np.isfinite(cf_value) or cf_value > 1e10:
@@ -918,6 +942,17 @@ def estimator(
 
     # Set objective function
     opt.set_min_objective(objective_wrapper)
+
+    # DEBUG: Temporary debug prints to compare with R - REMOVE AFTER FIX
+    import os
+    if os.environ.get('DEBUG_BACKCASTING'):
+        print(f"DEBUG EST: Initial B = {B}")
+        print(f"DEBUG EST: lb = {lb}")
+        print(f"DEBUG EST: ub = {ub}")
+        # Calculate initial CF value
+        initial_cf = objective_wrapper(B, None)
+        print(f"DEBUG EST: Initial CF = {initial_cf:.6f}")
+
     # Step 9: Run optimization
     res = _run_optimization(opt, B)
     #print(res.fun)
