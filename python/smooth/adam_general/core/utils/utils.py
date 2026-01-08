@@ -299,6 +299,12 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     else:  # lowess or supsmu
         smoothing_function = smoothing_function_lowess
 
+    # DEBUG: Print selected smoother
+    import os
+    DEBUG_DECOMP = os.environ.get("DEBUG_CREATOR") == "True"
+    if DEBUG_DECOMP:
+        print(f"[MSDECOMPOSE DEBUG] Smoother selected: {smoother}")
+
     # Check if MA smoother works with the given sample size
     if smoother == "ma" and obs_in_sample <= min(lags):
         import warnings
@@ -394,7 +400,23 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     # This is required by adam() with backcasting
     valid_trend = ~np.isnan(trend)
     X_determ = np.column_stack([np.ones(obs_in_sample), np.arange(1, obs_in_sample + 1)])
+
+    # DEBUG: Print trend values before regression
+    if DEBUG_DECOMP:
+        print(f"[MSDECOMPOSE DEBUG] Trend before regression:")
+        print(f"  trend length: {len(trend)}")
+        print(f"  trend valid count: {np.sum(valid_trend)}")
+        print(f"  trend[0:5] (first 5): {trend[0:5]}")
+        print(f"  trend[-5:] (last 5): {trend[-5:]}")
+        print(f"  trend mean: {np.mean(trend[valid_trend])}")
+
     gta = np.linalg.lstsq(X_determ[valid_trend], trend[valid_trend], rcond=None)[0]
+
+    # DEBUG: Print gta before adjustment
+    if DEBUG_DECOMP:
+        print(f"[MSDECOMPOSE DEBUG] gta before adjustment: {gta}")
+        print(f"[MSDECOMPOSE DEBUG] max(lags): {max(lags)}")
+        print(f"[MSDECOMPOSE DEBUG] gta adjustment: -{gta[1]} * {max(lags)} = {-gta[1] * max(lags)}")
 
     # Move the trend back to start it off-sample in case of ADAM
     gta[0] = gta[0] - gta[1] * max(lags)
@@ -680,11 +702,37 @@ def measurement_inverter(measurement):
     """
     # Create a copy to avoid modifying the original array
     inverted = np.array(measurement, copy=True)
-    
+
     # Invert all elements
     np.divide(1, inverted, out=inverted, where=inverted!=0)
-    
+
     # Set infinite values to zero
     inverted[np.isinf(inverted)] = 0
-    
+
     return inverted
+
+def smooth_eigens(persistence, transition, measurement,
+                  lags_model_all, xreg_model, obs_in_sample,
+                  has_delta_persistence=False):
+    lags_unique = np.unique(lags_model_all)
+    lags_unique_length = len(lags_unique)
+    eigen_values = np.zeros(len(lags_model_all), dtype=complex)
+
+    # Eigen values checks do not work for xreg. So, check the average condition
+    if xreg_model and has_delta_persistence:
+        # We check the condition on average
+        return np.linalg.eigvals(
+            transition -
+            np.diag(persistence.flatten()) @
+            measurement_inverter(measurement[:obs_in_sample, :]).T @
+            measurement[:obs_in_sample, :] / obs_in_sample
+        )
+    else:
+        for i in range(lags_unique_length):
+            mask = lags_model_all == lags_unique[i]
+            eigen_values[mask] = np.linalg.eigvals(
+                transition[np.ix_(mask, mask)] -
+                persistence[mask].reshape(-1, 1) @
+                measurement[obs_in_sample - 1, mask].reshape(1, -1)
+            )
+        return eigen_values

@@ -2464,8 +2464,11 @@ def parameters_checker(
     )
 
     # Create observations dictionary
+    # Use actual y_in_sample length to account for holdout split
+    actual_y_in_sample = ot_info.get("y_in_sample", data)
+    actual_obs_in_sample = len(actual_y_in_sample) if hasattr(actual_y_in_sample, '__len__') else obs_in_sample
     observations_dict = {
-        "obs_in_sample": obs_in_sample,
+        "obs_in_sample": actual_obs_in_sample,
         "obs_nonzero": obs_nonzero,
         "obs_all": occ_info["obs_all"],
         #"obs_states": obs_states,

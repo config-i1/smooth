@@ -44,6 +44,9 @@ endif()
 # Adam Core - Updated to use new core implementation
 pybind11_add_module(_adamCore ../src/python/adamPython.cpp)
 
+# Define PYTHON_BUILD for conditional compilation
+target_compile_definitions(_adamCore PRIVATE PYTHON_BUILD)
+
 # CRITICAL: Point to src/ directory so headers can be found
 target_include_directories(_adamCore PRIVATE ../src)
 
