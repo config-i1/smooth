@@ -268,6 +268,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
             }
 
             if(arRequired || any(iOrders>0)){
+                # Reset the places for the ma polynomial not to duplicate the values
+                vecG[1:length(arimaPolynomials$maPolynomial[-1]),] <- 0
                 # Fill in the transition matrix
                 matF[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
                 # Fill in the persistence vector
