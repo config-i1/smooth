@@ -452,6 +452,10 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                                             rep(lagsModelSeasonal,each=2),"]"), xregNames);
                 matVt[(1:nSeasonal)*2-1,1:lagsModelMax] <- yInSample[1:lagsModelMax];
                 matVt[(1:nSeasonal)*2,1:lagsModelMax] <- matVt[(1:nSeasonal)*2-1,1:lagsModelMax]/1.1;
+                for(i in 1:nSeasonal){
+                    matF[2*i,2*i-1] <- 1;
+                    matWt[,2*i] <- 0;
+                }
             }
             else{
                 rownames(matVt) <- c("level.s", "potential.s", xregNames);
