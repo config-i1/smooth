@@ -620,11 +620,8 @@ def _expand_orders(orders):
 
     Parameters
     ----------
-    orders : dict, list, tuple, int, or None
-        ARIMA order specification. Can be:
-        - dict: {'ar': [1], 'i': [0], 'ma': [1]}
-        - list/tuple: [p, d, q] or ([p1, p2], [d1, d2], [q1, q2])
-        - int: Single AR order
+    orders : list, tuple, int, or None
+        ARIMA order specification
 
     Returns
     -------
@@ -637,29 +634,19 @@ def _expand_orders(orders):
     if orders is None:
         return ar_orders, i_orders, ma_orders
 
-    # Handle dict input - common format from ADAM class
-    if isinstance(orders, dict):
-        ar_val = orders.get('ar', orders.get('AR', [0]))
-        i_val = orders.get('i', orders.get('I', [0]))
-        ma_val = orders.get('ma', orders.get('MA', [0]))
-
-        ar_orders = [ar_val] if isinstance(ar_val, (int, float)) else list(ar_val)
-        i_orders = [i_val] if isinstance(i_val, (int, float)) else list(i_val)
-        ma_orders = [ma_val] if isinstance(ma_val, (int, float)) else list(ma_val)
-
-    # Handle list/tuple input
-    elif isinstance(orders, (list, tuple)):
+    # Handle different input types
+    if isinstance(orders, (list, tuple)):
         if len(orders) >= 3:
             ar_orders = (
-                [orders[0]] if isinstance(orders[0], (int, float)) else list(orders[0])
+                [orders[0]] if isinstance(orders[0], (int, float)) else orders[0]
             )
-            i_orders = [orders[1]] if isinstance(orders[1], (int, float)) else list(orders[1])
+            i_orders = [orders[1]] if isinstance(orders[1], (int, float)) else orders[1]
             ma_orders = (
-                [orders[2]] if isinstance(orders[2], (int, float)) else list(orders[2])
+                [orders[2]] if isinstance(orders[2], (int, float)) else orders[2]
             )
     elif isinstance(orders, (int, float)):
         # Single value -> assume AR order
-        ar_orders = [int(orders)]
+        ar_orders = [orders]
 
     return ar_orders, i_orders, ma_orders
 
@@ -1500,10 +1487,15 @@ def _organize_components_info(ets_info, arima_info, lags_model_seasonal):
         components_number_ets_non_seasonal = 0
 
     # Calculate number of ARIMA components
-    # Use the correctly pre-computed value from _check_arima()
-    # R line 628: componentsNumberARIMA <- length(lagsModelARIMA);
-    # The number of ARIMA components equals the number of unique lags in the polynomial
-    components_number_arima = arima_info.get("components_number_arima", 0) if arima_info["arima_model"] else 0
+    components_number_arima = (
+        (
+            sum(arima_info["ar_orders"])
+            + sum(arima_info["ma_orders"])
+            + sum(arima_info["i_orders"])
+        )
+        if arima_info["arima_model"]
+        else 0
+    )
 
     # Create components dictionary
     components_dict = {

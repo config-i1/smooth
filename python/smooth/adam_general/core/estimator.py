@@ -35,18 +35,23 @@ def _setup_arima_polynomials(model_type_dict, arima_dict, lags_dict):
         AR and MA polynomial matrices
     """
     if model_type_dict["arima_model"]:
-        # Get maximum lag for companion matrix sizing
-        max_lag = max(lags_dict["lags"]) if lags_dict["lags"] else 1
-
-        # AR polynomials - companion matrix for eigenvalue checking
-        ar_size = int(np.sum(arima_dict["ar_orders"]) * max_lag)
-        ar_polynomial_matrix = np.zeros((max(1, ar_size), max(1, ar_size)))
+        # AR polynomials
+        ar_polynomial_matrix = np.zeros(
+            (
+                np.sum(arima_dict["ar_orders"]) * lags_dict["lags"],
+                np.sum(arima_dict["ar_orders"]) * lags_dict["lags"],
+            )
+        )
         if ar_polynomial_matrix.shape[0] > 1:
             ar_polynomial_matrix[1:, :-1] = np.eye(ar_polynomial_matrix.shape[0] - 1)
 
-        # MA polynomials - companion matrix for eigenvalue checking
-        ma_size = int(np.sum(arima_dict["ma_orders"]) * max_lag)
-        ma_polynomial_matrix = np.zeros((max(1, ma_size), max(1, ma_size)))
+        # MA polynomials
+        ma_polynomial_matrix = np.zeros(
+            (
+                np.sum(arima_dict["ma_orders"]) * lags_dict["lags"],
+                np.sum(arima_dict["ma_orders"]) * lags_dict["lags"],
+            )
+        )
         if ma_polynomial_matrix.shape[0] > 1:
             ma_polynomial_matrix[1:, :-1] = np.eye(ma_polynomial_matrix.shape[0] - 1)
 

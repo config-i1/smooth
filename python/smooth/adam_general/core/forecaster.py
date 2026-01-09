@@ -934,6 +934,7 @@ def _fill_matrices_if_needed(
     explanatory_checked,
     phi_dict,
     constants_checked,
+    adam_cpp=None,
 ):
     """
     Fill matrices with estimated parameters if needed.

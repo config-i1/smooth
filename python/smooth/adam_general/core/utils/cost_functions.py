@@ -257,8 +257,7 @@ def CF(B,
                         arima_checked,
                         explanatory_checked,
                         phi_dict,
-                        constants_checked,
-                        adam_cpp)
+                        constants_checked)
     # If we estimate parameters of distribution, take it from the B vector
     if otherParameterEstimate:
         
@@ -272,16 +271,16 @@ def CF(B,
     if bounds == "usual":
         
         if arima_checked['arima_model'] and any([arima_checked['ar_estimate'], arima_checked['ma_estimate']]):
-            if arima_checked['ar_estimate'] and sum(-adamElements['arimaPolynomials']['ar_polynomial'][1:]) >= 1:
-                arPolynomialMatrix[:, 0] = -adamElements['arimaPolynomials']['ar_polynomial'][1:]
+            if arima_checked['ar_estimate'] and sum(-adamElements['arimaPolynomials']['arPolynomial'][1:]) >= 1:
+                arPolynomialMatrix[:, 0] = -adamElements['arimaPolynomials']['arPolynomial'][1:]
                 arPolyroots = np.abs(eigvals(arPolynomialMatrix))
                 # Strict constraint enforcement like in R
                 if any(arPolyroots > 1):
                     # Return a large penalty value
                     return 1e100
             
-            if arima_checked['ma_estimate'] and sum(adamElements['arimaPolynomials']['ma_polynomial'][1:]) >= 1:
-                maPolynomialMatrix[:, 0] = adamElements['arimaPolynomials']['ma_polynomial'][1:]
+            if arima_checked['ma_estimate'] and sum(adamElements['arimaPolynomials']['maPolynomial'][1:]) >= 1:
+                maPolynomialMatrix[:, 0] = adamElements['arimaPolynomials']['maPolynomial'][1:]
                 maPolyroots = np.abs(eigvals(maPolynomialMatrix))
                 # Strict constraint enforcement like in R
                 if any(maPolyroots > 1):
@@ -336,8 +335,8 @@ def CF(B,
 
     elif bounds == "admissible":
         if arima_checked['arima_model']:
-            if arima_checked['ar_estimate'] and (sum(-adamElements['arimaPolynomials']['ar_polynomial'][1:]) >= 1 or sum(-adamElements['arimaPolynomials']['ar_polynomial'][1:]) < 0):
-                arPolynomialMatrix[:, 0] = -adamElements['arimaPolynomials']['ar_polynomial'][1:]
+            if arima_checked['ar_estimate'] and (sum(-adamElements['arimaPolynomials']['arPolynomial'][1:]) >= 1 or sum(-adamElements['arimaPolynomials']['arPolynomial'][1:]) < 0):
+                arPolynomialMatrix[:, 0] = -adamElements['arimaPolynomials']['arPolynomial'][1:]
                 eigenValues = np.abs(eigvals(arPolynomialMatrix))
                 if any(eigenValues > 1):
                     return 1e100 * np.max(eigenValues)
@@ -359,7 +358,7 @@ def CF(B,
                         adamElements['mat_wt'][observations_dict['obs_in_sample']-1, indices]
                     ))
             else:
-                if model_type_dict['ets_model'] or (arima_checked['arima_model'] and arima_checked['ma_estimate'] and (sum(adamElements['arimaPolynomials']['ma_polynomial'][1:]) >= 1 or sum(adamElements['arimaPolynomials']['ma_polynomial'][1:]) < 0)):
+                if model_type_dict['ets_model'] or (arima_checked['arima_model'] and arima_checked['ma_estimate'] and (sum(adamElements['arimaPolynomials']['maPolynomial'][1:]) >= 1 or sum(adamElements['arimaPolynomials']['maPolynomial'][1:]) < 0)):
                     eigenValues = np.abs(eigvals(
                         adamElements['mat_f'] -
                         adamElements['vec_g'] @ adamElements['mat_wt'][observations_dict['obs_in_sample']-1]
@@ -883,11 +882,10 @@ def log_Lik_ADAM(
                                     arima_dict,
                                     explanatory_dict,
                                     phi_dict,
-                                    constant_dict,
-                                    adam_cpp)
+                                    constant_dict)
 
             # Write down the initials in the recent profile
-            profile_dict['profiles_recent_table'][:] = adam_elements['mat_vt'][:, :lags_dict['lags_model_max']]
+            profile_dict['profiles_recent_table'][:] = adam_elements['matVt'][:, :lags_dict['lags_model_max']]
 
             # Fit the model again to extract the fitted values
             # refineHead should always be True (fixed backcasting issue)

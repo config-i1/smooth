@@ -1816,26 +1816,23 @@ def initialiser(
 
     if arima_checked['arima_model']:
         if any([arima_checked['ar_estimate'], arima_checked['ma_estimate']]):
-            # Use numpy for element-wise multiplication of lists
-            ma_sum = int(np.sum(np.array(arima_checked['ma_orders']) * np.array(lags_dict["lags"])))
-            ar_sum = int(np.sum(np.array(arima_checked['ar_orders']) * np.array(lags_dict["lags"])))
-            acf_values = [-0.1] * max(1, ma_sum)
-            pacf_values = [0.1] * max(1, ar_sum)
+            acf_values = [-0.1] * sum(arima_checked['ma_orders'] * lags_dict["lags"])
+            pacf_values = [0.1] * sum(arima_checked['ar_orders'] * lags_dict["lags"])
             
-            if not (model_type_dict["ets_model"] or all(np.array(arima_checked['i_orders']) == 0)):
+            if not (model_type_dict["ets_model"] or all(arima_checked['i_orders'] == 0)):
                 y_differenced = observations_dict['y_in_sample'].copy()
                 # Implement differencing if needed
-                if any(np.array(arima_checked['i_orders']) > 0):
+                if any(arima_checked['i_orders'] > 0):
                     for i, order in enumerate(arima_checked['i_orders']):
                         if order > 0:
                             y_differenced = np.diff(y_differenced, n=order, axis=0)
-
+                
                 # ACF/PACF calculation for non-seasonal models
                 if all(np.array(lags_dict["lags"]) <= 1):
                     if arima_checked['ma_required'] and arima_checked['ma_estimate']:
-                        acf_values[:min(ma_sum, len(y_differenced) - 1)] = calculate_acf(y_differenced, nlags=max(1, ma_sum))[1:]
+                        acf_values[:min(sum(arima_checked['ma_orders'] * lags_dict["lags"]), len(y_differenced) - 1)] = calculate_acf(y_differenced, nlags=max(1, sum(arima_checked['ma_orders'] * lags_dict["lags"])))[1:]
                     if arima_checked['ar_required'] and arima_checked['ar_estimate']:
-                        pacf_values[:min(ar_sum, len(y_differenced) - 1)] = calculate_pacf(y_differenced, nlags=max(1, ar_sum))
+                        pacf_values[:min(sum(arima_checked['ar_orders'] * lags_dict["lags"]), len(y_differenced) - 1)] = calculate_pacf(y_differenced, nlags=max(1, sum(arima_checked['ar_orders'] * lags_dict["lags"])))
             
             for i, lag in enumerate(lags_dict["lags"]):
                 if arima_checked['ar_required'] and arima_checked['ar_estimate'] and arima_checked['ar_orders'][i] > 0:
@@ -1913,9 +1910,7 @@ def initialiser(
                 #names.extend([f"seasonal_{m}" for m in range(2, temp_lag)])
                 j += temp_lag - 1
     if initials_checked['initial_type'] not in ["backcasting", "complete"] and arima_checked['arima_model'] and initials_checked['initial_arima_estimate']:
-        # Use -1 to get the last ARIMA state row (matches filler() indexing)
-        arima_row_idx = components_dict["components_number_ets"] + components_dict["components_number_arima"] - 1
-        B[j:j+initials_checked['initial_arima_number']] = adam_created['mat_vt'][arima_row_idx, :initials_checked['initial_arima_number']]
+        B[j:j+initials_checked['initial_arima_number']] = adam_created['mat_vt'][components_dict["components_number_ets"] + components_dict["components_number_arima"], :initials_checked['initial_arima_number']]
         names.extend([f"ARIMAState{n}" for n in range(1, initials_checked['initial_arima_number']+1)])
         if model_type_dict["error_type"] == "A":
             Bl[j:j+initials_checked['initial_arima_number']] = -np.inf
@@ -1932,9 +1927,7 @@ def initialiser(
         if initials_checked['initial_type'] not in ["backcasting", "complete"]:
             xreg_number_to_estimate = sum(explanatory_checked['xreg_parameters_estimated'])
             if xreg_number_to_estimate > 0:
-                # Xreg states come after ETS and ARIMA states
-                xreg_row_idx = components_dict["components_number_ets"] + components_dict["components_number_arima"]
-                B[j:j+xreg_number_to_estimate] = adam_created['mat_vt'][xreg_row_idx, 0]
+                B[j:j+xreg_number_to_estimate] = adam_created['mat_vt'][components_dict["components_number_ets"] + components_dict["components_number_arima"], 0]
                 names.extend([f"xreg{idx+1}" for idx in range(xreg_number_to_estimate)])
                 Bl[j:j+xreg_number_to_estimate] = -np.inf
                 Bu[j:j+xreg_number_to_estimate] = np.inf
@@ -2719,8 +2712,8 @@ def architector(
 
     # Set up components for the model
     components_dict = _setup_components(model_type_dict, arima_checked, lags_dict)
-    # Set up lags - pass arima_checked to get correct lags_model_arima
-    lags_dict = _setup_lags(lags_dict, model_type_dict, components_dict, arima_checked)
+    # Set up lags
+    lags_dict = _setup_lags(lags_dict, model_type_dict, components_dict)
 
     # Set up profiles
     profiles_dict = _create_profiles(
@@ -2806,7 +2799,7 @@ def _setup_components(model_type_dict, arima_checked, lags_dict):
     return components_dict
 
 
-def _setup_lags(lags_dict, model_type_dict, components_dict, arima_checked=None):
+def _setup_lags(lags_dict, model_type_dict, components_dict):
     """
     Set up lags for the model architecture.
 
@@ -2814,7 +2807,6 @@ def _setup_lags(lags_dict, model_type_dict, components_dict, arima_checked=None)
         lags_dict: Dictionary containing lags information
         model_type_dict: Dictionary containing model type information
         components_dict: Dictionary containing component information
-        arima_checked: Dictionary containing ARIMA parameters (optional)
 
     Returns:
         Dict: Updated lags dictionary
@@ -2837,20 +2829,14 @@ def _setup_lags(lags_dict, model_type_dict, components_dict, arima_checked=None)
         # Seasonal components have lags corresponding to seasonal periods
         if model_type_dict["model_is_seasonal"]:
             lags_model_seasonal = []
-
+            
             for lag in lags:
                 if lag > 1:
                     lags_model.append(lag)
 
-    # ARIMA components - use lags_model_arima from arima_checked if available
-    # R line 623: lagsModelARIMA <- matrix(sort(unique(c(nonZeroARI,nonZeroMA))),ncol=1);
+    # ARIMA components
     lags_model_arima = []
-    if arima_checked and arima_checked.get("arima_model", False):
-        # Use pre-computed lags_model_arima from _check_arima()
-        lags_model_arima = arima_checked.get("lags_model_arima", [])
-
-    # Fallback: if lags_model_arima is empty but we have ARIMA components, use max_lag
-    if not lags_model_arima and (
+    if (
         "components_number_arima" in components_dict
         and components_dict["components_number_arima"] > 0
     ):
@@ -3064,7 +3050,7 @@ def filler(B,
         - **'mat_wt'**: Updated measurement matrix
         - **'mat_f'**: Updated transition matrix
         - **'vec_g'**: Updated persistence vector
-        - **'arimaPolynomials'**: Dict with 'ar_polynomial', 'ari_polynomial', 'ma_polynomial' (if ARIMA)
+        - **'arimaPolynomials'**: Dict with 'arPolynomial' and 'maPolynomial' (if ARIMA)
 
     Notes
     -----
@@ -3120,8 +3106,6 @@ def filler(B,
         >>> print(result['mat_vt'][:, 0])  # [100, 5] - initial level and trend filled
     """
     j = 0
-    arima_polynomials = None  # Initialize to None, will be set if ARIMA is used
-
     # Fill in persistence
     if persistence_checked['persistence_estimate']:
         # Persistence of ETS
@@ -3259,13 +3243,13 @@ def filler(B,
             if model_type_dict['error_type'] == "A":
                 ari_indices = components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1]
                 matrices_dict['mat_vt'][ari_indices, :initials_checked['initial_arima_number']] = \
-                    np.dot(arima_polynomials['ari_polynomial'][arima_checked['non_zero_ari'][:, 0]], 
-                            B[j:j+initials_checked['initial_arima_number']].reshape(1, -1)) / arima_polynomials['ari_polynomial'][-1]
+                    np.dot(arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]], 
+                            B[j:j+initials_checked['initial_arima_number']].reshape(1, -1)) / arima_polynomials['ariPolynomial'][-1]
             else:  # "M"
                 ari_indices = components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1]
                 matrices_dict['mat_vt'][ari_indices, :initials_checked['initial_arima_number']] = \
-                    np.exp(np.dot(arima_polynomials['ari_polynomial'][arima_checked['non_zero_ari'][:, 0]], 
-                                    np.log(B[j:j+initials_checked['initial_arima_number']]).reshape(1, -1)) / arima_polynomials['ari_polynomial'][-1])
+                    np.exp(np.dot(arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]], 
+                                    np.log(B[j:j+initials_checked['initial_arima_number']]).reshape(1, -1)) / arima_polynomials['ariPolynomial'][-1])
             
         
             j += initials_checked['initial_arima_number']
@@ -3273,17 +3257,17 @@ def filler(B,
             if model_type_dict['error_type'] == "A":
                 matrices_dict['mat_vt'][components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1], 
                                         :initials_checked['initial_arima_number']] = \
-                    np.dot(arima_polynomials['ari_polynomial'][arima_checked['non_zero_ari'][:, 0]], 
+                    np.dot(arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]], 
                             matrices_dict['mat_vt'][components_dict['components_number_ets'] + components_dict['components_number_arima'] - 1, 
                                                     :initials_checked['initial_arima_number']].reshape(1, -1)) / \
-                    arima_polynomials['ari_polynomial'][-1]
+                    arima_polynomials['ariPolynomial'][-1]
             else:  # "M"
                 matrices_dict['mat_vt'][components_dict['components_number_ets'] + arima_checked['non_zero_ari'][:, 1], 
                                         :initials_checked['initial_arima_number']] = \
-                    np.exp(np.dot(arima_polynomials['ari_polynomial'][arima_checked['non_zero_ari'][:, 0]], 
+                    np.exp(np.dot(arima_polynomials['ariPolynomial'][arima_checked['non_zero_ari'][:, 0]], 
                                     np.log(matrices_dict['mat_vt'][components_dict['components_number_ets'] + components_dict['components_number_arima'] - 1, 
                                                                 :initials_checked['initial_arima_number']]).reshape(1, -1)) / \
-                            arima_polynomials['ari_polynomial'][-1])
+                            arima_polynomials['ariPolynomial'][-1])
             
     # Xreg initial values
     if explanatory_checked['xreg_model'] and (initials_checked['initial_type'] != "complete") and initials_checked['initial_estimate'] and initials_checked['initial_xreg_estimate']:
@@ -3299,11 +3283,10 @@ def filler(B,
         constant_index = components_dict['components_number_ets'] + components_dict['components_number_arima'] + explanatory_checked['xreg_number']
         
         matrices_dict['mat_vt'][constant_index, :] = B[j]
-    # Return with 'arimaPolynomials' key (camelCase) for compatibility with CF()
     return {
         'mat_vt': matrices_dict['mat_vt'],
         'mat_wt': matrices_dict['mat_wt'],
         'mat_f': matrices_dict['mat_f'],
         'vec_g': matrices_dict['vec_g'],
-        'arimaPolynomials': arima_polynomials if (arima_checked['arima_model'] and adam_cpp is not None) else matrices_dict.get('arima_polynomials')
+        'arima_polynomials': matrices_dict['arima_polynomials']
     }
