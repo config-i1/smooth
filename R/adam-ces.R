@@ -937,7 +937,10 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
     matVt[,1:lagsModelMax] <- elements$vt;
 
     # Write down the initials in the recent profile
-    profilesRecentInitial <- profilesRecentTable[] <- matVt[,1:lagsModelMax,drop=FALSE];
+    profilesRecentTable[] <- elements$vt;
+    if(!profilesRecentProvided){
+        profilesRecentInitial <- elements$vt;
+    }
 
     #### Fisher Information ####
     if(FI){

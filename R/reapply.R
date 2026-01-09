@@ -98,7 +98,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     if(vcovEigen<0){
         if(vcovEigen>-1){
             warning(paste0("The covariance matrix of parameters is not positive semi-definite. ",
-                           "I will try fixing this, but it might make sense re-estimating adam(), tuning the optimiser."),
+                           "I will try fixing this, but it might make sense re-estimating the model, tuning the optimiser."),
                     call.=FALSE, immediate.=TRUE);
             # Tune the thing a bit - one of simple ways to fix the issue
             epsilon <- -vcovEigen+1e-10;
@@ -107,8 +107,8 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
         else{
             warning(paste0("The covariance matrix of parameters is not positive semi-definite. ",
                            "I cannot fix it, so I will use the diagonal only. ",
-                           "It makes sense to re-estimate adam(), tuning the optimiser. ",
-                           "For example, try reoptimising via 'object <- adam(y, ..., B=object$B)'."),
+                           "It makes sense to re-estimate the model, tuning the optimiser. ",
+                           "For example, try reoptimising providing initial vector of parameters 'B=object$B'."),
                     call.=FALSE, immediate.=TRUE);
             vcovAdam[] <- diag(diag(vcovAdam));
         }
@@ -122,9 +122,10 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     Etype <- errorType(object);
     Ttype <- trendType(object);
     Stype <- seasonType(object);
-    lags <- object$lags;
+    lags <- lags(object);
     lagsSeasonal <- lags[lags!=1];
-    lagsModelAll <- object$lagsAll;
+    nSeasonal <- length(lagsSeasonal);
+    lagsModelAll <- modelLags(object);
     lagsModelMax <- max(lagsModelAll);
     persistence <- as.matrix(object$persistence);
     # If there is xreg, but no deltas, increase persistence by including zeroes
@@ -133,7 +134,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
         persistence <- rbind(persistence,matrix(rep(0,sum(object$nParam[,2])),ncol=1));
     }
 
-    # cesModel <- cesChecker(object);
+    cesModel <- cesChecker(object);
     etsModel <- etsChecker(object);
     arimaModel <- arimaChecker(object);
     gumModel <- gumChecker(object);
@@ -147,6 +148,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
     componentsNumberETSNonSeasonal <- componentsDefined$componentsNumberETSNonSeasonal;
     componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
+    constantRequired <- componentsDefined$constantRequired;
 
     # Prepare variables for xreg
     if(!is.null(object$initial$xreg)){
@@ -236,9 +238,6 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     }
     indexLookupTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$lookup;
 
-    # See if constant is required
-    constantRequired <- !is.null(object$constant);
-
     # Create C++ adam class
     adamCpp <- new(adamCore,
                    lagsModelAll, Etype, Ttype, Stype,
@@ -309,15 +308,15 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                 }
             }
             # Check, if there are deltas (for xreg)
-            if(any(substr(parametersNames,1,5)=="delta")){
-                deltas <- which(substr(parametersNames,1,5)=="delta");
-                for(i in 1:length(deltas)){
-                    deltaBounds <- eigenBounds(object, persistence,
-                                               variableNumber=which(substr(names(object$persistence),1,5)=="delta")[i]);
-                    randomParameters[randomParameters[,deltas[i]]<deltaBounds[1],deltas[i]] <- deltaBounds[1];
-                    randomParameters[randomParameters[,deltas[i]]>deltaBounds[2],deltas[i]] <- deltaBounds[2];
-                }
-            }
+            # if(any(substr(parametersNames,1,5)=="delta")){
+            #     deltas <- which(substr(parametersNames,1,5)=="delta");
+            #     for(i in 1:length(deltas)){
+            #         deltaBounds <- eigenBounds(object, persistence,
+            #                                    variableNumber=which(substr(names(object$persistence),1,5)=="delta")[i]);
+            #         randomParameters[randomParameters[,deltas[i]]<deltaBounds[1],deltas[i]] <- deltaBounds[1];
+            #         randomParameters[randomParameters[,deltas[i]]>deltaBounds[2],deltas[i]] <- deltaBounds[2];
+            #     }
+            # }
         }
 
         # States
@@ -330,6 +329,61 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
             seasonals <- which(substr(parametersNames,1,8)=="seasonal");
             for(i in seasonals){
                 randomParameters[randomParameters[,i]<0,i] <- 1e-6;
+            }
+        }
+    }
+
+    if(cesModel){
+        alpha0 <- which(substr(parametersNames,1,7)=="alpha_0");
+        alpha1 <- which(substr(parametersNames,1,7)=="alpha_1");
+        beta <- which(substr(parametersNames,1,4)=="beta");
+        beta0 <- which(substr(parametersNames,1,6)=="beta_0");
+        beta1 <- which(substr(parametersNames,1,6)=="beta_1");
+
+        # Check, if there is alpha_0
+        if(length(alpha0)>0){
+            for(i in 1:length(alpha0)){
+                alphaBounds <- eigenBounds(object, persistence,
+                                           variableNumber=alpha0[i]);
+                randomParameters[randomParameters[,alpha0[i]]<alphaBounds[1],alpha0[i]] <- alphaBounds[1];
+                randomParameters[randomParameters[,alpha0[i]]>alphaBounds[2],alpha0[i]] <- alphaBounds[2];
+            }
+        }
+        # Check, if there is alpha_1
+        if(length(alpha1)>0){
+            for(i in 1:length(alpha1)){
+                alphaBounds <- eigenBounds(object, persistence,
+                                           variableNumber=alpha1[i]);
+                randomParameters[randomParameters[,alpha1[i]]<alphaBounds[1],alpha1[i]] <- alphaBounds[1];
+                randomParameters[randomParameters[,alpha1[i]]>alphaBounds[2],alpha1[i]] <- alphaBounds[2];
+            }
+        }
+        # Check, if there is a unique beta from partial seasonal model
+        betaUnique <- beta[!(beta %in% beta0) & !(beta %in% beta1)];
+        if(length(betaUnique)>0){
+            for(i in 1:length(betaUnique)){
+                alphaBounds <- eigenBounds(object, persistence,
+                                           variableNumber=betaUnique[i]);
+                randomParameters[randomParameters[,betaUnique[i]]<alphaBounds[1],betaUnique[i]] <- alphaBounds[1];
+                randomParameters[randomParameters[,betaUnique[i]]>alphaBounds[2],betaUnique[i]] <- alphaBounds[2];
+            }
+        }
+        # Check, if there is alpha_0
+        if(length(beta0)>0){
+            for(i in 1:length(beta0)){
+                alphaBounds <- eigenBounds(object, persistence,
+                                           variableNumber=beta0[i]);
+                randomParameters[randomParameters[,beta0[i]]<alphaBounds[1],beta0[i]] <- alphaBounds[1];
+                randomParameters[randomParameters[,beta0[i]]>alphaBounds[2],beta0[i]] <- alphaBounds[2];
+            }
+        }
+        # Check, if there is alpha_1
+        if(length(beta1)>0){
+            for(i in 1:length(beta1)){
+                alphaBounds <- eigenBounds(object, persistence,
+                                           variableNumber=beta1[i]);
+                randomParameters[randomParameters[,beta1[i]]<alphaBounds[1],beta1[i]] <- alphaBounds[1];
+                randomParameters[randomParameters[,beta1[i]]>alphaBounds[2],beta1[i]] <- alphaBounds[2];
             }
         }
     }
@@ -417,7 +471,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     #### Fill in the values in matrices ####
     # k is the index for randomParameters columns
     k <- 0;
-    # Fill in the persistence
+    # Fill in the ETS parameters
     if(etsModel){
         if(any(parametersNames=="alpha")){
             matG["alpha",] <- randomParameters[,"alpha"];
@@ -440,6 +494,57 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
             k <- k+1;
         }
     }
+
+    # Transition and persistence of CES
+    if(cesModel){
+        # j is for states in matVt
+        j <- 0;
+        # No seasonality
+        if(length(alpha0)>0){
+            if(length(alpha0)==1){
+                arrF[1,2,] <- randomParameters[,"alpha_1"] - 1;
+                arrF[2,2,] <- 1 - randomParameters[,"alpha_0"];
+                matG[1,] <- randomParameters[,"alpha_0"] - randomParameters[,"alpha_1"];
+                matG[2,] <- randomParameters[,"alpha_0"] + randomParameters[,"alpha_1"];
+                k[] <- k + 2;
+            }
+            # Simple seasonality, lagged CES
+            else{
+                for(i in 1:nSeasonal){
+                    arrF[i*2-1,i*2,] <- randomParameters[,alpha1[i]] - 1;
+                    arrF[i*2,i*2,] <- 1-randomParameters[,alpha0[i]];
+                    matG[2*i-1,] <- randomParameters[,alpha0[i]] - randomParameters[,alpha1[i]];
+                    matG[2*i,] <- randomParameters[,alpha0[i]] + randomParameters[,alpha1[i]];
+                    k[] <- k + 2;
+                }
+                # }
+            }
+        }
+
+        if(length(beta)>0){
+            if(object$seasonality=="partial"){
+                # Partial seasonality with a real part only
+                for(i in 1:nSeasonal){
+                    matG[k+i,] <- randomParameters[,beta[i]];
+                }
+                k[] <- k + nSeasonal;
+            }
+            else if(object$seasonality=="full"){
+                # Full seasonality with both real and imaginary parts
+                for(i in 1:nSeasonal){
+                    arrF[k+i*2-1,k+i*2,] <- randomParameters[,beta1[i]]-1;
+                    arrF[k+i*2,k+i*2,] <- 1 - randomParameters[,beta0[i]];
+                    matG[k+2*i-1,] <- randomParameters[,beta0[i]] - randomParameters[,beta1[i]];
+                    matG[k+2*i,] <- randomParameters[,beta0[i]] + randomParameters[,beta1[i]];
+                }
+                k[] <- k + 2*nSeasonal;
+            }
+        }
+    }
+
+    # Transition, persistence and measurement of GUM
+    # if(gumModel){}
+
     if(xregModel && any(substr(parametersNames,1,5)=="delta")){
         deltas <- which(substr(colnames(randomParameters),1,5)=="delta");
         matG[colnames(randomParameters)[deltas],] <- t(randomParameters[,deltas,drop=FALSE]);
@@ -510,12 +615,6 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
 
         for(i in 1:nsim){
             # Call the function returning ARI and MA polynomials
-            # arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-            #                                    arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
-            #                                    armaParameters, lags);
-            # arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-            #                                               arOrders, iOrders, maOrders,
-            #                                               arEstimate, maEstimate, armaParameters, lags), as.vector)
             arimaPolynomials <- lapply(adamCpp$polynomialise(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                              arOrders, iOrders, maOrders,
                                                              arEstimate, maEstimate, armaParameters, lags), as.vector);
@@ -537,7 +636,6 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     # j is the index for the components in the profile
     j <- 0
     # Fill in the profile values
-    # profilesRecentArray <- array(t(object$states[1:lagsModelMax,]),c(dim(object$profile),nsim));
     profilesRecentArray <- array(object$profileInitial,c(dim(object$profile),nsim));
     if(etsModel){
         j <- j+1;
@@ -575,6 +673,10 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
             k <- k+length(initialSeasonalIndices);
         }
     }
+    # CES states
+    # if(cesModel){}
+    # GUM states
+    # if(gumModel){}
     # ARIMA states in the profileRecent
     if(arimaModel){
         # See if the initials were estimated
@@ -588,12 +690,6 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                     # Call the function returning ARI and MA polynomials
                     ### This is not optimal, as the polynomialiser() is called twice (for parameters and here),
                     ### but this is simpler
-                    # arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                    #                                    arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
-                    #                                    armaParameters, lags);
-                    # arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                    #                                               arOrders, iOrders, maOrders,
-                    #                                               arEstimate, maEstimate, armaParameters, lags), as.vector)
                     arimaPolynomials <- lapply(adamCpp$polynomialise(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                                      arOrders, iOrders, maOrders,
                                                                      arEstimate, maEstimate, armaParameters, lags), as.vector);
@@ -612,12 +708,6 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
             else{
                 for(i in 1:nsim){
                     # Call the function returning ARI and MA polynomials
-                    # arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                    #                                    arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
-                    #                                    armaParameters, lags);
-                    # arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                    #                                               arOrders, iOrders, maOrders,
-                    #                                               arEstimate, maEstimate, armaParameters, lags), as.vector)
                     arimaPolynomials <- lapply(adamCpp$polynomialise(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                                      arOrders, iOrders, maOrders,
                                                                      arEstimate, maEstimate, armaParameters, lags), as.vector);
@@ -664,17 +754,11 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     yt <- matrix(actuals(object));
 
     # Refit the model with the new parameter
-    # adamRefitted <- adamRefitterWrap(yt, ot, arrVt, arrF, arrWt, matG,
-    #                                  Etype, Ttype, Stype,
-    #                                  lagsModelAll, indexLookupTable, profilesRecentArray,
-    #                                  componentsNumberETSSeasonal, componentsNumberETS,
-    #                                  componentsNumberARIMA, xregNumber, constantRequired,
-    #                                  object$initialType=="backcasting", refineHead, adamETS);
     adamRefitted <- adamCpp$reapply(yt, ot,
                                     arrVt, arrWt,
                                     arrF, matG,
                                     indexLookupTable, profilesRecentArray,
-                                    object$initialType=="backcasting", refineHead)
+                                    any(object$initialType==c("backcasting","complete")), refineHead)
 
     arrVt[] <- adamRefitted$states;
     fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
@@ -894,6 +978,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
     componentsNumberETSNonSeasonal <- componentsDefined$componentsNumberETSNonSeasonal;
     componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
+    constantRequired <- componentsDefined$constantRequired;
 
     obsStates <- nrow(object$states);
     obsInSample <- nobs(object);
@@ -1142,9 +1227,6 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         xregNumber <- 0;
     }
 
-    # See if constant is required
-    constantRequired <- !is.null(object$constant);
-
     # Create C++ adam class
     adamCpp <- new(adamCore,
                    lagsModelAll, Etype, Ttype, Stype,
@@ -1201,15 +1283,6 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # Array of the simulated data
     arrayYSimulated <- array(0,c(h,nsim,nsim));
     # Start the loop... might take some time
-    # arrayYSimulated[] <- adamReforecasterWrap(arrErrors,
-    #                                           array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim)),
-    #                                           objectRefitted$transition,
-    #                                           arrWt,
-    #                                           objectRefitted$persistence,
-    #                                           EtypeModified, Ttype, Stype,
-    #                                           lagsModelAll, indexLookupTable, profilesRecentArray,
-    #                                           componentsNumberETSSeasonal, componentsNumberETS,
-    #                                           componentsNumberARIMA, xregNumber, constantRequired, adamETS)$matrixYt;
     arrayYSimulated[] <- adamCpp$reforecast(arrErrors, array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim)),
                                             arrWt,
                                             objectRefitted$transition, objectRefitted$persistence,
