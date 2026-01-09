@@ -9,7 +9,7 @@ Changes:
 Bugfixes:
 * A fix in sparma to allow high orders.
 * ces() had wrong matrices in case of seasonality="simple".
-* reapply() now works with CES.
+* reapply() now works with CES. reforecast() does as well in general.
 
 
 smooth v4.3.2 (Release data: 2025-12-23)
