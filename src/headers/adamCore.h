@@ -251,6 +251,8 @@ public:
                     vecErrors(i-lagsModelMax) = 0;
                 }
                 else{
+                    // We need this multiplication for cases, when occurrence is fractional
+                    vecYfit(i-lagsModelMax) = vectorOt(i-lagsModelMax)*vecYfit(i-lagsModelMax);
                     vecErrors(i-lagsModelMax) = errorf(vectorYt(i-lagsModelMax), vecYfit(i-lagsModelMax), E);
                 }
 
@@ -486,15 +488,21 @@ public:
             // Loop for the backcasting
             for (unsigned int j=1; j<=nIterations; j=j+1) {
                 // Refine the head (in order for it to make sense)
-                if(refineHead){
-                    // Record the initial profile to the first column
-                    arrayVt.slice(k).col(0) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(0));
+                if(lagsModelMax>1){
+                    if(refineHead && (T!='N')){
+                        // Record the initial profile to the first column
+                        arrayVt.slice(k).col(0) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(0));
 
-                    if(lagsModelMax>1){
                         for(int i=1; i<lagsModelMax; i=i+1) {
                             arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)) =
                                 adamFvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
                                            arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                            arrayVt.slice(k).col(i) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i));
+                        }
+                    }
+                    else if(refineHead){
+                        // Record the profile to the head of time series to fill in the state matrix
+                        for (int i=0; i<lagsModelMax; i=i+1) {
                             arrayVt.slice(k).col(i) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i));
                         }
                     }
@@ -516,6 +524,8 @@ public:
                         vecErrors(i-lagsModelMax) = 0;
                     }
                     else{
+                        // We need this multiplication for cases, when occurrence is fractional
+                        matYfit(i-lagsModelMax,k) = matrixOt(i-lagsModelMax) * matYfit(i-lagsModelMax,k);
                         vecErrors(i-lagsModelMax) = errorf(matrixYt(i-lagsModelMax), matYfit(i-lagsModelMax,k), E);
                     }
 
@@ -557,6 +567,8 @@ public:
                             vecErrors(i-lagsModelMax) = 0;
                         }
                         else{
+                            // We need this multiplication for cases, when occurrence is fractional
+                            matYfit(i-lagsModelMax,k) = matrixOt(i-lagsModelMax) * matYfit(i-lagsModelMax,k);
                             vecErrors(i-lagsModelMax) = errorf(matrixYt(i-lagsModelMax), matYfit(i-lagsModelMax,k), E);
                         }
 
