@@ -7829,6 +7829,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
     componentsNumberETSNonSeasonal <- componentsDefined$componentsNumberETSNonSeasonal;
     componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
+    constantRequired <- componentsDefined$constantRequired;
 
     obsStates <- nrow(object$states);
     obsInSample <- nobs(object);
@@ -7996,8 +7997,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             interval <- "approximate";
         }
     }
-    # See if constant is required
-    constantRequired <- !is.null(object$constant);
 
     # Create C++ adam class, which will then use fit, forecast etc methods
     adamCpp <- new(adamCore,
@@ -8967,6 +8966,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
     componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
     componentsNumberETSNonSeasonal <- componentsDefined$componentsNumberETSNonSeasonal;
     componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
+    constantRequired <- componentsDefined$constantRequired;
 
     s2 <- sigma(object)^2;
     matWt <- tail(object$measurement,h);
@@ -9004,9 +9004,6 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
         else{
             lagsModelMin <- min(lagsModelMin);
         }
-
-        # See if constant is required
-        constantRequired <- !is.null(object$constant);
 
         # Create C++ adam class
         adamCpp <- new(adamCore,
@@ -9287,6 +9284,7 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
     componentsNumberETSNonSeasonal <- componentsDefined$componentsNumberETSNonSeasonal;
     componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
+    constantRequired <- componentsDefined$constantRequired;
 
     # Prepare variables for xreg
     if(!is.null(object$initial$xreg)){
@@ -9376,10 +9374,6 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     }
     profiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample);
     indexLookupTable <- profiles$lookup;
-
-
-    # See if constant is required
-    constantRequired <- !is.null(object$constant);
 
     # Create C++ adam class
     adamCpp <- new(adamCore,
