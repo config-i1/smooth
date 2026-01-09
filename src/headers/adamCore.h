@@ -622,7 +622,7 @@ public:
 
         unsigned int lagsModelMax = max(lags);
         int nComponents = lags.n_rows;
-        arma::cube profilesRecentOriginal = arrayProfileRecent;
+        // arma::cube profilesRecentOriginal = arrayProfileRecent;
 
         double yFitted;
 
@@ -630,7 +630,7 @@ public:
 
         for(unsigned int j=0; j<nsim; j=j+1){
             for(unsigned int k=0; k<nSeries; k=k+1){
-                arrayProfileRecent.slice(j) = profilesRecentOriginal.slice(j);
+                // arrayProfileRecent.slice(j) = profilesRecentOriginal.slice(j);
                 for(unsigned int i=lagsModelMax; i<obs+lagsModelMax; i=i+1) {
                     /* # Measurement equation and the error term */
                     yFitted = adamWvalue(arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)),
