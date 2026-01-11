@@ -93,7 +93,7 @@ dfDiscounter <- function(object){
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, adamETS);
 
     adamProfileCreated <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample);

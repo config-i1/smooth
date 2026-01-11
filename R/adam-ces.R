@@ -602,7 +602,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, FALSE);
 
     ##### Pre-set yFitted, yForecast, errors and basic parameters #####

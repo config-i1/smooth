@@ -400,7 +400,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, adamETS);
 
     #### Simulate the data ####

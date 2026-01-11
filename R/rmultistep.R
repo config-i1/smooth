@@ -85,7 +85,7 @@ rmultistep.adam <- function(object, h=10,
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, adamETS);
 
     # Function returns the matrix with multi-step errors

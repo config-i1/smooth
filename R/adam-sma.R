@@ -220,7 +220,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
                        componentsNumberETSNonSeasonal,
                        componentsNumberETSSeasonal,
                        componentsNumberETS, order,
-                       xregNumber,
+                       xregNumber, length(lagsModelAll),
                        constantRequired, FALSE);
 
         #### Fitter and the losses calculation ####

@@ -733,7 +733,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                        componentsNumberETSNonSeasonal,
                        componentsNumberETSSeasonal,
                        componentsNumberETS, componentsNumberARIMA,
-                       xregNumber,
+                       xregNumber, length(lagsModelAll),
                        constantRequired, adamETS);
 
         return(list(lagsModel=lagsModel,lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
@@ -8004,7 +8004,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, adamETS);
 
     # Produce point forecasts for non-multiplicative trend / seasonality
@@ -9011,7 +9011,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
                        componentsNumberETSNonSeasonal,
                        componentsNumberETSSeasonal,
                        componentsNumberETS, componentsNumberARIMA,
-                       xregNumber,
+                       xregNumber, length(lagsModelAll),
                        constantRequired, adamETS);
 
         matVt <- t(tail(object$states,lagsModelMax));
@@ -9381,7 +9381,7 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, adamETS);
 
     #### Prepare the necessary matrices ####

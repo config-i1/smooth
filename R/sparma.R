@@ -255,7 +255,7 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, FALSE);
 
     # Helper function: Create initial state space matrices ####

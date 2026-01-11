@@ -6,6 +6,7 @@ Changes:
 * sim.es(), sim.ces(), sim.ssarima(), sim.gum() now use the adamCore.
 * Removed the redundant old C++ code.
 * testthat for sparma().
+* Modified the adamCore class to include the number of components as one of the external parameters. This is to avoid duplications.
 
 Bugfixes:
 * A fix in sparma to allow high orders.
