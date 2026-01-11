@@ -1,15 +1,17 @@
-smooth v4.4.0 (Release data: 2026-01-09)
+smooth v4.4.0 (Release data: 2026-01-12)
 =======
 
 Changes:
 * Removed the old es(), ssarima(), msarima(), ces() and gum(). We now use the ones that use ADAM core.
 * sim.es(), sim.ces(), sim.ssarima(), sim.gum() now use the adamCore.
 * Removed the redundant old C++ code.
+* testthat for sparma().
 
 Bugfixes:
 * A fix in sparma to allow high orders.
 * ces() had wrong matrices in case of seasonality="simple".
 * reapply() now works with CES. reforecast() does as well in general.
+* Bugfixes in sparma() with zero orders etc.
 
 
 smooth v4.3.2 (Release data: 2025-12-23)
