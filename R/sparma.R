@@ -133,7 +133,7 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
     modelDo <- "";
 
     # Create a list of dummy parameters to trick the checker
-    armaToTrickTheChecker <- list(ar=rep(0.1,p), ma=rep(0.1,q));
+    armaToTrickTheChecker <- list(ar=rep(0.1,max(p)), ma=rep(0.1,max(q)));
 
     # Call parametersChecker
     checkerReturn <- parametersChecker(data=data, model=model, lags=lags, formulaToUse=formula,
