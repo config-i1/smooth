@@ -2735,6 +2735,7 @@ def architector(
         nETS=components_dict['components_number_ets'],
         nArima=components_dict.get('components_number_arima', 0),
         nXreg=explanatory_checked.get('xreg_number', 0) if explanatory_checked else 0,
+        nComponents=components_dict['components_number_all'],
         constant=constants_checked.get('constant_required', False) if constants_checked else False,
         adamETS=False  # Default like R
     )
