@@ -38,7 +38,7 @@ OCCURRENCE_OPTIONS = Literal[
 INITIAL_OPTIONS = Optional[
     Union[
         Dict[str, Any],
-        Literal["optimal", "backcasting", "complete", "provided"],
+        Literal["backcasting", "optimal", "complete", "two-stage", "provided"],
         Tuple[str, ...],
     ]
 ]
@@ -306,7 +306,7 @@ class ADAM:
         # Dictionary of terms e.g. {"alpha": 0.5, "beta": 0.5}
         persistence: Optional[Dict[str, float]] = None,
         phi: Optional[float] = None,
-        initial: INITIAL_OPTIONS = None,
+        initial: INITIAL_OPTIONS = "backcasting",
         # Number of iterations for backcasting (default 2 for backcasting, 1 otherwise)
         n_iterations: Optional[int] = None,
         # TODO: enforce the structure of this
@@ -375,7 +375,7 @@ class ADAM:
         persistence : Optional[Dict[str, float]], default=None
             Fixed persistence parameters (e.g., {"alpha": 0.5, "beta": 0.5}).
             If None, parameters are estimated.
-        phi : Optional[float], default=None
+        phi : Optional[float], default="backcasting"
             Fixed damping parameter for damped trend models. If None, estimated if applicable.
         initial : INITIAL_OPTIONS, default=None
             Method for initializing states or fixed initial states. Can be a string 
