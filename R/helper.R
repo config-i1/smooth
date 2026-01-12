@@ -93,7 +93,7 @@ dfDiscounter <- function(object){
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, adamETS);
 
     adamProfileCreated <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample);
@@ -203,10 +203,16 @@ componentsDefiner <- function(object){
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- componentsNumberETSNonSeasonal <- 0;
-        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
+        componentsNumberARIMA <- length(object$initial$nonseasonal);
         # If seasonal is formed via a matrix, this must be "simple" or a "full" model
-        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
-            componentsNumberARIMA[] <- componentsNumberARIMA+1;
+        if(!is.null(object$initial$seasonal)){
+            # If this is not a matrix then we have only one seasonal component
+            if(is.matrix(object$initial$seasonal)){
+                componentsNumberARIMA[] <- componentsNumberARIMA + nrow(object$initial$seasonal);
+            }
+            else{
+                componentsNumberARIMA[] <- componentsNumberARIMA + 1;
+            }
         }
     }
     else if(gumModel){
@@ -240,10 +246,14 @@ componentsDefiner <- function(object){
         componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     }
 
+    # See if constant is required
+    constantRequired <- !is.null(object$constant);
+
     return(list(componentsNumberETS=componentsNumberETS,
                 componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
                 componentsNumberETSSeasonal=componentsNumberETSSeasonal,
-                componentsNumberARIMA=componentsNumberARIMA))
+                componentsNumberARIMA=componentsNumberARIMA,
+                constantRequired=constantRequired))
 }
 
 

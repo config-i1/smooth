@@ -65,6 +65,8 @@ private:
     unsigned int nETS;
     unsigned int nArima;
     unsigned int nXreg;
+    // Overall number of components
+    unsigned int nComponents;
     bool constant;
     bool adamETS;
 
@@ -73,10 +75,12 @@ public:
     adamCore(arma::uvec lags_, char E_, char T_, char S_,
              unsigned int nNonSeasonal_, unsigned int nSeasonal_,
              unsigned int nETS_, unsigned int nArima_, unsigned int nXreg_,
+             unsigned int nComponents_,
              bool constant_, bool adamETS_) :
     lags(lags_), E(E_), T(T_), S(S_),
     nNonSeasonal(nNonSeasonal_), nSeasonal(nSeasonal_),
     nETS(nETS_), nArima(nArima_), nXreg(nXreg_),
+    nComponents(nComponents_),
     constant(constant_), adamETS(adamETS_) {}
 
 public:
@@ -218,7 +222,6 @@ public:
          */
 
         int obs = vectorYt.n_rows;
-        int nComponents = matrixVt.n_rows;
         int lagsModelMax = max(lags);
 
         // Fitted values and the residuals
@@ -266,6 +269,8 @@ public:
                     vecErrors(i-lagsModelMax) = 0;
                 }
                 else{
+                    // We need this multiplication for cases, when occurrence is fractional
+                    vecYfit(i-lagsModelMax) = vectorOt(i-lagsModelMax)*vecYfit(i-lagsModelMax);
                     vecErrors(i-lagsModelMax) = errorf(vectorYt(i-lagsModelMax), vecYfit(i-lagsModelMax), E);
                 }
 
@@ -351,8 +356,6 @@ public:
                             arma::umat const &indexLookupTable, arma::mat profilesRecent,
                             unsigned int const &horizon) {
 
-        unsigned int nComponents = indexLookupTable.n_rows;
-
         arma::vec vecYfor(horizon, arma::fill::zeros);
 
         /* # Fill in the new xt matrix using F. Do the forecasts. */
@@ -416,28 +419,26 @@ public:
     SimulateResult simulate(arma::mat const &matrixErrors, arma::mat const &matrixOt,
                             arma::cube &arrayVt, arma::mat const &matrixWt,
                             arma::cube const &arrayF, arma::mat const &matrixG,
-                            arma::umat const &indexLookupTable, arma::mat profilesRecent, char const &E){
+                            arma::umat const &indexLookupTable, arma::cube arrayProfile, char const &E){
 
         unsigned int obs = matrixErrors.n_rows;
         unsigned int nSeries = matrixErrors.n_cols;
 
         int lagsModelMax = max(lags);
-        int nComponents = lags.n_rows;
         int obsAll = obs + lagsModelMax;
-        arma::mat profilesRecentOriginal = profilesRecent;
-        arma::cube arrayProfile(profilesRecentOriginal.n_rows, profilesRecentOriginal.n_cols, nSeries);
 
         double yFitted;
 
         arma::mat matrixVt(nComponents, obsAll, arma::fill::zeros);
         arma::mat matrixF(arrayF.n_rows, arrayF.n_cols, arma::fill::zeros);
+        arma::mat profilesRecent(arrayProfile.n_rows, arrayProfile.n_cols, arma::fill::zeros);
 
         arma::mat matY(obs, nSeries);
 
         for(unsigned int i=0; i<nSeries; i=i+1){
             matrixVt = arrayVt.slice(i);
             matrixF = arrayF.slice(i);
-            profilesRecent = profilesRecentOriginal;
+            profilesRecent = arrayProfile.slice(i);
             for(int j=lagsModelMax; j<obsAll; j=j+1) {
                 /* # Measurement equation and the error term */
                 yFitted = adamWvalue(profilesRecent(indexLookupTable.col(j-lagsModelMax)),
@@ -493,7 +494,6 @@ public:
         }
 
         int lagsModelMax = max(lags);
-        int nComponents = lags.n_rows;
 
         arma::mat matYfit(obs, nSeries, arma::fill::zeros);
         arma::vec vecErrors(obs, arma::fill::zeros);
@@ -502,15 +502,21 @@ public:
             // Loop for the backcasting
             for (unsigned int j=1; j<=nIterations; j=j+1) {
                 // Refine the head (in order for it to make sense)
-                if(refineHead){
-                    // Record the initial profile to the first column
-                    arrayVt.slice(k).col(0) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(0));
+                if(lagsModelMax>1){
+                    if(refineHead && (T!='N')){
+                        // Record the initial profile to the first column
+                        arrayVt.slice(k).col(0) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(0));
 
-                    if(lagsModelMax>1){
                         for(int i=1; i<lagsModelMax; i=i+1) {
                             arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)) =
                                 adamFvalue(arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i)),
                                            arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                            arrayVt.slice(k).col(i) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i));
+                        }
+                    }
+                    else if(refineHead){
+                        // Record the profile to the head of time series to fill in the state matrix
+                        for (int i=0; i<lagsModelMax; i=i+1) {
                             arrayVt.slice(k).col(i) = arrayProfilesRecent.slice(k).elem(indexLookupTable.col(i));
                         }
                     }
@@ -532,6 +538,8 @@ public:
                         vecErrors(i-lagsModelMax) = 0;
                     }
                     else{
+                        // We need this multiplication for cases, when occurrence is fractional
+                        matYfit(i-lagsModelMax,k) = matrixOt(i-lagsModelMax) * matYfit(i-lagsModelMax,k);
                         vecErrors(i-lagsModelMax) = errorf(matrixYt(i-lagsModelMax), matYfit(i-lagsModelMax,k), E);
                     }
 
@@ -573,6 +581,8 @@ public:
                             vecErrors(i-lagsModelMax) = 0;
                         }
                         else{
+                            // We need this multiplication for cases, when occurrence is fractional
+                            matYfit(i-lagsModelMax,k) = matrixOt(i-lagsModelMax) * matYfit(i-lagsModelMax,k);
                             vecErrors(i-lagsModelMax) = errorf(matrixYt(i-lagsModelMax), matYfit(i-lagsModelMax,k), E);
                         }
 
@@ -625,8 +635,6 @@ public:
         unsigned int nsim = arrayErrors.n_slices;
 
         unsigned int lagsModelMax = max(lags);
-        int nComponents = lags.n_rows;
-        arma::cube profilesRecentOriginal = arrayProfileRecent;
 
         double yFitted;
 
@@ -634,7 +642,6 @@ public:
 
         for(unsigned int j=0; j<nsim; j=j+1){
             for(unsigned int k=0; k<nSeries; k=k+1){
-                arrayProfileRecent.slice(j) = profilesRecentOriginal.slice(j);
                 for(unsigned int i=lagsModelMax; i<obs+lagsModelMax; i=i+1) {
                     /* # Measurement equation and the error term */
                     yFitted = adamWvalue(arrayProfileRecent.slice(j).elem(indexLookupTable.col(i-lagsModelMax)),

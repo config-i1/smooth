@@ -28,15 +28,15 @@ have lag 12. The length of \code{lags} must correspond to the length of
 must be greater than 1.}
 
 \item{measurement}{Measurement vector \eqn{w}. If \code{NULL}, then
-estimated.}
+randomly generated (between 0 and 1 for stability).}
 
 \item{transition}{Transition matrix \eqn{F}. Can be provided as a vector.
 Matrix will be formed using the default \code{matrix(transition,nc,nc)},
 where \code{nc} is the number of components in state vector. If \code{NULL},
-then estimated.}
+then randomly generated.}
 
 \item{persistence}{Persistence vector \eqn{g}, containing smoothing
-parameters. If \code{NULL}, then estimated.}
+parameters. If \code{NULL}, then randomly generated.}
 
 \item{initial}{Vector of initial values for state matrix. If \code{NULL},
 then generated using advanced, sophisticated technique - uniform
@@ -68,6 +68,7 @@ List of the following values is returned:
 smoothing parameters live.
 \item \code{initial} - Initial values of GUM in a form of matrix. If \code{nsim>1},
 then this is an array.
+\item \code{profile} - The final profile produced in the simulation.
 \item \code{data} - Time series vector (or matrix if \code{nsim>1}) of the generated
 series.
 \item \code{states} - Matrix (or array if \code{nsim>1}) of states. States are in

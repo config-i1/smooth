@@ -7,7 +7,6 @@
 #' \code{vignette("simulate","smooth")}
 #'
 #' @template ssSimParam
-#' @template ssPersistenceParam
 #' @template ssAuthor
 #' @template ssKeywords
 #'
@@ -21,12 +20,14 @@
 #' model will have two states: the first will have lag 1 and the second will
 #' have lag 12. The length of \code{lags} must correspond to the length of
 #' \code{orders}.
+#' @param persistence Persistence vector \eqn{g}, containing smoothing
+#' parameters. If \code{NULL}, then randomly generated.
 #' @param transition Transition matrix \eqn{F}. Can be provided as a vector.
 #' Matrix will be formed using the default \code{matrix(transition,nc,nc)},
 #' where \code{nc} is the number of components in state vector. If \code{NULL},
-#' then estimated.
+#' then randomly generated.
 #' @param measurement Measurement vector \eqn{w}. If \code{NULL}, then
-#' estimated.
+#' randomly generated (between 0 and 1 for stability).
 #' @param initial Vector of initial values for state matrix. If \code{NULL},
 #' then generated using advanced, sophisticated technique - uniform
 #' distribution.
@@ -44,6 +45,7 @@
 #' smoothing parameters live.
 #' \item \code{initial} - Initial values of GUM in a form of matrix. If \code{nsim>1},
 #' then this is an array.
+#' \item \code{profile} - The final profile produced in the simulation.
 #' \item \code{data} - Time series vector (or matrix if \code{nsim>1}) of the generated
 #' series.
 #' \item \code{states} - Matrix (or array if \code{nsim>1}) of states. States are in
@@ -82,31 +84,37 @@ sim.gum <- function(orders=c(1), lags=c(1),
 
     ellipsis <- list(...);
 
-# Function generates values of measurement, transition and persistence
+    # Function generates values of measurement, transition and persistence
     gumGenerator <- function(nsim=nsim){
         GUMNotStable <- TRUE;
+        # Generate something safe for the measurement
+        if(measurementGenerate){
+            matWt[] <- rep(runif(componentsNumber,0,1), each=obs);
+        }
         for(i in 1:nsim){
-            GUMNotStable <- TRUE;
+            GUMNotStable[] <- TRUE;
             while(GUMNotStable){
                 if(transitionGenerate){
                     arrF[,,i] <- runif(componentsNumber^2,-1,1);
                 }
                 if(persistenceGenerate){
-                    matg[,i] <- runif(componentsNumber,-1,1);
+                    matG[,i] <- runif(componentsNumber,-1,1);
                 }
-                if(measurementGenerate){
-                    matw[i,] <- runif(componentsNumber,-1,1);
-                }
-                matD <- arrF[,,i] - matrix(matg[,i],ncol=1) %*% matw[i,];
-                if(all(abs(eigen(matD)$values)<=1) & all(abs(eigen(arrF[,,i])$values)<=1)){
-                    GUMNotStable <- FALSE;
+
+                # Use smoothEigens to calculate eigenvalues correctly
+                eigenValues <- abs(smoothEigens(matrix(matG[,i], componentsNumber, 1),
+                                                matrix(arrF[,,i],componentsNumber,componentsNumber),
+                                                matWt,
+                                                lagsModel, FALSE, obs));
+                if(all(eigenValues<=1)){
+                    GUMNotStable[] <- FALSE;
                 }
             }
         }
-        return(list(arrF=arrF,matg=matg,matw=matw));
+        return(list(arrF=arrF,matG=matG,matWt=matWt));
     }
 
-#### Check values and preset parameters ####
+    #### Check values and preset parameters ####
     if(any(is.complex(c(orders,lags)))){
         stop("Complex values? Right! Come on! Be real!",call.=FALSE);
     }
@@ -148,24 +156,24 @@ sim.gum <- function(orders=c(1), lags=c(1),
     componentsNumber <- sum(orders);
     componentsNames <- paste0("Component",c(1:length(lagsModel)),", lag",lagsModel);
 
-# In the case of wrong nsim, make it natural number. The same is for obs and frequency.
+    # In the case of wrong nsim, make it natural number. The same is for obs and frequency.
     nsim <- abs(round(nsim,0));
     obs <- abs(round(obs,0));
     obsStates <- obs + lagsModelMax;
     frequency <- abs(round(frequency,0));
 
-# Define arrays
-    arrvt <- array(NA,c(obsStates,componentsNumber,nsim),dimnames=list(NULL,componentsNames,NULL));
+    # Define arrays
+    arrVt <- array(NA,c(componentsNumber,obsStates,nsim),dimnames=list(componentsNames,NULL,NULL));
     arrF <- array(0,c(componentsNumber,componentsNumber,nsim));
-    matg <- matrix(0,componentsNumber,nsim);
-    matw <- matrix(0,nsim,componentsNumber);
+    matG <- matrix(0,componentsNumber,nsim);
+    matWt <- matrix(0,obs,componentsNumber);
 
-    materrors <- matrix(NA,obs,nsim);
-    matyt <- matrix(NA,obs,nsim);
-    matot <- matrix(NA,obs,nsim);
-    matInitialValue <- array(NA,c(lagsModelMax,componentsNumber,nsim));
+    matErrors <- matrix(NA,obs,nsim);
+    matYt <- matrix(NA,obs,nsim);
+    matOt <- matrix(NA,obs,nsim);
+    matInitialValue <- array(NA,c(componentsNumber,lagsModelMax,nsim));
 
-# Initial values
+    # Initial values
     initialValue <- initial;
     if(!is.null(initialValue)){
         if(length(initialValue) != (componentsNumber*lagsModelMax)){
@@ -183,7 +191,7 @@ sim.gum <- function(orders=c(1), lags=c(1),
         initialGenerate <- TRUE;
     }
 
-# Check measurement vector
+    # Check measurement vector
     measurementValue <- measurement;
     if(!is.null(measurementValue)){
         if(length(measurementValue) != componentsNumber){
@@ -201,7 +209,7 @@ sim.gum <- function(orders=c(1), lags=c(1),
         measurementGenerate <- TRUE;
     }
 
-# Check transition matrix
+    # Check transition matrix
     transitionValue <- transition;
     if(!is.null(transitionValue)){
         if(length(transitionValue) != componentsNumber^2){
@@ -219,7 +227,7 @@ sim.gum <- function(orders=c(1), lags=c(1),
         transitionGenerate <- TRUE;
     }
 
-# Check persistence vector
+    # Check persistence vector
     persistenceValue <- persistence;
     if(!is.null(persistenceValue)){
         if(length(persistenceValue) != componentsNumber){
@@ -237,7 +245,7 @@ sim.gum <- function(orders=c(1), lags=c(1),
         persistenceGenerate <- TRUE;
     }
 
-# Check the vector of probabilities
+    # Check the vector of probabilities
     if(is.vector(probability)){
         if(any(probability!=probability[1])){
             if(length(probability)!=obs){
@@ -254,31 +262,31 @@ sim.gum <- function(orders=c(1), lags=c(1),
         }
     }
 
-#### Generate stuff if needed ####
-# First deal with initials
+    #### Generate stuff if needed ####
+    # First deal with initials
     if(initialGenerate){
         matInitialValue[,,] <- runif(componentsNumber*nsim*lagsModelMax,0,1000);
     }
     else{
-        matInitialValue[1:lagsModelMax,,] <- rep(initialValue,nsim);
+        matInitialValue[,1:lagsModelMax,] <- rep(initialValue,each=nsim);
     }
-    arrvt[1:lagsModelMax,,] <- matInitialValue;
+    arrVt[,1:lagsModelMax,] <- matInitialValue;
 
-# Now do the other parameters
+    # Now do the other parameters
     if(!measurementGenerate){
-        matw[,] <- measurementValue;
+        matWt[] <- rep(measurementValue, each=obs);
     }
     if(!transitionGenerate){
-        arrF[,,] <- transitionValue;
+        arrF[] <- transitionValue;
     }
     if(!persistenceGenerate){
-        matg[,] <- persistenceValue;
+        matG[] <- persistenceValue;
     }
     if(any(measurementGenerate,transitionGenerate,persistenceGenerate)){
         generatedParameters <- gumGenerator(nsim);
-        arrF <- generatedParameters$arrF;
-        matg <- generatedParameters$matg;
-        matw <- generatedParameters$matw;
+        arrF[] <- generatedParameters$arrF;
+        matG[] <- generatedParameters$matG;
+        matWt[] <- generatedParameters$matWt;
     }
 
     # If the chosen randomizer is not default and no parameters are provided, change to rnorm.
@@ -292,69 +300,99 @@ sim.gum <- function(orders=c(1), lags=c(1),
         ellipsis$n <- nsim*obs;
         # Create vector of the errors
         if(any(randomizer==c("rnorm","rlaplace","rs"))){
-            materrors[,] <- do.call(randomizer,ellipsis);
+            matErrors[,] <- do.call(randomizer,ellipsis);
         }
         else if(randomizer=="rt"){
             # The degrees of freedom are df = n - k.
-            materrors[,] <- rt(nsim*obs,obs-(componentsNumber + lagsModelMax));
+            matErrors[,] <- rt(nsim*obs,obs-(componentsNumber + lagsModelMax));
         }
 
         # Center errors just in case
-        materrors <- materrors - colMeans(materrors);
+        matErrors <- matErrors - colMeans(matErrors);
         # Change variance to make some sense. Errors should not be rediculously high and not too low.
-        materrors <- materrors * sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,]))));
+        matErrors <- matErrors * sqrt(abs(colMeans(as.matrix(arrVt[1,1:lagsModelMax,]))));
         if(randomizer=="rs"){
-            materrors <- materrors / 4;
+            matErrors <- matErrors / 4;
         }
     }
     # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
         ellipsis$n <- nsim*obs;
-        materrors[,] <- do.call(randomizer,ellipsis);
+        matErrors[,] <- do.call(randomizer,ellipsis);
         if(randomizer=="rbeta"){
             # Center the errors around 0
-            materrors <- materrors - 0.5;
+            matErrors <- matErrors - 0.5;
             # Make a meaningful variance of data. Something resembling to var=1.
-            materrors <- materrors / rep(sqrt(colMeans(materrors^2)) *
-                                             sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,])))),each=obs);
+            matErrors <- matErrors / rep(sqrt(colMeans(matErrors^2)) *
+                                             sqrt(abs(colMeans(as.matrix(arrVt[1,1:lagsModelMax,])))),each=obs);
         }
         else if(randomizer=="rt"){
             # Make a meaningful variance of data.
-            materrors <- materrors * rep(sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,])))),each=obs);
+            matErrors <- matErrors * rep(sqrt(abs(colMeans(as.matrix(arrVt[1,1:lagsModelMax,])))),each=obs);
         }
     }
 
-# Generate ones for the possible intermittency
+    # Generate ones for the possible intermittency
     if(all(probability == 1)){
-        matot[,] <- 1;
+        matOt[,] <- 1;
     }
     else{
-        matot[,] <- rbinom(obs*nsim,1,probability);
+        matOt[,] <- rbinom(obs*nsim,1,probability);
     }
 
-#### Simulate the data ####
-    simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",lagsModel);
+    #### Variables for the adamCore ####
+    xregNumber <- 0;
+    constantRequired <- FALSE;
+    adamETS <- FALSE;
+    # Create all the necessary matrices and vectors
+    componentsNumberARIMA <- componentsNumber;
+
+    componentsNumberETS <- componentsNumberETSNonSeasonal <- componentsNumberETSSeasonal <- 0;
+
+    Etype <- "A";
+    Stype <- Ttype <- "N";
+
+    profiles <- adamProfileCreator(lagsModel, lagsModelMax, obs);
+    indexLookupTable <- profiles$lookup;
+    profilesRecentArray <- arrVt[,1:lagsModelMax,, drop=FALSE];
+
+    # Create C++ adam class, which will then use fit, forecast etc methods
+    adamCpp <- new(adamCore,
+                   lagsModel, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber, length(lagsModel),
+                   constantRequired, adamETS);
+
+    #### Simulate the data ####
+    simulateddata <- adamCpp$simulate(matErrors, matOt,
+                                      arrVt, matWt,
+                                      arrF,
+                                      matG,
+                                      indexLookupTable, profilesRecentArray,
+                                      Etype);
 
     if(all(probability == 1)){
-        matyt <- simulateddata$matyt;
+        matYt <- simulateddata$data;
     }
     else{
-        matyt <- round(simulateddata$matyt,0);
+        matYt <- round(simulateddata$data,0);
     }
-    arrvt <- simulateddata$arrvt;
-    dimnames(arrvt) <- list(NULL,componentsNames,NULL);
+    arrVt[] <- simulateddata$states;
+    profilesRecentArray[] <- simulateddata$profile;
 
     if(any(randomizer==c("rnorm","rt"))){
-        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(matErrors^2)));
     }
     else if(randomizer=="rlaplace"){
-        veclikelihood <- -obs*(log(2*exp(1)) + log(colMeans(abs(materrors))));
+        veclikelihood <- -obs*(log(2*exp(1)) + log(colMeans(abs(matErrors))));
     }
     else if(randomizer=="rs"){
-        veclikelihood <- -2*obs*(log(2*exp(1)) + log(0.5*colMeans(sqrt(abs(materrors)))));
+        veclikelihood <- -2*obs*(log(2*exp(1)) + log(0.5*colMeans(sqrt(abs(matErrors)))));
     }
     else if(randomizer=="rlnorm"){
-        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2))) - colSums(log(matyt));
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(matErrors^2))) - colSums(log(matYt));
     }
     # If this is something unknown, forget about it
     else{
@@ -362,16 +400,16 @@ sim.gum <- function(orders=c(1), lags=c(1),
     }
 
     if(nsim==1){
-        matyt <- ts(matyt[,1],frequency=frequency);
-        materrors <- ts(materrors[,1],frequency=frequency);
-        arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-lagsModelMax+1));
-        matot <- ts(matot[,1],frequency=frequency);
+        matYt <- ts(matYt[,1],frequency=frequency);
+        matErrors <- ts(matErrors[,1],frequency=frequency);
+        arrVt <- ts(arrVt[,,1],frequency=frequency,start=c(0,frequency-lagsModelMax+1));
+        matOt <- ts(matOt[,1],frequency=frequency);
         matInitialValue <- matInitialValue[,,1];
     }
     else{
-        matyt <- ts(matyt,frequency=frequency);
-        materrors <- ts(materrors,frequency=frequency);
-        matot <- ts(matot,frequency=frequency);
+        matYt <- ts(matYt,frequency=frequency);
+        matErrors <- ts(matErrors,frequency=frequency);
+        matOt <- ts(matOt,frequency=frequency);
     }
 
     modelname <- "GUM";
@@ -381,17 +419,18 @@ sim.gum <- function(orders=c(1), lags=c(1),
     }
 
     if(measurementGenerate){
-        measurementValue <- matw;
+        measurementValue <- matWt;
     }
     if(transitionGenerate){
         transitionValue <- arrF;
     }
     if(persistenceGenerate){
-        persistenceValue <- matg;
+        persistenceValue <- matG;
     }
     model <- list(model=modelname, measurement=measurementValue, transition=transitionValue,
                   persistence=persistenceValue,initial=matInitialValue,
-                  data=matyt, states=arrvt, residuals=materrors,
-                  occurrence=matot, logLik=veclikelihood);
+                  profile=profilesRecentArray,
+                  data=matYt, states=arrVt, residuals=matErrors,
+                  occurrence=matOt, logLik=veclikelihood);
     return(structure(model,class="smooth.sim"));
 }

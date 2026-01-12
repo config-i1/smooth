@@ -1,5 +1,3 @@
-utils::globalVariables(c("modelDo","initialValue","lagsModelMax"));
-
 #' Occurrence ETS model
 #'
 #' Function returns the occurrence part of iETS model with the specified
@@ -106,9 +104,9 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax"));
 #' oes(y, occurrence="f")
 #'
 #' @export
-oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NULL, phi=NULL,
+oes <- function(y, model="MNN", persistence=NULL, initial="optimal", initialSeason=NULL, phi=NULL,
                 occurrence=c("fixed","general","odds-ratio","inverse-odds-ratio","direct","auto","none"),
-                ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
+                ic=c("AICc","AIC","BIC","BICc"), h=0, holdout=FALSE,
                 # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                 bounds=c("usual","admissible","none"),
                 silent=c("all","graph","legend","output","none"),
@@ -125,6 +123,8 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
     updateX <- FALSE;
     transitionX <- NULL;
     persistenceX <- NULL;
+
+    initial <- initial[1];
 
     # Options for the fitter and forecaster:
     # O: M / A odds-ratio - "odds-ratio"

@@ -76,17 +76,27 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
 
     ellipsis <- list(...);
 
+    if(!is.list(orders)){
+        orders <- list(ar=orders[1], ma=orders[2]);
+    }
+
     p <- orders$ar;
     q <- orders$ma;
 
     if(length(p)>0){
         p <- p[p!=0];
+        if(length(p)==0){
+            p <- 0;
+        }
     }
     else{
         p <- 0;
     }
     if(length(q)>0){
         q <- q[q!=0];
+        if(length(q)==0){
+            q <- 0;
+        }
     }
     else{
         q <- 0;
@@ -126,9 +136,18 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
     formula <- NULL;
     modelDo <- "";
 
+    # Create a list of dummy parameters to trick the checker
+    armaToTrickTheChecker <- list(ar=NULL,ma=NULL);
+    if(max(p)>0){
+        armaToTrickTheChecker$ar <- rep(0.1,max(p));
+    }
+    if(max(q)>0){
+        armaToTrickTheChecker$ma <- rep(0.1,max(q));
+    }
+
     # Call parametersChecker
     checkerReturn <- parametersChecker(data=data, model=model, lags=lags, formulaToUse=formula,
-                                       orders=orders_list, constant=constant, arma=NULL,
+                                       orders=orders_list, constant=constant, arma=armaToTrickTheChecker,
                                        outliers=outliers, level=level,
                                        persistence=persistence, phi=phi, initial=initial,
                                        distribution=distribution, loss=loss, h=h, holdout=holdout,
@@ -137,6 +156,9 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
                                        silent=silent, modelDo=modelDo,
                                        ParentEnvironment=environment(), ellipsis=ellipsis, fast=FALSE);
 
+    # Reset the parameters. This is to address the trick to the checker
+    armaParameters <- arma;
+    arEstimate <- maEstimate <- TRUE;
 
     #### Hack the outputs of the function to align with sparma ####
 
@@ -165,8 +187,13 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
         else{
             warning("arma needs to be of length 2. I'll ignore it and estimate the parameters.");
 
-            arEstimate <- maEstimate <- TRUE;
+            arEstimate <- arRequired;
+            maEstimate <- maRequired;
         }
+    }
+    else{
+        arEstimate <- arRequired;
+        maEstimate <- maRequired;
     }
 
     # Fix lags, orders etc
@@ -228,7 +255,7 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, FALSE);
 
     # Helper function: Create initial state space matrices ####
@@ -617,6 +644,7 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
     modelName <- paste0("SpARMA(", paste0(p, collapse=","), ";", paste0(q, collapse=","), ")");
     if(constantRequired){
         modelName <- paste0(modelName, " with constant");
+        constantValue <- B["constant"];
     }
 
     initialValue <- list(arma=matricesFinal$matVt[,1:lagsModelMax]);
@@ -641,6 +669,7 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
     ##### Return values #####
     modelReturned <- structure(list(model=modelName, timeElapsed=Sys.time()-startTime,
                                     call=cl, orders=orders, arma=arma, formula=formula,
+                                    constant=constantValue,
                                     data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
                                     forecast=yForecast, states=t(matVt), accuracy=errormeasures,
                                     profile=profilesRecentTable, profileInitial=profilesRecentInitial,

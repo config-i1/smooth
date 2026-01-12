@@ -1,5 +1,3 @@
-utils::globalVariables(c("silent","silentGraph","silentLegend","initialType","ar.orders","i.orders","ma.orders"));
-
 #' State Space ARIMA
 #'
 #' Function selects the best State Space ARIMA based on information criteria,

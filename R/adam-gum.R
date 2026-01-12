@@ -1,7 +1,3 @@
-utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimate","xregNames",
-                         "otLogical","yFrequency","yIndex",
-                         "persistenceXreg","yHoldout","distribution"));
-
 #' Generalised Univariate Model
 #'
 #' Function constructs Generalised Univariate Model, estimating matrices F, w,
@@ -248,15 +244,25 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         regressors <- "adapt";
     }
 
+    # Default parameters for the wrapper
+    constant <- FALSE;
+    distribution <- "dnorm";
+    formula <- NULL;
+    ic <- "AICc";
+    level <- 0.99;
+    occurrence <- "none";
+    outliers <- "ignore";
+    phi <- NULL;
+
     ##### Set environment for ssInput and make all the checks #####
-    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=NULL,
+    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
                                        orders=list(ar=c(orders),i=c(0),ma=c(0),select=FALSE),
-                                       constant=FALSE, arma=NULL,
-                                       outliers="ignore", level=0.99,
-                                       persistence=NULL, phi=NULL, initial,
-                                       distribution="dnorm", loss, h, holdout, occurrence="none",
+                                       constant=constant, arma=NULL,
+                                       outliers=outliers, level=level,
+                                       persistence=NULL, phi=phi, initial,
+                                       distribution=distribution, loss, h, holdout, occurrence=occurrence,
                                        # This is not needed by the gum() function
-                                       ic="AICc", bounds=bounds[1],
+                                       ic=ic, bounds=bounds[1],
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
 
@@ -452,7 +458,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, FALSE);
 
     matF <- diag(componentsNumber+xregNumber);

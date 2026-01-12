@@ -25,13 +25,9 @@
 #' @param initial Vector of initial values for state matrix. If \code{NULL},
 #' then generated using advanced, sophisticated technique - uniform
 #' distribution.
-#' @param AR Vector or matrix of AR parameters. The order of parameters should
+#' @param arma List with ar/ma parameters. The order of parameters should
 #' be lag-wise. This means that first all the AR parameters of the firs lag
 #' should be passed, then for the second etc. AR of another ssarima can be
-#' passed here.
-#' @param MA Vector or matrix of MA parameters. The order of parameters should
-#' be lag-wise. This means that first all the MA parameters of the firs lag
-#' should be passed, then for the second etc. MA of another ssarima can be
 #' passed here.
 #' @param constant If \code{TRUE}, constant term is included in the model. Can
 #' also be a number (constant value).
@@ -48,14 +44,13 @@
 #' @return List of the following values is returned:
 #' \itemize{
 #' \item \code{model} - Name of SSARIMA model.
-#' \item \code{AR} - Value of AR parameters. If \code{nsim>1}, then this is a
-#' matrix.
-#' \item \code{MA} - Value of MA parameters. If \code{nsim>1}, then this is a
-#' matrix.
+#' \item \code{arma} - List of AR/MA parameters. If \code{nsim>1}, then this is a
+#' list of matrices.
 #' \item \code{constant} - Value of constant term. If \code{nsim>1}, then this
 #' is a vector.
 #' \item \code{initial} - Initial values of SSARIMA. If \code{nsim>1}, then this
 #' is a matrix.
+#' \item \code{profile} - The final profile produced in the simulation.
 #' \item \code{data} - Time series vector (or matrix if \code{nsim>1}) of the
 #' generated series.
 #' \item \code{states} - Matrix (or array if \code{nsim>1}) of states. States
@@ -73,26 +68,26 @@
 #' @examples
 #'
 #' # Create 120 observations from ARIMA(1,1,1) with drift. Generate 100 time series of this kind.
-#' x <- sim.ssarima(ar.orders=1,i.orders=1,ma.orders=1,obs=120,nsim=100,constant=TRUE)
+#' x <- sim.ssarima(orders=c(1,1,1),obs=120,nsim=100,constant=TRUE)
 #'
 #' # Generate similar thing for seasonal series of SARIMA(1,1,1)(0,0,2)_4
-#' x <- sim.ssarima(ar.orders=c(1,0),i.orders=c(1,0),ma.orders=c(1,2),lags=c(1,4),
+#' x <- sim.ssarima(orders=list(ar=c(1,0),i=c(1,0),ma=c(1,2)),lags=c(1,4),
 #'                  frequency=4,obs=80,nsim=100,constant=FALSE)
 #'
 #' # Generate 10 series of high frequency data from SARIMA(1,0,2)_1(0,1,1)_7(1,0,1)_30
-#' x <- sim.ssarima(ar.orders=c(1,0,1),i.orders=c(0,1,0),ma.orders=c(2,1,1),lags=c(1,7,30),
+#' x <- sim.ssarima(orders=list(ar=c(1,0,1),i=c(0,1,0),ma=c(2,1,1)),lags=c(1,7,30),
 #'                  obs=360,nsim=10)
 #'
 #'
 #' @export sim.ssarima
 sim.ssarima <- function(orders=list(ar=0,i=1,ma=1), lags=1,
                         obs=10, nsim=1,
-                        frequency=1, AR=NULL, MA=NULL, constant=FALSE,
+                        frequency=1, arma=NULL, constant=FALSE,
                         initial=NULL, bounds=c("admissible","none"),
                         randomizer=c("rnorm","rt","rlaplace","rs"),
                         probability=1, ...){
-# Function generates data using SSARIMA in Single Source of Error as a data generating process.
-#    Copyright (C) 2015 - Inf Ivan Svetunkov
+    # Function generates data using SSARIMA in Single Source of Error as a data generating process.
+    #    Copyright (C) 2015 - Inf Ivan Svetunkov
 
     randomizer <- randomizer[1];
     ellipsis <- list(...);
@@ -112,93 +107,97 @@ sim.ssarima <- function(orders=list(ar=0,i=1,ma=1), lags=1,
     bounds <- substring(bounds[1],1,1);
 
     if(!is.null(orders)){
-        ar.orders <- orders$ar;
-        i.orders <- orders$i;
-        ma.orders <- orders$ma;
+        if(is.list(orders)){
+            arOrders <- orders$ar;
+            iOrders <- orders$i;
+            maOrders <- orders$ma;
+        }
+        else{
+            arOrders <- orders[1];
+            iOrders <- orders[2];
+            maOrders <- orders[3];
+        }
     }
     else{
-        ar.orders <- 0;
-        i.orders <- 0;
-        ma.orders <- 0;
+        arOrders <- 0;
+        iOrders <- 0;
+        maOrders <- 0;
     }
 
-    if("ar.orders" %in% names(ellipsis)){
-        ar.orders <- ellipsis$ar.orders;
-        ellipsis$ar.orders <- NULL;
-    }
-    if("i.orders" %in% names(ellipsis)){
-        i.orders <- ellipsis$i.orders;
-        ellipsis$i.orders <- NULL;
-    }
-    if("ma.orders" %in% names(ellipsis)){
-        ma.orders <- ellipsis$ma.orders;
-        ellipsis$ma.orders <- NULL;
-    }
-
-#### Elements Generator for AR and MA ####
-elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders=i.orders,
-                              ARValue=ARValue, MAValue=MAValue,
-                              ARGenerate=FALSE, MAGenerate=FALSE){
-    componentsNumber <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
-    matvt <- matrix(1,componentsNumber+constantRequired,componentsNumber+constantRequired);
-    vecg <- matrix(0,componentsNumber+constantRequired,1);
-    matF <- diag(componentsNumber+constantRequired);
-
-    if(ARGenerate){
-        ARRoots <- 0.5;
-        while(any(ARRoots<1)){
-            ARValue <- runif(ARNumber,-1,1);
-
-            elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, componentsNumber,
-                                    ARValue, MAValue, NULL, NULL,
-                                    matvt, vecg, matF,
-                                    "b", 0, matrix(1,obsStates,1), matrix(1,1,1), matrix(0,1,1),
-                                    FALSE, FALSE, FALSE, FALSE,
-                                    FALSE, FALSE, FALSE, FALSE, FALSE,
-                                    # This is still old ssarima
-                                    TRUE, lagsModel, matrix(1,ncol=2), matrix(1,ncol=2));
-
-            if(bounds=="a" & (componentsNumber > 0)){
-                ARRoots <- abs(polyroot(elements$arPolynomial));
-            }
-            else{
-                ARRoots <- 1;
+    creator <- function(arimaPolynomials, matF, vecG){
+        if(arRequired || any(iOrders>0)){
+            # Fill in the transition matrix
+            matF[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
+            # Fill in the persistence vector
+            vecG[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
+            if(maRequired){
+                vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] <- vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] +
+                    arimaPolynomials$maPolynomial[-1];
             }
         }
-    }
-
-    if(MAGenerate){
-        MARoots <- 0.5;
-        while(any(MARoots<1)){
-            MAValue <- runif(MANumber,-1,1);
-
-            elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, componentsNumber,
-                                    ARValue, MAValue, NULL, NULL,
-                                    matvt, vecg, matF,
-                                    "b", 0, matrix(1,obsStates,1), matrix(1,1,1), matrix(0,1,1),
-                                    FALSE, FALSE, FALSE, FALSE,
-                                    FALSE, FALSE, FALSE, FALSE, FALSE,
-                                    # This is still old ssarima
-                                    TRUE, lagsModel, matrix(1,ncol=2), matrix(1,ncol=2));
-
-            if(bounds=="a" & (componentsNumber > 0)){
-                MARoots <- abs(polyroot(elements$maPolynomial));
-            }
-            else{
-                MARoots <- 1;
+        else{
+            if(maRequired){
+                vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] <- arimaPolynomials$maPolynomial[-1];
             }
         }
+
+        return(list(matF=matF, vecG=vecG));
     }
 
-    return(list(ARValue=ARValue,MAValue=MAValue));
-}
+    #### Elements Generator for AR and MA ####
+    elementsGenerator <- function(arOrders=arOrders, maOrders=maOrders, iOrders=iOrders,
+                                  arValue=arValue, maValue=maValue,
+                                  arGenerate=FALSE, maGenerate=FALSE,
+                                  componentsNumber, adamCpp){
+        if(arGenerate){
+            arRoots <- 0.5;
+            while(any(arRoots<1)){
+                arValue <- runif(arNumber,-1,1);
 
-##### Orders and lags for ssarima #####
-    if(any(is.complex(c(ar.orders,i.orders,ma.orders,lags)))){
+                # This is needed only to get the correct AR polynomials,
+                # which is why we set the orders of I and MA to zero
+                arimaPolynomials <- lapply(adamCpp$polynomialise(0,
+                                                                 arOrders, rep(0, lagsLength), rep(0, lagsLength),
+                                                                 FALSE, FALSE, arValue, lags), as.vector);
+
+                if(bounds=="a" && (componentsNumber > 0)){
+                    arRoots <- abs(polyroot(arimaPolynomials$arPolynomial));
+                }
+                else{
+                    arRoots <- 1;
+                }
+            }
+        }
+
+        if(maGenerate){
+            maRoots <- 0.5;
+            while(any(maRoots<1)){
+                maValue <- runif(maNumber,-1,1);
+
+                # This is needed only to get the correct MA polynomials,
+                # which is why we set the orders of I and AR to zero
+                arimaPolynomials <- lapply(adamCpp$polynomialise(0,
+                                                                 rep(0, lagsLength), rep(0, lagsLength), maOrders,
+                                                                 FALSE, FALSE, maValue, lags), as.vector);
+
+                if(bounds=="a" && (componentsNumber > 0)){
+                    maRoots <- abs(polyroot(arimaPolynomials$maPolynomial));
+                }
+                else{
+                    maRoots <- 1;
+                }
+            }
+        }
+
+        return(list(arValue=arValue,maValue=maValue));
+    }
+
+    ##### Orders and lags for ssarima #####
+    if(any(is.complex(c(arOrders,iOrders,maOrders,lags)))){
         stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);
     }
 
-    if(any(c(ar.orders,i.orders,ma.orders)<0)){
+    if(any(c(arOrders,iOrders,maOrders)<0)){
         stop("Funny guy! How am I gonna construct a model with negative order?",call.=FALSE);
     }
 
@@ -206,39 +205,41 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         stop("Right! Why don't you try complex lags then, mister smart guy?",call.=FALSE);
     }
 
-    if(length(lags)!=length(ar.orders) & length(lags)!=length(i.orders) & length(lags)!=length(ma.orders)){
+    if(length(lags)!=length(arOrders) & length(lags)!=length(iOrders) & length(lags)!=length(maOrders)){
         stop("Seasonal lags do not correspond to any element of SARIMA",call.=FALSE);
     }
 
     # If there are zero lags, drop them
     if(any(lags==0)){
-        ar.orders <- ar.orders[lags!=0];
-        i.orders <- i.orders[lags!=0];
-        ma.orders <- ma.orders[lags!=0];
+        arOrders <- arOrders[lags!=0];
+        iOrders <- iOrders[lags!=0];
+        maOrders <- maOrders[lags!=0];
         lags <- lags[lags!=0];
     }
 
+    lagsLength <- length(lags);
+
     # Define maxorder and make all the values look similar (for the polynomials)
-    maxorder <- max(length(ar.orders),length(i.orders),length(ma.orders));
-    if(length(ar.orders)!=maxorder){
-        ar.orders <- c(ar.orders,rep(0,maxorder-length(ar.orders)));
+    maxorder <- max(length(arOrders),length(iOrders),length(maOrders));
+    if(length(arOrders)!=maxorder){
+        arOrders <- c(arOrders,rep(0,maxorder-length(arOrders)));
     }
-    if(length(i.orders)!=maxorder){
-        i.orders <- c(i.orders,rep(0,maxorder-length(i.orders)));
+    if(length(iOrders)!=maxorder){
+        iOrders <- c(iOrders,rep(0,maxorder-length(iOrders)));
     }
-    if(length(ma.orders)!=maxorder){
-        ma.orders <- c(ma.orders,rep(0,maxorder-length(ma.orders)));
+    if(length(maOrders)!=maxorder){
+        maOrders <- c(maOrders,rep(0,maxorder-length(maOrders)));
     }
 
     # If zeroes are defined for some orders, drop them.
-    if(any((ar.orders + i.orders + ma.orders)==0)){
-        orders2leave <- (ar.orders + i.orders + ma.orders)!=0;
+    if(any((arOrders + iOrders + maOrders)==0)){
+        orders2leave <- (arOrders + iOrders + maOrders)!=0;
         if(all(orders2leave==FALSE)){
             orders2leave <- lags==min(lags);
         }
-        ar.orders <- ar.orders[orders2leave];
-        i.orders <- i.orders[orders2leave];
-        ma.orders <- ma.orders[orders2leave];
+        arOrders <- arOrders[orders2leave];
+        iOrders <- iOrders[orders2leave];
+        maOrders <- maOrders[orders2leave];
         lags <- lags[orders2leave];
     }
 
@@ -249,99 +250,99 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                            "). Getting rid of some of them."),call.=FALSE);
         }
         lags.new <- unique(lags);
-        ar.orders.new <- i.orders.new <- ma.orders.new <- lags.new;
+        arOrders.new <- iOrders.new <- maOrders.new <- lags.new;
         for(i in 1:length(lags.new)){
-            ar.orders.new[i] <- max(ar.orders[which(lags==lags.new[i])]);
-            i.orders.new[i] <- max(i.orders[which(lags==lags.new[i])]);
-            ma.orders.new[i] <- max(ma.orders[which(lags==lags.new[i])]);
+            arOrders.new[i] <- max(arOrders[which(lags==lags.new[i])]);
+            iOrders.new[i] <- max(iOrders[which(lags==lags.new[i])]);
+            maOrders.new[i] <- max(maOrders[which(lags==lags.new[i])]);
         }
-        ar.orders <- ar.orders.new;
-        i.orders <- i.orders.new;
-        ma.orders <- ma.orders.new;
+        arOrders <- arOrders.new;
+        iOrders <- iOrders.new;
+        maOrders <- maOrders.new;
         lags <- lags.new;
     }
 
-    ARValue <- AR;
+    arValue <- arma$ar;
     # Check the provided AR matrix / vector
-    if(!is.null(ARValue)){
-        if((!is.numeric(ARValue) | !is.vector(ARValue)) & !is.matrix(ARValue)){
+    if(!is.null(arValue)){
+        if((!is.numeric(arValue) | !is.vector(arValue)) & !is.matrix(arValue)){
             warning(paste0("AR should be either vector or matrix. You have provided something strange...\n",
                            "AR will be generated."),call.=FALSE);
-            ARRequired <- ARGenerate <- TRUE;
-            ARValue <- NULL;
+            arRequired <- arGenerate <- TRUE;
+            arValue <- NULL;
         }
         else{
-            if(sum(ar.orders)!=length(ARValue[ARValue!=0])){
-                warning(paste0("Wrong number of non-zero elements of AR. Should be ",sum(ar.orders),
-                               " instead of ",length(ARValue[ARValue!=0]),".\n",
+            if(sum(arOrders)!=length(arValue[arValue!=0])){
+                warning(paste0("Wrong number of non-zero elements of AR. Should be ",sum(arOrders),
+                               " instead of ",length(arValue[arValue!=0]),".\n",
                                "AR will be generated."),call.=FALSE);
-                ARRequired <- ARGenerate <- TRUE;
-                ARValue <- NULL;
+                arRequired <- arGenerate <- TRUE;
+                arValue <- NULL;
             }
             else{
-                if(all(ar.orders==0)){
-                    ARValue <- NULL;
-                    ARRequired <- ARGenerate <- FALSE;
+                if(all(arOrders==0)){
+                    arValue <- NULL;
+                    arRequired <- arGenerate <- FALSE;
                 }
                 else{
-                    ARValue <- as.vector(ARValue[ARValue!=0]);
-                    ARGenerate <- FALSE;
-                    ARRequired <- TRUE;
+                    arValue <- as.vector(arValue[arValue!=0]);
+                    arGenerate <- FALSE;
+                    arRequired <- TRUE;
                 }
             }
         }
     }
     else{
-        if(all(ar.orders==0)){
-            ARRequired <- ARGenerate <- FALSE;
+        if(all(arOrders==0)){
+            arRequired <- arGenerate <- FALSE;
         }
         else{
-            ARRequired <- ARGenerate <- TRUE;
+            arRequired <- arGenerate <- TRUE;
         }
     }
-    ARNumber <- sum(ar.orders);
+    arNumber <- sum(arOrders);
 
-    MAValue <- MA;
+    maValue <- arma$ma;
     # Check the provided MA matrix / vector
-    if(!is.null(MAValue)){
-        if((!is.numeric(MAValue) | !is.vector(MAValue)) & !is.matrix(MAValue)){
+    if(!is.null(maValue)){
+        if((!is.numeric(maValue) | !is.vector(maValue)) & !is.matrix(maValue)){
             warning(paste0("MA should be either vector or matrix. You have provided something strange...\n",
                            "MA will be generated."),call.=FALSE);
-            MARequired <- MAGenerate <- TRUE;
-            MAValue <- NULL;
+            maRequired <- maGenerate <- TRUE;
+            maValue <- NULL;
         }
         else{
-            if(sum(ma.orders)!=length(MAValue[MAValue!=0])){
-                warning(paste0("Wrong number of non-zero elements of MA. Should be ",sum(ma.orders),
-                               " instead of ",length(MAValue[MAValue!=0]),".\n",
+            if(sum(maOrders)!=length(maValue[maValue!=0])){
+                warning(paste0("Wrong number of non-zero elements of MA. Should be ",sum(maOrders),
+                               " instead of ",length(maValue[maValue!=0]),".\n",
                                "MA will be generated."),call.=FALSE);
-                MARequired <- MAGenerate <- TRUE;
-                MAValue <- NULL;
+                maRequired <- maGenerate <- TRUE;
+                maValue <- NULL;
             }
             else{
-                if(all(ma.orders==0)){
-                    MAValue <- NULL;
-                    MARequired <- MAGenerate <- FALSE;
+                if(all(maOrders==0)){
+                    maValue <- NULL;
+                    maRequired <- maGenerate <- FALSE;
                 }
                 else{
-                    MAValue <- as.vector(MAValue[MAValue!=0]);
-                    MAGenerate <- FALSE;
-                    MARequired <- TRUE;
+                    maValue <- as.vector(maValue[maValue!=0]);
+                    maGenerate <- FALSE;
+                    maRequired <- TRUE;
                 }
             }
         }
     }
     else{
-        if(all(ma.orders==0)){
-            MARequired <- MAGenerate <- FALSE;
+        if(all(maOrders==0)){
+            maRequired <- maGenerate <- FALSE;
         }
         else{
-            MARequired <- MAGenerate <- TRUE;
+            maRequired <- maGenerate <- TRUE;
         }
     }
-    MANumber <- sum(ma.orders);
+    maNumber <- sum(maOrders);
 
-#### Constant ####
+    #### Constant ####
     # Check the provided constant
     if(is.numeric(constant)){
         constantGenerate <- FALSE;
@@ -353,9 +354,9 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         constantValue <- NULL;
     }
 
-#### Number of components and observations ####
+    #### Number of components and observations ####
     # Number of components to use
-    componentsNumber <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
+    componentsNumber <- max(arOrders %*% lags + iOrders %*% lags,maOrders %*% lags);
     componentsNames <- paste0("Component ",1:(componentsNumber+constantRequired));
     lagsModel <- matrix(rep(1,times=componentsNumber),ncol=1);
     if(constantRequired){
@@ -363,7 +364,26 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     }
     lagsModelMax <- 1;
 
-#### Initials ####
+    #### Variables for the adamCore ####
+    xregNumber <- 0;
+    adamETS <- FALSE;
+    # Create all the necessary matrices and vectors
+    componentsNumberARIMA <- componentsNumber;
+    componentsNumberETS <- componentsNumberETSNonSeasonal <- componentsNumberETSSeasonal <- 0;
+
+    Etype <- "A";
+    Stype <- Ttype <- "N";
+
+    # Create C++ adam class, which will then use fit, forecast etc methods
+    adamCpp <- new(adamCore,
+                   lagsModel, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber, length(lagsModel),
+                   constantRequired, adamETS);
+
+    #### Initials ####
     initialValue <- initial;
     initialGenerate <- FALSE;
     if(!is.null(initialValue)){
@@ -387,7 +407,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         initialGenerate <- TRUE;
     }
 
-# Check the vector of probabilities
+    # Check the vector of probabilities
     if(is.vector(probability)){
         if(any(probability!=probability[1])){
             if(length(probability)!=obs){
@@ -404,7 +424,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         }
     }
 
-# In the case of wrong nsim, make it natural number. The same is for obs and frequency.
+    # In the case of wrong nsim, make it natural number. The same is for obs and frequency.
     nsim <- abs(round(nsim,0));
     obs <- abs(round(obs,0));
     obsStates <- obs + 1;
@@ -418,105 +438,124 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
 
     if((componentsNumber==0) & !constantRequired){
         warning("You have not defined any model. So here's series generated from your distribution.", call.=FALSE);
-        matyt <- materrors <- matrix(NA,obs,nsim);
+        matYt <- matErrors <- matrix(NA,obs,nsim);
         ellipsis$n <- nsim*obs;
-        materrors[,] <- do.call(randomizer,ellipsis);
+        matErrors[,] <- do.call(randomizer,ellipsis);
 
-        matot <- matrix(NA,obs,nsim);
+        matOt <- matrix(NA,obs,nsim);
         # Generate values for occurence variable
         if(all(probability == 1)){
-            matot[,] <- 1;
+            matOt[,] <- 1;
         }
         else{
-            matot[,] <- rbinom(obs*nsim,1,probability);
+            matOt[,] <- rbinom(obs*nsim,1,probability);
         }
 
-        matot <- ts(matot,frequency=frequency);
-        materrors <- ts(materrors,frequency=frequency);
-        matyt <- materrors;
+        matOt <- ts(matOt,frequency=frequency);
+        matErrors <- ts(matErrors,frequency=frequency);
+        matYt <- matErrors;
 
-        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(matErrors^2)));
         modelname <- "ARIMA(0,0,0)";
         model <- list(model=modelname,
-                      AR=NULL, MA=NULL, constant=NA, initial=NULL,
-                      data=matyt, states=NULL, residuals=materrors,
-                      occurrence=matot, likelihood=veclikelihood);
+                      constant=NA, initial=NULL,
+                      data=matYt, states=NULL, residuals=matErrors,
+                      occurrence=matOt, likelihood=veclikelihood);
         return(structure(model,class="smooth.sim"));
     }
 
-##### Preset values of matvt and other matrices and arrays ######
+    ##### Preset values of matVt and other matrices and arrays ######
     if(componentsNumber > 0){
-# Transition matrix, measurement vector and persistence vector + state vector
+        # Transition matrix, measurement vector and persistence vector + state vector
         matF <- rbind(cbind(rep(0,componentsNumber-1),diag(componentsNumber-1)),rep(0,componentsNumber));
-        matw <- matrix(c(1,rep(0,componentsNumber-1)),1,componentsNumber);
+        matWt <- matrix(c(1,rep(0,componentsNumber-1)),1,componentsNumber);
         if(constantRequired){
             matF <- cbind(rbind(matF,rep(0,componentsNumber)),c(1,rep(0,componentsNumber-1),1));
-            matw <- cbind(matw,0);
+            matWt <- cbind(matWt,0);
         }
     }
     else{
-        matw <- matF <- matrix(1,1,1);
+        matWt <- matF <- matrix(1,1,1);
     }
 
     persistenceLength <- componentsNumber + constantRequired;
+    matWt <- matrix(matWt, obs, persistenceLength, byrow=TRUE);
 
-# Define arrays
-    arrvt <- array(NA,c(obsStates,persistenceLength,nsim),dimnames=list(NULL,componentsNames,NULL));
+    # Matrix with some initials. Used as an interim stuff for the arrVt
+    matVt <- matrix(1,persistenceLength,obsStates);
+
+    # Define arrays
+    arrVt <- array(NA,c(persistenceLength,obsStates,nsim),
+                   dimnames=list(componentsNames,NULL,NULL));
     arrF <- array(0,c(dim(matF),nsim));
-    matg <- matrix(0,persistenceLength,nsim);
+    matG <- matrix(0,persistenceLength,nsim);
 
-    materrors <- matrix(NA,obs,nsim);
-    matyt <- matrix(NA,obs,nsim);
-    matot <- matrix(NA,obs,nsim);
-    matARValue <- matrix(NA,max(1,ARNumber),nsim);
-    matMAValue <- matrix(NA,max(1,MANumber),nsim);
+    matErrors <- matrix(NA,obs,nsim);
+    matYt <- matrix(NA,obs,nsim);
+    matOt <- matrix(NA,obs,nsim);
+    matarValue <- matrix(NA,max(1,arNumber),nsim);
+    matmaValue <- matrix(NA,max(1,maNumber),nsim);
     vecConstantValue <- rep(NA,nsim);
     matInitialValue <- matrix(NA,componentsNumber,nsim);
 
-    orderPlaceholder <- rep(0,length(ar.orders));
-#### Generate stuff if needed ####
+    #### Generate stuff if needed ####
     if(componentsNumber>0){
         if(initialGenerate){
             matInitialValue[1:componentsNumber,] <- runif(componentsNumber*nsim,0,1000);
-            arrvt[1:componentsNumber,1,] <- matInitialValue[1:componentsNumber,];
+            arrVt[1:componentsNumber,1,] <- matInitialValue[1:componentsNumber,];
         }
         else{
             matInitialValue[1:componentsNumber,] <- rep(initialValue,nsim);
-            arrvt[1,1:componentsNumber,] <- matInitialValue[1:componentsNumber,];
+            arrVt[1:componentsNumber,1,] <- matInitialValue[1:componentsNumber,];
         }
     }
 
-    if(ARRequired){
-        if(ARGenerate){
+    if(arRequired){
+        if(arGenerate){
             for(i in 1:nsim){
-                elements <- elementsGenerator(ar.orders=ar.orders, ma.orders=orderPlaceholder, i.orders=orderPlaceholder,
-                                              ARValue=NULL, MAValue=NULL,
-                                              ARGenerate=TRUE, MAGenerate=FALSE);
-                matARValue[,i] <- elements$ARValue;
+                matarValue[,i] <- elementsGenerator(arOrders=arOrders, maOrders=maOrders, iOrders=iOrders,
+                                              arValue=NULL, maValue=NULL,
+                                              arGenerate=TRUE, maGenerate=FALSE, componentsNumber, adamCpp)$arValue;
             }
         }
         else{
-            matARValue[,] <- ARValue;
+            matarValue[] <- arValue;
         }
     }
 
-    if(MARequired){
-        if(MAGenerate){
+    if(maRequired){
+        if(maGenerate){
             for(i in 1:nsim){
-                elements <- elementsGenerator(ar.orders=orderPlaceholder, ma.orders=ma.orders, i.orders=orderPlaceholder,
-                                              ARValue=NULL, MAValue=NULL,
-                                              ARGenerate=FALSE, MAGenerate=TRUE);
-                matMAValue[,i] <- elements$MAValue;
+                matmaValue[,i] <- elementsGenerator(arOrders=arOrders, maOrders=maOrders, iOrders=iOrders,
+                                              arValue=NULL, maValue=NULL,
+                                              arGenerate=FALSE, maGenerate=TRUE, componentsNumber, adamCpp)$maValue;
             }
         }
         else{
-            matMAValue[,] <- MAValue;
+            matmaValue[] <- maValue;
+        }
+    }
+
+    armaParameters <- matrix(0, arNumber+maNumber, nsim);
+    for(l in 1:nsim){
+        j <- arIndex <- maIndex <- 0;
+        for(i in 1:length(lags)){
+            if(arRequired && arOrders[i]>0){
+                armaParameters[j+c(1:arOrders[i]),l] <- matarValue[arIndex+c(1:arOrders[i]),l];
+                j[] <- j+arOrders[i];
+                arIndex[] <- arIndex+arOrders[i];
+            }
+            if(maRequired && maOrders[i]>0){
+                armaParameters[j+c(1:maOrders[i]),l] <- matmaValue[maIndex+c(1:maOrders[i]),l];
+                j[] <- j+maOrders[i];
+                maIndex[] <- maIndex+maOrders[i];
+            }
         }
     }
 
     if(constantRequired){
         if(constantGenerate){
-            if(any(i.orders>0)){
+            if(any(iOrders>0)){
                 vecConstantValue <- runif(nsim,-200,200);
             }
             else{
@@ -532,32 +571,30 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     }
 
     for(i in 1:nsim){
-        elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, componentsNumber,
-                                matARValue[,i], matMAValue[,i], vecConstantValue[i], NULL,
-                                matrix(arrvt[,,i],obsStates), matrix(matg[,i],ncol=1), matF,
-                                "b", 0, matrix(1,obsStates,1), matrix(1,1,1), matrix(0,1,1),
-                                FALSE, FALSE, constantRequired, FALSE,
-                                FALSE, FALSE, FALSE, FALSE, FALSE,
-                                # This is still old ssarima
-                                TRUE, lagsModel, matrix(1,ncol=2), matrix(1,ncol=2));
+        arimaPolynomials <- lapply(adamCpp$polynomialise(0,
+                                                         arOrders, iOrders, maOrders,
+                                                         FALSE, FALSE, armaParameters[,i], lags), as.vector);
+        elements <- creator(arimaPolynomials, matF, matG[,i,drop=FALSE]);
 
         arrF[,,i] <- elements$matF;
-        matg[,i] <- elements$vecg;
+        matG[,i] <- elements$vecG;
 
-# A correction in order to make sense out of generated initial components
+        # A correction in order to make sense out of generated initial components
         if(initialGenerate){
-            arrvt[,,i] <- elements$matvt;
-            arrvt[1,,i] <- matrixPowerWrap(as.matrix(arrF[,,i]),componentsNumber+1) %*% arrvt[1,,i];
+            arrVt[,,i] <- matVt;
+            arrVt[,1,i] <- matrixPowerWrap(as.matrix(arrF[,,i]),componentsNumber+1) %*% arrVt[,1,i];
         }
 
         if(constantRequired){
-            arrvt[1,persistenceLength,i] <- elements$matvt[1,persistenceLength];
+            arrVt[persistenceLength,1,i] <- matVt[persistenceLength,1];
         }
     }
 
     # If the chosen randomizer is not default and no parameters are provided, change to rnorm.
     if(all(randomizer!=c("rnorm","rt","rlaplace","rs")) & (length(ellipsis)==0)){
-        warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
+        warning("The chosen randomizer - ", randomizer,
+                " - needs some arbitrary parameters! Changing to 'rnorm' now.",
+                call.=FALSE);
         randomizer = "rnorm";
     }
 
@@ -566,69 +603,78 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         ellipsis$n <- nsim*obs;
         # Create vector of the errors
         if(any(randomizer==c("rnorm","rlaplace","rs"))){
-            materrors[,] <- do.call(randomizer,ellipsis);
+            matErrors[,] <- do.call(randomizer,ellipsis);
         }
         else if(randomizer=="rt"){
             # The degrees of freedom are df = n - k.
-            materrors[,] <- rt(nsim*obs,obs-(persistenceLength + lagsModelMax));
+            matErrors[,] <- rt(nsim*obs,obs-(persistenceLength + lagsModelMax));
         }
 
         # Center errors just in case
-        materrors <- materrors - colMeans(materrors);
-        # Change variance to make some sense. Errors should not be rediculously high and not too low.
-        materrors <- materrors * sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,]))));
+        matErrors <- matErrors - colMeans(matErrors);
+        # Change variance to make some sense. Errors should not be ridiculously high and not too low.
+        matErrors <- matErrors * sqrt(abs(colMeans(as.matrix(arrVt[1,1:lagsModelMax,]))));
         if(randomizer=="rs"){
-            materrors <- materrors / 4;
+            matErrors <- matErrors / 4;
         }
     }
     # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
         ellipsis$n <- nsim*obs;
-        materrors[,] <- do.call(randomizer,ellipsis);
+        matErrors[,] <- do.call(randomizer,ellipsis);
         if(randomizer=="rbeta"){
             # Center the errors around 0
-            materrors <- materrors - 0.5;
+            matErrors <- matErrors - 0.5;
             # Make a meaningful variance of data. Something resembling to var=1.
-            materrors <- materrors / rep(sqrt(colMeans(materrors^2)) *
-                                             sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,])))),each=obs);
+            matErrors <- matErrors / rep(sqrt(colMeans(matErrors^2)) *
+                                             sqrt(abs(colMeans(as.matrix(arrVt[1,1:lagsModelMax,])))),each=obs);
         }
         else if(randomizer=="rt"){
             # Make a meaningful variance of data.
-            materrors <- materrors * rep(sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,])))),each=obs);
+            matErrors <- matErrors * rep(sqrt(abs(colMeans(as.matrix(arrVt[1,1:lagsModelMax,])))),each=obs);
         }
     }
 
-# Generate ones for the possible intermittency
+    # Generate ones for the possible intermittency
     if(all(probability == 1)){
-        matot[,] <- 1;
+        matOt[,] <- 1;
     }
     else{
-        matot[,] <- rbinom(obs*nsim,1,probability);
+        matOt[,] <- rbinom(obs*nsim,1,probability);
     }
 
-#### Simulate the data ####
-    simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",lagsModel);
+    profiles <- adamProfileCreator(lagsModel, lagsModelMax, obs);
+    indexLookupTable <- profiles$lookup;
+    profilesRecentArray <- arrVt[,1:lagsModelMax,, drop=FALSE];
+
+    #### Simulate the data ####
+    simulateddata <- adamCpp$simulate(matErrors, matOt,
+                                      arrVt, matWt,
+                                      arrF,
+                                      matG,
+                                      indexLookupTable, profilesRecentArray,
+                                      Etype);
 
     if(all(probability == 1)){
-        matyt <- simulateddata$matyt;
+        matYt <- simulateddata$data;
     }
     else{
-        matyt <- round(simulateddata$matyt,0);
+        matYt <- round(simulateddata$data,0);
     }
-    arrvt <- simulateddata$arrvt;
-    dimnames(arrvt) <- list(NULL,componentsNames,NULL);
+    arrVt[] <- simulateddata$states;
+    profilesRecentArray[] <- simulateddata$profile;
 
     if(any(randomizer==c("rnorm","rt"))){
-        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(matErrors^2)));
     }
     else if(randomizer=="rlaplace"){
-        veclikelihood <- -obs*(log(2*exp(1)) + log(colMeans(abs(materrors))));
+        veclikelihood <- -obs*(log(2*exp(1)) + log(colMeans(abs(matErrors))));
     }
     else if(randomizer=="rs"){
-        veclikelihood <- -2*obs*(log(2*exp(1)) + log(0.5*colMeans(sqrt(abs(materrors)))));
+        veclikelihood <- -2*obs*(log(2*exp(1)) + log(0.5*colMeans(sqrt(abs(matErrors)))));
     }
     else if(randomizer=="rlnorm"){
-        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2))) - colSums(log(matyt));
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(matErrors^2))) - colSums(log(matYt));
     }
     # If this is something unknown, forget about it
     else{
@@ -636,46 +682,46 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     }
 
     if(constantRequired){
-        dimnames(arrvt)[[2]][persistenceLength] <- "Constant";
+        dimnames(arrVt)[[1]][persistenceLength] <- "Constant";
     }
 
     if(initialGenerate){
         if(constantRequired){
-            matInitialValue[,] <- arrvt[burnInPeriod+1,-persistenceLength,];
+            matInitialValue[,] <- arrVt[-persistenceLength,burnInPeriod+1,];
         }
         else{
-            matInitialValue[,] <- arrvt[burnInPeriod+1,,];
+            matInitialValue[,] <- arrVt[,burnInPeriod+1,];
         }
-        arrvtDim <- dim(arrvt);
-        arrvtDim[1] <- arrvtDim[1] - burnInPeriod;
-        arrvt <- array(arrvt[-c(1:burnInPeriod),,],arrvtDim);
-        materrors <- materrors[-c(1:burnInPeriod),];
-        matyt <- matyt[-c(1:burnInPeriod),];
-        matot <- matot[-c(1:burnInPeriod),];
+        arrvtDim <- dim(arrVt);
+        arrvtDim[2] <- arrvtDim[2] - burnInPeriod;
+        arrVt <- array(arrVt[-c(1:burnInPeriod),,],arrvtDim);
+        matErrors <- matErrors[-c(1:burnInPeriod),];
+        matYt <- matYt[-c(1:burnInPeriod),];
+        matOt <- matOt[-c(1:burnInPeriod),];
     }
 
     if(nsim==1){
-        matyt <- ts(matyt,frequency=frequency);
-        materrors <- ts(materrors,frequency=frequency);
-        arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-lagsModelMax+1));
-        matot <- ts(matot,frequency=frequency);
+        matYt <- ts(matYt,frequency=frequency);
+        matErrors <- ts(matErrors,frequency=frequency);
+        arrVt <- ts(arrVt[,,1],frequency=frequency,start=c(0,frequency-lagsModelMax+1));
+        matOt <- ts(matOt,frequency=frequency);
     }
     else{
-        matyt <- ts(matyt,frequency=frequency);
-        materrors <- ts(materrors,frequency=frequency);
-        matot <- ts(matot,frequency=frequency);
+        matYt <- ts(matYt,frequency=frequency);
+        matErrors <- ts(matErrors,frequency=frequency);
+        matOt <- ts(matOt,frequency=frequency);
     }
 
-# Give model the name
-    if((length(ar.orders)==1) && all(lags==1)){
-        modelname <- paste0("ARIMA(",ar.orders,",",i.orders,",",ma.orders,")");
+    # Give model the name
+    if((length(arOrders)==1) && all(lags==1)){
+        modelname <- paste0("ARIMA(",arOrders,",",iOrders,",",maOrders,")");
     }
     else{
         modelname <- "";
-        for(i in 1:length(ar.orders)){
-            modelname <- paste0(modelname,"(",ar.orders[i],",");
-            modelname <- paste0(modelname,i.orders[i],",");
-            modelname <- paste0(modelname,ma.orders[i],")[",lags[i],"]");
+        for(i in 1:length(arOrders)){
+            modelname <- paste0(modelname,"(",arOrders[i],",");
+            modelname <- paste0(modelname,iOrders[i],",");
+            modelname <- paste0(modelname,maOrders[i],")[",lags[i],"]");
         }
         modelname <- paste0("SARIMA",modelname);
     }
@@ -684,7 +730,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     }
 
     if(constantRequired){
-        if(all(i.orders==0)){
+        if(all(iOrders==0)){
             modelname <- paste0(modelname," with constant");
         }
         else{
@@ -697,9 +743,10 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         constantValue <- NULL;
     }
 
-    model <- list(model=modelname,
-                  AR=matARValue, MA=matMAValue, constant=vecConstantValue, initial=matInitialValue,
-                  data=matyt, states=arrvt, residuals=materrors,
-                  occurrence=matot, logLik=veclikelihood);
+    model <- list(model=modelname, arma=list(ar=matarValue, ma=matmaValue),
+                  constant=vecConstantValue, initial=matInitialValue,
+                  profile=profilesRecentArray,
+                  data=matYt, states=arrVt, residuals=matErrors,
+                  occurrence=matOt, logLik=veclikelihood);
     return(structure(model,class="smooth.sim"));
 }

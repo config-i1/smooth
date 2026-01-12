@@ -5,7 +5,7 @@
 \title{Simulate SSARIMA}
 \usage{
 sim.ssarima(orders = list(ar = 0, i = 1, ma = 1), lags = 1, obs = 10,
-  nsim = 1, frequency = 1, AR = NULL, MA = NULL, constant = FALSE,
+  nsim = 1, frequency = 1, arma = NULL, constant = FALSE,
   initial = NULL, bounds = c("admissible", "none"),
   randomizer = c("rnorm", "rt", "rlaplace", "rs"), probability = 1, ...)
 }
@@ -28,14 +28,9 @@ It is recommended to order \code{lags} ascending.}
 \item{frequency}{Frequency of generated data. In cases of seasonal models
 must be greater than 1.}
 
-\item{AR}{Vector or matrix of AR parameters. The order of parameters should
+\item{arma}{List with ar/ma parameters. The order of parameters should
 be lag-wise. This means that first all the AR parameters of the firs lag
 should be passed, then for the second etc. AR of another ssarima can be
-passed here.}
-
-\item{MA}{Vector or matrix of MA parameters. The order of parameters should
-be lag-wise. This means that first all the MA parameters of the firs lag
-should be passed, then for the second etc. MA of another ssarima can be
 passed here.}
 
 \item{constant}{If \code{TRUE}, constant term is included in the model. Can
@@ -71,14 +66,13 @@ to the call \code{rnorm(obs, mean=0.5, sd=1)}.}
 List of the following values is returned:
 \itemize{
 \item \code{model} - Name of SSARIMA model.
-\item \code{AR} - Value of AR parameters. If \code{nsim>1}, then this is a
-matrix.
-\item \code{MA} - Value of MA parameters. If \code{nsim>1}, then this is a
-matrix.
+\item \code{arma} - List of AR/MA parameters. If \code{nsim>1}, then this is a
+list of matrices.
 \item \code{constant} - Value of constant term. If \code{nsim>1}, then this
 is a vector.
 \item \code{initial} - Initial values of SSARIMA. If \code{nsim>1}, then this
 is a matrix.
+\item \code{profile} - The final profile produced in the simulation.
 \item \code{data} - Time series vector (or matrix if \code{nsim>1}) of the
 generated series.
 \item \code{states} - Matrix (or array if \code{nsim>1}) of states. States
@@ -101,14 +95,14 @@ For the information about the function, see the vignette:
 \examples{
 
 # Create 120 observations from ARIMA(1,1,1) with drift. Generate 100 time series of this kind.
-x <- sim.ssarima(ar.orders=1,i.orders=1,ma.orders=1,obs=120,nsim=100,constant=TRUE)
+x <- sim.ssarima(orders=c(1,1,1),obs=120,nsim=100,constant=TRUE)
 
 # Generate similar thing for seasonal series of SARIMA(1,1,1)(0,0,2)_4
-x <- sim.ssarima(ar.orders=c(1,0),i.orders=c(1,0),ma.orders=c(1,2),lags=c(1,4),
+x <- sim.ssarima(orders=list(ar=c(1,0),i=c(1,0),ma=c(1,2)),lags=c(1,4),
                  frequency=4,obs=80,nsim=100,constant=FALSE)
 
 # Generate 10 series of high frequency data from SARIMA(1,0,2)_1(0,1,1)_7(1,0,1)_30
-x <- sim.ssarima(ar.orders=c(1,0,1),i.orders=c(0,1,0),ma.orders=c(2,1,1),lags=c(1,7,30),
+x <- sim.ssarima(orders=list(ar=c(1,0,1),i=c(0,1,0),ma=c(2,1,1)),lags=c(1,7,30),
                  obs=360,nsim=10)
 
 

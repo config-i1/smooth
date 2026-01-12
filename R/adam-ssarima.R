@@ -1,7 +1,3 @@
-utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimate","xregNames",
-                         "otLogical","yFrequency","yIndex",
-                         "persistenceXreg","persistenceXregEstimate",
-                         "yHoldout","distribution"));
 
 #' State Space ARIMA
 #'
@@ -111,7 +107,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #'
 #' @rdname ssarima
 #' @export
-ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
+ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(y)),
                     constant=FALSE, arma=NULL, model=NULL,
                     initial=c("backcasting","optimal","two-stage","complete"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
@@ -156,7 +152,6 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         seasonality <- model$seasonality;
         measurement <- model$measurement;
         transition <- model$transition;
-        persistenceOriginal <- model$persistence;
         ellipsis$B <- coef(model);
         lags <- lags(model);
         orders <- orders(model);
@@ -219,15 +214,25 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     boundsOriginal <- match.arg(bounds);
 
+    # Default parameters for the wrapper
+    distribution <- "dnorm";
+    formula <- NULL;
+    ic <- "AICc";
+    level <- 0.99;
+    occurrence <- "none";
+    outliers <- "ignore";
+    persistence <- NULL;
+    phi <- NULL;
+
     ##### Make all the checks #####
-    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=NULL,
+    checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
                                        orders=orders,
                                        constant=constant, arma=arma,
-                                       outliers="ignore", level=0.99,
-                                       persistence=NULL, phi=NULL, initial,
-                                       distribution="dnorm", loss, h, holdout, occurrence="none",
+                                       outliers=outliers, level=level,
+                                       persistence=persistence, phi=phi, initial,
+                                       distribution=distribution, loss, h, holdout, occurrence=occurrence,
                                        # This is not needed by the gum() function
-                                       ic="AICc", bounds=boundsOriginal,
+                                       ic=ic, bounds=boundsOriginal,
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
 
@@ -263,6 +268,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             }
 
             if(arRequired || any(iOrders>0)){
+                # Reset the places for the ma polynomial not to duplicate the values
+                vecG[1:length(arimaPolynomials$maPolynomial[-1]),] <- 0
                 # Fill in the transition matrix
                 matF[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
                 # Fill in the persistence vector
@@ -572,7 +579,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, FALSE);
 
     if(!is.null(initialValueProvided)){

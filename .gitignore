@@ -171,3 +171,4 @@ dmypy.json
 
 # cursor files
 .cursor/
+.claude/

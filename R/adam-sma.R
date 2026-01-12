@@ -220,15 +220,10 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
                        componentsNumberETSNonSeasonal,
                        componentsNumberETSSeasonal,
                        componentsNumberETS, order,
-                       xregNumber,
+                       xregNumber, length(lagsModelAll),
                        constantRequired, FALSE);
 
         #### Fitter and the losses calculation ####
-        # adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-        #                              lagsModelAll, indexLookupTable, profilesRecentTable,
-        #                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-        #                              order, xregNumber, constantRequired,
-        #                              yInSample, ot, TRUE, 2, TRUE, FALSE);
         adamFitted <- adamCpp$fit(matVt, matWt,
                                   matF, vecG,
                                   indexLookupTable, profilesRecentTable,

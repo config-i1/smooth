@@ -678,113 +678,6 @@ fitted.smooth.forecast <- function(object, ...){
     return(fitted(object$model));
 }
 
-#' Forecasting time series using smooth functions
-#'
-#' Function produces conditional expectation (point forecasts) and prediction
-#' intervals for the estimated model.
-#'
-#' By default the function will generate conditional expectations from the
-#' estimated model and will also produce a variety of prediction intervals
-#' based on user preferences.
-#'
-#' @aliases forecast forecast.smooth
-#' @param object Time series model for which forecasts are required.
-#' @param h Forecast horizon.
-#' @param level Confidence level. Defines width of prediction interval.
-#' @param side Defines, whether to provide \code{"both"} sides of prediction
-#' interval or only \code{"upper"}, or \code{"lower"}.
-#' @param ...  Other arguments accepted by either \link[smooth]{es},
-#' \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.
-#' @return Returns object of class "smooth.forecast", which contains:
-#'
-#' \itemize{
-#' \item \code{model} - the estimated model (ES / CES / GUM / SSARIMA).
-#' \item \code{method} - the name of the estimated model (ES / CES / GUM / SSARIMA).
-#' \item \code{forecast} aka \code{mean} - point forecasts of the model
-#' (conditional mean).
-#' \item \code{lower} - lower bound of prediction interval.
-#' \item \code{upper} - upper bound of prediction interval.
-#' \item \code{level} - confidence level.
-#' \item \code{interval} - binary variable (whether interval were produced or not).
-#' \item \code{scenarios} - in case of \code{forecast.adam()} and
-#' \code{interval="simulated"} returns matrix with scenarios (future paths) that were
-#' used in simulations.
-#' }
-#' @template ssAuthor
-#' @seealso \code{\link[generics]{forecast}}
-#' @references Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
-#' Forecasting with exponential smoothing: the state space approach,
-#' Springer-Verlag.
-#' @keywords ts univar
-#' @examples
-#'
-#' ourModel <- es(rnorm(100,0,1), h=10)
-#' forecast(ourModel, h=10, interval="parametric")
-#'
-#' @rdname forecast.smooth
-#' @importFrom generics forecast
-#' @export
-forecast.smooth <- function(object, h=10,
-                            interval=c("parametric","semiparametric","nonparametric","none"),
-                            level=0.95, side=c("both","upper","lower"), ...){
-    smoothType <- smoothType(object);
-    interval <- interval[1];
-    side <- match.arg(side);
-    # This correction is needed in order to reduce the level and then just use one bound
-    if(any(side==c("upper","lower"))){
-        levelNew <- level*2-1;
-    }
-    else{
-        levelNew <- level;
-    }
-    # Do calculations
-    if(smoothType=="ETS"){
-        newModel <- es_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
-    }
-    else if(smoothType=="CES"){
-        newModel <- ces_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
-    }
-    else if(smoothType=="GUM"){
-        newModel <- gum_old(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=levelNew,silent="all",...);
-    }
-    else if(smoothType=="ARIMA"){
-        if(any(unlist(gregexpr("combine",object$model))==-1)){
-            if(is.msarima(object)){
-                newModel <- msarima(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
-            }
-            else{
-                newModel <- ssarima_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
-            }
-        }
-        else{
-            stop(paste0("Sorry, but in order to produce forecasts for this ARIMA we need to recombine it.\n",
-                 "You will have to use auto.ssarima() function instead."),call.=FALSE);
-        }
-    }
-    else if(smoothType=="SMA"){
-        newModel <- sma(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
-    }
-    else{
-        stop("Wrong object provided. This needs to be either 'ETS', or 'CES', or 'GUM', or 'SSARIMA', or 'SMA' model.",call.=FALSE);
-    }
-
-    # Remove the redundant values, if they were produced
-    if(side=="upper"){
-        newModel$lower[] <- NA;
-        newModel$level <- level;
-    }
-    else if(side=="lower"){
-        newModel$upper[] <- NA;
-        newModel$level <- level;
-    }
-
-    output <- list(model=object,method=object$model,
-                   forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=newModel$level,
-                   interval=interval,mean=newModel$forecast,side=side);
-
-    return(structure(output,class=c("smooth.forecast","forecast")));
-}
-
 #' @rdname forecast.smooth
 #' @export
 forecast.oes <- function(object, h=10,
@@ -2040,80 +1933,6 @@ plot.oes.sim <- function(x, ...){
 
 #### Prints of smooth ####
 #' @export
-print.smooth <- function(x, ...){
-    ellipsis <- list(...);
-    if(!any(names(ellipsis)=="digits")){
-        digits <- 4;
-    }
-    else{
-        digits <- ellipsis$digits;
-    }
-    smoothType <- smoothType(x);
-
-    if(!is.list(x$model)){
-        if(smoothType=="CMA"){
-            holdout <- FALSE;
-            interval <- FALSE;
-            cumulative <- FALSE;
-        }
-        else{
-            holdout <- any(!is.na(x$holdout));
-            interval <- any(!is.na(x$lower));
-            cumulative <- x$cumulative;
-        }
-    }
-    else{
-        holdout <- any(!is.na(x$holdout));
-        interval <- any(!is.na(x$lower));
-        cumulative <- x$cumulative;
-    }
-
-    if(all(holdout,interval)){
-        if(!cumulative){
-            insideinterval <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
-        }
-        else{
-            insideinterval <- NULL;
-        }
-    }
-    else{
-        insideinterval <- NULL;
-    }
-
-    intervalType <- x$interval;
-
-    if(!is.null(x$model)){
-        if(!is.list(x$model)){
-            if(any(smoothType==c("SMA","CMA"))){
-                x$probability <- 1;
-                x$initialType <- "b";
-                occurrence <- "n";
-            }
-            else if(smoothType=="ETS"){
-                # If cumulative forecast and Etype=="M", report that this was "parameteric" interval
-                if(cumulative & substr(modelType(x),1,1)=="M"){
-                    intervalType <- "p";
-                }
-            }
-        }
-    }
-    if(is.occurrence(x$occurrence)){
-        occurrence <- x$occurrence$occurrence;
-    }
-    else{
-        occurrence <- "n";
-    }
-
-    ssOutput(x$timeElapsed, x$model, persistence=x$persistence, transition=x$transition, measurement=x$measurement,
-             phi=x$phi, ARterms=x$AR, MAterms=x$MA, constant=x$constant, a=x$a, b=x$b,initialType=x$initialType,
-             nParam=x$nParam, s2=x$s2, hadxreg=!is.null(x$xreg), wentwild=FALSE,
-             loss=x$loss, cfObjective=x$lossValue, interval=interval, cumulative=cumulative,
-             intervalType=intervalType, level=x$level, ICs=x$ICs,
-             holdout=holdout, insideinterval=insideinterval, errormeasures=x$accuracy,
-             occurrence=occurrence, obs=nobs(x), digits=digits);
-}
-
-#' @export
 print.smooth.sim <- function(x, ...){
     ellipsis <- list(...);
     if(!any(names(ellipsis)=="digits")){
@@ -2185,22 +2004,22 @@ print.smooth.sim <- function(x, ...){
             ar.i <- ma.i <- 1;
             for(i in 1:length(ar.orders)){
                 if(ar.orders[i]!=0){
-                    ARterms[1:ar.orders[i],ar.i] <- x$AR[ar.coef+(1:ar.orders[i])];
+                    ARterms[1:ar.orders[i],ar.i] <- x$arma$ar[ar.coef+(1:ar.orders[i])];
                     ar.coef <- ar.coef + ar.orders[i];
                     ar.i <- ar.i + 1;
                 }
                 if(ma.orders[i]!=0){
-                    MAterms[1:ma.orders[i],ma.i] <- x$MA[ma.coef+(1:ma.orders[i])];
+                    MAterms[1:ma.orders[i],ma.i] <- x$arma$ma[ma.coef+(1:ma.orders[i])];
                     ma.coef <- ma.coef + ma.orders[i];
                     ma.i <- ma.i + 1;
                 }
             }
 
-            if(!is.null(x$AR)){
+            if(!is.null(x$arma$ar)){
                 cat(paste0("AR parameters: \n"));
                 print(round(ARterms,digits));
             }
-            if(!is.null(x$MA)){
+            if(!is.null(x$arma$ma)){
                 cat(paste0("MA parameters: \n"));
                 print(round(MAterms,digits));
             }
@@ -2432,39 +2251,6 @@ outlierdummy.smooth <- function(object, level=0.999, type=c("rstandard","rstuden
     return(structure(list(outliers=outliers, statistic=statistic, id=outliersID,
                           level=level, type=type),
                      class="outlierdummy"));
-}
-
-#' @export
-rmultistep.smooth <- function(object, h=10, ...){
-    yInSample <- actuals(object);
-    model <- modelType(object);
-    Etype <- errorType(object);
-    Ttype <- substr(model,2,2);
-    Stype <- substr(model,nchar(model),nchar(model));
-    lagsModel <- modelLags(object);
-    obsInSample <- nobs(object);
-
-    matxt <- object$xreg;
-    if(is.null(object$xreg)){
-        matxt <- matrix(1,obsInSample,1);
-    }
-    nXreg <- ncol(matxt);
-    if(is.null(object$xreg)){
-        matat <- matrix(1,obsInSample,1);
-    }
-    else{
-        matat <- matrix(object$initialX,obsInSample,nXreg,byrow=TRUE);
-    }
-    matFX <- diag(nXreg);
-    dataStart <- start(yInSample);
-    dataFreq <- frequency(yInSample);
-
-    errors.mat <- ts(errorerwrap(object$states, object$transition, object$measurement, matrix(yInSample,obsInSample,1),
-                                 h, Etype, Ttype, Stype, lagsModel,
-                                 matxt, matat, matFX, matrix(1,obsInSample,1)),
-                     start=dataStart,frequency=dataFreq);
-    colnames(errors.mat) <- paste0("Error",c(1:h));
-    return(errors.mat);
 }
 
 #### Simulate data using provided object ####

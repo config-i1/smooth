@@ -5,8 +5,8 @@
 \title{Occurrence ETS, general model}
 \usage{
 oesg(y, modelA = "MNN", modelB = "MNN", persistenceA = NULL,
-  persistenceB = NULL, phiA = NULL, phiB = NULL, initialA = "o",
-  initialB = "o", initialSeasonA = NULL, initialSeasonB = NULL,
+  persistenceB = NULL, phiA = NULL, phiB = NULL, initialA = "optimal",
+  initialB = "optimal", initialSeasonA = NULL, initialSeasonB = NULL,
   ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
   bounds = c("usual", "admissible", "none"), silent = c("all", "graph",
   "legend", "output", "none"), xregA = NULL, xregB = NULL,
