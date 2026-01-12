@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
-project(smooth VERSION 0.0.1)
+project(smooth VERSION 1.0.0)
 
 if(SKBUILD)
   message(STATUS "The project is built using scikit-build")
