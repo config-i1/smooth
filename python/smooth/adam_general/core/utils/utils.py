@@ -299,6 +299,12 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     else:  # lowess or supsmu
         smoothing_function = smoothing_function_lowess
 
+    # DEBUG: Print selected smoother
+    import os
+    DEBUG_DECOMP = os.environ.get("DEBUG_CREATOR") == "True"
+    if DEBUG_DECOMP:
+        print(f"[MSDECOMPOSE DEBUG] Smoother selected: {smoother}")
+
     # Check if MA smoother works with the given sample size
     if smoother == "ma" and obs_in_sample <= min(lags):
         import warnings
@@ -394,7 +400,23 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     # This is required by adam() with backcasting
     valid_trend = ~np.isnan(trend)
     X_determ = np.column_stack([np.ones(obs_in_sample), np.arange(1, obs_in_sample + 1)])
+
+    # DEBUG: Print trend values before regression
+    if DEBUG_DECOMP:
+        print(f"[MSDECOMPOSE DEBUG] Trend before regression:")
+        print(f"  trend length: {len(trend)}")
+        print(f"  trend valid count: {np.sum(valid_trend)}")
+        print(f"  trend[0:5] (first 5): {trend[0:5]}")
+        print(f"  trend[-5:] (last 5): {trend[-5:]}")
+        print(f"  trend mean: {np.mean(trend[valid_trend])}")
+
     gta = np.linalg.lstsq(X_determ[valid_trend], trend[valid_trend], rcond=None)[0]
+
+    # DEBUG: Print gta before adjustment
+    if DEBUG_DECOMP:
+        print(f"[MSDECOMPOSE DEBUG] gta before adjustment: {gta}")
+        print(f"[MSDECOMPOSE DEBUG] max(lags): {max(lags)}")
+        print(f"[MSDECOMPOSE DEBUG] gta adjustment: -{gta[1]} * {max(lags)} = {-gta[1] * max(lags)}")
 
     # Move the trend back to start it off-sample in case of ADAM
     gta[0] = gta[0] - gta[1] * max(lags)

@@ -4,7 +4,8 @@ import warnings
 from scipy import stats
 from scipy.special import gamma
 
-from smooth.adam_general._adam_general import adam_forecaster, adam_fitter, adam_simulator
+# Note: adam_cpp instance is passed to functions that need C++ integration
+# The adamCore object is created in architector() and passed through the pipeline
 from smooth.adam_general.core.creator import adam_profile_creator, filler
 from smooth.adam_general.core.utils.utils import scaler
 from smooth.adam_general.core.utils.var_covar import sigma, covar_anal, var_anal, matrix_power_wrap
@@ -265,9 +266,10 @@ def _generate_point_forecasts(
     explanatory_checked,
     constants_checked,
     general_dict,
+    adam_cpp,
 ):
     """
-    Generate point forecasts using adam_forecaster.
+    Generate point forecasts using adam_cpp.forecast().
 
     Parameters
     ----------
@@ -310,26 +312,19 @@ def _generate_point_forecasts(
     index_lookup_table = np.asfortranarray(lookup, dtype=np.uint64)
 
 
-    # Fix a bug I cant trace 
+    # Fix a bug I cant trace
     components_dict['components_number_ets_non_seasonal'] = components_dict['components_number_ets'] - components_dict['components_number_ets_seasonal']
-    
-    # Call adam_forecaster with the prepared inputs
-    y_forecast = adam_forecaster(
+
+    # Call adam_cpp.forecast() with the prepared inputs
+    # Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set during adamCore construction
+    forecast_result = adam_cpp.forecast(
         matrixWt=np.asfortranarray(mat_wt, dtype=np.float64),
         matrixF=np.asfortranarray(mat_f, dtype=np.float64),
-        lags=lags_model_all,
         indexLookupTable=index_lookup_table,
         profilesRecent=profiles_recent_table,
-        E=model_type_dict["error_type"],
-        T=model_type_dict["trend_type"],
-        S=model_type_dict["season_type"],
-        nNonSeasonal=components_dict["components_number_ets_non_seasonal"],
-        nSeasonal=components_dict["components_number_ets_seasonal"],
-        nArima=components_dict.get("components_number_arima", 0),
-        nXreg=explanatory_checked["xreg_number"],
-        constant=constants_checked["constant_required"],
         horizon=general_dict["h"],
-    ).flatten()
+    )
+    y_forecast = forecast_result.forecast.flatten()
 
     return y_forecast
 
@@ -516,6 +511,7 @@ def forecaster(
     components_dict,
     constants_checked,
     params_info,
+    adam_cpp,
     calculate_intervals,
     interval_method,
     level,
@@ -831,7 +827,7 @@ def forecaster(
         general_dict, model_type_dict, explanatory_checked, lags_dict
     )
 
-    # 7. Generate point forecasts using adam_forecaster
+    # 7. Generate point forecasts using adam_cpp.forecast()
     y_forecast_values = _generate_point_forecasts(
         observations_dict,
         lags_dict,
@@ -842,6 +838,7 @@ def forecaster(
         explanatory_checked,
         constants_checked,
         general_dict,
+        adam_cpp,
     )
 
     # 8. Perform safety checks on forecasts
@@ -894,6 +891,7 @@ def forecaster(
                 explanatory_checked,
                 constants_checked,
                 params_info,
+                adam_cpp,
                 level,
                 nsim=nsim
             )
@@ -936,6 +934,7 @@ def _fill_matrices_if_needed(
     explanatory_checked,
     phi_dict,
     constants_checked,
+    adam_cpp=None,
 ):
     """
     Fill matrices with estimated parameters if needed.
@@ -1465,6 +1464,8 @@ def preparator(
     profiles_dict,
     # The parameter vector
     adam_estimated,
+    # adamCore C++ object
+    adam_cpp,
     # Optional parameters
     bounds="usual",
     other=None,
@@ -1824,29 +1825,20 @@ def preparator(
     else:
         backcast_value_prep = initials_checked['initial_type'] in ["complete", "backcasting"]
 
-    adam_fitted = adam_fitter(
+    # Call adam_cpp.fit() with the prepared inputs
+    # Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set during adamCore construction
+    adam_fitted = adam_cpp.fit(
         matrixVt=mat_vt,
         matrixWt=mat_wt,
         matrixF=mat_f,
         vectorG=vec_g,
-        lags=lags_model_all,
         indexLookupTable=index_lookup_table,
         profilesRecent=profiles_recent_table_fortran,
-        E=model_type_dict["error_type"],
-        T=model_type_dict["trend_type"],
-        S=model_type_dict["season_type"],
-        nNonSeasonal=components_dict["components_number_ets"]
-        - components_dict["components_number_ets_seasonal"],
-        nSeasonal=components_dict["components_number_ets_seasonal"],
-        nArima=components_dict["components_number_arima"],
-        nXreg=explanatory_checked["xreg_number"],
-        constant=constants_checked["constant_required"],
         vectorYt=y_in_sample,
         vectorOt=ot,
         backcast=backcast_value_prep,
         nIterations=initials_checked["n_iterations"],
         refineHead=refine_head,
-        adamETS=adam_ets
     )
     # 5. Correct negative or NaN values in multiplicative components
     matrices_dict, profiles_dict = _correct_multiplicative_components(
@@ -1854,9 +1846,9 @@ def preparator(
     )
     # 6. Initialize fitted values and errors series
     y_fitted, errors = _initialize_fitted_series(observations_dict)
-        # 7. Fill in fitted values and errors from adam_fitter results
-    errors[:] = adam_fitted["errors"].flatten()
-    y_fitted[:] = adam_fitted["yFitted"].flatten()
+    # 7. Fill in fitted values and errors from adam_cpp.fit() results
+    errors[:] = adam_fitted.errors.flatten()
+    y_fitted[:] = adam_fitted.fitted.flatten()
     # 8. Update distribution based on error type and loss function
     general_dict = _update_distribution(general_dict, model_type_dict)
 
@@ -1902,8 +1894,8 @@ def preparator(
         "holdout": general_dict["holdout"],
         "y_fitted": y_fitted,
         "residuals": errors,
-        "states": adam_fitted["matVt"],
-        "profiles_recent_table": adam_fitted["profile"],
+        "states": adam_fitted.states,
+        "profiles_recent_table": adam_fitted.profile,
         "persistence": matrices_dict["vec_g"],
         "transition": matrices_dict["mat_f"],
         "measurement": matrices_dict["mat_wt"],
@@ -2292,6 +2284,7 @@ def generate_simulation_interval(
     explanatory_checked,
     constants_checked,
     params_info,
+    adam_cpp,
     level,
     nsim=10000,
     external_errors=None
@@ -2436,29 +2429,21 @@ def generate_simulation_interval(
     # Determine adamETS setting (False for conventional ETS)
     adam_ets = False
 
-    # 8. Call the simulator
-    sim_result = adam_simulator(
-        arrayVt=arr_vt_f,
+    # 8. Call adam_cpp.simulate() with the prepared inputs
+    # Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set during adamCore construction
+    sim_result = adam_cpp.simulate(
         matrixErrors=mat_errors_f,
         matrixOt=mat_ot_f,
-        arrayF=arr_f_f,
+        arrayVt=arr_vt_f,
         matrixWt=mat_wt_f,
+        arrayF=arr_f_f,
         matrixG=mat_g_f,
-        E=e_type_modified,
-        T=model_type_dict["trend_type"],
-        S=model_type_dict["season_type"],
-        lags=lags_f,
         indexLookupTable=lookup_f,
         profilesRecent=profiles_recent,
-        nNonSeasonal=components_dict["components_number_ets"] - components_dict["components_number_ets_seasonal"],
-        nSeasonal=components_dict["components_number_ets_seasonal"],
-        nArima=components_dict.get("components_number_arima", 0),
-        nXreg=explanatory_checked["xreg_number"],
-        constant=constants_checked["constant_required"],
-        adamETS=adam_ets
+        E=e_type_modified,
     )
 
-    y_simulated = sim_result["matrixYt"]  # Shape: (h, nsim)
+    y_simulated = sim_result.data  # Shape: (h, nsim)
 
     # 9. Handle cumulative forecasts
     if general_dict.get("cumulative", False):

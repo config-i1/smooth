@@ -1,5 +1,12 @@
 #pragma once
 
+#include <limits>
+
+// Define R_PosInf for Python builds
+#ifndef R_PosInf
+#define R_PosInf std::numeric_limits<double>::infinity()
+#endif
+
 /* # Function is needed to estimate the correct error for ETS when multisteps model selection with r(matvt) is sorted out. */
 inline arma::mat matrixPower(arma::mat const &A, int const &power){
     arma::mat B(A.n_rows, A.n_rows, arma::fill::eye);
@@ -22,7 +29,11 @@ inline double errorf(double const &yact, double &yfit, char const &E){
             return 0;
         }
         else if((yact!=0) & (yfit==0)){
+#ifdef PYTHON_BUILD
+            return std::numeric_limits<double>::infinity();
+#else
             return R_PosInf;
+#endif
         }
         else{
             return (yact - yfit) / yfit;

@@ -4,6 +4,7 @@
 
 #include <armadillo>
 
+#define PYTHON_BUILD  // Define this before including headers to enable Python-specific code paths
 #include <carma>
 
 #include "../headers/adamCore.h"
@@ -75,45 +76,50 @@ PYBIND11_MODULE(_adamCore, m) {
             py::arg("armaParameters"),
             py::arg("lagsARIMA"))
         .def("fit", &adamCore::fit,
+            py::arg("matrixVt"),
+            py::arg("matrixWt"),
+            py::arg("matrixF"),
+            py::arg("vectorG"),
+            py::arg("indexLookupTable"),
+            py::arg("profilesRecent"),
             py::arg("vectorYt"),
-            py::arg("matrixOt"),
-            py::arg("matrixF"),
-            py::arg("matrixWt"),
-            py::arg("vectorG"),
-            py::arg("initialState"),
-            py::arg("indexLookupTable"),
-            py::arg("loss"))
+            py::arg("vectorOt"),
+            py::arg("backcast"),
+            py::arg("nIterations"),
+            py::arg("refineHead"))
         .def("forecast", &adamCore::forecast,
-            py::arg("h"),
-            py::arg("matrixF"), py::arg("matrixWt"),
-            py::arg("initialState"), py::arg("indexLookupTable"))
-        .def("ferrors", &adamCore::ferrors,
-            py::arg("matrixYt"),
-            py::arg("matrixOt"),
-            py::arg("matrixF"),
             py::arg("matrixWt"),
-            py::arg("initialStates"),
-            py::arg("indexLookupTable"))
-        .def("simulate", &adamCore::simulate,
-            py::arg("nsim"),
-            py::arg("matrixYt"),
-            py::arg("arrayOt"),
             py::arg("matrixF"),
-            py::arg("arrayWt"),
-            py::arg("vectorG"),
-            py::arg("arrayInitialState"),
             py::arg("indexLookupTable"),
+            py::arg("profilesRecent"),
+            py::arg("horizon"))
+        .def("ferrors", &adamCore::ferrors,
+            py::arg("matrixVt"),
+            py::arg("matrixWt"),
+            py::arg("matrixF"),
+            py::arg("indexLookupTable"),
+            py::arg("profilesRecent"),
+            py::arg("horizon"),
+            py::arg("vectorYt"))
+        .def("simulate", &adamCore::simulate,
             py::arg("matrixErrors"),
+            py::arg("matrixOt"),
+            py::arg("arrayVt"),
+            py::arg("matrixWt"),
+            py::arg("arrayF"),
+            py::arg("matrixG"),
+            py::arg("indexLookupTable"),
+            py::arg("profilesRecent"),
             py::arg("E"))
         .def("reapply", &adamCore::reapply,
             py::arg("matrixYt"),
             py::arg("matrixOt"),
-            py::arg("arrayF"),
+            py::arg("arrayVt"),
             py::arg("arrayWt"),
+            py::arg("arrayF"),
             py::arg("matrixG"),
-            py::arg("arrayProfilesRecent"),
             py::arg("indexLookupTable"),
-            py::arg("nIterations"),
+            py::arg("arrayProfilesRecent"),
             py::arg("backcast"),
             py::arg("refineHead"))
         .def("reforecast", &adamCore::reforecast,
