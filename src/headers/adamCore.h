@@ -86,14 +86,14 @@ public:
 public:
     // Method 1: polynomialiser - returns polynomials for ARIMA
     PolyResult polynomialise(arma::vec const &B,
-                              arma::uvec const &arOrders, arma::uvec const &iOrders, arma::uvec const &maOrders,
-                              bool const &arEstimate, bool const &maEstimate,
-                              SEXP armaParameters, arma::uvec const &lagsARIMA){
+                             arma::uvec const &arOrders, arma::uvec const &iOrders, arma::uvec const &maOrders,
+                             bool const &arEstimate, bool const &maEstimate,
+                             arma::vec armaParameters, arma::uvec const &lagsARIMA){
 
         // Sometimes armaParameters is NULL. Treat this correctly
         arma::vec armaParametersValue;
-        if(!Rf_isNull(armaParameters)){
-            armaParametersValue = as<arma::vec>(armaParameters);
+        if(armaParameters.n_elem != 0){
+            armaParametersValue = armaParameters;
         }
 
         // Form matrices with parameters, that are then used for polynomial multiplication

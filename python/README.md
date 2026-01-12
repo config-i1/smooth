@@ -12,7 +12,7 @@ the [CARMA requirements](https://github.com/RUrlus/carma#requirements)
 
 # TODOs:
 - [X] use scikit-build-core to compile the C++ modules
-- [ ] (TBC) Refactor src code to use armadillo instead of rcpparmadillo in common Cpp code.
+- [X] (TBC) Refactor src code to use armadillo instead of rcpparmadillo in common Cpp code.
 - [ ] CI pipelines for tests
 - [ ] Add sphinx docs for python package
 - [ ] Check how to automate the Armadillo installation either as a github submodule or using [cmake's FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html#fetchcontent) like in [carma](https://github.com/RUrlus/carma/blob/2fbc2e6faf2e40e41003c06cbb13744405732b5f/integration_test/CMakeLists.txt#L36)
