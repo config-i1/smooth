@@ -64,4 +64,4 @@ if(Armadillo_FOUND)
 endif()
 
 # Install to match module name
-install(TARGETS _adamCore DESTINATION smooth)
+install(TARGETS _adamCore DESTINATION smooth/adam_general)

@@ -8,7 +8,7 @@ This module provides backward-compatible wrappers that:
 """
 
 import numpy as np
-from smooth import _adamCore
+from smooth.adam_general import _adamCore
 
 
 def adam_fitter(

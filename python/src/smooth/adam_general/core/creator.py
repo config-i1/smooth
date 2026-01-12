@@ -2715,6 +2715,22 @@ def architector(
     # Set up lags
     lags_dict = _setup_lags(lags_dict, model_type_dict, components_dict)
 
+    # Calculate total number of components
+    # This should equal the size of lags_model_all vector OR
+    # the sum of: components_number_ets + components_number_arima + xreg_number + (1 if constant_required)
+    components_number_all = len(lags_dict['lags_model_all'])
+
+    # Verify it matches the alternative calculation
+    # expected_total = (
+    #     components_dict['components_number_ets'] +
+    #     components_dict['components_number_arima'] +
+    #     (explanatory_checked.get('xreg_number', 0) if explanatory_checked else 0) +
+    #     (1 if (constants_checked and constants_checked.get('constant_required', False)) else 0)
+    # )
+
+    # Store in components_dict
+    components_dict['components_number_all'] = components_number_all
+
     # Set up profiles
     profiles_dict = _create_profiles(
         profiles_recent_provided, profiles_recent_table, lags_dict, observations_dict
