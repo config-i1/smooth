@@ -54,7 +54,7 @@ PYBIND11_MODULE(_adamCore, m) {
     // Bind adamCore class
     py::class_<adamCore>(m, "adamCore")
         .def(py::init<arma::uvec, char, char, char, unsigned int, unsigned int,
-            unsigned int, unsigned int, unsigned int, bool, bool>(),
+            unsigned int, unsigned int, unsigned int, unsigned int, bool, bool>(),
             py::arg("lags"),
             py::arg("E"),
             py::arg("T"),
