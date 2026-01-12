@@ -85,31 +85,16 @@ public:
 
 public:
     // Method 1: polynomialiser - returns polynomials for ARIMA
-    // For Python builds, armaParameters is passed as arma::vec directly
-    // For R builds, it uses SEXP (handled separately in R-specific wrapper)
-#ifdef PYTHON_BUILD
     PolyResult polynomialise(arma::vec const &B,
-                              arma::uvec const &arOrders, arma::uvec const &iOrders, arma::uvec const &maOrders,
-                              bool const &arEstimate, bool const &maEstimate,
-                              arma::vec armaParameters, arma::uvec const &lagsARIMA){
+                             arma::uvec const &arOrders, arma::uvec const &iOrders, arma::uvec const &maOrders,
+                             bool const &arEstimate, bool const &maEstimate,
+                             arma::vec armaParameters, arma::uvec const &lagsARIMA){
 
-        // In Python, armaParameters is passed directly as a vector
-        arma::vec armaParametersValue = armaParameters;
-#else
-    PolyResult polynomialise(arma::vec const &B,
-                              arma::uvec const &arOrders, arma::uvec const &iOrders, arma::uvec const &maOrders,
-                              bool const &arEstimate, bool const &maEstimate,
-                              arma::vec const &armaParameters, arma::uvec const &lagsARIMA){
-
-        // armaParameters is passed directly as arma::vec
-        // For Python, empty vector means no parameters provided
-        arma::vec armaParametersValue = armaParameters;
-        // Sometimes armaParameters is NULL in R. Treat this correctly
+        // Sometimes armaParameters is NULL. Treat this correctly
         arma::vec armaParametersValue;
-        if(!Rf_isNull(armaParameters)){
-            armaParametersValue = as<arma::vec>(armaParameters);
+        if(armaParameters.n_elem != 0){
+            armaParametersValue = armaParameters;
         }
-#endif
 
         // Form matrices with parameters, that are then used for polynomial multiplication
         arma::mat arParameters(max(arOrders % lagsARIMA)+1, arOrders.n_elem, arma::fill::zeros);

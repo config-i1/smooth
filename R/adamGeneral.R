@@ -1539,6 +1539,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         armaParameters <- NULL;
     }
 
+    # Make armaParameters a zero vector. Needed for C++ code to work
+    if(is.null(armaParameters)){
+        armaParameters <- matrix(0,0,0);
+    }
+
     #### xreg preparation ####
     # Check the regressors
     if(!xregModel){
