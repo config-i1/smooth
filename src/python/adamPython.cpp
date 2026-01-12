@@ -64,6 +64,7 @@ PYBIND11_MODULE(_adamCore, m) {
             py::arg("nETS"),
             py::arg("nArima"),
             py::arg("nXreg"),
+            py::arg("nComponents"),
             py::arg("constant"),
             py::arg("adamETS"))
         .def("polynomialise", &adamCore::polynomialise,
