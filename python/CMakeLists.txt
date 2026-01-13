@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
-project(smooth VERSION 0.0.1)
+project(smooth VERSION 1.0.0)
 
 if(SKBUILD)
   message(STATUS "The project is built using scikit-build")
@@ -44,6 +44,9 @@ endif()
 # Adam Core - Updated to use new core implementation
 pybind11_add_module(_adamCore ../src/python/adamPython.cpp)
 
+# Define PYTHON_BUILD for conditional compilation
+target_compile_definitions(_adamCore PRIVATE PYTHON_BUILD)
+
 # CRITICAL: Point to src/ directory so headers can be found
 target_include_directories(_adamCore PRIVATE ../src)
 
@@ -61,4 +64,4 @@ if(Armadillo_FOUND)
 endif()
 
 # Install to match module name
-install(TARGETS _adamCore DESTINATION smooth)
+install(TARGETS _adamCore DESTINATION smooth/adam_general)

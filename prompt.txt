@@ -1,0 +1,301 @@
+read @python/smooth_package_structure.md ... This is a repo where I translate a famous forecasting model from R to
+python. The main R fuction is in @R/adam.R and my python implementation is in @python/ ... The goal is to have 100%
+identical results. Like seriously 100%, only rounding errors will be the case. On all models and all iinitializtaion
+methodologies. Both R and python use a C++ engine in @src/ ... In the past I was using seperate c++ files for R and
+python. This way I was getting 100% idnetical results between both languages. Also I was using the same
+optimization libraries with implementations in both languages (nlopt I think)  After the latest pull-request (Which
+you can access if you need to) my colleague adjusted the repo and designed one common c++ module that works for both
+R and python. He made the integration to R. After some time I made the integration to python. It introduced bugs,
+especially for two-stage because the agent that made the translation tried to move away from R logic and implement a 
+integration it thought is more pythonic. but this does not gurante exact results.
+Since we use C++ for estimations -> results are meant to be identical. Its a matter of integration. How R and python
+communicates with C++. So basically adam as defined in
+@R/adam.R and translated in @python/ has different initialization methods for etc. optimal using mle, backcasting,
+complete (which is similar to backcasting with some minor differences) and two-stage. After several debugging attemps (do not trust markdowns and folder
+I have, these are for the old approaches I was using before the unification) I have managed to make some progress.
+You can see these two files where I compare results: @python/smooth/adam_general/tests/two_stage/script_R.py and
+@python/smooth/adam_general/tests/two_stage/script_python.py and the equivelant noteboooks with the results
+@python/smooth/adam_general/tests/two_stage/test_two_stage_r.ipynb and
+@python/smooth/adam_general/tests/two_stage/test_two_stage_python.ipynb.
+
+At the moement, I get identical results on all models and all three initializations, except for backcasting/complete and 
+two-stage for MAM, seasonal multiplicative models. All models 100% identical results and parameters (including Additive Sesasonality AAA).
+
+See bellow:
+
+R:
+---
+ETS(M,A,M) with optimal initial:
+Alpha, Beta, Gamma: 0.1144016 0.002874298 0.0009683954 
+$mean
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+ [1] 141.9179 159.2557 176.0219 201.6552 126.9609 165.3692 155.2566 150.9177
+ [9] 235.2195 178.3706 136.5630 206.6802
+
+$lower
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+      Series 1
+ [1,]       NA
+ [2,]       NA
+ [3,]       NA
+ [4,]       NA
+ [5,]       NA
+ [6,]       NA
+ [7,]       NA
+ [8,]       NA
+ [9,]       NA
+[10,]       NA
+[11,]       NA
+[12,]       NA
+
+$upper
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+      Series 1
+ [1,]       NA
+ [2,]       NA
+ [3,]       NA
+ [4,]       NA
+ [5,]       NA
+ [6,]       NA
+ [7,]       NA
+ [8,]       NA
+ [9,]       NA
+[10,]       NA
+[11,]       NA
+[12,]       NA
+ETS(M,A,M) with backcasting initial:
+Alpha, Beta, Gamma: 0.01224624 0.01217939 0 
+$mean
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+ [1] 141.5050 149.1423 177.3594 212.1294 123.9787 157.5993 162.9417 152.4868
+ [9] 249.4937 197.9690 133.6372 192.6964
+
+$lower
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+      Series 1
+ [1,]       NA
+ [2,]       NA
+ [3,]       NA
+ [4,]       NA
+ [5,]       NA
+ [6,]       NA
+ [7,]       NA
+ [8,]       NA
+ [9,]       NA
+[10,]       NA
+[11,]       NA
+[12,]       NA
+
+$upper
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+      Series 1
+ [1,]       NA
+ [2,]       NA
+ [3,]       NA
+ [4,]       NA
+ [5,]       NA
+ [6,]       NA
+ [7,]       NA
+ [8,]       NA
+ [9,]       NA
+[10,]       NA
+[11,]       NA
+[12,]       NA
+ETS(M,A,M) with complete initial:
+Alpha, Beta, Gamma: 0.01224624 0.01217939 0 
+$mean
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+ [1] 141.5050 149.1423 177.3594 212.1294 123.9787 157.5993 162.9417 152.4868
+ [9] 249.4937 197.9690 133.6372 192.6964
+
+$lower
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+      Series 1
+ [1,]       NA
+ [2,]       NA
+ [3,]       NA
+ [4,]       NA
+ [5,]       NA
+ [6,]       NA
+ [7,]       NA
+ [8,]       NA
+ [9,]       NA
+[10,]       NA
+[11,]       NA
+[12,]       NA
+
+$upper
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+      Series 1
+ [1,]       NA
+ [2,]       NA
+ [3,]       NA
+ [4,]       NA
+ [5,]       NA
+ [6,]       NA
+ [7,]       NA
+ [8,]       NA
+ [9,]       NA
+[10,]       NA
+[11,]       NA
+[12,]       NA
+ETS(M,A,M) with two-stage initialization (two-stage):
+Alpha, Beta, Gamma: 0.01809472 0.01574372 0.18046 
+$mean
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+ [1] 146.0326 162.4970 175.2659 205.1372 130.6636 172.1581 160.3537 156.2632
+ [9] 244.2820 186.4431 148.2842 219.5889
+
+$lower
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+      Series 1
+ [1,]       NA
+ [2,]       NA
+ [3,]       NA
+ [4,]       NA
+ [5,]       NA
+ [6,]       NA
+ [7,]       NA
+ [8,]       NA
+ [9,]       NA
+[10,]       NA
+[11,]       NA
+[12,]       NA
+
+$upper
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+      Series 1
+ [1,]       NA
+ [2,]       NA
+ [3,]       NA
+ [4,]       NA
+ [5,]       NA
+ [6,]       NA
+ [7,]       NA
+ [8,]       NA
+ [9,]       NA
+[10,]       NA
+[11,]       NA
+[12,]       NA
+
+Python:
+------
+ETS(M,A,M) with optimal initial:
+Alpha, Beta, Gamma: [0.11440164 0.0028743  0.0009684 ]
+Forecast: [141.91794616 159.25570587 176.02186568]
+ETS(M,A,M) with backcasting initial:
+Alpha, Beta, Gamma: [1.23119102e-02 1.20863591e-02 6.26251477e-06]
+Forecast: [141.32419838 148.93068856 177.07918742]
+ETS(M,A,M) with complete initial:
+Alpha, Beta, Gamma: [1.23119102e-02 1.20863591e-02 6.26251477e-06]
+Forecast: [141.32419838 148.93068856 177.07918742]
+ETS(M,A,M) with two-stage initialization:
+Alpha, Beta, Gamma: [1.76638408e-02 1.75398325e-02 4.84225440e-07]
+Forecast: [141.98310134 159.07097474 175.76438393]
+-----
+The other models/initializations are compeltely identical.
+Example two-stage for AAA:
+
+ETS(A,A,A) with two-stage initialization (two-stage):
+Alpha, Beta, Gamma: 0.01725104 0.01724884 0.03200082 
+$mean
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+ [1] 138.6716 156.0966 174.3083 211.1923 127.7732 168.6191 160.8365 155.0091
+ [9] 253.7780 189.9023 144.2001 219.2727
+
+$lower
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+      Series 1
+ [1,]       NA
+ [2,]       NA
+ [3,]       NA
+ [4,]       NA
+ [5,]       NA
+ [6,]       NA
+ [7,]       NA
+ [8,]       NA
+ [9,]       NA
+[10,]       NA
+[11,]       NA
+[12,]       NA
+
+$upper
+Time Series:
+Start = 121 
+End = 132 
+Frequency = 1 
+      Series 1
+ [1,]       NA
+ [2,]       NA
+ [3,]       NA
+ [4,]       NA
+ [5,]       NA
+ [6,]       NA
+ [7,]       NA
+ [8,]       NA
+ [9,]       NA
+[10,]       NA
+[11,]       NA
+[12,]       NA
+Python:
+ETS(A,A,A) with two-stage initialization:
+Alpha, Beta, Gamma: [0.01725104 0.01724884 0.03200082]
+Forecast: [138.67164685 156.09660815 174.30834448]
+-----
+So the issue is only on MAM for backcasting/complete and two-stage.
+For optimal I have identical results
+
+Some notes:
+- I have made a lot (and I mean a lot) of attempts. On all usual changes, I rarely see changes in the forecasts.
+Its like, sth is hardcoded (well not hardoced but somehow blended very deep which is hard to change or is overwritten) for MAM.
+- Please dont break something that works for other modules
+- My suggestion is understand how multiplicative seasonality is handled for backckasting differently from optimal,
+compare with R and try to find. All clues are there just connect the dots. I repeat, be carefull its not as easy at it looks.
+We have spend many hours here and usualy forecasts remain as they are after changes.
+
+When I compare I use rpy2 so time series are exactly the same. 
+
+Ultrathink here, explore deep and step by step, understand the flow. Find and fix the issue
+/ultrathink
