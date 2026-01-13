@@ -873,38 +873,54 @@ def _initialize_ets_seasonal_states_with_decomp(
     y_in_sample = model_params["y_in_sample"]
     ot_logical = model_params["ot_logical"]
 
-    # If either e_type or s_type are multiplicative, do multiplicative decomposition
+    # Run both additive and multiplicative decompositions (matching R lines 892-898)
+    y_decomposition_additive = msdecompose(
+        y_in_sample.ravel(),
+        [lag for lag in lags if lag != 1],
+        type="additive",
+    )
+
+    if any(x == "M" for x in [e_type, t_type, s_type]):
+        y_decomposition_multiplicative = msdecompose(
+            y_in_sample.ravel(),
+            [lag for lag in lags if lag != 1],
+            type="multiplicative",
+        )
+    else:
+        y_decomposition_multiplicative = None
+
+    # If either e_type or s_type are multiplicative, use multiplicative decomposition
+    # This is needed for the correct seasonal indices (matching R lines 902-906)
     decomposition_type = (
         "multiplicative" if any(x == "M" for x in [e_type, s_type]) else "additive"
     )
-    y_decomposition = msdecompose(
-        y_in_sample.ravel(),
-        [lag for lag in lags if lag != 1],
-        type=decomposition_type,
+    y_decomposition = (
+        y_decomposition_multiplicative if decomposition_type == "multiplicative"
+        else y_decomposition_additive
     )
 
     # Debug output for comparing with R
     import os
     if os.environ.get("DEBUG_PROCESS_INIT"):
         print(f"[DEBUG] msdecompose type: {decomposition_type}")
-        print(f"[DEBUG] msdecompose gta: {y_decomposition['gta']}")
-        print(f"[DEBUG] msdecompose gtm: {y_decomposition['gtm']}")
-        print(f"[DEBUG] msdecompose initial: {y_decomposition['initial']}")
+        print(f"[DEBUG] additive initial: {y_decomposition_additive['initial']}")
+        if y_decomposition_multiplicative:
+            print(f"[DEBUG] multiplicative initial: {y_decomposition_multiplicative['initial']}")
         if y_decomposition['seasonal']:
             for i, s in enumerate(y_decomposition['seasonal']):
                 print(f"[DEBUG] msdecompose seasonal[{i}]: {s[:min(12, len(s))]}")
 
     j = 0
 
-    # Initialize level
+    # Initialize level (matching R lines 909-919)
     if initials_checked["initial_level_estimate"]:
-        # If there's a trend, use the intercept from the deterministic one
+        # If there's a trend, use the initial from decomposition
         if model_is_trendy:
-            # Use gtm[0] for multiplicative trend, gta[0] for additive
+            # Use multiplicative decomposition initial for M trend, additive for A (R lines 913-914)
             if t_type == "M":
-                mat_vt[j, 0:lags_model_max] = y_decomposition["gtm"][0]
+                mat_vt[j, 0:lags_model_max] = y_decomposition_multiplicative["initial"]["nonseasonal"]["level"]
             else:
-                mat_vt[j, 0:lags_model_max] = y_decomposition["gta"][0]
+                mat_vt[j, 0:lags_model_max] = y_decomposition_additive["initial"]["nonseasonal"]["level"]
         # If not trendy, use the global mean
         else:
             mat_vt[j, 0:lags_model_max] = np.mean(y_in_sample[ot_logical])
@@ -926,34 +942,30 @@ def _initialize_ets_seasonal_states_with_decomp(
         mat_vt[j, 0:lags_model_max] = initials_checked["initial_level"]
     j += 1
 
-    # Initialize trend if needed
+    # Initialize trend if needed (matching R lines 936-960)
     if model_is_trendy:
         if initials_checked["initial_trend_estimate"]:
-            # Handle different trend types using gta/gtm
-            if t_type == "A" and s_type == "M":
-                mat_vt[j, 0:lags_model_max] = y_decomposition["gta"][1]
-                # If the initial trend is higher than the lowest value, initialise with zero.
-                # This is a failsafe mechanism for the mixed models
-                if mat_vt[j, 0] < 0 and abs(mat_vt[j, 0]) > min(
-                    abs(y_in_sample[ot_logical])
-                ):
-                    mat_vt[j, 0:lags_model_max] = 0
-            elif t_type == "M" and s_type == "A":
-                mat_vt[j, 0:lags_model_max] = y_decomposition["gtm"][1]
+            # Use additive decomposition initial for A trend, multiplicative for M (R lines 938-949)
+            if t_type == "A":
+                mat_vt[j, 0:lags_model_max] = y_decomposition_additive["initial"]["nonseasonal"]["trend"]
+                if s_type == "M":
+                    # If the initial trend is higher than the lowest value, initialise with zero.
+                    # This is a failsafe mechanism for the mixed models (R lines 940-945)
+                    if mat_vt[j, 0] < 0 and abs(mat_vt[j, 0]) > min(
+                        abs(y_in_sample[ot_logical])
+                    ):
+                        mat_vt[j, 0:lags_model_max] = 0
             elif t_type == "M":
-                mat_vt[j, 0:lags_model_max] = y_decomposition["gtm"][1]
-            else:
-                # Additive trend
-                mat_vt[j, 0:lags_model_max] = y_decomposition["gta"][1]
+                mat_vt[j, 0:lags_model_max] = y_decomposition_multiplicative["initial"]["nonseasonal"]["trend"]
 
-            # This is a failsafe for multiplicative trend models with negative initial level
-            if t_type == "M" and np.any(mat_vt[0, 0:lags_model_max] < 0):
-                mat_vt[0, 0:lags_model_max] = y_in_sample[ot_logical][0]
+                # This is a failsafe for multiplicative trend models with negative initial level (R lines 952-954)
+                if np.any(mat_vt[0, 0:lags_model_max] < 0):
+                    mat_vt[0, 0:lags_model_max] = y_in_sample[ot_logical][0]
         else:
             mat_vt[j, 0:lags_model_max] = initials_checked["initial_trend"]
         j += 1
 
-    # Initialize seasonal components
+    # Initialize seasonal components (matching R lines 963-1006)
     # For pure models use stuff as is
     if (
         all(x == "A" for x in [e_type, s_type])
@@ -962,11 +974,9 @@ def _initialize_ets_seasonal_states_with_decomp(
     ):
         for i in range(components_number_ets_seasonal):
             if initials_checked["initial_seasonal_estimate"]:
-                # NOTE: CAREFULL THAT 0 INDEX ON LAGS MODEL FOR MULTIPLE SEASONALITIES
-                mat_vt[i + j, 0 : lags_model[i + j]] = y_decomposition["seasonal"][i][
-                    0 : lags_model[i + j]
-                ]
-                # Renormalise the initial seasons
+                # Use initial["seasonal"][i] which already contains the correct number of values (R line 968)
+                mat_vt[i + j, 0 : lags_model[i + j]] = y_decomposition["initial"]["seasonal"][i]
+                # Renormalise the initial seasons (R lines 975-984)
                 if s_type == "A":
                     mat_vt[i + j, 0 : lags_model[i + j]] -= np.mean(
                         mat_vt[i + j, 0 : lags_model[i + j]]
@@ -979,12 +989,13 @@ def _initialize_ets_seasonal_states_with_decomp(
                 mat_vt[i + j, 0 : lags_model[i + j]] = initials_checked[
                     "initial_seasonal"
                 ][i]
-    # For mixed models use a different set of initials
+    # For mixed models use a different set of initials (R lines 987-1006)
     elif e_type == "M" and s_type == "A":
         for i in range(components_number_ets_seasonal):
             if initials_checked["initial_seasonal_estimate"]:
+                # Use initial["seasonal"][i] and apply log transformation (R line 991)
                 mat_vt[i + j, 0 : lags_model[i + j]] = np.log(
-                    y_decomposition["seasonal"][i][0 : lags_model[i + j]]
+                    y_decomposition["initial"]["seasonal"][i]
                 ) * np.min(y_in_sample[ot_logical])
                 # Renormalise the initial seasons
                 if s_type == "A":
@@ -1146,50 +1157,55 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
     ot_logical = model_params["ot_logical"]
 
     # This decomposition does not produce seasonal component
-    # If either e_type or t_type are multiplicative, do multiplicative decomposition
-    decomposition_type = (
-        "multiplicative" if any(x == "M" for x in [e_type, t_type]) else "additive"
-    )
-    # Use deterministic trend - this way g=0 means we fit the global model to the data
-    y_decomposition = msdecompose(
+    # Run both additive and multiplicative decompositions (matching R lines 1021-1028)
+    y_decomposition_additive = msdecompose(
         y_in_sample.ravel(),
         lags=[1],
-        type=decomposition_type,
+        type="additive",
     )
+
+    if any(x == "M" for x in [e_type, t_type]):
+        y_decomposition_multiplicative = msdecompose(
+            y_in_sample.ravel(),
+            lags=[1],
+            type="multiplicative",
+        )
+    else:
+        y_decomposition_multiplicative = None
 
     # DEBUG: Print msdecompose results for non-seasonal models
     import os
     if os.environ.get('DEBUG_INIT_STATES'):
         print(f"[DEBUG INIT] Non-seasonal msdecompose results:")
-        print(f"  decomposition_type: {decomposition_type}")
         print(f"  y_in_sample[0:5]: {y_in_sample.ravel()[0:5]}")
-        print(f"  gta (intercept, slope): {y_decomposition['gta']}")
-        print(f"  gtm (intercept, slope): {y_decomposition['gtm']}")
+        print(f"  additive initial: {y_decomposition_additive['initial']}")
+        if y_decomposition_multiplicative:
+            print(f"  multiplicative initial: {y_decomposition_multiplicative['initial']}")
         print(f"  model_is_trendy: {model_is_trendy}")
         print(f"  t_type: {t_type}")
         print(f"  lags_model_max: {lags_model_max}")
 
-    # level
+    # level (matching R lines 1030-1044)
     if initials_checked["initial_level_estimate"]:
-        # If there's a trend, use the intercept from the deterministic one
+        # If there's a trend, use the initial from decomposition (R lines 1032-1036)
         if model_is_trendy:
-            if t_type == "A":
-                mat_vt[0, :lags_model_max] = y_decomposition["gta"][0]
-            else:  # t_type == "M"
-                mat_vt[0, :lags_model_max] = y_decomposition["gtm"][0]
+            if t_type == "M":
+                mat_vt[0, :lags_model_max] = y_decomposition_multiplicative["initial"]["nonseasonal"]["level"]
+            else:
+                mat_vt[0, :lags_model_max] = y_decomposition_additive["initial"]["nonseasonal"]["level"]
         # If not trendy, use the global mean
         else:
             mat_vt[0, :lags_model_max] = np.mean(y_in_sample[ot_logical])
     else:
         mat_vt[0, :lags_model_max] = initials_checked["initial_level"]
 
-    # trend
+    # trend (matching R lines 1046-1054)
     if model_is_trendy:
         if initials_checked["initial_trend_estimate"]:
             if t_type == "A":
-                mat_vt[1, 0:lags_model_max] = y_decomposition["gta"][1]
+                mat_vt[1, 0:lags_model_max] = y_decomposition_additive["initial"]["nonseasonal"]["trend"]
             else:  # t_type == "M"
-                mat_vt[1, 0:lags_model_max] = y_decomposition["gtm"][1]
+                mat_vt[1, 0:lags_model_max] = y_decomposition_multiplicative["initial"]["nonseasonal"]["trend"]
         else:
             mat_vt[1, 0:lags_model_max] = initials_checked["initial_trend"]
 

@@ -63,6 +63,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     - **"supsmu"**: Friedman's super smoother (uses LOWESS implementation in Python).
       Adaptive bandwidth selection.
 
+    - **"global"**: Global linear regression with intercept and deterministic trend.
+      Fits a straight line to the data.
+
     Parameters
     ----------
     y : array-like
@@ -92,6 +95,7 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         - **"lowess"**: LOWESS with adaptive span (recommended, **default**)
         - **"supsmu"**: Super smoother (uses LOWESS in Python)
         - **"ma"**: Simple moving average (faster but less robust)
+        - **"global"**: Global linear regression (straight line fit)
 
     Returns
     -------
@@ -102,9 +106,12 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
           Columns are [Level, Trend, Seasonal_1, Seasonal_2, ..., Seasonal_n].
           These states can be used as initial values for ADAM model estimation.
 
-        - **'initial'** (numpy.ndarray): Initial level and trend values, shape (2,).
-          initial[0] = level (value at t=0), initial[1] = slope (trend per period).
-          Computed from the first non-NaN trend values.
+        - **'initial'** (dict): Dictionary with initial values, containing:
+          - **'nonseasonal'** (dict): Dictionary with 'level' and 'trend' keys.
+            Level is the initial value at t=0, trend is the slope per period.
+            Computed from the first non-NaN trend values and adjusted back by lags_max.
+          - **'seasonal'** (list of numpy.ndarray): List of seasonal initial values.
+            Each seasonal[i] contains the first lags[i] values from pattern i.
 
         - **'trend'** (numpy.ndarray): Extracted trend component, shape (T,).
           Long-term movement after removing seasonal patterns.
@@ -190,7 +197,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         >>> result = msdecompose(y, lags=[12], type='additive', smoother='lowess')
         >>> print(result['trend'])  # Trend component
         >>> print(result['seasonal'][0])  # Yearly seasonal pattern
-        >>> print(result['initial'])  # [initial_level, initial_slope]
+        >>> print(result['initial']['nonseasonal']['level'])  # Initial level
+        >>> print(result['initial']['nonseasonal']['trend'])  # Initial trend
+        >>> print(result['initial']['seasonal'][0])  # First 12 seasonal values
 
     Decompose hourly data with daily and weekly seasonality::
 
@@ -209,16 +218,16 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     Use decomposition for ADAM initialization::
 
         >>> result = msdecompose(y, lags=[12], type='additive')
-        >>> initial_level = result['initial'][0]
-        >>> initial_trend = result['initial'][1]
-        >>> initial_seasonal = result['seasonal'][0][:12]  # First 12 values
+        >>> initial_level = result['initial']['nonseasonal']['level']
+        >>> initial_trend = result['initial']['nonseasonal']['trend']
+        >>> initial_seasonal = result['initial']['seasonal'][0]  # First 12 values
         >>> # Pass to ADAM's initials parameter
     """
     # Argument validation
     if type not in ["additive", "multiplicative"]:
         raise ValueError("type must be 'additive' or 'multiplicative'")
-    if smoother not in ["ma", "lowess", "supsmu"]:
-        raise ValueError("smoother must be 'ma', 'lowess', or 'supsmu'")
+    if smoother not in ["ma", "lowess", "supsmu", "global"]:
+        raise ValueError("smoother must be 'ma', 'lowess', 'supsmu', or 'global'")
 
     # Check statsmodels availability for lowess
     if smoother in ["lowess", "supsmu"] and not HAS_STATSMODELS:
@@ -290,12 +299,22 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
         return result
 
+    def smoothing_function_global(y, order=None):
+        """Global linear regression smoother"""
+        y = y.astype(float)
+        n = len(y)
+        X = np.column_stack([np.ones(n), np.arange(1, n + 1)])
+        coef = np.linalg.lstsq(X, y, rcond=None)[0]
+        return y - (y - X @ coef)  # Returns fitted values: X @ coef
+
     # Initial data processing
     # obs_in_sample is already defined above
-    
+
     # Select smoothing function based on smoother type
     if smoother == "ma":
         smoothing_function = smoothing_function_ma
+    elif smoother == "global":
+        smoothing_function = smoothing_function_global
     else:  # lowess or supsmu
         smoothing_function = smoothing_function_lowess
 
@@ -381,7 +400,11 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         patterns = None
 
     # Initial level and trend
-    data_for_initial = y_smooth[lags_length - 1]  # Matches R's ySmooth[[lagsLength]]
+    # Create initial as a dict with nonseasonal and seasonal components
+    initial = {"nonseasonal": {}, "seasonal": []}
+
+    # Calculate nonseasonal initial values (level and trend)
+    data_for_initial = y_smooth[lags_length]  # Matches R's ySmooth[[ySmoothLength]]
     valid_data_for_initial = data_for_initial[~np.isnan(data_for_initial)]
     if len(valid_data_for_initial) == 0:
         init_level = 0.0
@@ -390,11 +413,18 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         init_level = valid_data_for_initial[0]
         diffs = np.diff(valid_data_for_initial)
         init_trend = np.nanmean(diffs) if len(diffs) > 0 else 0.0
-    initial = np.array([init_level, init_trend], dtype=float)
 
-    # Fix the initial for MA smoother
+    lags_max = max(lags)
+
+    # Fix the initial for MA smoother (lines 200-202 in R)
     if smoother == "ma":
-        initial[0] -= initial[1] * np.floor(max(lags) / 2)
+        init_level -= init_trend * np.floor(lags_max / 2)
+
+    # Lag things back to get values useful for ADAM (lines 204-206 in R)
+    init_level -= init_trend * lags_max
+
+    # Store in nonseasonal dict
+    initial["nonseasonal"] = {"level": init_level, "trend": init_trend}
 
     # Deterministic trend fit to the smooth series
     # This is required by adam() with backcasting
@@ -423,7 +453,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
     # Return to the original scale
     if type == "multiplicative":
-        initial = np.exp(initial)
+        # Transform nonseasonal initial values back to exponential scale
+        initial["nonseasonal"]["level"] = np.exp(initial["nonseasonal"]["level"])
+        initial["nonseasonal"]["trend"] = np.exp(initial["nonseasonal"]["trend"])
         trend_exp = np.exp(trend)
 
         # Sort out additive/multiplicative trend for ADAM
@@ -453,6 +485,12 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         if non_positive_values:
             gtm[0] = gtm[0] - trend_min - 1
 
+    # Extract seasonal initial values (first lags[i] values from each pattern)
+    # Lines 256-258 in R
+    if seasonal_lags:
+        for i in range(lags_length):
+            initial["seasonal"].append(patterns[i][:lags[i]])
+
     # Fitted values and states
     y_fitted = trend.copy()
     if seasonal_lags:
@@ -467,6 +505,10 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
                 y_fitted *= pattern_rep
     else:
         states = np.column_stack((trend, np.concatenate(([np.nan], np.diff(trend)))))
+
+    # Fix for the "NA" in trend in case of global trend (lines 266-268 in R)
+    if smoother == "global":
+        states[:, 1] = np.nanmean(states[:, 1])
 
     # Return structure
     result = {
