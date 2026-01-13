@@ -1,4 +1,4 @@
-smooth v4.4.0 (Release data: 2026-01-12)
+smooth v4.4.0 (Release data: 2026-01-13)
 =======
 
 Changes:
@@ -7,6 +7,9 @@ Changes:
 * Removed the redundant old C++ code.
 * testthat for sparma().
 * Modified the adamCore class to include the number of components as one of the external parameters. This is to avoid duplications.
+* msdecompose() now has smoother="global" which fits the global trend to the data.
+* msdecompose() now returns initial similar to how it's done by adam(). It also amends the level component to help ADAM.
+* adam() now uses initial list from msdecompose instead of separate variables.
 
 Bugfixes:
 * A fix in sparma to allow high orders.
