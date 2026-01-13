@@ -165,7 +165,14 @@ def sigma(observations_dict, params_info, general, prepared_model):
         >>> # 95% prediction interval (for normal errors):
         >>> interval_width = 1.96 * sigma_hat
     """
-    vals = observations_dict['obs_in_sample'] - params_info[0][-1]
+
+    params_number = params_info[0][-1]
+
+    # In case of likelihood, scale is not calculated towards parameters for variance
+    if (general['loss']=="likelihood"):
+        params_number = params_number - params_info[0][1]
+
+    vals = observations_dict['obs_in_sample'] - params_number
     # If the sample is too small, then use biased estimator
     if vals <= 0:
         vals = observations_dict['obs_in_sample']
@@ -332,19 +339,13 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
 
                 # Generate values of cj
                 # Uses Python's i, k. Stores result in c_values[i] (maps to R's cValues[i+1])
-                try:
-                     # Ensure array_measurement slice has correct shape (1, n_components) before matmul
-                     meas_slice = array_measurement[:, :, k]
-                     if meas_slice.shape != (1, n_components):
-                         # This case shouldn't happen with current logic, but good practice
-                         raise ValueError(f"Unexpected shape for array_measurement slice: {meas_slice.shape}")
+                # Ensure array_measurement slice has correct shape (1, n_components) before matmul
+                meas_slice = array_measurement[:, :, k]
+                if meas_slice.shape != (1, n_components):
+                    # This case shouldn't happen with current logic, but good practice
+                    raise ValueError(f"Unexpected shape for array_measurement slice: {meas_slice.shape}")
 
-                     c_values[i] = c_values[i] + meas_slice @ transition_powered[:, :, i, k] @ persistence
-                except Exception as e:
-                     print(f"Error calculating c_values at i={i}, k={k}: {e}")
-                     # Handle error, maybe set to NaN or break?
-                     c_values[i] = np.nan # Example: set to NaN
-                     # Optional: break # Exit inner loop k if error occurs
+                c_values[i] = c_values[i] + (meas_slice @ transition_powered[:, :, i, k] @ persistence)[0]
 
 
         # Fill in diagonals

@@ -634,8 +634,9 @@ def estimator(
 
         - 'initial_type': Initialization method:
 
-          * 'optimal': Optimize initial states
           * 'backcasting': Use backcasting with refinement
+          * 'optimal': Optimize initial states
+          * 'two-stage': First backcasting then optimisation
           * 'complete': Full backcasting without refinement
           * 'provided': User-provided initial values
 
@@ -799,7 +800,7 @@ def estimator(
         ...     profiles_recent_table=None,
         ...     profiles_recent_provided=False,
         ...     persistence_dict={'persistence_estimate': True, ...},
-        ...     initials_dict={'initial_type': 'optimal', ...},
+        ...     initials_dict={'initial_type': 'backcasting', ...},
         ...     phi_dict={'phi_estimate': False, 'phi': 1.0},
         ...     components_dict={...},
         ...     occurrence_dict={'occurrence_model': False, ...}
@@ -812,7 +813,7 @@ def estimator(
         >>> # Stage 1: Backcasting
         >>> initials_dict['initial_type'] = 'complete'
         >>> stage1 = estimator(..., return_matrices=True)
-        >>> # Stage 2: Optimal with backcasted states as initial
+        >>> # Stage 2: Optimal
         >>> initials_dict['initial_type'] = 'optimal'
         >>> B_initial = np.concatenate([stage1['B'], extracted_initials_from_stage1])
         >>> stage2 = estimator(..., B_initial=B_initial)
