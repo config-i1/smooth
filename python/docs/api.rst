@@ -1,7 +1,11 @@
 API reference
 =============
 
-.. automodule:: smooth
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. currentmodule:: smooth
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: class.rst
+   :recursive:
+
+   ADAM
