@@ -13,7 +13,8 @@ dependencies = [
     "numpy>=1.14",
     "pandas>=2.0",
     "nlopt",
-    "scipy"
+    "scipy",
+    "statsmodels"
 ]
 
 [tool.setuptools.packages.find]
