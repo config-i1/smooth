@@ -146,7 +146,7 @@ class ADAM:
 
     .. code-block:: python
 
-        from smooth.adam_general.core.adam import ADAM
+        from smooth import ADAM
         import numpy as np
 
         # Generate sample data
@@ -154,7 +154,8 @@ class ADAM:
 
         # Automatic model selection
         model = ADAM(model="ZZZ", lags=[12], ic="AICc")
-        model.fit(y)
+        ADAM_fit = model.fit(y)
+        print(ADAM_fit)
 
         # Generate 12-step ahead forecasts with intervals
         forecasts = model.predict(h=12, calculate_intervals=True, level=0.95)
@@ -223,12 +224,13 @@ class ADAM:
     selector : Automatic model selection function
     estimator : Parameter estimation function
     forecaster : Forecasting function
+    print : Print the outputs of the ADAM class
 
     Examples
     --------
     Simple exponential smoothing::
 
-        >>> from smooth.adam_general.core.adam import ADAM
+        >>> from smooth import ADAM
         >>> import numpy as np
         >>> y = np.array([112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118])
         >>> model = ADAM(model="ANN", lags=[1])
@@ -643,7 +645,7 @@ class ADAM:
         --------
         Basic fitting::
 
-            >>> from smooth.adam_general.core.adam import ADAM
+            >>> from smooth import ADAM
             >>> import numpy as np
             >>> y = np.array([112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118])
             >>> model = ADAM(model="ANN", lags=[1])
@@ -1741,3 +1743,66 @@ class ADAM:
         self.forecast_results["elapsed_time"] = time.time() - self.start_time
 
         return self.forecast_results
+
+    def __str__(self) -> str:
+        """
+        Return a formatted string representation of the fitted model.
+
+        Returns a comprehensive summary including model type, parameters,
+        information criteria, and forecast errors (if holdout was used).
+
+        Returns
+        -------
+        str
+            Formatted model summary
+        """
+        from smooth.adam_general.core.utils.printing import model_summary
+
+        # Check if model has been fitted
+        if not hasattr(self, 'model_type_dict'):
+            return f"ADAM(model={self.model}) - not fitted"
+
+        return model_summary(self)
+
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the ADAM model.
+
+        Returns
+        -------
+        str
+            Brief model representation
+        """
+        if hasattr(self, 'model_type_dict') and self.model_type_dict:
+            model_str = self.model_type_dict.get('model', self.model)
+            if self.model_type_dict.get('ets_model', False):
+                return f"ADAM(ETS({model_str}), fitted=True)"
+            return f"ADAM({model_str}, fitted=True)"
+        return f"ADAM(model={self.model}, fitted=False)"
+
+    def summary(self, digits: int = 4) -> str:
+        """
+        Generate a formatted summary of the fitted model.
+
+        Parameters
+        ----------
+        digits : int, default=4
+            Number of decimal places for numeric output
+
+        Returns
+        -------
+        str
+            Formatted model summary
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> print(model.summary())
+        """
+        from smooth.adam_general.core.utils.printing import model_summary
+
+        if not hasattr(self, 'model_type_dict'):
+            return "Model has not been fitted yet. Call fit() first."
+
+        return model_summary(self, digits=digits)
