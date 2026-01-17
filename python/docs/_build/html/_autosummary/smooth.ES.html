@@ -1,0 +1,345 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smooth.ES &mdash; smooth  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="smooth.ES.fit" href="smooth.ES.fit.html" />
+    <link rel="prev" title="smooth.ADAM.summary" href="smooth.ADAM.summary.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            smooth
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.html">smooth.ADAM</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">smooth.ES</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#smooth.ES"><code class="docutils literal notranslate"><span class="pre">ES</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.persistence_level_"><code class="docutils literal notranslate"><span class="pre">ES.persistence_level_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.persistence_trend_"><code class="docutils literal notranslate"><span class="pre">ES.persistence_trend_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.persistence_seasonal_"><code class="docutils literal notranslate"><span class="pre">ES.persistence_seasonal_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.phi_"><code class="docutils literal notranslate"><span class="pre">ES.phi_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.initial_states_"><code class="docutils literal notranslate"><span class="pre">ES.initial_states_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.model_type_dict"><code class="docutils literal notranslate"><span class="pre">ES.model_type_dict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.ic_selection"><code class="docutils literal notranslate"><span class="pre">ES.ic_selection</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.fit.html">smooth.ES.fit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.predict.html">smooth.ES.predict</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.predict_intervals.html">smooth.ES.predict_intervals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.select_best_model.html">smooth.ES.select_best_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.summary.html">smooth.ES.summary</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.fit.html">smooth.ADAM.fit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.predict.html">smooth.ADAM.predict</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.predict_intervals.html">smooth.ADAM.predict_intervals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.select_best_model.html">smooth.ADAM.select_best_model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.summary.html">smooth.ADAM.summary</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.fit.html">smooth.ES.fit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.predict.html">smooth.ES.predict</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.predict_intervals.html">smooth.ES.predict_intervals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.select_best_model.html">smooth.ES.select_best_model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.summary.html">smooth.ES.summary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">smooth</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">smooth.ES</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/smooth.ES.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="smooth-es">
+<h1>smooth.ES<a class="headerlink" href="#smooth-es" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="smooth.ES">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">smooth.</span></span><span class="sig-name descname"><span class="pre">ES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ZXZ'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">persistence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'backcasting'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_season</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'AICc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'likelihood'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'usual'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regressors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'use'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_X</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#smooth.ES" title="Link to this definition"></a></dt>
+<dd><p>Exponential Smoothing in Single Source of Error (SSOE) state space model.</p>
+<p>This class is a wrapper around ADAM that provides a simplified interface
+for pure ETS (Error, Trend, Seasonal) models without ARIMA components.
+It uses normal distribution for errors and conventional ETS formulation.</p>
+<p>The model is specified in state-space form as:</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}y_t &amp;= o_t(w(v_{t-l}) + h(x_t, a_{t-1}) + r(v_{t-l})\epsilon_t)\\v_t &amp;= f(v_{t-l}) + g(v_{t-l})\epsilon_t\end{aligned}\end{align} \]</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(y_t\)</span>: Observed value at time t</p></li>
+<li><p><span class="math notranslate nohighlight">\(o_t\)</span>: Occurrence indicator (Bernoulli variable for intermittent data)</p></li>
+<li><p><span class="math notranslate nohighlight">\(v_t\)</span>: State vector (level, trend, seasonal components)</p></li>
+<li><p><span class="math notranslate nohighlight">\(l\)</span>: Vector of lags</p></li>
+<li><p><span class="math notranslate nohighlight">\(w(\cdot)\)</span>: Measurement function</p></li>
+<li><p><span class="math notranslate nohighlight">\(r(\cdot)\)</span>: Error function (additive or multiplicative)</p></li>
+<li><p><span class="math notranslate nohighlight">\(f(\cdot)\)</span>: Transition function</p></li>
+<li><p><span class="math notranslate nohighlight">\(g(\cdot)\)</span>: Persistence function</p></li>
+<li><p><span class="math notranslate nohighlight">\(\epsilon_t\)</span>: Error term (normal distribution)</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em><em>, </em><em>default=&quot;ZXZ&quot;</em>) – <p>The type of ETS model. The first letter stands for the type of error
+(“A” or “M”), the second for trend (“N”, “A”, “Ad”, “M” or “Md”),
+and the third for seasonality (“N”, “A” or “M”).</p>
+<p>Examples: “ANN”, “AAN”, “AAdN”, “AAA”, “AAdA”, “MAdM”</p>
+<p>Special codes:
+- “ZZZ”: Automatic selection using information criteria
+- “XXX”: Select only additive components
+- “YYY”: Select only multiplicative components
+- “ZXZ”: Auto-select error and seasonal, additive trend only (default)
+- “CCC”: Combination of all models using AIC weights</p>
+<p>Can also be a list of model names for custom model pool.</p>
+</p></li>
+<li><p><strong>lags</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>int</em><em>]</em><em>]</em><em>, </em><em>default=None</em>) – Seasonal periods. For monthly data with annual seasonality: [1, 12].
+If None, defaults to [1] (no seasonality).</p></li>
+<li><p><strong>persistence</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>]</em><em>]</em><em>, </em><em>default=None</em>) – Fixed persistence (smoothing) parameters. If None, estimated.
+Keys: “alpha” (level), “beta” (trend), “gamma” (seasonal).</p></li>
+<li><p><strong>phi</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em><em>, </em><em>default=None</em>) – Damping parameter for damped trend models. If None, estimated when applicable.</p></li>
+<li><p><strong>initial</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>]</em><em>, </em><em>default=&quot;backcasting&quot;</em>) – Method for initializing states or dictionary of fixed initial values.
+String options: “backcasting”, “optimal”, “complete”, “two-stage”</p></li>
+<li><p><strong>initial_season</strong> (<em>Optional</em><em>[</em><em>NDArray</em><em>]</em><em>, </em><em>default=None</em>) – Initial values for seasonal components. If None, estimated.
+Length should be (seasonal_period - 1) for each seasonal component.</p></li>
+<li><p><strong>ic</strong> (<em>Literal</em><em>[</em><em>&quot;AIC&quot;</em><em>, </em><em>&quot;AICc&quot;</em><em>, </em><em>&quot;BIC&quot;</em><em>, </em><em>&quot;BICc&quot;</em><em>]</em><em>, </em><em>default=&quot;AICc&quot;</em>) – Information criterion for model selection.</p></li>
+<li><p><strong>loss</strong> (<em>Literal</em><em>[</em><em>&quot;likelihood&quot;</em><em>, </em><em>&quot;MSE&quot;</em><em>, </em><em>&quot;MAE&quot;</em><em>, </em><em>&quot;HAM&quot;</em><em>, </em><em>&quot;MSEh&quot;</em><em>, </em><em>&quot;TMSE&quot;</em><em>, </em><em>&quot;GTMSE&quot;</em><em>, </em><em>&quot;MSCE&quot;</em><em>]</em><em>, </em><em>default=&quot;likelihood&quot;</em>) – Loss function for parameter estimation.</p></li>
+<li><p><strong>h</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em><em>, </em><em>default=None</em>) – Forecast horizon. Can also be set in predict().</p></li>
+<li><p><strong>holdout</strong> (<em>bool</em><em>, </em><em>default=False</em>) – Whether to use holdout sample for validation.</p></li>
+<li><p><strong>bounds</strong> (<em>Literal</em><em>[</em><em>&quot;usual&quot;</em><em>, </em><em>&quot;admissible&quot;</em><em>, </em><em>&quot;none&quot;</em><em>]</em><em>, </em><em>default=&quot;usual&quot;</em>) – Parameter bounds type:
+- “usual”: Standard smoothing parameter constraints
+- “admissible”: Stability constraints
+- “none”: No constraints</p></li>
+<li><p><strong>verbose</strong> (<em>int</em><em>, </em><em>default=0</em>) – Verbosity level. 0 = silent.</p></li>
+<li><p><strong>regressors</strong> (<em>Literal</em><em>[</em><em>&quot;use&quot;</em><em>, </em><em>&quot;select&quot;</em><em>]</em><em>, </em><em>default=&quot;use&quot;</em>) – How to handle external regressors.</p></li>
+<li><p><strong>initial_X</strong> (<em>Optional</em><em>[</em><em>NDArray</em><em>]</em><em>, </em><em>default=None</em>) – Initial values for regressor coefficients.</p></li>
+<li><p><strong>**kwargs</strong> – Additional arguments passed to ADAM.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="smooth.ES.persistence_level_">
+<span class="sig-name descname"><span class="pre">persistence_level_</span></span><a class="headerlink" href="#smooth.ES.persistence_level_" title="Link to this definition"></a></dt>
+<dd><p>Estimated level smoothing parameter (alpha).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="smooth.ES.persistence_trend_">
+<span class="sig-name descname"><span class="pre">persistence_trend_</span></span><a class="headerlink" href="#smooth.ES.persistence_trend_" title="Link to this definition"></a></dt>
+<dd><p>Estimated trend smoothing parameter (beta).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="smooth.ES.persistence_seasonal_">
+<span class="sig-name descname"><span class="pre">persistence_seasonal_</span></span><a class="headerlink" href="#smooth.ES.persistence_seasonal_" title="Link to this definition"></a></dt>
+<dd><p>Estimated seasonal smoothing parameter(s) (gamma).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="smooth.ES.phi_">
+<span class="sig-name descname"><span class="pre">phi_</span></span><a class="headerlink" href="#smooth.ES.phi_" title="Link to this definition"></a></dt>
+<dd><p>Estimated damping parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="smooth.ES.initial_states_">
+<span class="sig-name descname"><span class="pre">initial_states_</span></span><a class="headerlink" href="#smooth.ES.initial_states_" title="Link to this definition"></a></dt>
+<dd><p>Estimated initial states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>NDArray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="smooth.ES.model_type_dict">
+<span class="sig-name descname"><span class="pre">model_type_dict</span></span><a class="headerlink" href="#smooth.ES.model_type_dict" title="Link to this definition"></a></dt>
+<dd><p>Complete model specification.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="smooth.ES.ic_selection">
+<span class="sig-name descname"><span class="pre">ic_selection</span></span><a class="headerlink" href="#smooth.ES.ic_selection" title="Link to this definition"></a></dt>
+<dd><p>Information criterion value of fitted model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Examples</p>
+<p>Simple exponential smoothing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">smooth.adam_general.core.es</span><span class="w"> </span><span class="kn">import</span> <span class="n">ES</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">112</span><span class="p">,</span> <span class="mi">118</span><span class="p">,</span> <span class="mi">132</span><span class="p">,</span> <span class="mi">129</span><span class="p">,</span> <span class="mi">121</span><span class="p">,</span> <span class="mi">135</span><span class="p">,</span> <span class="mi">148</span><span class="p">,</span> <span class="mi">148</span><span class="p">,</span> <span class="mi">136</span><span class="p">,</span> <span class="mi">119</span><span class="p">,</span> <span class="mi">104</span><span class="p">,</span> <span class="mi">118</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ES</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;ANN&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">forecasts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">h</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Holt-Winters with automatic model selection:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ES</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;ZZZ&quot;</span><span class="p">,</span> <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">12</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Selected model: </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">model_type_dict</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Damped trend model:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ES</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;AAdN&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Damping parameter: </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">phi_</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>With external regressors:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ES</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;AAN&quot;</span><span class="p">,</span> <span class="n">regressors</span><span class="o">=</span><span class="s2">&quot;use&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>Svetunkov, I. (2023). “Smooth forecasting in R”. <a class="reference external" href="https://openforecast.org/adam/">https://openforecast.org/adam/</a></p></li>
+<li><p>Hyndman, R.J., et al. (2008). “Forecasting with Exponential Smoothing”</p></li>
+</ul>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="smooth.ADAM.html#smooth.ADAM" title="smooth.ADAM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ADAM</span></code></a></dt><dd><p>Full ADAM model with ETS and ARIMA components</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.fit.html#smooth.ES.fit" title="smooth.ES.fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fit</span></code></a>(y[, X])</p></td>
+<td><p>Fit the ADAM model to time series data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.predict.html#smooth.ES.predict" title="smooth.ES.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(h[, X, calculate_intervals, ...])</p></td>
+<td><p>Generate point forecasts using the fitted ADAM model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.predict_intervals.html#smooth.ES.predict_intervals" title="smooth.ES.predict_intervals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_intervals</span></code></a>(h[, X, levels, side])</p></td>
+<td><p>Generate prediction intervals using the fitted ADAM model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.select_best_model.html#smooth.ES.select_best_model" title="smooth.ES.select_best_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_best_model</span></code></a>()</p></td>
+<td><p>Select the best model based on information criteria and update model parameters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.summary.html#smooth.ES.summary" title="smooth.ES.summary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summary</span></code></a>([digits])</p></td>
+<td><p>Generate a formatted summary of the fitted model.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="smooth.ADAM.summary.html" class="btn btn-neutral float-left" title="smooth.ADAM.summary" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="smooth.ES.fit.html" class="btn btn-neutral float-right" title="smooth.ES.fit" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Filotas Theodosiou, Ivan Svetunkov, Leonidas Tsaprounis, Claude AI.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

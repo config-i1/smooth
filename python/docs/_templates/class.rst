@@ -3,22 +3,33 @@
 .. currentmodule:: {{ module }}
 
 .. autoclass:: {{ objname }}
+   :no-members:
 
-   {% block methods %}
-   .. autosummary::
-      :toctree:
-      :template: method.rst
-   {% for item in methods %}
-      ~{{ name }}.{{ item }}
-   {%- endfor %}
-   {% endblock %}
+{% block methods %}
+{% if methods %}
+.. rubric:: Methods
 
-   {% block attributes %}
-   {% if attributes %}
-   .. autosummary::
-      :toctree:
-   {% for item in attributes %}
-      ~{{ name }}.{{ item }}
-   {%- endfor %}
-   {% endif %}
-   {% endblock %}
+.. autosummary::
+   :toctree:
+   :template: method.rst
+{% for item in methods %}
+{%- if not item.startswith('_') %}
+   ~{{ name }}.{{ item }}
+{%- endif %}
+{%- endfor %}
+{% endif %}
+{% endblock %}
+
+{% block attributes %}
+{% if attributes %}
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+{% for item in attributes %}
+{%- if not item.startswith('_') %}
+   ~{{ name }}.{{ item }}
+{%- endif %}
+{%- endfor %}
+{% endif %}
+{% endblock %}

@@ -29,6 +29,17 @@ autosummary_generate = True
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# Autodoc configuration
+autodoc_default_options = {
+    'members': False,
+    'member-order': 'bysource',
+    'undoc-members': False,
+    'exclude-members': '__weakref__, __dict__, __module__, __init__, __str__, __repr__',
+}
+
+# Only include class docstring, not __init__
+autoclass_content = 'class'
+
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>smooth.ADAM.fit &mdash; smooth  documentation</title>
+  <title>smooth.ES.fit &mdash; smooth  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
@@ -19,8 +19,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="smooth.ADAM.predict" href="smooth.ADAM.predict.html" />
-    <link rel="prev" title="smooth.ADAM" href="smooth.ADAM.html" /> 
+    <link rel="next" title="smooth.ES.predict" href="smooth.ES.predict.html" />
+    <link rel="prev" title="smooth.ES" href="smooth.ES.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,18 +46,18 @@
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.html">smooth.ADAM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ES.html">smooth.ES</a></li>
 </ul>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">smooth.ADAM.fit</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#smooth.ADAM.fit"><code class="docutils literal notranslate"><span class="pre">ADAM.fit()</span></code></a></li>
-</ul>
-</li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.fit.html">smooth.ADAM.fit</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.predict.html">smooth.ADAM.predict</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.predict_intervals.html">smooth.ADAM.predict_intervals</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.select_best_model.html">smooth.ADAM.select_best_model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.summary.html">smooth.ADAM.summary</a></li>
 </ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="smooth.ES.fit.html">smooth.ES.fit</a></li>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">smooth.ES.fit</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#smooth.ES.fit"><code class="docutils literal notranslate"><span class="pre">ES.fit()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ES.predict.html">smooth.ES.predict</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ES.predict_intervals.html">smooth.ES.predict_intervals</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ES.select_best_model.html">smooth.ES.select_best_model</a></li>
@@ -82,10 +82,10 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="smooth.ADAM.html">smooth.ADAM</a></li>
-      <li class="breadcrumb-item active">smooth.ADAM.fit</li>
+          <li class="breadcrumb-item"><a href="smooth.ES.html">smooth.ES</a></li>
+      <li class="breadcrumb-item active">smooth.ES.fit</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_autosummary/smooth.ADAM.fit.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_autosummary/smooth.ES.fit.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -93,11 +93,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="smooth-adam-fit">
-<h1>smooth.ADAM.fit<a class="headerlink" href="#smooth-adam-fit" title="Link to this heading"></a></h1>
+  <section id="smooth-es-fit">
+<h1>smooth.ES.fit<a class="headerlink" href="#smooth-es-fit" title="Link to this heading"></a></h1>
 <dl class="py method">
-<dt class="sig sig-object py" id="smooth.ADAM.fit">
-<span class="sig-prename descclassname"><span class="pre">ADAM.</span></span><span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#smooth.ADAM.fit" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="smooth.ES.fit">
+<span class="sig-prename descclassname"><span class="pre">ES.</span></span><span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#smooth.ES.fit" title="Link to this definition"></a></dt>
 <dd><p>Fit the ADAM model to time series data.</p>
 <p>This method estimates the model parameters, selects the best model (if automatic selection
 is enabled), and prepares the model for forecasting. It implements the complete ADAM
@@ -256,9 +256,9 @@ For large models or difficult optimization, consider:</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference internal" href="smooth.ADAM.predict.html#smooth.ADAM.predict" title="smooth.ADAM.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a></dt><dd><p>Generate forecasts from fitted model</p>
+<dt><a class="reference internal" href="smooth.ES.predict.html#smooth.ES.predict" title="smooth.ES.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a></dt><dd><p>Generate forecasts from fitted model</p>
 </dd>
-<dt><a class="reference internal" href="smooth.ADAM.predict_intervals.html#smooth.ADAM.predict_intervals" title="smooth.ADAM.predict_intervals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_intervals</span></code></a></dt><dd><p>Generate prediction intervals</p>
+<dt><a class="reference internal" href="smooth.ES.predict_intervals.html#smooth.ES.predict_intervals" title="smooth.ES.predict_intervals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_intervals</span></code></a></dt><dd><p>Generate prediction intervals</p>
 </dd>
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimator</span></code></dt><dd><p>Underlying estimation function</p>
 </dd>
@@ -308,15 +308,15 @@ For large models or difficult optimization, consider:</p>
 </dd></dl>
 
 <hr class="docutils" />
-<p><strong>Parent Class:</strong> <a class="reference internal" href="smooth.ADAM.html#smooth.ADAM" title="smooth.ADAM"><code class="xref py py-class docutils literal notranslate"><span class="pre">ADAM</span></code></a></p>
+<p><strong>Parent Class:</strong> <a class="reference internal" href="smooth.ES.html#smooth.ES" title="smooth.ES"><code class="xref py py-class docutils literal notranslate"><span class="pre">ES</span></code></a></p>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="smooth.ADAM.html" class="btn btn-neutral float-left" title="smooth.ADAM" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="smooth.ADAM.predict.html" class="btn btn-neutral float-right" title="smooth.ADAM.predict" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="smooth.ES.html" class="btn btn-neutral float-left" title="smooth.ES" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="smooth.ES.predict.html" class="btn btn-neutral float-right" title="smooth.ES.predict" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
