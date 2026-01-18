@@ -240,6 +240,14 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     # Data preparation
     y = np.asarray(y)
     obs_in_sample = len(y)
+
+    # Handle empty lags case - treat as lags=[1] to match R behavior
+    # In R, msdecompose is never called with empty lags, but the Python code
+    # filters lags to remove lag=1, which can result in empty lags.
+    # We treat empty lags as lags=[1] to ensure consistent smoothing behavior.
+    if len(lags) == 0:
+        lags = [1]
+
     seasonal_lags = any(lag > 1 for lag in lags)
 
     # Smoothing function definition
