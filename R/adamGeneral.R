@@ -2779,6 +2779,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 # We don't have enough observations for seasonal models with damped trend
                 if((obsNonzero <= (6 + lagsModelMax + 1 + nParamExo))){
                     if(nchar(model)==4){
+                        warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
+                                call.=FALSE);
                         model <- paste0(substr(model,1,2),substr(model,4,4));
                     }
                     # model <- model[!(nchar(model)==4 &
@@ -2788,27 +2790,45 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 }
                 # We don't have enough observations for seasonal models with trend
                 if((obsNonzero <= (5 + lagsModelMax + 1 + nParamExo))){
+                    warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
+                            call.=FALSE);
                     model <- paste0(substr(model,1,1),"N",substr(model,3,3));
                     # model <- model[!(substr(model,2,2)!="N" &
                     #                      substr(model,nchar(model),nchar(model))!="N")];
                 }
                 # We don't have enough observations for seasonal models
                 if(obsNonzero <= lagsModelMax){
+                    warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
+                            call.=FALSE);
                     model <- paste0(substr(model,1,2),"N");
                     # model <- model[substr(model,nchar(model),nchar(model))=="N"];
                 }
                 # We don't have enough observations for damped trend
                 if(obsNonzero <= (6 + nParamExo)){
                     if(nchar(model)==4){
+                        warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
+                                call.=FALSE);
                         model <- paste0(substr(model,1,2),substr(model,4,4));
                     }
                     # model <- model[nchar(model)!=4];
                 }
                 # We don't have enough observations for any trend
                 if(obsNonzero <= (5 + nParamExo)){
+                    warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
+                            call.=FALSE);
                     model <- paste0(substr(model,1,1),"N",substr(model,3,3));
                     # model <- model[substr(model,2,2)=="N"];
                 }
+                # Change E,T,S elements based on the trimmed thingy
+                Etype <- substr(model,1,1);
+                Ttype <- substr(model,2,2);
+                Stype <- substr(model,nchar(model),nchar(model));
+
+                modelIsTrendy <- Ttype!="N";
+                modelIsSeasonal <- Stype!="N";
+
+                damped <- modelIsTrendy && (nchar(model)==4);
+                phiEstimate <- damped;
             }
             # Extreme cases of small samples
             else if(obsNonzero==4){
