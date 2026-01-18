@@ -275,20 +275,18 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         n = len(y)
         x = np.arange(1, n + 1)
 
-        # Calculate span similar to R's supsmu
-        # R uses span = max(3/n, 1/order) for supsmu
-        if order == 1:
-            # R's lowess uses f = 2/3 for default
-            span = 2/3
-        elif order == lags[len(lags)-1] or order == obs_in_sample:
-             span = 2/3 # 1/(1.5)
-        elif order > n:
-            span = 3 / n
+        # Match R's lowess parameter calculation:
+        # In R: if order is NULL, equals max lag, equals obsInSample, or equals 1,
+        #       then order = 1.5, so f = 1/1.5 = 0.667
+        # Otherwise: f = 1/order
+        if order is None or order == 1 or order == lags[-1] or order == obs_in_sample:
+            span = 2 / 3  # 1/1.5 ≈ 0.667, matching R's default
         else:
             span = 1 / order
 
-        # Ensure span is reasonable (between 0 and 1)
-        span = max(min(span, 1.0), 3 / n)
+        # Ensure span is in valid range [0, 1]
+        # Use at least 3/n to have enough points for smoothing
+        span = min(max(span, 3 / n), 1.0)
 
         # Handle missing values
         valid_mask = ~np.isnan(y)
