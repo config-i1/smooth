@@ -55,7 +55,12 @@ def AICc(loglik, nobs=None, df=None):
         df = loglik.df
         
     aic = AIC(loglik, nobs, df)
-    return aic + (2 * df * (df + 1)) / (nobs - df - 1)
+    denominator = (nobs - df - 1)
+
+    if denominator==0:
+        return float('inf')
+    else:
+        return aic + (2 * df * (df + 1)) / denominator
 
 def BIC(loglik, nobs=None, df=None):
     """
@@ -112,7 +117,12 @@ def BICc(loglik, nobs=None, df=None):
         df = loglik.df
         
     bic = BIC(loglik, nobs, df)
-    return bic + (np.log(nobs) * df * (df + 1)) / (nobs - df - 1)
+    denominator = (nobs - df - 1)
+
+    if denominator==0:
+        return float('inf')
+    else:
+        return bic + (np.log(nobs) * df * (df + 1)) / denominator
 
 def ic_function(ic_name, loglik):
     """

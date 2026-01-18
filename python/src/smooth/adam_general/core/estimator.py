@@ -1530,12 +1530,16 @@ def _estimate_all_models(
         model_type_dict_temp["trend_type"] = model_current[1]
 
         if len(model_current) == 4:
+            # 4-character model means damped (e.g., "AAdN")
             phi_dict_temp["phi"] = 0.95
             model_type_dict_temp["season_type"] = model_current[3]
+            model_type_dict_temp["damped"] = True
             phi_dict_temp["phi_estimate"] = True
         else:
+            # 3-character model means not damped (e.g., "AAN")
             phi_dict_temp["phi"] = 1
             model_type_dict_temp["season_type"] = model_current[2]
+            model_type_dict_temp["damped"] = False
             phi_dict_temp["phi_estimate"] = False
         
         # Estimate the model

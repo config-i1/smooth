@@ -623,6 +623,14 @@ def _format_constant(model: Any, digits: int) -> str:
 
 def _format_phi(model: Any, digits: int) -> str:
     """Format damping parameter if present."""
+    # First check if model has damped trend - don't print if not damped
+    if not hasattr(model, 'model_type_dict') or not model.model_type_dict:
+        return ""
+
+    if not model.model_type_dict.get('damped', False):
+        return ""
+
+    # Model is damped, now get the phi value
     phi_val = None
 
     # Try to get from phi_dict first
@@ -638,10 +646,8 @@ def _format_phi(model: Any, digits: int) -> str:
         phi_val = model.prepared_model.get('phi')
 
     if phi_val is not None:
-        # Check if model has damped trend
-        if hasattr(model, 'model_type_dict') and model.model_type_dict:
-            if model.model_type_dict.get('damped', False):
-                return f"Damping parameter: {phi_val:.{digits}f}"
+        return f"Damping parameter: {phi_val:.{digits}f}"
+
     return ""
 
 
@@ -660,14 +666,43 @@ def _get_nobs(model: Any) -> int:
 
 
 def _get_n_params(model: Any) -> int:
-    """Get number of estimated parameters."""
+    """Get number of estimated parameters (for degrees of freedom calculation)."""
+    # Use n_param table if available (preferred)
+    if hasattr(model, 'n_param') and model.n_param:
+        return model.n_param.n_param_estimated
+
+    # Fallback to n_param_estimated attribute
     if hasattr(model, 'n_param_estimated'):
         return model.n_param_estimated
+
+    # Fallback to general dict n_param
     if hasattr(model, 'general') and model.general:
+        n_param = model.general.get('n_param')
+        if n_param:
+            return n_param.n_param_estimated
+
+        # Legacy format fallback
         params_number = model.general.get('parameters_number', [[0]])
         if params_number and len(params_number) > 0:
             return params_number[0][0] if isinstance(params_number[0], list) else params_number[0]
+
     return 0
+
+
+def _format_n_param_table(model: Any) -> str:
+    """Format the n_param table for display."""
+    n_param = None
+
+    # Try to get n_param from model
+    if hasattr(model, 'n_param') and model.n_param:
+        n_param = model.n_param
+    elif hasattr(model, 'general') and model.general:
+        n_param = model.general.get('n_param')
+
+    if n_param is None:
+        return ""
+
+    return str(n_param)
 
 
 def _can_compute_ic(model: Any) -> bool:

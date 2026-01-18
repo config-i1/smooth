@@ -2398,8 +2398,19 @@ def generate_simulation_interval(
         arr_vt[:, :lags_model_max, i] = mat_vt[:, :lags_model_max]
 
     # 2. Calculate degrees of freedom for de-biasing
-    # params_info is a list of lists, params_info[0][-1] is the number of parameters
-    n_param = params_info[0][-1] if params_info and params_info[0] else 0
+    # For variance calculation, use n_param_all - n_param_scale
+    # Check if we have the new n_param table structure
+    n_param = None
+    if "n_param" in general_dict and general_dict["n_param"] is not None:
+        n_param = general_dict["n_param"].n_param_for_variance
+    elif params_info and params_info[0]:
+        # Legacy: params_info[0][-1] is n_param_all, params_info[0][3] is n_param_scale
+        n_param_all = params_info[0][-1] if len(params_info[0]) > 4 else params_info[0][0]
+        n_param_scale = params_info[0][3] if len(params_info[0]) > 3 else 0
+        n_param = n_param_all - n_param_scale
+    else:
+        n_param = 0
+
     df = observations_dict["obs_in_sample"] - n_param
     if df <= 0:
         df = observations_dict["obs_in_sample"]

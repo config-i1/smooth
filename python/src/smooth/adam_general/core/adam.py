@@ -745,9 +745,14 @@ class ADAM:
             if "persistence_xreg" in self.persistence_results:
                 self.persistence_xreg_ = self.persistence_results["persistence_xreg"]
 
-        # Set phi parameter
-        if hasattr(self, "phi_dict") and self.phi_dict and "phi" in self.phi_dict:
-            self.phi_ = self.phi_dict["phi"]
+        # Set phi parameter - only if model is damped and phi was estimated or provided
+        if hasattr(self, "phi_dict") and self.phi_dict:
+            if self.phi_dict.get("phi_estimate", False) or self.model_type_dict.get("damped", False):
+                self.phi_ = self.phi_dict.get("phi")
+            else:
+                self.phi_ = None
+        else:
+            self.phi_ = None
 
         # Set ARIMA parameters
         if hasattr(self, "arima_results") and self.arima_results:
@@ -1383,24 +1388,45 @@ class ADAM:
         Parameters
         ----------
         n_param_estimated : int
-            Number of estimated parameters
+            Number of estimated parameters from optimization
         """
         # Store number of estimated parameters
         self.n_param_estimated = n_param_estimated
 
-        # Initialize parameters_number if not present
-        if "parameters_number" not in self.general:
-            self.general["parameters_number"] = self.params_info["parameters_number"]
-        self.general["parameters_number"][0][0] = self.n_param_estimated
+        # Update the n_param table
+        if "n_param" in self.general:
+            n_param = self.general["n_param"]
+            # The n_param_estimated from optimizer is the total internal params
+            # We need to update it based on what was actually estimated
+            n_param.estimated['internal'] = n_param_estimated
 
-        # Handle likelihood loss case
+            # Handle likelihood loss case - scale parameter is estimated
+            if self.general["loss"] == "likelihood":
+                n_param.estimated['scale'] = 1
+            else:
+                n_param.estimated['scale'] = 0
+
+            # Update totals
+            n_param.update_totals()
+
+            # Store reference for easy access
+            self.n_param = n_param
+
+        # Legacy format for backward compatibility
+        if "parameters_number" not in self.general:
+            self.general["parameters_number"] = self.params_info.get(
+                "parameters_number", [[0], [0]]
+            )
+        self.general["parameters_number"][0][0] = n_param_estimated
+
+        # Handle likelihood loss case in legacy format
         if self.general["loss"] == "likelihood":
             if len(self.general["parameters_number"][0]) <= 3:
                 self.general["parameters_number"][0].append(1)
             else:
                 self.general["parameters_number"][0][3] = 1
 
-        # Calculate row sums
+        # Calculate row sums in legacy format
         if len(self.general["parameters_number"][0]) <= 4:
             self.general["parameters_number"][0].append(
                 sum(self.general["parameters_number"][0][0:4])
@@ -1560,7 +1586,24 @@ class ADAM:
         """
         # Update parameters number
         n_param_estimated = result["adam_estimated"]["n_param_estimated"]
-        self.general["parameters_number"] = self.params_info["parameters_number"]
+
+        # Update n_param table if available
+        if "n_param" in self.general and self.general["n_param"] is not None:
+            n_param = self.general["n_param"]
+            n_param.estimated['internal'] = n_param_estimated
+
+            if self.general["loss"] == "likelihood":
+                n_param.estimated['scale'] = 1
+            else:
+                n_param.estimated['scale'] = 0
+
+            n_param.update_totals()
+            self.n_param = n_param
+
+        # Legacy format
+        self.general["parameters_number"] = self.params_info.get(
+            "parameters_number", [[0], [0]]
+        )
         self.general["parameters_number"][0][0] = n_param_estimated
 
         # Handle likelihood loss case

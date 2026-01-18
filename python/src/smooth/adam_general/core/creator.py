@@ -3181,6 +3181,7 @@ def filler(B,
     
     # Damping parameter
     if model_type_dict['ets_model'] and phi_dict['phi_estimate']:
+        phi_dict['phi'] = B[j]  # Update phi_dict with estimated value
         j += 1
         matrices_dict['mat_wt'][:, 1] = B[j-1]
         matrices_dict['mat_f'][0:2, 1] = B[j-1]
