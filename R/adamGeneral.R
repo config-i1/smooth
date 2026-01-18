@@ -2670,28 +2670,28 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 # We have enough observations for trend model
                 if(obsNonzero > (5 + nParamExo)){
                     if(any(Ttype==c("Z","X","A"))){
-                        modelsPool <- c(modelsPool,"AAN");
+                        modelsPool <- c(modelsPool,"AAN","MAN");
                     }
                     if(allowMultiplicative && any(Ttype==c("Z","Y","M"))){
-                        modelsPool <- c(modelsPool,"AMN","MAN","MMN");
+                        modelsPool <- c(modelsPool,"AMN","MMN");
                     }
                 }
                 # We have enough observations for damped trend model
                 if(obsNonzero > (6 + nParamExo)){
                     if(any(Ttype==c("Z","X","A"))){
-                        modelsPool <- c(modelsPool,"AAdN");
+                        modelsPool <- c(modelsPool,"AAdN","MAdN");
                     }
                     if(allowMultiplicative && any(Ttype==c("Z","Y","M"))){
-                        modelsPool <- c(modelsPool,"AMdN","MAdN","MMdN");
+                        modelsPool <- c(modelsPool,"AMdN","MMdN");
                     }
                 }
                 # We have enough observations for seasonal model
                 if((obsNonzero > (lagsModelMax)) && lagsModelMax!=1){
                     if(any(Stype==c("Z","X","A"))){
-                        modelsPool <- c(modelsPool,"ANA");
+                        modelsPool <- c(modelsPool,"ANA","MNA");
                     }
                     if(allowMultiplicative && any(Stype==c("Z","Y","M"))){
-                        modelsPool <- c(modelsPool,"ANM","MNA","MNM");
+                        modelsPool <- c(modelsPool,"ANM","MNM");
                     }
                 }
                 # We have enough observations for seasonal model with trend
