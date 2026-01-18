@@ -1,15 +1,12 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "24 October 2025"
+date: "19 January 2026"
 output: html_document
 ---
 
 ## Version
-This is ``smooth`` package, v4.3.1
-
-## Notes
-This version fixes the issues on CRAN caused by the new RcppArmadillo.
+This is ``smooth`` package, v4.4.0
 
 
 ## Test environments
@@ -31,9 +28,9 @@ checking installed package size ... NOTE
 ## Github actions
 Successful checks for:
 
-- Windows latest release with R 4.4.1
-- MacOS latest macOS Sonoma 14.6.1 with R 4.4.1
-- Ubuntu 22.04.5 LTS with R 4.4.1
+- Windows latest release with latest R
+- MacOS 15.7.3 with latest R
+- Ubuntu 24.04.3 LTS with latest R
 
 ## win-builder check results
 >* checking package dependencies ... NOTE
