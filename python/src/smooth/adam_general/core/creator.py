@@ -1832,23 +1832,31 @@ def initialiser(
 
     if arima_checked['arima_model']:
         if any([arima_checked['ar_estimate'], arima_checked['ma_estimate']]):
-            acf_values = [-0.1] * sum(arima_checked['ma_orders'] * lags_dict["lags"])
-            pacf_values = [0.1] * sum(arima_checked['ar_orders'] * lags_dict["lags"])
-            
-            if not (model_type_dict["ets_model"] or all(arima_checked['i_orders'] == 0)):
+            # Use numpy for element-wise multiplication of orders and lags
+            ma_orders_arr = np.array(arima_checked['ma_orders'])
+            ar_orders_arr = np.array(arima_checked['ar_orders'])
+            i_orders_arr = np.array(arima_checked['i_orders'])
+            lags_arr = np.array(lags_dict["lags"])
+
+            acf_values = [-0.1] * int(np.sum(ma_orders_arr * lags_arr))
+            pacf_values = [0.1] * int(np.sum(ar_orders_arr * lags_arr))
+
+            if not (model_type_dict["ets_model"] or np.all(i_orders_arr == 0)):
                 y_differenced = observations_dict['y_in_sample'].copy()
                 # Implement differencing if needed
-                if any(arima_checked['i_orders'] > 0):
+                if np.any(i_orders_arr > 0):
                     for i, order in enumerate(arima_checked['i_orders']):
                         if order > 0:
                             y_differenced = np.diff(y_differenced, n=order, axis=0)
-                
+
                 # ACF/PACF calculation for non-seasonal models
-                if all(np.array(lags_dict["lags"]) <= 1):
+                if np.all(lags_arr <= 1):
+                    ma_total = int(np.sum(ma_orders_arr * lags_arr))
+                    ar_total = int(np.sum(ar_orders_arr * lags_arr))
                     if arima_checked['ma_required'] and arima_checked['ma_estimate']:
-                        acf_values[:min(sum(arima_checked['ma_orders'] * lags_dict["lags"]), len(y_differenced) - 1)] = calculate_acf(y_differenced, nlags=max(1, sum(arima_checked['ma_orders'] * lags_dict["lags"])))[1:]
+                        acf_values[:min(ma_total, len(y_differenced) - 1)] = calculate_acf(y_differenced, nlags=max(1, ma_total))[1:]
                     if arima_checked['ar_required'] and arima_checked['ar_estimate']:
-                        pacf_values[:min(sum(arima_checked['ar_orders'] * lags_dict["lags"]), len(y_differenced) - 1)] = calculate_pacf(y_differenced, nlags=max(1, sum(arima_checked['ar_orders'] * lags_dict["lags"])))
+                        pacf_values[:min(ar_total, len(y_differenced) - 1)] = calculate_pacf(y_differenced, nlags=max(1, ar_total))
             
             for i, lag in enumerate(lags_dict["lags"]):
                 if arima_checked['ar_required'] and arima_checked['ar_estimate'] and arima_checked['ar_orders'][i] > 0:

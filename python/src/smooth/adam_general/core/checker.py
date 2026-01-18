@@ -620,8 +620,11 @@ def _expand_orders(orders):
 
     Parameters
     ----------
-    orders : list, tuple, int, or None
-        ARIMA order specification
+    orders : list, tuple, int, dict, or None
+        ARIMA order specification. Can be:
+        - dict with 'ar', 'i', 'ma' keys
+        - list/tuple of [ar, i, ma] values
+        - single int (interpreted as AR order)
 
     Returns
     -------
@@ -634,8 +637,16 @@ def _expand_orders(orders):
     if orders is None:
         return ar_orders, i_orders, ma_orders
 
-    # Handle different input types
-    if isinstance(orders, (list, tuple)):
+    # Handle dict input (from ADAM class)
+    if isinstance(orders, dict):
+        ar = orders.get("ar", 0)
+        i = orders.get("i", 0)
+        ma = orders.get("ma", 0)
+        ar_orders = [ar] if isinstance(ar, (int, float)) else list(ar) if ar else [0]
+        i_orders = [i] if isinstance(i, (int, float)) else list(i) if i else [0]
+        ma_orders = [ma] if isinstance(ma, (int, float)) else list(ma) if ma else [0]
+    # Handle list/tuple input
+    elif isinstance(orders, (list, tuple)):
         if len(orders) >= 3:
             ar_orders = (
                 [orders[0]] if isinstance(orders[0], (int, float)) else orders[0]
