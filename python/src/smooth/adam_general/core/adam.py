@@ -759,6 +759,48 @@ class ADAM:
             if "initial_states" in self.initials_results:
                 self.initial_states_ = self.initials_results["initial_states"]
 
+        # Update self.model with the selected/estimated model name
+        if hasattr(self, "model_type_dict") and self.model_type_dict:
+            # Use best_model if available (from model selection), otherwise construct from components
+            if hasattr(self, "best_model") and self.best_model:
+                ets_str = self.best_model
+            else:
+                # Construct from components (for fixed model specification)
+                e = self.model_type_dict.get("error_type", "")
+                t = self.model_type_dict.get("trend_type", "")
+                s = self.model_type_dict.get("season_type", "")
+                damped = self.model_type_dict.get("damped", False)
+                if damped and t not in ["N", ""]:
+                    t = t + "d"
+                ets_str = e + t + s if (e or t or s) else self.model
+
+            # Build the model name
+            model_parts = []
+
+            # Add ETS part if present
+            is_ets = self.model_type_dict.get("ets_model", False)
+            if is_ets:
+                model_parts.append(f"ETS({ets_str})")
+
+            # Add ARIMA part if present
+            is_arima = self.model_type_dict.get("arima_model", False)
+            if is_arima and hasattr(self, "arima_results") and self.arima_results:
+                ar_orders = self.arima_results.get("ar_orders", [0])
+                i_orders = self.arima_results.get("i_orders", [0])
+                ma_orders = self.arima_results.get("ma_orders", [0])
+
+                # Format ARIMA orders - sum across lags for simple display
+                ar = sum(ar_orders) if ar_orders else 0
+                i = sum(i_orders) if i_orders else 0
+                ma = sum(ma_orders) if ma_orders else 0
+                model_parts.append(f"ARIMA({ar},{i},{ma})")
+
+            # Combine parts
+            if model_parts:
+                self.model = "+".join(model_parts)
+            else:
+                self.model = ets_str
+
     def predict(
         self,
         h: int,

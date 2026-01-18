@@ -558,13 +558,9 @@ def model_summary(model: Any, digits: int = 4) -> str:
 
 def _get_model_name(model: Any) -> str:
     """Get the model name string (e.g., 'ETS(AAN)')."""
-    if hasattr(model, 'model_type_dict') and model.model_type_dict:
-        model_str = model.model_type_dict.get('model', 'Unknown')
-        if model.model_type_dict.get('ets_model', False):
-            return f"ETS({model_str})"
-        elif model.model_type_dict.get('arima_model', False):
-            return f"ARIMA{model_str}"
-        return model_str
+    # Use the model attribute directly - it's updated in _set_fitted_attributes()
+    if hasattr(model, 'model') and model.model:
+        return model.model
     return "Unknown"
 
 
