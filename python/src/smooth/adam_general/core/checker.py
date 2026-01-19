@@ -1815,6 +1815,147 @@ def _calculate_parameters_number(ets_info, arima_info, xreg_info=None, constant_
     #}
 
 
+def _calculate_n_param_max(
+    ets_model,
+    persistence_level_estimate,
+    model_is_trendy,
+    persistence_trend_estimate,
+    model_is_seasonal,
+    persistence_seasonal_estimate,
+    phi_estimate,
+    initial_type,
+    initial_level_estimate,
+    initial_trend_estimate,
+    initial_seasonal_estimate,
+    lags_model_seasonal,
+    arima_model=False,
+    initial_arima_number=0,
+    ar_required=False,
+    ar_estimate=False,
+    ar_orders=None,
+    ma_required=False,
+    ma_estimate=False,
+    ma_orders=None,
+    xreg_model=False,
+    xreg_number=0,
+    initial_xreg_estimate=False,
+    persistence_xreg_estimate=False,
+):
+    """
+    Calculate maximum number of parameters for the model.
+
+    Follows R's adamGeneral.R lines 2641-2651.
+
+    Parameters
+    ----------
+    ets_model : bool
+        Whether ETS model is used
+    persistence_level_estimate : bool
+        Whether level persistence is estimated
+    model_is_trendy : bool
+        Whether model has trend component
+    persistence_trend_estimate : bool
+        Whether trend persistence is estimated
+    model_is_seasonal : bool
+        Whether model has seasonal component
+    persistence_seasonal_estimate : list or bool
+        Whether seasonal persistence(s) are estimated
+    phi_estimate : bool
+        Whether damping parameter is estimated
+    initial_type : str
+        Initial type ('optimal', 'two-stage', 'backcasting', 'provided')
+    initial_level_estimate : bool
+        Whether initial level is estimated
+    initial_trend_estimate : bool
+        Whether initial trend is estimated
+    initial_seasonal_estimate : list or bool
+        Whether initial seasonal(s) are estimated
+    lags_model_seasonal : list
+        List of seasonal lags
+    arima_model : bool
+        Whether ARIMA model is used
+    initial_arima_number : int
+        Number of ARIMA initial states
+    ar_required : bool
+        Whether AR is required
+    ar_estimate : bool
+        Whether AR is estimated
+    ar_orders : list
+        List of AR orders
+    ma_required : bool
+        Whether MA is required
+    ma_estimate : bool
+        Whether MA is estimated
+    ma_orders : list
+        List of MA orders
+    xreg_model : bool
+        Whether xreg model is used
+    xreg_number : int
+        Number of external regressors
+    initial_xreg_estimate : bool
+        Whether xreg initials are estimated
+    persistence_xreg_estimate : bool
+        Whether xreg persistence is estimated
+
+    Returns
+    -------
+    int
+        Maximum number of parameters
+    """
+    # Handle list/bool for persistence_seasonal_estimate
+    if isinstance(persistence_seasonal_estimate, (list, np.ndarray)):
+        sum_persistence_seasonal = sum(persistence_seasonal_estimate)
+    else:
+        sum_persistence_seasonal = int(persistence_seasonal_estimate) if persistence_seasonal_estimate else 0
+
+    # Handle list/bool for initial_seasonal_estimate
+    if isinstance(initial_seasonal_estimate, (list, np.ndarray)):
+        sum_initial_seasonal = sum(initial_seasonal_estimate)
+    else:
+        sum_initial_seasonal = int(initial_seasonal_estimate) if initial_seasonal_estimate else 0
+
+    # Check if initial type requires estimation
+    initial_needs_estimation = initial_type in ["optimal", "two-stage"]
+    initial_needs_xreg = initial_type in ["backcasting", "optimal", "two-stage"]
+
+    # ETS component
+    ets_params = 0
+    if ets_model:
+        ets_params = (
+            int(persistence_level_estimate) +
+            int(model_is_trendy) * int(persistence_trend_estimate) +
+            int(model_is_seasonal) * sum_persistence_seasonal +
+            int(phi_estimate) +
+            int(initial_needs_estimation) * (
+                int(initial_level_estimate) +
+                int(initial_trend_estimate) +
+                sum_initial_seasonal * len(lags_model_seasonal) if lags_model_seasonal else 0
+            )
+        )
+
+    # ARIMA component
+    arima_params = 0
+    if arima_model:
+        ar_orders_sum = sum(ar_orders) if ar_orders else 0
+        ma_orders_sum = sum(ma_orders) if ma_orders else 0
+        arima_params = (
+            int(initial_needs_estimation) * initial_arima_number +
+            int(ar_required) * int(ar_estimate) * ar_orders_sum +
+            int(ma_required) * int(ma_estimate) * ma_orders_sum
+        )
+
+    # Xreg component
+    xreg_params = 0
+    if xreg_model:
+        xreg_params = xreg_number * (
+            int(initial_needs_xreg) * int(initial_xreg_estimate) +
+            int(persistence_xreg_estimate)
+        )
+
+    # Total: 1 (scale) + ETS + ARIMA + xreg
+    return 1 + ets_params + arima_params + xreg_params
+
+
 def _restrict_models_pool_for_sample_size(
     obs_nonzero,
     lags_model_max,
@@ -1826,11 +1967,13 @@ def _restrict_models_pool_for_sample_size(
     allow_multiplicative=True,
     xreg_number=0,
     silent=False,
+    n_param_max=None,
 ):
     """
     Restrict the models pool based on sample size.
 
     Follows the logic from R's adamGeneral.R lines 2641-2944.
+    Only applies restrictions when obs_nonzero <= n_param_max.
 
     Parameters
     ----------
@@ -1854,6 +1997,9 @@ def _restrict_models_pool_for_sample_size(
         Number of external regressors
     silent : bool
         Whether to suppress warnings
+    n_param_max : int or None
+        Maximum number of parameters. If None, restrictions always apply.
+        If provided, restrictions only apply when obs_nonzero <= n_param_max.
 
     Returns
     -------
@@ -1874,6 +2020,17 @@ def _restrict_models_pool_for_sample_size(
         "initial_estimate": True,
         "phi_estimate": True,
     }
+
+    # Only apply restrictions if n_param_max is None or obs_nonzero <= n_param_max
+    # Following R line 2655: if(obsNonzero <= nParamMax)
+    if n_param_max is not None and obs_nonzero > n_param_max:
+        return result
+
+    # Print message when restrictions are being applied (R lines 2657-2661)
+    if n_param_max is not None and not silent:
+        print(f"Number of non-zero observations is {obs_nonzero}, "
+              f"while the maximum number of parameters to estimate is {n_param_max}.\n"
+              "Updating pool of models.")
 
     # If pool not specified and select/combine mode, build restricted pool
     if obs_nonzero > (3 + n_param_exo) and models_pool is None and model_do in ["select", "combine"]:
@@ -2794,7 +2951,39 @@ def parameters_checker(
         or (occurrence_model and any(y < 0 for y in actual_values if not np.isnan(y)))
     )
 
+    # Calculate n_param_max to determine if pool restriction is needed (R lines 2641-2651)
+    model_is_trendy = ets_info["trend_type"] not in ["N", None]
+    model_is_seasonal = ets_info["season_type"] not in ["N", None] and len(lags_model_seasonal) > 0
+
+    n_param_max = _calculate_n_param_max(
+        ets_model=ets_model,
+        persistence_level_estimate=persist_info.get("persistence_level_estimate", True),
+        model_is_trendy=model_is_trendy,
+        persistence_trend_estimate=persist_info.get("persistence_trend_estimate", True),
+        model_is_seasonal=model_is_seasonal,
+        persistence_seasonal_estimate=persist_info.get("persistence_seasonal_estimate", [True] * len(lags_model_seasonal)),
+        phi_estimate=phi_estimate,
+        initial_type=init_info.get("initial_type", "optimal"),
+        initial_level_estimate=init_info.get("initial_level_estimate", True),
+        initial_trend_estimate=init_info.get("initial_trend_estimate", True),
+        initial_seasonal_estimate=init_info.get("initial_seasonal_estimate", [True] * len(lags_model_seasonal)),
+        lags_model_seasonal=lags_model_seasonal,
+        arima_model=arima_model,
+        initial_arima_number=arima_info.get("initial_arima_number", 0),
+        ar_required=any(ar_orders) if ar_orders else False,
+        ar_estimate=arima_info.get("ar_estimate", True),
+        ar_orders=ar_orders,
+        ma_required=any(ma_orders) if ma_orders else False,
+        ma_estimate=arima_info.get("ma_estimate", True),
+        ma_orders=ma_orders,
+        xreg_model=False,  # Will be updated when xreg is implemented
+        xreg_number=0,
+        initial_xreg_estimate=False,
+        persistence_xreg_estimate=False,
+    )
+
     # Restrict models pool based on sample size (R lines 2641-2944)
+    # Only apply if obs_nonzero <= n_param_max (R line 2655)
     pool_restriction = _restrict_models_pool_for_sample_size(
         obs_nonzero=obs_nonzero,
         lags_model_max=max_lag,
@@ -2806,6 +2995,7 @@ def parameters_checker(
         allow_multiplicative=allow_multiplicative,
         xreg_number=0,  # Will be updated when xreg is implemented
         silent=silent,
+        n_param_max=n_param_max,
     )
 
     # Update ets_info with restricted values
