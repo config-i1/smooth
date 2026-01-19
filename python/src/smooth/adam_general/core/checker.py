@@ -1908,11 +1908,24 @@ def _calculate_n_param_max(
     else:
         sum_persistence_seasonal = int(persistence_seasonal_estimate) if persistence_seasonal_estimate else 0
 
-    # Handle list/bool for initial_seasonal_estimate
-    if isinstance(initial_seasonal_estimate, (list, np.ndarray)):
-        sum_initial_seasonal = sum(initial_seasonal_estimate)
+    # Handle list/bool for initial_seasonal_estimate - multiply by lags as in R
+    # R: sum(initialSeasonalEstimate*lagsModelSeasonal)
+    if lags_model_seasonal and initial_seasonal_estimate:
+        if isinstance(initial_seasonal_estimate, (list, np.ndarray)):
+            # Element-wise multiplication of estimates and lags, then sum
+            init_seasonal_arr = np.array(initial_seasonal_estimate, dtype=int)
+            lags_arr = np.array(lags_model_seasonal)
+            # Broadcast if lengths differ (repeat estimates if shorter)
+            if len(init_seasonal_arr) < len(lags_arr):
+                init_seasonal_arr = np.tile(init_seasonal_arr, len(lags_arr))[:len(lags_arr)]
+            elif len(init_seasonal_arr) > len(lags_arr):
+                init_seasonal_arr = init_seasonal_arr[:len(lags_arr)]
+            sum_initial_seasonal_lags = int(np.sum(init_seasonal_arr * lags_arr))
+        else:
+            # Single boolean - multiply by sum of lags
+            sum_initial_seasonal_lags = int(initial_seasonal_estimate) * sum(lags_model_seasonal)
     else:
-        sum_initial_seasonal = int(initial_seasonal_estimate) if initial_seasonal_estimate else 0
+        sum_initial_seasonal_lags = 0
 
     # Check if initial type requires estimation
     initial_needs_estimation = initial_type in ["optimal", "two-stage"]
@@ -1929,7 +1942,7 @@ def _calculate_n_param_max(
             int(initial_needs_estimation) * (
                 int(initial_level_estimate) +
                 int(initial_trend_estimate) +
-                sum_initial_seasonal * len(lags_model_seasonal) if lags_model_seasonal else 0
+                sum_initial_seasonal_lags
             )
         )
 
@@ -1968,6 +1981,7 @@ def _restrict_models_pool_for_sample_size(
     xreg_number=0,
     silent=False,
     n_param_max=None,
+    damped=False,
 ):
     """
     Restrict the models pool based on sample size.
@@ -2000,6 +2014,8 @@ def _restrict_models_pool_for_sample_size(
     n_param_max : int or None
         Maximum number of parameters. If None, restrictions always apply.
         If provided, restrictions only apply when obs_nonzero <= n_param_max.
+    damped : bool
+        Whether the model has damped trend
 
     Returns
     -------
@@ -2019,6 +2035,7 @@ def _restrict_models_pool_for_sample_size(
         "initial_type": None,
         "initial_estimate": True,
         "phi_estimate": True,
+        "damped": damped,
     }
 
     # Only apply restrictions if n_param_max is None or obs_nonzero <= n_param_max
@@ -2111,36 +2128,59 @@ def _restrict_models_pool_for_sample_size(
         if not silent and len(filtered_pool) < len(models_pool):
             _warn(f"Pool restricted due to sample size: {filtered_pool}")
 
-    # Handle estimate/use mode
+    # Handle estimate/use mode (R lines 2778-2832)
     elif obs_nonzero > (3 + n_param_exo) and model_do in ["estimate", "use"]:
-        model = f"{error_type}{trend_type}{season_type}"
+        # Build model string: E + T + (d if damped) + S
+        model = error_type + trend_type
+        if damped:
+            model += "d"
+        model += season_type
+        original_model = model
 
-        # Remove damped seasonal if not enough obs
+        # 1. Remove damped from seasonal models if not enough obs (R lines 2780-2790)
         if obs_nonzero <= (6 + lags_model_max + 1 + n_param_exo):
-            if len(model) == 4:
-                model = model[:2] + model[3]
-                result["trend_type"] = model[1]
-                result["season_type"] = model[2]
+            if len(model) == 4:  # Damped model with seasonal
+                if not silent:
+                    _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
+                model = model[:2] + model[3]  # Remove 'd': AAdA -> AAA
 
-        # Remove seasonal + trend if not enough obs
+        # 2. Remove trend from seasonal models if not enough obs (R lines 2791-2798)
         if obs_nonzero <= (5 + lags_model_max + 1 + n_param_exo):
-            model = model[0] + "N" + model[2] if len(model) == 3 else model[0] + "N" + model[3]
-            result["trend_type"] = "N"
+            if model[1] != "N":  # Has trend
+                if not silent:
+                    _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
+                model = model[0] + "N" + model[2]  # Remove trend: AAA -> ANA
 
-        # Remove seasonal if not enough obs
+        # 3. Remove seasonal if not enough obs (R lines 2799-2805)
         if obs_nonzero <= lags_model_max:
-            model = model[:2] + "N"
-            result["season_type"] = "N"
+            if model[-1] != "N":  # Has seasonal
+                if not silent:
+                    _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
+                model = model[:2] + "N"  # Remove seasonal: ANA -> ANN
 
-        # Remove damped trend if not enough obs
+        # 4. Remove damped from non-seasonal models if not enough obs (R lines 2806-2814)
         if obs_nonzero <= (6 + n_param_exo):
-            if len(model) == 4:
-                model = model[:2] + model[3]
+            if len(model) == 4:  # Damped model (non-seasonal at this point)
+                if not silent:
+                    _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
+                model = model[:2] + model[3]  # Remove 'd': AAdN -> AAN
 
-        # Remove any trend if not enough obs
+        # 5. Remove any trend if not enough obs (R lines 2815-2821)
         if obs_nonzero <= (5 + n_param_exo):
-            model = model[0] + "N" + model[-1]
-            result["trend_type"] = "N"
+            if model[1] != "N":  # Has trend
+                if not silent:
+                    _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
+                model = model[0] + "N" + model[2]  # Remove trend: AAN -> ANN
+
+        # Update result based on simplified model (R lines 2822-2832)
+        result["error_type"] = model[0]
+        result["trend_type"] = model[1]
+        result["season_type"] = model[-1]  # Last character is always season
+
+        # Update damped and phi_estimate based on final model
+        model_is_trendy = model[1] != "N"
+        result["damped"] = model_is_trendy and len(model) == 4
+        result["phi_estimate"] = result["damped"]
 
     # Extreme cases
     if obs_nonzero == 4:
@@ -2157,6 +2197,7 @@ def _restrict_models_pool_for_sample_size(
             if not silent:
                 _warn("Very small sample. Only level models available.")
         result["phi_estimate"] = False
+        result["damped"] = False
 
     elif obs_nonzero == 3:
         if error_type in ["A", "M"]:
@@ -2172,6 +2213,7 @@ def _restrict_models_pool_for_sample_size(
         result["persistence_level"] = 0
         result["persistence_estimate"] = False
         result["phi_estimate"] = False
+        result["damped"] = False
         if not silent:
             _warn("Very small sample. Persistence set to zero.")
 
@@ -2186,6 +2228,7 @@ def _restrict_models_pool_for_sample_size(
         result["trend_type"] = "N"
         result["season_type"] = "N"
         result["phi_estimate"] = False
+        result["damped"] = False
         if not silent:
             _warn("Sample too small. Using fixed ANN model.")
 
@@ -2200,6 +2243,7 @@ def _restrict_models_pool_for_sample_size(
         result["trend_type"] = "N"
         result["season_type"] = "N"
         result["phi_estimate"] = False
+        result["damped"] = False
         if not silent:
             _warn("Only one observation. Using Naive forecast.")
 
@@ -2214,6 +2258,7 @@ def _restrict_models_pool_for_sample_size(
         result["trend_type"] = "N"
         result["season_type"] = "N"
         result["phi_estimate"] = False
+        result["damped"] = False
         if not silent:
             _warn("No non-zero observations. Forecast will be zero.")
 
@@ -2996,20 +3041,37 @@ def parameters_checker(
         xreg_number=0,  # Will be updated when xreg is implemented
         silent=silent,
         n_param_max=n_param_max,
+        damped=ets_info.get("damped", False),
     )
 
     # Update ets_info with restricted values
+    model_changed = False
     if pool_restriction["error_type"] != ets_info["error_type"]:
         ets_info["error_type"] = pool_restriction["error_type"]
+        model_changed = True
     if pool_restriction["trend_type"] != ets_info["trend_type"]:
         ets_info["trend_type"] = pool_restriction["trend_type"]
+        model_changed = True
     if pool_restriction["season_type"] != ets_info["season_type"]:
         ets_info["season_type"] = pool_restriction["season_type"]
+        model_changed = True
     if pool_restriction["models_pool"] is not None:
         ets_info["models_pool"] = pool_restriction["models_pool"]
     if pool_restriction["model_do"] != model_do:
         model_do = pool_restriction["model_do"]
         ets_info["model_do"] = model_do
+    # Update damped flag if it was changed
+    if pool_restriction["damped"] != ets_info.get("damped", False):
+        ets_info["damped"] = pool_restriction["damped"]
+        model_changed = True
+
+    # Rebuild model string if any component changed
+    if model_changed:
+        new_model = ets_info["error_type"] + ets_info["trend_type"]
+        if ets_info["damped"] and ets_info["trend_type"] != "N":
+            new_model += "d"
+        new_model += ets_info["season_type"]
+        ets_info["model"] = new_model
 
     # Update persistence if restricted
     if pool_restriction["persistence_level"] is not None:
