@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def AIC(loglik, nobs=None, df=None):
     """
     Calculate Akaike Information Criterion

@@ -1,8 +1,7 @@
 import numpy as np
-from scipy import stats
-from scipy.linalg import eigvals
-from scipy.special import gamma, digamma, beta
 import pandas as pd
+from scipy import stats
+from scipy.special import beta, digamma, gamma
 
 try:
     from statsmodels.nonparametric.smoothers_lowess import lowess as sm_lowess

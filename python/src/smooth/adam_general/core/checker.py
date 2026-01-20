@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 def _warn(msg, silent=False):
     """
     Helper to show warnings in a style closer to R.

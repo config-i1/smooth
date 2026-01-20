@@ -4,7 +4,8 @@ Exponential Smoothing (ES) wrapper for ADAM.
 This module provides an ES class that wraps the ADAM model for pure
 Exponential Smoothing (ETS) forecasting without ARIMA components.
 """
-from typing import Union, List, Optional, Literal, Dict, Any
+from typing import Any, Dict, List, Literal, Optional, Union
+
 from numpy.typing import NDArray
 
 from smooth.adam_general.core.adam import ADAM

@@ -1,15 +1,23 @@
+import warnings
+
 import numpy as np
 import pandas as pd
-import warnings
 from scipy import stats
 from scipy.special import gamma
 
 # Note: adam_cpp instance is passed to functions that need C++ integration
 # The adamCore object is created in architector() and passed through the pipeline
 from smooth.adam_general.core.creator import adam_profile_creator, filler
+from smooth.adam_general.core.utils.distributions import (
+    generate_errors,
+    normalize_errors,
+)
 from smooth.adam_general.core.utils.utils import scaler
-from smooth.adam_general.core.utils.var_covar import sigma, covar_anal, var_anal, matrix_power_wrap
-from smooth.adam_general.core.utils.distributions import generate_errors, normalize_errors
+from smooth.adam_general.core.utils.var_covar import (
+    covar_anal,
+    sigma,
+    var_anal,
+)
 
 
 def _safe_create_index(start, periods, freq):

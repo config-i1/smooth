@@ -4,8 +4,7 @@ Parameter counting utilities for ADAM models.
 This module provides the NParam class for tracking estimated and provided parameters
 across different model components (internal, xreg, occurrence, scale).
 """
-from typing import Dict, Optional
-import numpy as np
+from typing import Dict
 
 
 class NParam:

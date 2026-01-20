@@ -5,10 +5,11 @@ This module provides functions to generate formatted summaries of fitted ADAM mo
 similar to R's print.adam() method.
 """
 import time
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, Optional
+
 import numpy as np
 
-from smooth.adam_general.core.utils.ic import AIC, AICc, BIC, BICc
+from smooth.adam_general.core.utils.ic import AIC, BIC, AICc, BICc
 
 
 def _format_distribution(distribution: str, other: Optional[Dict] = None) -> str:
