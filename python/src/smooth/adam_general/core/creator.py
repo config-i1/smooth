@@ -899,17 +899,6 @@ def _initialize_ets_seasonal_states_with_decomp(
         else y_decomposition_additive
     )
 
-    # Debug output for comparing with R
-    import os
-    if os.environ.get("DEBUG_PROCESS_INIT"):
-        print(f"[DEBUG] msdecompose type: {decomposition_type}")
-        print(f"[DEBUG] additive initial: {y_decomposition_additive['initial']}")
-        if y_decomposition_multiplicative:
-            print(f"[DEBUG] multiplicative initial: {y_decomposition_multiplicative['initial']}")
-        if y_decomposition['seasonal']:
-            for i, s in enumerate(y_decomposition['seasonal']):
-                print(f"[DEBUG] msdecompose seasonal[{i}]: {s[:min(12, len(s))]}")
-
     j = 0
 
     # Initialize level (matching R lines 909-919)
@@ -1014,18 +1003,6 @@ def _initialize_ets_seasonal_states_with_decomp(
     # Failsafe in case negatives were produced
     if e_type == "M" and mat_vt[0, 0] <= 0:
         mat_vt[0, 0:lags_model_max] = y_in_sample[0]
-
-    # Debug output for mat_vt after initialization
-    import os
-    if os.environ.get("DEBUG_PROCESS_INIT"):
-        print(f"[DEBUG] mat_vt level (row 0): {mat_vt[0, :lags_model_max]}")
-        if model_is_trendy:
-            print(f"[DEBUG] mat_vt trend (row 1): {mat_vt[1, :lags_model_max]}")
-        if components_number_ets_seasonal > 0:
-            start_row = 2 if model_is_trendy else 1
-            for i in range(components_number_ets_seasonal):
-                row = start_row + i
-                print(f"[DEBUG] mat_vt seasonal[{i}] (row {row}): {mat_vt[row, :min(12, lags_model[row])]}")
 
     return mat_vt
 
@@ -1173,18 +1150,6 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
     else:
         y_decomposition_multiplicative = None
 
-    # DEBUG: Print msdecompose results for non-seasonal models
-    import os
-    if os.environ.get('DEBUG_INIT_STATES'):
-        print(f"[DEBUG INIT] Non-seasonal msdecompose results:")
-        print(f"  y_in_sample[0:5]: {y_in_sample.ravel()[0:5]}")
-        print(f"  additive initial: {y_decomposition_additive['initial']}")
-        if y_decomposition_multiplicative:
-            print(f"  multiplicative initial: {y_decomposition_multiplicative['initial']}")
-        print(f"  model_is_trendy: {model_is_trendy}")
-        print(f"  t_type: {t_type}")
-        print(f"  lags_model_max: {lags_model_max}")
-
     # level (matching R lines 1030-1044)
     if initials_checked["initial_level_estimate"]:
         # If there's a trend, use the initial from decomposition (R lines 1032-1036)
@@ -1212,13 +1177,6 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
     # Failsafe in case negatives were produced
     if e_type == "M" and mat_vt[0, 0] <= 0:
         mat_vt[0, 0:lags_model_max] = y_in_sample[0]
-
-    # DEBUG: Print final mat_vt values
-    if os.environ.get('DEBUG_INIT_STATES'):
-        print(f"[DEBUG INIT] Final mat_vt initial states:")
-        print(f"  mat_vt[0, 0] (level): {mat_vt[0, 0]}")
-        if model_is_trendy:
-            print(f"  mat_vt[1, 0] (trend): {mat_vt[1, 0]}")
 
     return mat_vt
 
@@ -1890,7 +1848,7 @@ def initialiser(
         if model_type_dict["model_is_trendy"] and initials_checked['initial_trend_estimate']:
             B[j] = adam_created['mat_vt'][1, 0]
             Bl[j] = -np.inf if model_type_dict["trend_type"] == "A" else 0
-            Bu[j] = np.inf
+            Bu[j] = np.inf if model_type_dict["trend_type"] == "A" else 2
             names.append("trend")
             j += 1
 

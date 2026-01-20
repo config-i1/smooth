@@ -289,7 +289,6 @@ def _create_objective_function(
         """
         Wrapper for the objective function.
         """
-        iteration_count[0] += 1
         # Calculate the cost function
         cf_value = CF(
             B=x,
@@ -947,16 +946,6 @@ def estimator(
 
     # Set objective function
     opt.set_min_objective(objective_wrapper)
-
-    # DEBUG: Temporary debug prints to compare with R - REMOVE AFTER FIX
-    import os
-    if os.environ.get('DEBUG_BACKCASTING'):
-        print(f"DEBUG EST: Initial B = {B}")
-        print(f"DEBUG EST: lb = {lb}")
-        print(f"DEBUG EST: ub = {ub}")
-        # Calculate initial CF value
-        initial_cf = objective_wrapper(B, None)
-        print(f"DEBUG EST: Initial CF = {initial_cf:.6f}")
 
     # Step 9: Run optimization
     res = _run_optimization(opt, B)

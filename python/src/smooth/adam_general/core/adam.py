@@ -1117,9 +1117,6 @@ class ADAM:
         # This creates B WITH initial states because "two-stage" != "complete"/"backcasting"
         # =========================================================================
 
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage: Getting B structure with initial_type='{self.initials_results['initial_type']}'")
-
         # First, build the model structure (architector and creator)
         # These are needed for initialiser to work
         model_type_dict, components_dict, lags_dict, observations_dict, profile_dict, _ = (
@@ -1172,10 +1169,6 @@ class ADAM:
         Bl = b_values["Bl"].copy()
         Bu = b_values["Bu"].copy()
 
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage: Initial B structure = {B}")
-            print(f"DEBUG Two-Stage: B length = {len(B)}")
-
         # =========================================================================
         # STEP 2: Run Stage 1 with initial='complete' to get backcasted parameters
         # R: clNew$initial <- "complete"; adamBack <- eval(clNew)
@@ -1185,9 +1178,6 @@ class ADAM:
         stage1_initials = self.initials_results.copy()
         stage1_initials["initial_type"] = "complete"
         stage1_initials["n_iterations"] = 2
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage S1: Running Stage 1 with initial='complete'")
 
         # Call estimator for Stage 1 with return_matrices=True to get mat_vt
         # Get nlopt parameters from nlopt_kargs if provided
@@ -1211,9 +1201,6 @@ class ADAM:
             **nlopt_params,
         )
 
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage S1: Stage 1 B = {adam_estimated_s1['B']}")
-
         # =========================================================================
         # STEP 3: Extract results from Stage 1 and populate B
         # R: B[1:nParametersBack] <- adamBack$B[1:nParametersBack]
@@ -1232,10 +1219,6 @@ class ADAM:
         lags_dict_s1 = adam_estimated_s1["lags_dict"]
         lags_model_s1 = lags_dict_s1["lags_model"]
         lags_model_max_s1 = lags_dict_s1["lags_model_max"]
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage: mat_vt shape = {mat_vt_s1.shape}")
-            print(f"DEBUG Two-Stage: mat_vt[:, 0] = {mat_vt_s1[:, 0]}")
 
         # Extract initial states from mat_vt (matching R's adamBack$initial extraction)
         initial_states = []
@@ -1368,10 +1351,6 @@ class ADAM:
         # R passes originalType to optimizer - this ensures filler reads initials from B
         # =========================================================================
 
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage S2: Running Stage 2 with initial_type='{self.initials_results['initial_type']}'")
-            print(f"DEBUG Two-Stage S2: B_initial = {B}")
-
         self.adam_estimated = estimator(
             general_dict=self.general,
             model_type_dict=self.model_type_dict,
@@ -1392,9 +1371,6 @@ class ADAM:
             ub=Bu,
             **nlopt_params,
         )
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage: Final B = {self.adam_estimated['B']}")
 
     def _execute_estimation(self, estimation = True):
         """
