@@ -1301,7 +1301,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
                                     ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
                                                  c("AIC","AICc","BIC","BICc")),
                                     distribution=distribution, bounds=bounds,
-                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI),
+                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI,
+                                    adamCpp=adamCpp),
                                class=c("adam","smooth"));
 
     # Fix data and holdout if we had explanatory variables
