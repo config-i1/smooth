@@ -308,6 +308,9 @@ def _create_objective_function(
             bounds="usual",
         )
 
+        # Increment iteration counter
+        iteration_count[0] += 1
+
         # Print optimization progress if print_level > 0
         if print_level > 0:
             # Track best CF
@@ -917,9 +920,7 @@ def estimator(
         opt, lb, ub, maxeval_used, maxtime, B, explanatory_dict,
         xtol_rel=xtol_rel, xtol_abs=xtol_abs, ftol_rel=ftol_rel, ftol_abs=ftol_abs
     )
-    
-    # start counting
-    iteration_count = [0]  
+
     # Step 8: Create objective function
     objective_wrapper = _create_objective_function(
         model_type_dict,
