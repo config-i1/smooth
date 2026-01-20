@@ -1738,22 +1738,15 @@ def initialiser(
                 elif model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "M":
                     B[j:j+sum(persistence_estimate_vector)] = [0.1, 0.05] + [0.3] * components_dict["components_number_ets_seasonal"]
                 else:
-                    initial_values = [0.1]
-                    if model_type_dict["model_is_trendy"]:
-                        initial_values.append(0.05)
-                    if model_type_dict["model_is_seasonal"]:
-                        initial_values.extend([0.3] * components_dict["components_number_ets_seasonal"])
-                    
+                    # Match R: c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)]
+                    # Always build full vector, then filter - this handles non-trendy seasonal models correctly
+                    initial_values = [0.1, 0.05] + [0.3] * components_dict["components_number_ets_seasonal"]
                     B[j:j+sum(persistence_estimate_vector)] = [val for val, estimate in zip(initial_values, persistence_estimate_vector) if estimate]
-            
+
             else:
-                
-                initial_values = [0.1]
-                if model_type_dict["model_is_trendy"]:
-                    initial_values.append(0.05)
-                if model_type_dict["model_is_seasonal"]:
-                    initial_values.extend([0.3] * components_dict["components_number_ets_seasonal"])
-                
+                # Match R: c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)]
+                # Always build full vector, then filter - this handles non-trendy seasonal models correctly
+                initial_values = [0.1, 0.05] + [0.3] * components_dict["components_number_ets_seasonal"]
                 B[j:j+sum(persistence_estimate_vector)] = [val for val, estimate in zip(initial_values, persistence_estimate_vector) if estimate]
 
             if bounds == "usual":
