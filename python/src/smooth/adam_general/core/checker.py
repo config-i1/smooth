@@ -242,6 +242,33 @@ def _build_models_pool_from_components(
             candidate_models.extend(["MNN", "MMN", "MMdN", "MNM", "MMM", "MMdM"])
     # Handle standard selection case
     else:
+        # Check for multiplicative requests on non-positive data
+        if not allow_multiplicative:
+            if error_type_char in ['Y', 'Z']:
+                import warnings
+                warnings.warn(
+                    "Multiplicative error models cannot be used on non-positive data. "
+                    "Switching to additive error (A).",
+                    UserWarning
+                )
+                error_type_char = 'A'
+            if trend_type_char in ['Y', 'Z']:
+                import warnings
+                warnings.warn(
+                    "Multiplicative trend models cannot be used on non-positive data. "
+                    "Switching to additive trend selection (X).",
+                    UserWarning
+                )
+                trend_type_char = 'X'
+            if season_type_char in ['Y', 'Z']:
+                import warnings
+                warnings.warn(
+                    "Multiplicative seasonal models cannot be used on non-positive data. "
+                    "Switching to additive seasonal selection (X).",
+                    UserWarning
+                )
+                season_type_char = 'X'
+
         # Determine Error Options
         if error_type_char in ['A', 'M']:
             actual_error_options = [error_type_char]
@@ -253,7 +280,11 @@ def _build_models_pool_from_components(
         # and allow_multiplicative was false, due to pre-processing in _check_model_composition.
         if trend_type_char in ['N', 'A', 'M', 'Ad', 'Md']:
             actual_trend_options_with_damping = [trend_type_char]
-        else: # For 'Z', 'X', 'Y' etc.
+        elif trend_type_char == 'Z':
+            actual_trend_options_with_damping = ["N", "A", "M", "Ad", "Md"]
+        elif trend_type_char == 'Y':
+            actual_trend_options_with_damping = ["N", "M", "Md"]
+        else:  # 'X' or any other
             actual_trend_options_with_damping = ["N", "A", "Ad"]
 
         # Determine Season Options
@@ -261,11 +292,12 @@ def _build_models_pool_from_components(
         # and allow_multiplicative was false.
         if season_type_char in ['N', 'A', 'M']:
             actual_season_options = [season_type_char]
-        else: # For 'Z', 'X', 'Y' etc.
-            if allow_multiplicative:
-                actual_season_options = ["N", "A", "M"]
-            else:
-                actual_season_options = ["N", "A"]
+        elif season_type_char == 'Z':
+            actual_season_options = ["N", "A", "M"]
+        elif season_type_char == 'Y':
+            actual_season_options = ["N", "M"]
+        else:  # 'X' or any other
+            actual_season_options = ["N", "A"]
         
         for e_opt in actual_error_options:
             for t_opt in actual_trend_options_with_damping:
