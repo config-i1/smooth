@@ -422,14 +422,30 @@ class ADAM:
         nlopt_lower : Optional[Dict[str, Any]], default=None
             Lower bounds for optimization parameters for NLopt solver.
         nlopt_kargs : Optional[Dict[str, Any]], default=None
-            Additional keyword arguments for the NLopt optimizer. Supported keys:
+            Additional keyword arguments for optimization. Supported keys:
 
-            - ``print_level`` (int): Verbosity level (0=silent, default=0)
-            - ``xtol_rel`` (float): Relative tolerance on optimization parameters (default=1e-6)
-            - ``xtol_abs`` (float): Absolute tolerance on optimization parameters (default=1e-8)
-            - ``ftol_rel`` (float): Relative tolerance on function value (default=1e-8)
-            - ``ftol_abs`` (float): Absolute tolerance on function value (default=0)
-            - ``algorithm`` (str): NLopt algorithm name (default="NLOPT_LN_NELDERMEAD")
+            - ``print_level`` (int): Verbosity level for optimization progress (default=0).
+              When >0, prints parameter vector B and cost function value on every iteration.
+              Output format: ``Iter N: B=[val1, val2, ...] -> CF=value``
+            - ``xtol_rel`` (float): Relative tolerance on optimization parameters (default=1e-6).
+              Optimization stops when parameter changes are smaller than xtol_rel * |params|.
+            - ``xtol_abs`` (float): Absolute tolerance on optimization parameters (default=1e-8).
+              Optimization stops when parameter changes are smaller than xtol_abs.
+            - ``ftol_rel`` (float): Relative tolerance on function value (default=1e-8).
+              Optimization stops when CF changes are smaller than ftol_rel * |CF|.
+            - ``ftol_abs`` (float): Absolute tolerance on function value (default=0).
+              Optimization stops when CF changes are smaller than ftol_abs.
+            - ``algorithm`` (str): NLopt algorithm name (default="NLOPT_LN_NELDERMEAD").
+              Common alternatives: "NLOPT_LN_SBPLX" (Subplex), "NLOPT_LN_COBYLA" (COBYLA),
+              "NLOPT_LN_BOBYQA" (BOBYQA). Use "LN_" prefix for derivative-free algorithms.
+
+            Example::
+
+                model = ADAM(model="AAN", nlopt_kargs={
+                    "print_level": 1,
+                    "xtol_rel": 1e-8,
+                    "algorithm": "NLOPT_LN_SBPLX"
+                })
         reg_lambda : Optional[float], default=None
             Regularization parameter specifically for LASSO/RIDGE losses.
         gnorm_shape : Optional[float], default=None
