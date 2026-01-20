@@ -146,6 +146,25 @@
 </tr>
 </tbody>
 </table>
+</section>
+<section id="optimization-settings">
+<h2>Optimization Settings<a class="headerlink" href="#optimization-settings" title="Link to this heading"></a></h2>
+<p>The ADAM and ES classes use the NLopt library for parameter optimization. You can
+customize the optimization behavior via the <code class="docutils literal notranslate"><span class="pre">nlopt_kargs</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">smooth</span><span class="w"> </span><span class="kn">import</span> <span class="n">ADAM</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">ADAM</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;AAN&quot;</span><span class="p">,</span>
+    <span class="n">nlopt_kargs</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;print_level&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>        <span class="c1"># Print optimization progress</span>
+        <span class="s2">&quot;xtol_rel&quot;</span><span class="p">:</span> <span class="mf">1e-8</span><span class="p">,</span>        <span class="c1"># Relative parameter tolerance</span>
+        <span class="s2">&quot;algorithm&quot;</span><span class="p">:</span> <span class="s2">&quot;NLOPT_LN_SBPLX&quot;</span>  <span class="c1"># Use Subplex algorithm</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Available parameters:</strong></p>
 <div class="toctree-wrapper compound">
 </div>
 </section>

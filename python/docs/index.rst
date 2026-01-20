@@ -44,6 +44,49 @@ ES Methods
    ES.select_best_model
    ES.summary
 
+Optimization Settings
+---------------------
+
+The ADAM and ES classes use the NLopt library for parameter optimization. You can
+customize the optimization behavior via the ``nlopt_kargs`` parameter:
+
+.. code-block:: python
+
+   from smooth import ADAM
+
+   model = ADAM(
+       model="AAN",
+       nlopt_kargs={
+           "print_level": 1,        # Print optimization progress
+           "xtol_rel": 1e-8,        # Relative parameter tolerance
+           "algorithm": "NLOPT_LN_SBPLX"  # Use Subplex algorithm
+       }
+   )
+   model.fit(y)
+
+**Available parameters:**
+
++----------------+-------------------------------------------------------------------+---------------+
+| Parameter      | Description                                                       | Default       |
++================+===================================================================+===============+
+| print_level    | Verbosity level. When >0, prints B and CF on every iteration.    | 0             |
++----------------+-------------------------------------------------------------------+---------------+
+| xtol_rel       | Relative tolerance on parameters. Stops when changes < xtol_rel  | 1e-6          |
+|                | \* \|params\|.                                                    |               |
++----------------+-------------------------------------------------------------------+---------------+
+| xtol_abs       | Absolute tolerance on parameters. Stops when changes < xtol_abs. | 1e-8          |
++----------------+-------------------------------------------------------------------+---------------+
+| ftol_rel       | Relative tolerance on cost function. Stops when changes <        | 1e-8          |
+|                | ftol_rel \* \|CF\|.                                               |               |
++----------------+-------------------------------------------------------------------+---------------+
+| ftol_abs       | Absolute tolerance on cost function. Stops when changes <        | 0             |
+|                | ftol_abs.                                                         |               |
++----------------+-------------------------------------------------------------------+---------------+
+| algorithm      | NLopt algorithm name. Use "LN\_" prefix for derivative-free.     | NLOPT_LN\_    |
+|                | Options: NLOPT_LN_NELDERMEAD, NLOPT_LN_SBPLX, NLOPT_LN_COBYLA,   | NELDERMEAD    |
+|                | NLOPT_LN_BOBYQA.                                                  |               |
++----------------+-------------------------------------------------------------------+---------------+
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
