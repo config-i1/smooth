@@ -437,7 +437,12 @@ def _check_model_composition(model_str, allow_multiplicative=True, silent=False,
             season_type = "X"
 
     # Generate models pool if needed
-    if model_do in ["select", "combine"]:
+    # Only pre-generate pool when components are specific (not Z, X, Y)
+    # When Z, X, or Y is present, leave models_pool as None for branch-and-bound
+    use_branch_and_bound = any(
+        c in ["Z", "X", "Y"] for c in [error_type, trend_type, season_type]
+    )
+    if model_do in ["select", "combine"] and not use_branch_and_bound:
         models_pool, _ = _build_models_pool_from_components(
             error_type, trend_type, season_type, damped, allow_multiplicative, max_lag
         )
