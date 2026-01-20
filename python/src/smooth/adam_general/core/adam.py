@@ -422,7 +422,14 @@ class ADAM:
         nlopt_lower : Optional[Dict[str, Any]], default=None
             Lower bounds for optimization parameters for NLopt solver.
         nlopt_kargs : Optional[Dict[str, Any]], default=None
-            Additional keyword arguments for the NLopt optimizer.
+            Additional keyword arguments for the NLopt optimizer. Supported keys:
+
+            - ``print_level`` (int): Verbosity level (0=silent, default=0)
+            - ``xtol_rel`` (float): Relative tolerance on optimization parameters (default=1e-6)
+            - ``xtol_abs`` (float): Absolute tolerance on optimization parameters (default=1e-8)
+            - ``ftol_rel`` (float): Relative tolerance on function value (default=1e-8)
+            - ``ftol_abs`` (float): Absolute tolerance on function value (default=0)
+            - ``algorithm`` (str): NLopt algorithm name (default="NLOPT_LN_NELDERMEAD")
         reg_lambda : Optional[float], default=None
             Regularization parameter specifically for LASSO/RIDGE losses.
         gnorm_shape : Optional[float], default=None
@@ -1167,6 +1174,8 @@ class ADAM:
             print(f"DEBUG Two-Stage S1: Running Stage 1 with initial='complete'")
 
         # Call estimator for Stage 1 with return_matrices=True to get mat_vt
+        # Get nlopt parameters from nlopt_kargs if provided
+        nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
         adam_estimated_s1 = estimator(
             general_dict=self.general,
             model_type_dict=self.model_type_dict,
@@ -1183,6 +1192,7 @@ class ADAM:
             phi_dict=self.phi_dict,
             components_dict=self.components_dict,
             return_matrices=True,  # Get access to mat_vt
+            **nlopt_params,
         )
 
         if os.environ.get('DEBUG_TWOSTAGE') == '1':
@@ -1364,6 +1374,7 @@ class ADAM:
             B_initial=B,
             lb=Bl,
             ub=Bu,
+            **nlopt_params,
         )
 
         if os.environ.get('DEBUG_TWOSTAGE') == '1':
@@ -1383,6 +1394,8 @@ class ADAM:
             if self.initials_results["initial_type"] == "two-stage":
                 self._run_two_stage_initialization()
             else:
+                # Get nlopt parameters from nlopt_kargs if provided
+                nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
                 self.adam_estimated = estimator(
                     general_dict=self.general,
                     model_type_dict=self.model_type_dict,
@@ -1398,6 +1411,7 @@ class ADAM:
                     occurrence_dict=self.occurrence_dict,
                     phi_dict=self.phi_dict,
                     components_dict=self.components_dict,
+                    **nlopt_params,
                 )
             # Extract adam_cpp from estimation results
             self.adam_cpp = self.adam_estimated["adam_cpp"]
@@ -1513,6 +1527,8 @@ class ADAM:
 
         This handles model selection and creation of the selected model.
         """
+        # Get nlopt parameters from nlopt_kargs if provided
+        nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
         # Run model selection
         self.adam_selected = selector(
             model_type_dict=self.model_type_dict,
@@ -1531,6 +1547,7 @@ class ADAM:
             initials_results=self.initials_results,
             criterion=self.general["ic"],
             silent=self.verbose == 0,
+            **nlopt_params,
         )
         #print(self.adam_selected)
         #print(self.adam_selected["ic_selection"])

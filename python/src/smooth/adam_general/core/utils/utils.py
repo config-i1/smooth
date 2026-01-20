@@ -410,14 +410,19 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     initial = {"nonseasonal": {}, "seasonal": []}
 
     # Calculate nonseasonal initial values (level and trend)
+    # R: initial$nonseasonal <- c(ySmooth[[ySmoothLength]][!is.na(ySmooth[[ySmoothLength]])][1],
+    #                             mean(diff(ySmooth[[ySmoothLength]]),na.rm=T));
     data_for_initial = y_smooth[lags_length]  # Matches R's ySmooth[[ySmoothLength]]
     valid_data_for_initial = data_for_initial[~np.isnan(data_for_initial)]
     if len(valid_data_for_initial) == 0:
         init_level = 0.0
         init_trend = 0.0
     else:
+        # Level: first non-NA value
         init_level = valid_data_for_initial[0]
-        diffs = np.diff(valid_data_for_initial)
+        # Trend: mean of diffs of full series (with NAs), then remove NAs from mean
+        # This matches R's mean(diff(x), na.rm=T) behavior
+        diffs = np.diff(data_for_initial)  # Diff full series, NAs propagate
         init_trend = np.nanmean(diffs) if len(diffs) > 0 else 0.0
 
     lags_max = max(lags)

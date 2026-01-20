@@ -14,8 +14,6 @@ from smooth.adam_general.core.utils.utils import scaler
 
 
 
-
-
 def _setup_arima_polynomials(model_type_dict, arima_dict, lags_dict):
     """
     Set up companion matrices for ARIMA polynomials.
@@ -165,7 +163,11 @@ def _setup_optimization_parameters(
     return maxeval_used, general_dict_updated
 
 
-def _configure_optimizer(opt, lb, ub, maxeval_used, maxtime, B, explanatory_dict, maxeval=None):
+def _configure_optimizer(
+    opt, lb, ub, maxeval_used, maxtime,
+    B, explanatory_dict,
+    maxeval=None,
+    xtol_rel=1e-6, xtol_abs=1e-8, ftol_rel=1e-8, ftol_abs=0):
     """
     Configure NLopt optimizer with appropriate settings.
 
@@ -181,6 +183,14 @@ def _configure_optimizer(opt, lb, ub, maxeval_used, maxtime, B, explanatory_dict
         Maximum number of evaluations
     maxtime : float or None
         Maximum time for optimization
+    xtol_rel : float, default=1e-6
+        Relative tolerance on optimization parameters
+    xtol_abs : float, default=1e-8
+        Absolute tolerance on optimization parameters
+    ftol_rel : float, default=1e-8
+        Relative tolerance on function value
+    ftol_abs : float, default=0
+        Absolute tolerance on function value
 
     Returns
     -------
@@ -188,18 +198,16 @@ def _configure_optimizer(opt, lb, ub, maxeval_used, maxtime, B, explanatory_dict
         Configured optimizer
     """
     # Set bounds
-
     opt.set_lower_bounds(lb)
     opt.set_upper_bounds(ub)
-    # Set tolerances
-    opt.set_xtol_rel(1e-6)  # Match R's tolerance
-    opt.set_ftol_rel(1e-8)  # Match R's tolerance
-    opt.set_ftol_abs(0)  # Match R's tolerance
-    opt.set_xtol_abs(1e-8)  # Match R's tolerance
+
+    # Set tolerances (configurable)
+    opt.set_xtol_rel(xtol_rel)
+    opt.set_ftol_rel(ftol_rel)
+    opt.set_ftol_abs(ftol_abs)
+    opt.set_xtol_abs(xtol_abs)
 
     # Set maximum evaluations
-    opt.set_maxeval(maxeval_used)
-
     # Increase maxeval to match or exceed R's value
     if maxeval is None:
         # Increase the default multiplier to ensure we run at least as many iterations as R
@@ -235,6 +243,7 @@ def _create_objective_function(
     profile_dict,
     general_dict,
     adam_cpp,
+    print_level
 ):
     """
     Create objective function for optimization.
@@ -275,8 +284,7 @@ def _create_objective_function(
     """
     iteration_count = [0]
     best_cf = [float('inf')]
-    max_alpha = [0.0]
-    
+
     def objective_wrapper(x, grad):
         """
         Wrapper for the objective function.
@@ -301,28 +309,16 @@ def _create_objective_function(
             adam_cpp=adam_cpp,
             bounds="usual",
         )
-        
-        # Debug tracing when DEBUG_OPTIMIZER is set
-        import os
-        if os.environ.get('DEBUG_OPTIMIZER'):
-            # Track best and max alpha
+
+        # Print optimization progress if print_level > 0
+        if print_level > 0:
+            # Track best CF
             if cf_value < best_cf[0]:
                 best_cf[0] = cf_value
-            if len(x) > 0 and x[0] > max_alpha[0]:
-                max_alpha[0] = x[0]
-            
-            # Print every iteration or just key ones
-            if iteration_count[0] <= 10 or iteration_count[0] % 10 == 0:
-                alpha_str = f"{x[0]:.6f}" if len(x) > 0 else "N/A"
-                beta_str = f"{x[1]:.6f}" if len(x) > 1 else "N/A"
-                print(f"Iter {iteration_count[0]:3d}: alpha={alpha_str}, beta={beta_str} -> CF={cf_value:.6f}")
-            
-            # Print summary at the end
-            if iteration_count[0] == 80:  # maxeval for AAN is 2*40=80
-                print(f"\n*** OPTIMIZATION SUMMARY ***")
-                print(f"Best CF found: {best_cf[0]:.6f}")
-                print(f"Max alpha explored: {max_alpha[0]:.6f}")
-                print(f"R finds alpha=1.0 with CF=710.07")
+
+            # Print every iteration
+            param_str = ", ".join([f"{val:.4f}" for val in x])
+            print(f"Iter {iteration_count[0]:3d}: B=[{param_str}] -> CF={cf_value:.6f}")
 
         # Limit extreme values to prevent numerical instability
         if not np.isfinite(cf_value) or cf_value > 1e10:
@@ -474,10 +470,16 @@ def estimator(
     lb=None,
     ub=None,
     maxtime=None,
-    print_level=1,  # 1 or 0
+    print_level=0,  # 1 or 0
     maxeval=None,
     B_initial=None,
     return_matrices=False,
+    # NLopt parameters
+    xtol_rel=1e-6,
+    xtol_abs=1e-8,
+    ftol_rel=1e-8,
+    ftol_abs=0,
+    algorithm="NLOPT_LN_NELDERMEAD",
 ):
     """
     Estimate parameters for ADAM model using non-linear optimization.
@@ -874,7 +876,7 @@ def estimator(
         lb = b_values["Bl"]
     if ub is None:
         ub = b_values["Bu"]
-    
+
     # Ensure bounds are compatible with B
     if B_initial is not None:
         # Extend bounds if necessary
@@ -903,10 +905,6 @@ def estimator(
 
 
     # Step 6: Configure optimization parameters
-    print_level_hidden = print_level
-    if print_level == 1:
-        print_level = 0
-
     maxeval_used, general_dict = _setup_optimization_parameters(
         general_dict,
         explanatory_dict,
@@ -918,8 +916,13 @@ def estimator(
     )
 
     # Step 7: Create and configure optimizer
-    opt = nlopt.opt(nlopt.LN_NELDERMEAD, len(B))
-    opt = _configure_optimizer(opt, lb, ub, maxeval_used, maxtime, B, explanatory_dict)
+    # Convert algorithm string to nlopt constant
+    nlopt_algorithm = getattr(nlopt, algorithm.replace("NLOPT_", ""), nlopt.LN_NELDERMEAD)
+    opt = nlopt.opt(nlopt_algorithm, len(B))
+    opt = _configure_optimizer(
+        opt, lb, ub, maxeval_used, maxtime, B, explanatory_dict,
+        xtol_rel=xtol_rel, xtol_abs=xtol_abs, ftol_rel=ftol_rel, ftol_abs=ftol_abs
+    )
     
     # start counting
     iteration_count = [0]  
@@ -939,6 +942,7 @@ def estimator(
         profile_dict,
         general_dict,
         adam_cpp,
+        print_level
     )
 
     # Set objective function
@@ -1177,6 +1181,13 @@ def _estimate_model(
     initials_results,
     occurrence_dict,
     components_dict,
+    # NLopt parameters
+    print_level=0,
+    xtol_rel=1e-6,
+    xtol_abs=1e-8,
+    ftol_rel=1e-8,
+    ftol_abs=0,
+    algorithm="NLOPT_LN_NELDERMEAD",
 ):
     """
     Estimate a single model and calculate its information criterion.
@@ -1233,6 +1244,12 @@ def _estimate_model(
         occurrence_dict=occurrence_dict,
         phi_dict=phi_dict_temp,
         components_dict=components_dict,
+        print_level=print_level,
+        xtol_rel=xtol_rel,
+        xtol_abs=xtol_abs,
+        ftol_rel=ftol_rel,
+        ftol_abs=ftol_abs,
+        algorithm=algorithm,
     )
 
     # Calculate information criterion
@@ -1268,6 +1285,13 @@ def _run_branch_and_bound(
     pool_trends,
     check_seasonal,
     check_trend,
+    # NLopt parameters
+    print_level=0,
+    xtol_rel=1e-6,
+    xtol_abs=1e-8,
+    ftol_rel=1e-8,
+    ftol_abs=0,
+    algorithm="NLOPT_LN_NELDERMEAD",
 ):
     """
     Run branch and bound algorithm to efficiently search model space.
@@ -1365,6 +1389,12 @@ def _run_branch_and_bound(
             initials_results,
             occurrence_dict,
             components_dict,
+            print_level=print_level,
+            xtol_rel=xtol_rel,
+            xtol_abs=xtol_abs,
+            ftol_rel=ftol_rel,
+            ftol_abs=ftol_abs,
+            algorithm=algorithm,
         )
 
         # Update phi value if it was estimated
@@ -1461,6 +1491,13 @@ def _estimate_all_models(
     occurrence_dict,
     components_dict,
     silent=False,
+    # NLopt parameters
+    print_level=0,
+    xtol_rel=1e-6,
+    xtol_abs=1e-8,
+    ftol_rel=1e-8,
+    ftol_abs=0,
+    algorithm="NLOPT_LN_NELDERMEAD",
 ):
     """
     Estimate all models in the provided pool.
@@ -1559,6 +1596,12 @@ def _estimate_all_models(
                 occurrence_dict=occurrence_dict,
                 phi_dict=phi_dict_temp,
                 components_dict=components_dict,
+                print_level=print_level,
+                xtol_rel=xtol_rel,
+                xtol_abs=xtol_abs,
+                ftol_rel=ftol_rel,
+                ftol_abs=ftol_abs,
+                algorithm=algorithm,
             )
         results[j]["IC"] = ic_function(general_dict['ic'],loglik=results[j]['adam_estimated']["log_lik_adam_value"])
         results[j]['model_type_dict'] = model_type_dict_temp
@@ -1587,6 +1630,13 @@ def selector(
     initials_results,
     criterion="AICc",
     silent=False,
+    # NLopt parameters
+    print_level=0,
+    xtol_rel=1e-6,
+    xtol_abs=1e-8,
+    ftol_rel=1e-8,
+    ftol_abs=0,
+    algorithm="NLOPT_LN_NELDERMEAD",
 ):
     """
     Automatic model selection for ADAM using information criteria and Branch & Bound.
@@ -1878,6 +1928,12 @@ def selector(
             pool_trends,
             check_seasonal,
             check_trend,
+            print_level=print_level,
+            xtol_rel=xtol_rel,
+            xtol_abs=xtol_abs,
+            ftol_rel=ftol_rel,
+            ftol_abs=ftol_abs,
+            algorithm=algorithm,
         )
 
         # Prepare a bigger pool based on the small one
@@ -1911,6 +1967,12 @@ def selector(
         occurrence_dict,
         components_dict,
         silent,
+        print_level=print_level,
+        xtol_rel=xtol_rel,
+        xtol_abs=xtol_abs,
+        ftol_rel=ftol_rel,
+        ftol_abs=ftol_abs,
+        algorithm=algorithm,
     )
     #print(results)
 
