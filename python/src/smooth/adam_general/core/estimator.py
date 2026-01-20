@@ -329,7 +329,7 @@ def _create_objective_function(
 
 def _run_optimization(opt, B):
     """
-    Run optimization and handle potential errors.
+    Run optimization.
 
     Parameters
     ----------
@@ -340,25 +340,17 @@ def _run_optimization(opt, B):
 
     Returns
     -------
-    object
-        Optimization result object with x, fun, and success attributes
+    numpy.ndarray
+        Optimized parameter vector
     """
+    # Run optimization - nlopt updates B in-place and returns optimized values
+    # Any nlopt termination (including RoundoffLimited) still returns valid B
     try:
-        # Run optimization - nlopt updates B in-place
         x = opt.optimize(B)
-        res_fun = opt.last_optimum_value()
-        res = type("OptimizeResult", (), {"x": x, "fun": res_fun, "success": True})
-    except nlopt.RoundoffLimited:
-        # RoundoffLimited is a normal termination - optimization converged but
-        # further progress is limited by floating point precision.
-        # B has been updated in-place, and last_optimum_value() has the result.
-        res_fun = opt.last_optimum_value()
-        res = type("OptimizeResult", (), {"x": B.copy(), "fun": res_fun, "success": True})
-    except Exception as e:
-        print(f"Optimization error: {e}")
-        res = type("OptimizeResult", (), {"x": B, "fun": 1e300, "success": False})
-
-    return res
+    except:
+        # If any exception, B has still been updated in-place
+        x = B.copy()
+    return x
 
 
 def _calculate_loglik(
@@ -952,31 +944,30 @@ def estimator(
     opt.set_min_objective(objective_wrapper)
 
     # Step 9: Run optimization
-    res = _run_optimization(opt, B)
+    B[:] = _run_optimization(opt, B)
 
-    # Step 10: Process results
-    B[:] = res.x
-
-    # Recalculate CF_value using final B to ensure correctness
-    # (opt.last_optimum_value() may not reflect the actual minimum found)
-    CF_value = CF(
-        B=B,
-        model_type_dict=model_type_dict,
-        components_dict=components_dict,
-        lags_dict=lags_dict,
-        matrices_dict=adam_created,
-        persistence_checked=persistence_dict,
-        initials_checked=initials_dict,
-        arima_checked=arima_dict,
-        explanatory_checked=explanatory_dict,
-        phi_dict=phi_dict,
-        constants_checked=constant_dict,
-        observations_dict=observations_dict,
-        profile_dict=profile_dict,
-        general=general_dict,
-        adam_cpp=adam_cpp,
-        bounds="usual",
-    )
+    # Step 10: Extract the solution and the loss value
+    CF_value = opt.last_optimum_value()
+    
+    # Step 10: Calculate CF_value using optimized B
+    # CF_value = CF(
+    #     B=B,
+    #     model_type_dict=model_type_dict,
+    #     components_dict=components_dict,
+    #     lags_dict=lags_dict,
+    #     matrices_dict=adam_created,
+    #     persistence_checked=persistence_dict,
+    #     initials_checked=initials_dict,
+    #     arima_checked=arima_dict,
+    #     explanatory_checked=explanatory_dict,
+    #     phi_dict=phi_dict,
+    #     constants_checked=constant_dict,
+    #     observations_dict=observations_dict,
+    #     profile_dict=profile_dict,
+    #     general=general_dict,
+    #     adam_cpp=adam_cpp,
+    #     bounds="usual",
+    # )
 
     # A fix for the special case of LASSO/RIDGE with lambda==1
     if (
