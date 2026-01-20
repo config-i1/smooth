@@ -431,49 +431,14 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     # Store in nonseasonal dict
     initial["nonseasonal"] = {"level": init_level, "trend": init_trend}
 
-    # Deterministic trend fit to the smooth series
-    # This is required by adam() with backcasting
-    valid_trend = ~np.isnan(trend)
-    X_determ = np.column_stack([np.ones(obs_in_sample), np.arange(1, obs_in_sample + 1)])
-
-    gta = np.linalg.lstsq(X_determ[valid_trend], trend[valid_trend], rcond=None)[0]
-
-    # Move the trend back to start it off-sample in case of ADAM
-    gta[0] = gta[0] - gta[1] * max(lags)
-
     # Return to the original scale
     if type == "multiplicative":
         # Transform nonseasonal initial values back to exponential scale
         initial["nonseasonal"]["level"] = np.exp(initial["nonseasonal"]["level"])
         initial["nonseasonal"]["trend"] = np.exp(initial["nonseasonal"]["trend"])
-        trend_exp = np.exp(trend)
-
-        # Sort out additive/multiplicative trend for ADAM
-        gtm = np.exp(gta.copy())
-
-        # Recalculate gta on the exponential scale
-        gta = np.linalg.lstsq(X_determ[valid_trend], trend_exp[valid_trend], rcond=None)[0]
-        gta[0] = gta[0] - gta[1] * max(lags)
-
-        trend = trend_exp
+        trend = np.exp(trend)
         if seasonal_lags:
             patterns = [np.exp(pattern) for pattern in patterns]
-    else:
-        # Get the deterministic multiplicative trend for additive decomposition
-        # Shift the trend if it contains negative values
-        non_positive_values = False
-        trend_for_gtm = trend.copy()
-        if np.any(trend[valid_trend] <= 0):
-            non_positive_values = True
-            trend_min = np.nanmin(trend)
-            trend_for_gtm = trend - trend_min + 1
-
-        gtm = np.linalg.lstsq(X_determ[valid_trend], np.log(trend_for_gtm[valid_trend]), rcond=None)[0]
-        gtm = np.exp(gtm)
-
-        # Correct the initial level
-        if non_positive_values:
-            gtm[0] = gtm[0] - trend_min - 1
 
     # Extract seasonal initial values (first lags[i] values from each pattern)
     # Lines 256-258 in R
@@ -507,9 +472,6 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         "initial": initial,
         "seasonal": patterns,
         "fitted": y_fitted,
-        # gta is the Global Trend, Additive. gtm is the Global Trend, Multiplicative
-        "gta": gta,
-        "gtm": gtm,
         "loss": "MSE",
         "lags": lags,
         "type": type,
