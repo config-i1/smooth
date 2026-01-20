@@ -254,10 +254,7 @@ def _build_models_pool_from_components(
         if trend_type_char in ['N', 'A', 'M', 'Ad', 'Md']:
             actual_trend_options_with_damping = [trend_type_char]
         else: # For 'Z', 'X', 'Y' etc.
-            if allow_multiplicative:
-                actual_trend_options_with_damping = ["N", "A", "Ad", "M", "Md"]
-            else:
-                actual_trend_options_with_damping = ["N", "A", "Ad"]
+            actual_trend_options_with_damping = ["N", "A", "Ad"]
 
         # Determine Season Options
         # Note: season_type_char would already be 'A' if originally 'M'
