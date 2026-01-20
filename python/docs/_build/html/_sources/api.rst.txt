@@ -12,3 +12,11 @@ Classes
 
    ADAM
    ES
+
+Functions
+---------
+
+.. autosummary::
+   :toctree: _autosummary
+
+   msdecompose

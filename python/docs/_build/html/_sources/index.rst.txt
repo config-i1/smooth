@@ -44,6 +44,11 @@ ES Methods
    ES.select_best_model
    ES.summary
 
+Utility Functions
+-----------------
+
+- :doc:`msdecompose` - Multiple seasonal decomposition for time series
+
 Optimization Settings
 ---------------------
 
@@ -93,3 +98,4 @@ customize the optimization behavior via the ``nlopt_kargs`` parameter:
    :hidden:
 
    api
+   msdecompose
