@@ -196,7 +196,8 @@ def _expand_component_code(comp_char, allow_multiplicative=True):
 
 
 def _build_models_pool_from_components(
-    error_type_char, trend_type_char, season_type_char, damped_original_model, allow_multiplicative
+    error_type_char, trend_type_char, season_type_char, damped_original_model, allow_multiplicative,
+    max_lag=1
 ):
     """
     Build a models pool by fully enumerating expansions for E, T, S.
@@ -217,6 +218,8 @@ def _build_models_pool_from_components(
         as damping is part of trend strings like "Ad").
     allow_multiplicative : bool
         Whether multiplicative models are generally allowed for pool expansion (e.g. for Z).
+    max_lag : int, default=1
+        Maximum lag value. If <= 1, seasonality is not allowed.
 
     Returns
     -------
@@ -225,22 +228,32 @@ def _build_models_pool_from_components(
     """
     candidate_models = []
 
+    # If max_lag <= 1, no seasonality is possible - set to "N" silently
+    if max_lag <= 1:
+        season_type_char = "N"
+
     # Handle full pool case ("F")
     if "F" in [error_type_char, trend_type_char, season_type_char]:
         candidate_models = ["ANN", "AAN", "AAdN", "AMN", "AMdN",
                             "ANA", "AAA", "AAdA", "AMA", "AMdA",
                             "ANM", "AAM", "AAdM", "AMM", "AMdM"]
-        if allow_multiplicative: # This global allow_multiplicative governs the F/P pool extension
+        if allow_multiplicative:
             candidate_models.extend([
                 "MNN", "MAN", "MAdN", "MMN", "MMdN",
                 "MNA", "MAA", "MAdA", "MMA", "MMdA",
                 "MNM", "MAM", "MAdM", "MMM", "MMdM"
             ])
+        # Filter out seasonal models if max_lag <= 1
+        if max_lag <= 1:
+            candidate_models = [m for m in candidate_models if m[-1] == "N"]
     # Handle pure models case ("P")
     elif "P" in [error_type_char, trend_type_char, season_type_char]:
         candidate_models = ["ANN", "AAN", "AAdN", "ANA", "AAA", "AAdA"]
-        if allow_multiplicative: # This global allow_multiplicative governs the F/P pool extension
+        if allow_multiplicative:
             candidate_models.extend(["MNN", "MMN", "MMdN", "MNM", "MMM", "MMdM"])
+        # Filter out seasonal models if max_lag <= 1
+        if max_lag <= 1:
+            candidate_models = [m for m in candidate_models if m[-1] == "N"]
     # Handle standard selection case
     else:
         # Check for multiplicative requests on non-positive data
@@ -312,7 +325,7 @@ def _build_models_pool_from_components(
     return candidate_models, False
 
 
-def _check_model_composition(model_str, allow_multiplicative=True, silent=False):
+def _check_model_composition(model_str, allow_multiplicative=True, silent=False, max_lag=1):
     """
     Parse and validate model composition string.
 
@@ -324,6 +337,8 @@ def _check_model_composition(model_str, allow_multiplicative=True, silent=False)
         Whether multiplicative models are allowed
     silent : bool, optional
         Whether to suppress warnings
+    max_lag : int, default=1
+        Maximum lag value. If <= 1, seasonality is not allowed.
 
     Returns
     -------
@@ -424,9 +439,8 @@ def _check_model_composition(model_str, allow_multiplicative=True, silent=False)
     # Generate models pool if needed
     if model_do in ["select", "combine"]:
         models_pool, _ = _build_models_pool_from_components(
-            error_type, trend_type, season_type, damped, allow_multiplicative
+            error_type, trend_type, season_type, damped, allow_multiplicative, max_lag
         )
-        # print(models_pool) # Removed print statement
 
     # Return model components and info
     return {
@@ -547,7 +561,7 @@ def _generate_models_pool(
     )
 
 
-def _check_ets_model(model, distribution, data, silent=False):
+def _check_ets_model(model, distribution, data, silent=False, max_lag=1):
     """
     Check ETS model and validate compatibility with data.
 
@@ -561,6 +575,8 @@ def _check_ets_model(model, distribution, data, silent=False):
         Time series data
     silent : bool, optional
         Whether to suppress warnings
+    max_lag : int, default=1
+        Maximum lag value. If <= 1, seasonality is not allowed.
 
     Returns
     -------
@@ -598,7 +614,7 @@ def _check_ets_model(model, distribution, data, silent=False):
     # Check if this is an ETS model
     if isinstance(model, str) and len(model) in [3, 4]:
         # Parse model configuration
-        model_info = _check_model_composition(model, allow_multiplicative, silent)
+        model_info = _check_model_composition(model, allow_multiplicative, silent, max_lag)
 
         # Check for multiplicative compatibility with data
         if not allow_multiplicative:
@@ -2915,7 +2931,7 @@ def parameters_checker(
     #####################
     # 3) Check ETS Model
     #####################
-    ets_info = _check_ets_model(model, distribution, data, silent)
+    ets_info = _check_ets_model(model, distribution, data, silent, max_lag)
     ets_model = ets_info["ets_model"]
 
     #####################
