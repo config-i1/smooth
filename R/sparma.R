@@ -678,7 +678,8 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
                                     nParam=parametersNumber,
                                     loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
                                     distribution=distribution, bounds=bounds,
-                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res),
+                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res,
+                                    adamCpp=adamCpp),
                                class=c("adam","smooth"));
 
     # Plot if not silent

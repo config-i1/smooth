@@ -3831,7 +3831,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     occurrence=oesModel, formula=formula, regressors=regressors,
                     loss=loss, lossValue=CFValue, logLik=logLikADAMValue, distribution=distribution,
                     scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, ets=ets,
-                    res=res, FI=FI));
+                    res=res, FI=FI, adamCpp=adamCpp));
     }
 
     #### Deal with occurrence model ####
@@ -7913,13 +7913,14 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
 
     # Create C++ adam class, which will then use fit, forecast etc methods
-    adamCpp <- new(adamCore,
-                   lagsModelAll, Etype, Ttype, Stype,
-                   componentsNumberETSNonSeasonal,
-                   componentsNumberETSSeasonal,
-                   componentsNumberETS, componentsNumberARIMA,
-                   xregNumber, length(lagsModelAll),
-                   constantRequired, adamETS);
+    adamCpp <- object$adamCpp;
+    # adamCpp <- new(adamCore,
+    #                lagsModelAll, Etype, Ttype, Stype,
+    #                componentsNumberETSNonSeasonal,
+    #                componentsNumberETSSeasonal,
+    #                componentsNumberETS, componentsNumberARIMA,
+    #                xregNumber, length(lagsModelAll),
+    #                constantRequired, adamETS);
 
     # Produce point forecasts for non-multiplicative trend / seasonality
     # Do this for cases, when h<=m as well and prediction /confidence / simulated interval
@@ -8920,13 +8921,14 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
         }
 
         # Create C++ adam class
-        adamCpp <- new(adamCore,
-                       lagsModelAll, Etype, Ttype, Stype,
-                       componentsNumberETSNonSeasonal,
-                       componentsNumberETSSeasonal,
-                       componentsNumberETS, componentsNumberARIMA,
-                       xregNumber, length(lagsModelAll),
-                       constantRequired, adamETS);
+        adamCpp <- object$adamCpp;
+        # adamCpp <- new(adamCore,
+        #                lagsModelAll, Etype, Ttype, Stype,
+        #                componentsNumberETSNonSeasonal,
+        #                componentsNumberETSSeasonal,
+        #                componentsNumberETS, componentsNumberARIMA,
+        #                xregNumber, length(lagsModelAll),
+        #                constantRequired, adamETS);
 
         matVt <- t(tail(object$states,lagsModelMax));
 
@@ -9290,13 +9292,14 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     indexLookupTable <- profiles$lookup;
 
     # Create C++ adam class
-    adamCpp <- new(adamCore,
-                   lagsModelAll, Etype, Ttype, Stype,
-                   componentsNumberETSNonSeasonal,
-                   componentsNumberETSSeasonal,
-                   componentsNumberETS, componentsNumberARIMA,
-                   xregNumber, length(lagsModelAll),
-                   constantRequired, adamETS);
+    adamCpp <- object$adamCpp;
+    # adamCpp <- new(adamCore,
+    #                lagsModelAll, Etype, Ttype, Stype,
+    #                componentsNumberETSNonSeasonal,
+    #                componentsNumberETSSeasonal,
+    #                componentsNumberETS, componentsNumberARIMA,
+    #                xregNumber, length(lagsModelAll),
+    #                constantRequired, adamETS);
 
     #### Prepare the necessary matrices ####
     # States are defined similar to how it is done in adam.
