@@ -128,15 +128,15 @@ def _setup_optimization_parameters(
     """
     general_dict_updated = general_dict.copy()
 
-    # Set maxeval based on parameters
+    # Set maxeval based on parameters - match R's defaults exactly
     maxeval_used = maxeval
     if maxeval is None:
-        maxeval_used = len(B) * 200
+        maxeval_used = len(B) * 40  # R's default: length(B) * 40
 
-        # If xreg model, do more iterations
+        # If xreg model, do more iterations (R: max(1000, length(B) * 100))
         if explanatory_dict["xreg_model"]:
-            maxeval_used = len(B) * 150
-            maxeval_used = max(1500, maxeval_used)
+            maxeval_used = len(B) * 100
+            maxeval_used = max(1000, maxeval_used)
 
     # Handle LASSO/RIDGE denominator calculation
     if general_dict["loss"] in ["LASSO", "RIDGE"]:
@@ -164,8 +164,6 @@ def _setup_optimization_parameters(
 
 def _configure_optimizer(
     opt, lb, ub, maxeval_used, maxtime,
-    B, explanatory_dict,
-    maxeval=None,
     xtol_rel=1e-6, xtol_abs=1e-8, ftol_rel=1e-8, ftol_abs=0):
     """
     Configure NLopt optimizer with appropriate settings.
@@ -179,7 +177,7 @@ def _configure_optimizer(
     ub : array-like
         Upper bounds
     maxeval_used : int
-        Maximum number of evaluations
+        Maximum number of evaluations (already computed by _setup_optimization_parameters)
     maxtime : float or None
         Maximum time for optimization
     xtol_rel : float, default=1e-6
@@ -206,23 +204,14 @@ def _configure_optimizer(
     opt.set_ftol_abs(ftol_abs)
     opt.set_xtol_abs(xtol_abs)
 
-    # Set maximum evaluations
-    # Increase maxeval to match or exceed R's value
-    if maxeval is None:
-        # Increase the default multiplier to ensure we run at least as many iterations as R
-        maxeval_used = len(B) * 40  # Increased from 120 to 200
-        
-        # If xreg model, do more iterations
-        if explanatory_dict['xreg_model']:
-            maxeval_used = len(B) * 150  # Increased from 100 to 150
-            maxeval_used = max(1500, maxeval_used)  # Increased from 1000 to 1500
+    # Set maximum evaluations - use the value computed by _setup_optimization_parameters
+    # which matches R's defaults: len(B)*40 standard, max(1000, len(B)*100) for xreg
     opt.set_maxeval(maxeval_used)
 
-    # Remove the default timeout to allow the optimizer to run until maxeval is reached
+    # Set timeout if specified, otherwise use long default
     if maxtime is not None:
         opt.set_maxtime(maxtime)
     else:
-        # Set a much longer timeout (30 minutes instead of 5)
         opt.set_maxtime(1800)  # 30 minutes default timeout
     return opt
 
@@ -917,7 +906,7 @@ def estimator(
     nlopt_algorithm = getattr(nlopt, algorithm.replace("NLOPT_", ""), nlopt.LN_NELDERMEAD)
     opt = nlopt.opt(nlopt_algorithm, len(B))
     opt = _configure_optimizer(
-        opt, lb, ub, maxeval_used, maxtime, B, explanatory_dict,
+        opt, lb, ub, maxeval_used, maxtime,
         xtol_rel=xtol_rel, xtol_abs=xtol_abs, ftol_rel=ftol_rel, ftol_abs=ftol_abs
     )
 
