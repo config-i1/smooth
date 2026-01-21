@@ -385,6 +385,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
             y_clear[i] = y_smooth[i] - y_smooth[i + 1]
 
     # Seasonal patterns
+    # Use "ma" smoother for seasonality when original smoother is "global"
+    smoother_second = "ma" if smoother == "global" else smoother
+
     if seasonal_lags:
         patterns = []
         for i in range(lags_length):
@@ -395,7 +398,7 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
                 y_seasonal_non_na = y_seasonal[~np.isnan(y_seasonal)]
 
                 if len(y_seasonal_non_na) > 0:
-                    if smoother == "ma":
+                    if smoother_second == "ma":
                         y_seasonal_smooth = np.mean(y_seasonal_non_na)
                         pattern_i[indices] = y_seasonal_smooth
                     else:
@@ -403,7 +406,11 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
                         new_indices = np.arange(len(y_seasonal_smooth)) * lags[i] + j
                         pattern_i[new_indices] = y_seasonal_smooth
 
-            pattern_i -= np.mean(pattern_i)
+            # Truncate to obs_in_sample and normalize using complete lag cycles
+            pattern_i = pattern_i[:obs_in_sample]
+            obs_in_sample_lags = (obs_in_sample // lags[i]) * lags[i]
+            if np.any(~np.isnan(pattern_i[:obs_in_sample_lags])):
+                pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
             patterns.append(pattern_i)
     else:
         patterns = None

@@ -466,6 +466,7 @@ def estimator(
     ftol_rel=1e-8,
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
+    smoother="lowess",
 ):
     """
     Estimate parameters for ADAM model using non-linear optimization.
@@ -700,6 +701,13 @@ def estimator(
         - 'profile_dict': Updated profile dictionary
         - 'components_dict': Components information
 
+    smoother : str, default="lowess"
+        Smoother type for time series decomposition used in initial state estimation.
+
+        - "lowess": Uses LOWESS for both trend and seasonal extraction
+        - "ma": Uses moving average for both
+        - "global": Uses lowess for trend and "ma" for seasonality
+
     Returns
     -------
     dict
@@ -836,6 +844,7 @@ def estimator(
         phi_dict,
         components_dict,
         explanatory_dict,
+        smoother=smoother,
     )
     # Step 3: Initialize parameters
     b_values = initialiser(
@@ -1192,6 +1201,7 @@ def _estimate_model(
     ftol_rel=1e-8,
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
+    smoother="lowess",
 ):
     """
     Estimate a single model and calculate its information criterion.
@@ -1254,6 +1264,7 @@ def _estimate_model(
         ftol_rel=ftol_rel,
         ftol_abs=ftol_abs,
         algorithm=algorithm,
+        smoother=smoother,
     )
 
     # Calculate information criterion
@@ -1296,6 +1307,7 @@ def _run_branch_and_bound(
     ftol_rel=1e-8,
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
+    smoother="lowess",
 ):
     """
     Run branch and bound algorithm to efficiently search model space.
@@ -1423,6 +1435,7 @@ def _run_branch_and_bound(
             ftol_rel=ftol_rel,
             ftol_abs=ftol_abs,
             algorithm=algorithm,
+            smoother=smoother,
         )
 
         result["Etype"] = e_type
@@ -1604,6 +1617,7 @@ def _estimate_all_models(
     # Pre-computed results from branch-and-bound
     precomputed_results=None,
     precomputed_models=None,
+    smoother="lowess",
 ):
     """
     Estimate all models in the provided pool.
@@ -1725,6 +1739,7 @@ def _estimate_all_models(
                 ftol_rel=ftol_rel,
                 ftol_abs=ftol_abs,
                 algorithm=algorithm,
+                smoother=smoother,
             )
         results[j]["IC"] = ic_function(general_dict['ic'], loglik=results[j]['adam_estimated']["log_lik_adam_value"])
         results[j]['model_type_dict'] = model_type_dict_temp
@@ -1760,6 +1775,7 @@ def selector(
     ftol_rel=1e-8,
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
+    smoother="lowess",
 ):
     """
     Automatic model selection for ADAM using information criteria and Branch & Bound.
@@ -2061,6 +2077,7 @@ def selector(
             ftol_rel=ftol_rel,
             ftol_abs=ftol_abs,
             algorithm=algorithm,
+            smoother=smoother,
         )
 
         # Prepare a bigger pool based on the small one
@@ -2108,6 +2125,7 @@ def selector(
         algorithm=algorithm,
         precomputed_results=bb_results,
         precomputed_models=bb_models_tested,
+        smoother=smoother,
     )
     #print(results)
 

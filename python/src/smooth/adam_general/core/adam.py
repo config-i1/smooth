@@ -341,6 +341,7 @@ class ADAM:
         # specific to losses or distributions
         reg_lambda: Optional[float] = None,
         gnorm_shape: Optional[float] = None,
+        smoother: Literal["lowess", "ma", "global"] = "lowess",
     ) -> None:
         """
         Initialize the ADAM model with specified parameters.
@@ -449,6 +450,15 @@ class ADAM:
             Regularization parameter specifically for LASSO/RIDGE losses.
         gnorm_shape : Optional[float], default=None
             Shape parameter 's' for the generalized normal distribution.
+        smoother : Literal["lowess", "ma", "global"], default="lowess"
+            Smoother type for time series decomposition in initial state estimation.
+
+            - "lowess": Uses LOWESS (Locally Weighted Scatterplot Smoothing) for both
+              trend and seasonal pattern extraction. This is the default.
+            - "ma": Uses simple moving average for both trend and seasonality.
+            - "global": Uses lowess for trend and "ma" (moving average) for seasonality.
+              Provides robust trend estimation while avoiding lowess instability for
+              small seasonal samples.
         """
         # Start measuring the time of calculations
         self.start_time = time.time()
@@ -482,6 +492,7 @@ class ADAM:
         self.nlopt_kargs = nlopt_kargs
         self.reg_lambda = reg_lambda
         self.gnorm_shape = gnorm_shape
+        self.smoother = smoother
 
         # Store parameters that were moved from fit
         self.h = h
@@ -1143,6 +1154,7 @@ class ADAM:
             self.phi_dict,
             components_dict,
             self.explanatory_dict,
+            smoother=self.smoother,
         )
 
         # Call initialiser with ORIGINAL initials_results (initial_type="two-stage")
@@ -1197,6 +1209,7 @@ class ADAM:
             phi_dict=self.phi_dict,
             components_dict=self.components_dict,
             return_matrices=True,  # Get access to mat_vt
+            smoother=self.smoother,
             **nlopt_params,
         )
 
@@ -1368,6 +1381,7 @@ class ADAM:
             B_initial=B,
             lb=Bl,
             ub=Bu,
+            smoother=self.smoother,
             **nlopt_params,
         )
 
@@ -1402,6 +1416,7 @@ class ADAM:
                     occurrence_dict=self.occurrence_dict,
                     phi_dict=self.phi_dict,
                     components_dict=self.components_dict,
+                    smoother=self.smoother,
                     **nlopt_params,
                 )
             # Extract adam_cpp from estimation results
@@ -1440,6 +1455,7 @@ class ADAM:
             phi_dict=self.phi_dict,
             components_dict=self.components_dict,
             explanatory_checked=self.explanatory_dict,
+            smoother=self.smoother,
         )
 
         # Calculate information criterion
@@ -1538,6 +1554,7 @@ class ADAM:
             initials_results=self.initials_results,
             criterion=self.general["ic"],
             silent=self.verbose == 0,
+            smoother=self.smoother,
             **nlopt_params,
         )
         #print(self.adam_selected)
@@ -1640,6 +1657,7 @@ class ADAM:
             phi_dict=self.phi_dict,
             components_dict=self.components_dict,
             explanatory_checked=self.explanatory_dict,
+            smoother=self.smoother,
         )
 
         # Store created matrices
