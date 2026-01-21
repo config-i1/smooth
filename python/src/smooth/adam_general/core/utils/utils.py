@@ -401,8 +401,11 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
                         new_indices = np.arange(len(y_seasonal_smooth)) * lags[i] + j
                         pattern_i[new_indices] = y_seasonal_smooth
 
-            if np.any(~np.isnan(pattern_i)):
-                pattern_i -= np.nanmean(pattern_i)
+            # Truncate to obs_in_sample and normalize using complete lag cycles
+            pattern_i = pattern_i[:obs_in_sample]
+            obs_in_sample_lags = (obs_in_sample // lags[i]) * lags[i]
+            if np.any(~np.isnan(pattern_i[:obs_in_sample_lags])):
+                pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
             patterns.append(pattern_i)
     else:
         patterns = None

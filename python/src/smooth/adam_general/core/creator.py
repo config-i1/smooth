@@ -33,6 +33,7 @@ def creator(
     # Components info
     components_dict,
     explanatory_checked=None,
+    smoother="lowess",
 ):
     """
     Create state-space matrices for ADAM model representation.
@@ -177,6 +178,13 @@ def creator(
         - 'xreg_number': Number of regressors
         - 'mat_xt': Regressor data matrix (T × p)
 
+    smoother : str, default="lowess"
+        Smoother type for time series decomposition used in initial state estimation.
+
+        - "lowess": Uses LOWESS for both trend and seasonal extraction
+        - "ma": Uses moving average for both
+        - "global": Uses lowess for trend and "ma" for seasonality
+
     Returns
     -------
     dict
@@ -286,6 +294,7 @@ def creator(
         phi_dict,
         profiles_dict,
     )
+    model_params["smoother"] = smoother
 
     # Setup matrices
     matrices = _setup_matrices(
@@ -878,10 +887,12 @@ def _initialize_ets_seasonal_states_with_decomp(
     ot_logical = model_params["ot_logical"]
 
     # Run both additive and multiplicative decompositions (matching R lines 892-898)
+    smoother = model_params["smoother"]
     y_decomposition_additive = msdecompose(
         y_in_sample.ravel(),
         [lag for lag in lags if lag != 1],
         type="additive",
+        smoother=smoother,
     )
 
     if any(x == "M" for x in [e_type, t_type, s_type]):
@@ -889,6 +900,7 @@ def _initialize_ets_seasonal_states_with_decomp(
             y_in_sample.ravel(),
             [lag for lag in lags if lag != 1],
             type="multiplicative",
+            smoother=smoother,
         )
     else:
         y_decomposition_multiplicative = None
@@ -1139,10 +1151,12 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
 
     # This decomposition does not produce seasonal component
     # Run both additive and multiplicative decompositions (matching R lines 1021-1028)
+    smoother = model_params["smoother"]
     y_decomposition_additive = msdecompose(
         y_in_sample.ravel(),
         lags=[1],
         type="additive",
+        smoother=smoother,
     )
 
     if any(x == "M" for x in [e_type, t_type]):
@@ -1150,6 +1164,7 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
             y_in_sample.ravel(),
             lags=[1],
             type="multiplicative",
+            smoother=smoother,
         )
     else:
         y_decomposition_multiplicative = None
@@ -1222,6 +1237,7 @@ def _initialize_arima_states(
                 y_in_sample,
                 [lag for lag in lags if lag != 1],
                 type="additive" if e_type == "A" else "multiplicative",
+                smoother=model_params["smoother"],
             )["seasonal"][-1][0]
         else:
             y_decomposition = (
