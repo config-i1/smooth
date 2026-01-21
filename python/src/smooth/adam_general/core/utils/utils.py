@@ -285,7 +285,7 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
         # Ensure span is in valid range [0, 1]
         # Use at least 3/n to have enough points for smoothing
-        span = min(max(span, 3 / n), 1.0)
+        # span = min(max(span, 3 / n), 1.0)
 
         # Handle missing values
         valid_mask = ~np.isnan(y)
@@ -293,14 +293,19 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
             return np.full_like(y, np.nan)
 
         # Apply LOWESS
-        # statsmodels lowess returns array of (x, y) pairs
-        # R's lowess uses iter=3 by default
-        smoothed = sm_lowess(y[valid_mask], x[valid_mask], frac=span,
-                            return_sorted=True, it=3)
+        # Note: statsmodels lowess may produce slightly different results than R's lowess,
+        # particularly for small samples with large span. This is a known limitation.
+        x_valid = x[valid_mask].astype(float)
+        y_valid = y[valid_mask]
+
+        # Use is_sorted=True since our x values are already sorted
+        # return_sorted=False returns just the y values (1D array)
+        smoothed_y = sm_lowess(y_valid, x_valid, frac=span,
+                              it=3, delta=0.0, is_sorted=True, return_sorted=False)
 
         # Map back to original indices
         result = np.full_like(y, np.nan)
-        result[valid_mask] = smoothed[:, 1]
+        result[valid_mask] = smoothed_y
 
         return result
 
@@ -383,15 +388,16 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
                 indices = np.arange(j, obs_in_sample, lags[i])
                 y_seasonal = y_clear[i][indices]
                 y_seasonal_non_na = y_seasonal[~np.isnan(y_seasonal)]
-                
+
                 if len(y_seasonal_non_na) > 0:
                     if smoother == "ma":
                         y_seasonal_smooth = np.mean(y_seasonal_non_na)
-                        pattern_i[indices[~np.isnan(y_seasonal)]] = y_seasonal_smooth
+                        pattern_i[indices] = y_seasonal_smooth
                     else:
                         y_seasonal_smooth = smoothing_function(y_seasonal_non_na, order=obs_in_sample)
-                        pattern_i[indices[~np.isnan(y_seasonal)]] = y_seasonal_smooth
-            
+                        new_indices = np.arange(len(y_seasonal_smooth)) * lags[i] + j
+                        pattern_i[new_indices] = y_seasonal_smooth
+
             if np.any(~np.isnan(pattern_i)):
                 pattern_i -= np.nanmean(pattern_i)
             patterns.append(pattern_i)
