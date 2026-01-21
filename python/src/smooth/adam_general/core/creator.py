@@ -2812,6 +2812,7 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
 
     # Calculate model lags for each component
     lags_model = []
+    lags_model_seasonal = []
 
     # ETS components
     if model_type_dict["ets_model"]:
@@ -2824,11 +2825,10 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
 
         # Seasonal components have lags corresponding to seasonal periods
         if model_type_dict["model_is_seasonal"]:
-            lags_model_seasonal = []
-            
             for lag in lags:
                 if lag > 1:
                     lags_model.append(lag)
+                    lags_model_seasonal.append(lag)
 
     # ARIMA components
     lags_model_arima = []
@@ -2851,6 +2851,7 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
     lags_dict_updated["lags_model_arima"] = lags_model_arima
     lags_dict_updated["lags_model_all"] = lags_model_all
     lags_dict_updated["lags_model_max"] = lags_model_max
+    lags_dict_updated["lags_model_seasonal"] = lags_model_seasonal
     return lags_dict_updated
 
 

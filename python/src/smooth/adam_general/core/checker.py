@@ -104,6 +104,10 @@ def _check_lags(lags, obs_in_sample, silent=False):
     dict
         Dictionary with lags information including seasonal lags
     """
+    # Handle None or empty lags - default to [1]
+    if lags is None:
+        lags = [1]
+
     # Remove any zero-lags
     lags = [lg for lg in lags if lg != 0]
 
