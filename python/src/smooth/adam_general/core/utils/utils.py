@@ -380,6 +380,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
             y_clear[i] = y_smooth[i] - y_smooth[i + 1]
 
     # Seasonal patterns
+    # Use "ma" smoother for seasonality when original smoother is "global"
+    smoother_second = "ma" if smoother == "global" else smoother
+
     if seasonal_lags:
         patterns = []
         for i in range(lags_length):
@@ -390,7 +393,7 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
                 y_seasonal_non_na = y_seasonal[~np.isnan(y_seasonal)]
 
                 if len(y_seasonal_non_na) > 0:
-                    if smoother == "ma":
+                    if smoother_second == "ma":
                         y_seasonal_smooth = np.mean(y_seasonal_non_na)
                         pattern_i[indices] = y_seasonal_smooth
                     else:
