@@ -185,7 +185,8 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
             }
             # This is needed to fix potential issues with samples becoming larger than needed due to ceiling
             patterns[[i]] <- patterns[[i]][1:obsInSample]
-            patterns[[i]][] <- patterns[[i]] - mean(patterns[[i]], na.rm=TRUE);
+            obsInSampleLags <- floor(obsInSample/lags[i]) * lags[i];
+            patterns[[i]][] <- patterns[[i]] - mean(patterns[[i]][1:obsInSampleLags], na.rm=TRUE);
         }
     }
     else{
