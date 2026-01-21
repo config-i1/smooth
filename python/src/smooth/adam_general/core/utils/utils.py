@@ -300,8 +300,13 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
         # Use is_sorted=True since our x values are already sorted
         # return_sorted=False returns just the y values (1D array)
+        # CRITICAL FIX: Match R's delta calculation
+        # R default: delta = 0.01 * diff(range(x))
+        x_range = x_valid.max() - x_valid.min()
+        delta = 0.01 * x_range if x_range > 0 else 0.0
+
         smoothed_y = sm_lowess(y_valid, x_valid, frac=span,
-                              it=3, delta=0.0, is_sorted=True, return_sorted=False)
+                              it=3, delta=delta, is_sorted=True, return_sorted=False)
 
         # Map back to original indices
         result = np.full_like(y, np.nan)
@@ -386,7 +391,7 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     if seasonal_lags:
         patterns = []
         for i in range(lags_length):
-            pattern_i = np.full(obs_in_sample, np.nan)
+            pattern_i = np.zeros(obs_in_sample)
             for j in range(lags[i]):
                 indices = np.arange(j, obs_in_sample, lags[i])
                 y_seasonal = y_clear[i][indices]
