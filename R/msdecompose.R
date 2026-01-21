@@ -159,6 +159,9 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
             yClear[[i]] <- ySmooth[[i]] - ySmooth[[i+1]];
         }
 
+        smootherSecond <- switch(smoother,
+                                 "global"="ma",
+                                 smoother);
         # The seasonal patterns
         patterns <- vector("list",lagsLength);
         for(i in 1:lagsLength){
@@ -168,12 +171,12 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
                 ySeasonal <- yClear[[i]][(1:ceiling(obsInSample/lags[i])-1)*lags[i]+j];
                 # If it is "ma", take the simple average, i.e. order=n for the specific index
                 ySeasonalSmooth <- smoothingFunction(ySeasonal[!is.na(ySeasonal)],
-                                                     order=switch(smoother,
+                                                     order=switch(smootherSecond,
                                                                   "ma"=length(ySeasonal[!is.na(ySeasonal)]),
                                                                   obsInSample),
-                                                     smoother=smoother);
+                                                     smoother=smootherSecond);
                 # In case of MA, only one value is returned
-                if(smoother=="ma"){
+                if(smootherSecond=="ma"){
                     patterns[[i]][(1:ceiling(obsInSample/lags[i])-1)*lags[i]+j] <- ySeasonalSmooth[!is.na(ySeasonalSmooth)];
                 }
                 else{
