@@ -477,9 +477,11 @@ def _run_two_stage_estimator(
     # Stage 1: Run with "complete" to get backcasted parameters
     stage1_initials = initials_dict.copy()
     stage1_initials["initial_type"] = "complete"
-    # Always use n_iterations=2 for Stage 1 backcasting, matching standalone "complete" behavior
-    # The checker sets n_iterations=1 for "two-stage" by default, but Stage 1 IS backcasting
-    stage1_initials["n_iterations"] = 2
+    # For Stage 1 (backcasting): use user's value if provided, otherwise default to 2
+    if initials_dict.get("n_iterations_provided", False):
+        stage1_initials["n_iterations"] = initials_dict["n_iterations"]
+    else:
+        stage1_initials["n_iterations"] = 2
 
     adam_estimated_s1 = estimator(
         general_dict=general_dict,
