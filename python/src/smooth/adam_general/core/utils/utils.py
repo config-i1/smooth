@@ -142,9 +142,20 @@ def lowess_r(x, y, f=2/3, nsteps=3, delta=None):
 
         # Interpolate last segment if needed
         if last < n - 1:
+            # First compute the last point directly (it was skipped due to delta)
+            # Ensure nright is at least n-1 for the last point
+            while nright < n - 1:
+                nleft += 1
+                nright += 1
+            # Now compute the last point
+            ys[n - 1], ok = lowest(x_sorted[n - 1], nleft, nright, rw)
+            if not ok:
+                ys[n - 1] = y_sorted[n - 1]
+            
+            # Then interpolate intermediate points
             denom = x_sorted[n - 1] - x_sorted[last]
             if denom > 0:
-                for j in range(last + 1, n):
+                for j in range(last + 1, n - 1):  # Note: n-1, not n (last point already computed)
                     alpha = (x_sorted[j] - x_sorted[last]) / denom
                     ys[j] = alpha * ys[n - 1] + (1 - alpha) * ys[last]
 
@@ -562,11 +573,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
                         new_indices = np.arange(len(y_seasonal_smooth)) * lags[i] + j
                         pattern_i[new_indices] = y_seasonal_smooth
 
-            # Truncate to obs_in_sample and normalize using complete lag cycles
+            # Truncate to obs_in_sample and normalize using full pattern (matching R)
             pattern_i = pattern_i[:obs_in_sample]
-            obs_in_sample_lags = (obs_in_sample // lags[i]) * lags[i]
-            if np.any(~np.isnan(pattern_i[:obs_in_sample_lags])):
-                pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
+            pattern_i -= np.nanmean(pattern_i)  # R uses mean(x, na.rm=TRUE) on full pattern
             patterns.append(pattern_i)
     else:
         patterns = None
