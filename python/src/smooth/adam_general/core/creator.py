@@ -333,8 +333,6 @@ def creator(
         constants_checked,
     )
 
-
-
     # Return created matrices
     return {
         "mat_vt": matrices["mat_vt"],
