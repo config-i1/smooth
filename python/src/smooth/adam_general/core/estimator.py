@@ -1308,6 +1308,7 @@ def _run_branch_and_bound(
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
     smoother="lowess",
+    silent=False,
 ):
     """
     Run branch and bound algorithm to efficiently search model space.
@@ -2078,6 +2079,7 @@ def selector(
             ftol_abs=ftol_abs,
             algorithm=algorithm,
             smoother=smoother,
+            silent=silent,
         )
 
         # Prepare a bigger pool based on the small one
