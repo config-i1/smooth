@@ -3,11 +3,185 @@ import pandas as pd
 from scipy import stats
 from scipy.special import beta, digamma, gamma
 
-try:
-    from statsmodels.nonparametric.smoothers_lowess import lowess as sm_lowess
-    HAS_STATSMODELS = True
-except ImportError:
-    HAS_STATSMODELS = False
+# Note: Custom lowess_r function is used instead of statsmodels for exact R compatibility
+
+
+def lowess_r(x, y, f=2/3, nsteps=3, delta=None):
+    """
+    LOWESS smoother that exactly matches R's stats::lowess function.
+
+    This is a pure Python/NumPy implementation of Cleveland's LOWESS algorithm
+    as implemented in R's stats package.
+
+    Parameters
+    ----------
+    x : array-like
+        X values (will be converted to float)
+    y : array-like
+        Y values (will be converted to float)
+    f : float
+        Smoother span (fraction of points), default 2/3
+    nsteps : int
+        Number of robustifying iterations, default 3
+    delta : float or None
+        Distance threshold for interpolation. If None, uses 0.01 * range(x)
+
+    Returns
+    -------
+    ndarray
+        Smoothed y values
+
+    References
+    ----------
+    Cleveland, W.S. (1979) "Robust Locally Weighted Regression and
+    Smoothing Scatterplots". JASA 74(368): 829-836.
+    """
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    n = len(x)
+
+    if delta is None:
+        delta = 0.01 * (x.max() - x.min())
+
+    # Number of points in local window
+    ns = max(2, min(n, int(f * n + 1e-7)))
+
+    # Sort by x if not already sorted
+    order = np.argsort(x)
+    x_sorted = x[order]
+    y_sorted = y[order]
+
+    ys = np.zeros(n)  # smoothed values
+    rw = np.ones(n)   # robustness weights
+    res = np.zeros(n) # residuals
+
+    def lowest(xs, nleft, nright, rw):
+        """Compute weighted local regression at point xs."""
+        h = max(xs - x_sorted[nleft], x_sorted[nright] - xs)
+        if h == 0:
+            return y_sorted[nleft], True
+
+        # Compute tricube weights
+        a = 0.0
+        w = np.zeros(nright - nleft + 1)
+        for j in range(nleft, nright + 1):
+            r = abs(x_sorted[j] - xs) / h
+            if r < 1:
+                w_j = (1 - r**3)**3 * rw[j]
+            else:
+                w_j = 0.0
+            w[j - nleft] = w_j
+            a += w_j
+
+        if a <= 0:
+            return 0.0, False
+
+        # Normalize weights
+        for j in range(nright - nleft + 1):
+            w[j] /= a
+
+        # Compute weighted mean of x
+        a = 0.0
+        for j in range(nleft, nright + 1):
+            a += w[j - nleft] * x_sorted[j]
+
+        # Compute weighted slope
+        b = xs - a
+        c = 0.0
+        for j in range(nleft, nright + 1):
+            c += w[j - nleft] * (x_sorted[j] - a)**2
+
+        if c > 0:
+            b /= c
+            for j in range(nright - nleft + 1):
+                w[j] *= (1 + b * (x_sorted[nleft + j] - a))
+
+        # Compute fitted value
+        ys_out = 0.0
+        for j in range(nleft, nright + 1):
+            ys_out += w[j - nleft] * y_sorted[j]
+
+        return ys_out, True
+
+    # Main iteration
+    for iteration in range(nsteps + 1):
+        nleft = 0
+        nright = ns - 1
+        last = -1
+        i = 0
+
+        while i < n:
+            # Find window [nleft, nright] containing ns points nearest to x[i]
+            while nright < n - 1:
+                d1 = x_sorted[i] - x_sorted[nleft]
+                d2 = x_sorted[nright + 1] - x_sorted[i]
+                if d1 <= d2:
+                    break
+                nleft += 1
+                nright += 1
+
+            # Compute smoothed value
+            ys[i], ok = lowest(x_sorted[i], nleft, nright, rw)
+
+            if not ok:
+                ys[i] = y_sorted[i]
+
+            # Interpolate if points are close (delta optimization)
+            if last < i - 1:
+                denom = x_sorted[i] - x_sorted[last]
+                if denom > 0:
+                    for j in range(last + 1, i):
+                        alpha = (x_sorted[j] - x_sorted[last]) / denom
+                        ys[j] = alpha * ys[i] + (1 - alpha) * ys[last]
+
+            last = i
+            cut = x_sorted[i] + delta
+            i += 1
+            while i < n and x_sorted[i] <= cut:
+                i += 1
+
+        # Interpolate last segment if needed
+        if last < n - 1:
+            denom = x_sorted[n - 1] - x_sorted[last]
+            if denom > 0:
+                for j in range(last + 1, n):
+                    alpha = (x_sorted[j] - x_sorted[last]) / denom
+                    ys[j] = alpha * ys[n - 1] + (1 - alpha) * ys[last]
+
+        # Update residuals and robustness weights
+        res = y_sorted - ys
+
+        if iteration < nsteps:
+            # Compute MAD (median absolute deviation)
+            sorted_abs_res = np.sort(np.abs(res))
+            m = n // 2
+            if n % 2 == 0:
+                cmad = 3 * (sorted_abs_res[m - 1] + sorted_abs_res[m])
+            else:
+                cmad = 6 * sorted_abs_res[m]
+
+            # Stop if MAD is effectively zero (R's behavior)
+            if cmad < 1e-10 * np.mean(np.abs(y_sorted)):
+                break
+
+            # Compute biweight robustness weights
+            c9 = 0.999 * cmad
+            c1 = 0.001 * cmad
+            for j in range(n):
+                r = abs(res[j])
+                if r <= c1:
+                    rw[j] = 1.0
+                elif r <= c9:
+                    rw[j] = (1 - (r / cmad)**2)**2
+                else:
+                    rw[j] = 0.0
+
+    # Restore original order
+    result = np.zeros(n)
+    result[order] = ys
+
+    return result
+
 
 def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     """
@@ -228,10 +402,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     if smoother not in ["ma", "lowess", "supsmu", "global"]:
         raise ValueError("smoother must be 'ma', 'lowess', 'supsmu', or 'global'")
 
-    # Check statsmodels availability for lowess
-    if smoother in ["lowess", "supsmu"] and not HAS_STATSMODELS:
-        raise ImportError("statsmodels is required for lowess/supsmu smoother. "
-                         "Install it with: pip install statsmodels")
+    # Note: lowess/supsmu now use custom lowess_r implementation that matches R exactly
+    # No external dependencies required
 
     # Variable name handling
     y_name = "y"
@@ -269,44 +441,31 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         return trend
 
     def smoothing_function_lowess(y, order):
-        """LOWESS smoother (equivalent to R's lowess/supsmu)"""
+        """LOWESS smoother matching R's stats::lowess exactly."""
         y = y.astype(float)
         n = len(y)
-        x = np.arange(1, n + 1)
+        x = np.arange(1, n + 1, dtype=float)
 
-        # Match R's lowess parameter calculation:
-        # In R: if order is NULL, equals max lag, equals obsInSample, or equals 1,
-        #       then order = 1.5, so f = 1/1.5 = 0.667
-        # Otherwise: f = 1/order
+        # Match R's span calculation
         if order is None or order == 1 or order == lags[-1] or order == obs_in_sample:
-            span = 2 / 3  # 1/1.5 ≈ 0.667, matching R's default
+            span = 2 / 3
         else:
             span = 1 / order
-
-        # Ensure span is in valid range [0, 1]
-        # Use at least 3/n to have enough points for smoothing
-        # span = min(max(span, 3 / n), 1.0)
 
         # Handle missing values
         valid_mask = ~np.isnan(y)
         if not np.any(valid_mask):
             return np.full_like(y, np.nan)
 
-        # Apply LOWESS
-        # Note: statsmodels lowess may produce slightly different results than R's lowess,
-        # particularly for small samples with large span. This is a known limitation.
-        x_valid = x[valid_mask].astype(float)
+        x_valid = x[valid_mask]
         y_valid = y[valid_mask]
 
-        # Use is_sorted=True since our x values are already sorted
-        # return_sorted=False returns just the y values (1D array)
-        # CRITICAL FIX: Match R's delta calculation
-        # R default: delta = 0.01 * diff(range(x))
+        # R's delta default: 0.01 * diff(range(x))
         x_range = x_valid.max() - x_valid.min()
         delta = 0.01 * x_range if x_range > 0 else 0.0
 
-        smoothed_y = sm_lowess(y_valid, x_valid, frac=span,
-                              it=3, delta=delta, is_sorted=True, return_sorted=False)
+        # Use our R-compatible lowess
+        smoothed_y = lowess_r(x_valid, y_valid, f=span, nsteps=3, delta=delta)
 
         # Map back to original indices
         result = np.full_like(y, np.nan)
@@ -343,9 +502,6 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
             stacklevel=2
         )
         smoother = "lowess"
-        if not HAS_STATSMODELS:
-            raise ImportError("statsmodels is required for lowess smoother. "
-                             "Install it with: pip install statsmodels")
         smoothing_function = smoothing_function_lowess
 
     y_na_values = np.isnan(y)
