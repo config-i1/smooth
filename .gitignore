@@ -172,3 +172,4 @@ dmypy.json
 # cursor files
 .cursor/
 .claude/
+python/tests/speed_tests/benchmark_data/
