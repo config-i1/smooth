@@ -156,7 +156,6 @@ def lowess_r(x, y, f=2/3, nsteps=3, delta=None):
             denom = x_sorted[n - 1] - x_sorted[last]
             if denom > 0:
                 for j in range(last + 1, n - 1):  # Note: n-1, not n (last point already computed)
-
                     alpha = (x_sorted[j] - x_sorted[last]) / denom
                     ys[j] = alpha * ys[n - 1] + (1 - alpha) * ys[last]
         # Update residuals and robustness weights
