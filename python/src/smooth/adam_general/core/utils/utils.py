@@ -11,7 +11,7 @@ def lowess_r(x, y, f=2/3, nsteps=3, delta=None):
     LOWESS smoother that exactly matches R's stats::lowess function.
 
     This is a pure Python/NumPy implementation of Cleveland's LOWESS algorithm
-    as implemented in R's stats package.
+    as implemented in R's stats package (clowess C function).
 
     Parameters
     ----------
@@ -35,15 +35,19 @@ def lowess_r(x, y, f=2/3, nsteps=3, delta=None):
     ----------
     Cleveland, W.S. (1979) "Robust Locally Weighted Regression and
     Smoothing Scatterplots". JASA 74(368): 829-836.
+    R source: https://github.com/SurajGupta/r-source/blob/master/src/library/stats/src/lowess.c
     """
     x = np.asarray(x, dtype=np.float64)
     y = np.asarray(y, dtype=np.float64)
     n = len(x)
 
+    if n < 2:
+        return y.copy()
+
     if delta is None:
         delta = 0.01 * (x.max() - x.min())
 
-    # Number of points in local window
+    # Number of points in local window - at least 2, at most n
     ns = max(2, min(n, int(f * n + 1e-7)))
 
     # Sort by x if not already sorted
@@ -54,138 +58,188 @@ def lowess_r(x, y, f=2/3, nsteps=3, delta=None):
     ys = np.zeros(n)  # smoothed values
     rw = np.ones(n)   # robustness weights
     res = np.zeros(n) # residuals
+    
+    # Compute range for stability checks
+    x_range = x_sorted[n - 1] - x_sorted[0]
 
-    def lowest(xs, nleft, nright, rw):
-        """Compute weighted local regression at point xs."""
+    def lowest(xs, nleft, nright, rw_iter):
+        """
+        Compute weighted local regression at point xs.
+        This matches R's lowest() function exactly.
+        """
+        # Compute bandwidth h
         h = max(xs - x_sorted[nleft], x_sorted[nright] - xs)
-        if h == 0:
-            return y_sorted[nleft], True
-
-        # Compute tricube weights
+        
+        # Thresholds for weight calculation (R's h9 and h1)
+        h9 = 0.999 * h
+        h1 = 0.001 * h
+        
+        # Sum of weights
         a = 0.0
-        w = np.zeros(nright - nleft + 1)
-        for j in range(nleft, nright + 1):
-            r = abs(x_sorted[j] - xs) / h
-            if r < 1:
-                w_j = (1 - r**3)**3 * rw[j]
-            else:
-                w_j = 0.0
-            w[j - nleft] = w_j
-            a += w_j
-
-        if a <= 0:
+        # Store weights - allocate enough space for potential ties beyond nright
+        w = np.zeros(n)
+        
+        # Loop through points - continue past nright to pick up ties
+        j = nleft
+        nrt = nright  # will track rightmost point with non-zero weight
+        
+        while j < n:
+            # Compute absolute distance
+            r = abs(x_sorted[j] - xs)
+            
+            # Check if within bandwidth (using h9 threshold)
+            if r <= h9:
+                if r <= h1:
+                    # Very close - weight = 1
+                    w[j] = 1.0
+                else:
+                    # Tricube weight: (1 - (r/h)^3)^3
+                    w[j] = (1.0 - (r / h) ** 3) ** 3
+                
+                # Apply robustness weight from previous iteration
+                w[j] *= rw_iter[j]
+                a += w[j]
+                nrt = j
+            elif x_sorted[j] > xs:
+                # Past the point, no more ties possible
+                break
+            
+            j += 1
+        
+        # Check if we have any non-zero weights
+        if a <= 0.0:
             return 0.0, False
-
-        # Normalize weights
-        for j in range(nright - nleft + 1):
+        
+        # Normalize weights to sum to 1
+        for j in range(nleft, nrt + 1):
             w[j] /= a
-
-        # Compute weighted mean of x
-        a = 0.0
-        for j in range(nleft, nright + 1):
-            a += w[j - nleft] * x_sorted[j]
-
-        # Compute weighted slope
-        b = xs - a
-        c = 0.0
-        for j in range(nleft, nright + 1):
-            c += w[j - nleft] * (x_sorted[j] - a)**2
-
-        if c > 0:
-            b /= c
-            for j in range(nright - nleft + 1):
-                w[j] *= (1 + b * (x_sorted[nleft + j] - a))
-
-        # Compute fitted value
+        
+        # Check if we can fit a line (h > 0)
+        if h > 0.0:
+            # Compute weighted center of x values
+            a = 0.0
+            for j in range(nleft, nrt + 1):
+                a += w[j] * x_sorted[j]
+            
+            # Compute slope if points are spread out enough
+            b = xs - a
+            c = 0.0
+            for j in range(nleft, nrt + 1):
+                c += w[j] * (x_sorted[j] - a) ** 2
+            
+            # Stability check - only use slope if points are spread out
+            # (R checks: sqrt(c) > 0.001 * range)
+            if np.sqrt(c) > 0.001 * x_range:
+                b /= c
+                # Adjust weights for linear fit
+                for j in range(nleft, nrt + 1):
+                    w[j] *= (b * (x_sorted[j] - a) + 1.0)
+        
+        # Compute fitted value as weighted sum
         ys_out = 0.0
-        for j in range(nleft, nright + 1):
-            ys_out += w[j - nleft] * y_sorted[j]
-
+        for j in range(nleft, nrt + 1):
+            ys_out += w[j] * y_sorted[j]
+        
         return ys_out, True
 
-    # Main iteration
-    for iteration in range(nsteps + 1):
+    # Main robustness iterations
+    iteration = 0
+    while iteration <= nsteps:
         nleft = 0
         nright = ns - 1
-        last = -1
-        i = 0
-
-        while i < n:
-            # Find window [nleft, nright] containing ns points nearest to x[i]
-            while nright < n - 1:
+        last = -1  # index of previous estimated point
+        i = 0      # index of current point
+        
+        while True:
+            # Move window right if it decreases radius
+            if nright < n - 1:
                 d1 = x_sorted[i] - x_sorted[nleft]
                 d2 = x_sorted[nright + 1] - x_sorted[i]
-                if d1 <= d2:
-                    break
-                nleft += 1
-                nright += 1
-
-            # Compute smoothed value
+                
+                if d1 > d2:
+                    # Radius decreases by moving right
+                    nleft += 1
+                    nright += 1
+                    continue
+            
+            # Compute fitted value at x[i]
             ys[i], ok = lowest(x_sorted[i], nleft, nright, rw)
-
+            
             if not ok:
+                # All weights zero - copy over value
                 ys[i] = y_sorted[i]
-
-            # Interpolate if points are close (delta optimization)
+            
+            # Interpolate skipped points
             if last < i - 1:
                 denom = x_sorted[i] - x_sorted[last]
+                # Should be non-zero by construction
                 if denom > 0:
                     for j in range(last + 1, i):
                         alpha = (x_sorted[j] - x_sorted[last]) / denom
-                        ys[j] = alpha * ys[i] + (1 - alpha) * ys[last]
-
-            last = i
-            cut = x_sorted[i] + delta
-            i += 1
-            while i < n and x_sorted[i] <= cut:
-                i += 1
-
-        # Interpolate last segment if needed
-        if last < n - 1:
-            # First compute the last point directly (it was skipped due to delta)
-            # Ensure nright is at least n-1 for the last point
-            while nright < n - 1:
-                nleft += 1
-                nright += 1
-            # Now compute the last point
-            ys[n - 1], ok = lowest(x_sorted[n - 1], nleft, nright, rw)
-            if not ok:
-                ys[n - 1] = y_sorted[n - 1]
+                        ys[j] = alpha * ys[i] + (1.0 - alpha) * ys[last]
             
-            # Then interpolate intermediate points
-            denom = x_sorted[n - 1] - x_sorted[last]
-            if denom > 0:
-                for j in range(last + 1, n - 1):  # Note: n-1, not n (last point already computed)
-                    alpha = (x_sorted[j] - x_sorted[last]) / denom
-                    ys[j] = alpha * ys[n - 1] + (1 - alpha) * ys[last]
-
-        # Update residuals and robustness weights
-        res = y_sorted - ys
-
-        if iteration < nsteps:
-            # Compute MAD (median absolute deviation)
-            sorted_abs_res = np.sort(np.abs(res))
-            m = n // 2
-            if n % 2 == 0:
-                cmad = 3 * (sorted_abs_res[m - 1] + sorted_abs_res[m])
-            else:
-                cmad = 6 * sorted_abs_res[m]
-
-            # Stop if MAD is effectively zero (R's behavior)
-            if cmad < 1e-10 * np.mean(np.abs(y_sorted)):
+            # Update last estimated point
+            last = i
+            
+            # Skip ahead using delta - find next point beyond delta
+            cut = x_sorted[last] + delta
+            i += 1
+            while i < n:
+                if x_sorted[i] > cut:
+                    break
+                # Special case: exact ties get same value
+                if x_sorted[i] == x_sorted[last]:
+                    ys[i] = ys[last]
+                    last = i
+                i += 1
+            
+            # Adjust i (R's: i = max(last+1, i-1))
+            i = max(last + 1, i - 1)
+            
+            if last >= n - 1:
                 break
-
-            # Compute biweight robustness weights
-            c9 = 0.999 * cmad
-            c1 = 0.001 * cmad
-            for j in range(n):
-                r = abs(res[j])
-                if r <= c1:
-                    rw[j] = 1.0
-                elif r <= c9:
-                    rw[j] = (1 - (r / cmad)**2)**2
-                else:
-                    rw[j] = 0.0
+        
+        # Compute residuals
+        for i in range(n):
+            res[i] = y_sorted[i] - ys[i]
+        
+        # Overall scale estimate (mean absolute residual)
+        sc = np.sum(np.abs(res)) / n
+        
+        # Compute robustness weights (except on last iteration)
+        if iteration >= nsteps:
+            break
+        
+        # Compute median absolute deviation (cmad = 6 * median)
+        abs_res = np.abs(res)
+        m1 = n // 2
+        
+        # Partial sort to find median
+        abs_res_sorted = np.partition(abs_res, m1)
+        if n % 2 == 0:
+            m2 = n - m1 - 1
+            abs_res_sorted = np.partition(abs_res_sorted, m2)
+            cmad = 3.0 * (abs_res_sorted[m1] + abs_res_sorted[m2])
+        else:
+            cmad = 6.0 * abs_res_sorted[m1]
+        
+        # Check if effectively zero (R's threshold: 1e-7 * sc)
+        if cmad < 1e-7 * sc:
+            break
+        
+        # Compute biweight robustness weights
+        c9 = 0.999 * cmad
+        c1 = 0.001 * cmad
+        for i in range(n):
+            r = abs(res[i])
+            if r <= c1:
+                rw[i] = 1.0
+            elif r <= c9:
+                rw[i] = (1.0 - (r / cmad) ** 2) ** 2
+            else:
+                rw[i] = 0.0
+        
+        iteration += 1
 
     # Restore original order
     result = np.zeros(n)

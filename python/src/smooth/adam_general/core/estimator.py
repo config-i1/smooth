@@ -947,6 +947,54 @@ def estimator(
     # Step 10: Extract the solution and the loss value
     CF_value = opt.last_optimum_value()
     
+    # Step 10a: Retry optimization with zero smoothing parameters if initial optimization failed
+    # This matches R's behavior (lines 2717-2768 in adam.R)
+    # R checks for is.infinite(res$objective) || res$objective==1e+300
+    # Python's objective wrapper caps at 1e10, so we check >= 1e10
+    if not np.isfinite(CF_value) or CF_value >= 1e10:
+        # Calculate number of ETS persistence parameters (alpha, beta, gamma)
+        components_number_ets = 0
+        if model_type_dict["ets_model"]:
+            persistence_estimate_vector = [
+                persistence_dict['persistence_level_estimate'],
+                model_type_dict["model_is_trendy"] and persistence_dict['persistence_trend_estimate'],
+                model_type_dict["model_is_seasonal"] and any(persistence_dict['persistence_seasonal_estimate'])
+            ]
+            components_number_ets = sum(persistence_estimate_vector)
+            if components_number_ets > 0:
+                B[:components_number_ets] = 0
+        
+        if arima_dict["arima_model"]:
+            # Calculate starting index for ARIMA parameters
+            # Match R's calculation exactly: componentsNumberETS + persistenceXregEstimate*xregNumber
+            # Note: R's retry code doesn't account for phi, so we match that behavior
+            ar_ma_start = components_number_ets
+            if explanatory_dict['xreg_model'] and persistence_dict['persistence_xreg_estimate']:
+                ar_ma_start += max(explanatory_dict['xreg_parameters_persistence'] or [0])
+            
+            # Calculate number of ARIMA parameters
+            ar_orders = arima_dict.get('ar_orders', [])
+            ma_orders = arima_dict.get('ma_orders', [])
+            ar_estimate = arima_dict.get('ar_estimate', False)
+            ma_estimate = arima_dict.get('ma_estimate', False)
+            
+            ar_count = sum(ar_orders) if ar_estimate else 0
+            ma_count = sum(ma_orders) if ma_estimate else 0
+            ar_ma_count = ar_count + ma_count
+            
+            if ar_ma_count > 0:
+                B[ar_ma_start:ar_ma_start + ar_ma_count] = 0.01
+        
+        # Retry optimization with reset parameters
+        opt2 = nlopt.opt(nlopt_algorithm, len(B))
+        opt2 = _configure_optimizer(
+            opt2, lb, ub, maxeval_used, maxtime,
+            xtol_rel=xtol_rel, xtol_abs=xtol_abs, ftol_rel=ftol_rel, ftol_abs=ftol_abs
+        )
+        opt2.set_min_objective(objective_wrapper)
+        B[:] = _run_optimization(opt2, B)
+        CF_value = opt2.last_optimum_value()
+    
     # Step 10: Calculate CF_value using optimized B
     # CF_value = CF(
     #     B=B,
@@ -2089,17 +2137,22 @@ def selector(
         if isinstance(pool_trends, str):
             pool_trends = [pool_trends]
 
-        model_type_dict["models_pool"] = list(
-            set(
-                bb_models_tested
-                + [
-                    e + t + s
-                    for e in pool_errors
-                    for t in pool_trends
-                    for s in pool_seasonals
-                ]
-            )
-        )
+        # Generate models in the same order as R:
+        # paste0(rep(poolErrors, each=len(poolTrends)*len(poolSeasonals)),
+        #        poolTrends,
+        #        rep(poolSeasonals, each=len(poolTrends)))
+        # This is: for e in errors: for s in seasonals: for t in trends
+        generated_models = [
+            e + t + s
+            for e in pool_errors
+            for s in pool_seasonals  # outer loop (slower varying)
+            for t in pool_trends     # inner loop (faster varying)
+        ]
+
+        # Use dict.fromkeys() to preserve insertion order while removing duplicates
+        # (mimics R's unique(c(...)) behavior)
+        combined_models = bb_models_tested + generated_models
+        model_type_dict["models_pool"] = list(dict.fromkeys(combined_models))
 
     # Step 3: Estimate all models in the pool (skip already tested models)
     results = _estimate_all_models(

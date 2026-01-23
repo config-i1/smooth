@@ -2186,11 +2186,52 @@ def _calculate_initial_parameters_and_bounds(
 
     # --- Populate B, Bl, Bu, names based on old initialiser logic ---
 
+    # Determine model-specific initial values for persistence parameters
+    # R has special initialization for "mixed" models (models with both A and M components)
+    # See R/adam.R lines 1450-1485
+    initial_type = initials_checked.get('initial_type')
+    is_mixed = (ets_model and
+                any(t == "M" for t in [error_type, trend_type, season_type]) and
+                any(t == "A" for t in [error_type, trend_type, season_type] if t != "N"))
+
+    if is_mixed:
+        # M*A models (MAM, MAA, MAN) with optimal initial
+        if error_type == "M" and trend_type == "A":
+            if initial_type not in ["complete", "backcasting"]:
+                alpha_init = 0.2
+                beta_init = 0.01
+                gamma_init = 0.3
+            else:
+                alpha_init = 0.1
+                beta_init = 0.05
+                gamma_init = 0.3
+        # AAM, AMA
+        elif (error_type == "A" and trend_type == "A" and season_type == "M") or \
+             (error_type == "A" and trend_type == "M" and season_type == "A"):
+            alpha_init = 0.01
+            beta_init = 0.005
+            gamma_init = 0.001
+        # MMA
+        elif error_type == "M" and trend_type == "M" and season_type == "A":
+            alpha_init = 0.01
+            beta_init = 0.005
+            gamma_init = 0.01
+        # MMM and other mixed
+        else:
+            alpha_init = 0.1
+            beta_init = 0.05
+            gamma_init = 0.3
+    else:
+        # Non-mixed models (ANN, AAA, MNM, MMM, etc.) - default values
+        alpha_init = 0.1
+        beta_init = 0.05
+        gamma_init = 0.3
+
     # ETS Persistence Parameters
     if ets_model:
         # Level Persistence (alpha)
         if est_level:
-            B[param_idx] = 0.1 # Default initial value
+            B[param_idx] = alpha_init
             if bounds == "usual": Bl[param_idx], Bu[param_idx] = 0, 1
             else: Bl[param_idx], Bu[param_idx] = -5, 5 # Old code's else
             names.append("alpha")
@@ -2198,7 +2239,7 @@ def _calculate_initial_parameters_and_bounds(
 
         # Trend Persistence (beta)
         if est_trend:
-            B[param_idx] = 0.05 # Default initial value
+            B[param_idx] = beta_init
             if bounds == "usual": Bl[param_idx], Bu[param_idx] = 0, 1
             else: Bl[param_idx], Bu[param_idx] = -5, 5 # Old code's else
             names.append("beta")
@@ -2206,7 +2247,7 @@ def _calculate_initial_parameters_and_bounds(
 
         # Seasonal Persistence (gamma)
         if est_seasonal:
-            B[param_idx:param_idx + num_seasonal_persistence_params] = 0.05 # Default initial value (approximation)
+            B[param_idx:param_idx + num_seasonal_persistence_params] = gamma_init
             # Old code had more complex B init for seasonal persistence based on model types
             # For Bl, Bu:
             if bounds == "usual":
