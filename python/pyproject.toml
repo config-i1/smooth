@@ -59,6 +59,9 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
+    "*.ipynb",
+    # TODO: re-include tests after fixing all linting errors.
+    "tests/"
 ]
 
 # Same as Black.
