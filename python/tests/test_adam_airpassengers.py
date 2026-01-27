@@ -571,3 +571,47 @@ class TestADAMMultipleSeasonalPersistence:
         # Should estimate gamma
         B = model.adam_estimated["B"]
         assert len(B) >= 1, "Should estimate at least gamma"
+
+    def test_double_seasonal_estimates_three_params(self):
+        """Test that ETS(M,N,M) with lags=[3,12] estimates alpha, gamma1, gamma2."""
+        model = ADAM(
+            model="MNM",
+            lags=[3, 12],
+            initial="backcasting"
+        )
+        model.fit(AIRPASSENGERS)
+
+        assert model.adam_estimated is not None
+        B = model.adam_estimated["B"]
+        # With backcasting, should estimate exactly 3 persistence params:
+        # alpha, gamma1, gamma2
+        assert len(B) == 3, f"Expected 3 parameters (alpha, gamma1, gamma2), got {len(B)}"
+
+    def test_double_seasonal_ana_estimates_three_params(self):
+        """Test that ETS(A,N,A) with lags=[3,12] estimates alpha, gamma1, gamma2."""
+        model = ADAM(
+            model="ANA",
+            lags=[3, 12],
+            initial="backcasting"
+        )
+        model.fit(AIRPASSENGERS)
+
+        assert model.adam_estimated is not None
+        B = model.adam_estimated["B"]
+        # With backcasting, should estimate exactly 3 persistence params
+        assert len(B) == 3, f"Expected 3 parameters (alpha, gamma1, gamma2), got {len(B)}"
+
+    def test_double_seasonal_partial_gamma(self):
+        """Test double seasonal with only gamma1 provided."""
+        model = ADAM(
+            model="ANA",
+            lags=[3, 12],
+            persistence={"seasonal": [0.4]},
+            initial="backcasting"
+        )
+        model.fit(AIRPASSENGERS)
+
+        assert model.adam_estimated is not None
+        B = model.adam_estimated["B"]
+        # Should estimate alpha and gamma2 (gamma1 is provided)
+        assert len(B) == 2, f"Expected 2 parameters (alpha, gamma2), got {len(B)}"

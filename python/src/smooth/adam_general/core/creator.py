@@ -1702,11 +1702,14 @@ def initialiser(
         ... )
         >>> print(init_result['names'])  # ['alpha', 'beta'] only - no initials with backcasting
     """
+    # Build persistence estimate vector with proper seasonal expansion
+    # Each seasonal component gets its own entry in the vector
     persistence_estimate_vector = [
         persistence_checked['persistence_level_estimate'],
         model_type_dict["model_is_trendy"] and persistence_checked['persistence_trend_estimate'],
-        model_type_dict["model_is_seasonal"] and any(persistence_checked['persistence_seasonal_estimate'])
     ]
+    if model_type_dict["model_is_seasonal"]:
+        persistence_estimate_vector.extend(persistence_checked['persistence_seasonal_estimate'])
     total_params = (
         model_type_dict["ets_model"] * (sum(persistence_estimate_vector) + phi_dict['phi_estimate']) +
         explanatory_checked['xreg_model'] * persistence_checked['persistence_xreg_estimate'] * max(explanatory_checked['xreg_parameters_persistence'] or [0]) +
@@ -3180,8 +3183,9 @@ def filler(B,
             if model_type_dict['model_is_seasonal']:
                 if any(persistence_checked['persistence_seasonal_estimate']):
                     seasonal_indices = i + np.where(persistence_checked['persistence_seasonal_estimate'])[0] + 1
-                    matrices_dict['vec_g'][seasonal_indices] = B[j:j+sum(persistence_checked['persistence_seasonal_estimate'])]
-                    j += sum(persistence_checked['persistence_seasonal_estimate'])
+                    n_seasonal_to_estimate = sum(persistence_checked['persistence_seasonal_estimate'])
+                    matrices_dict['vec_g'][seasonal_indices, 0] = B[j:j+n_seasonal_to_estimate]
+                    j += n_seasonal_to_estimate
                 i = components_dict['components_number_ets'] - 1
         
         # Persistence of xreg
