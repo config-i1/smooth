@@ -629,7 +629,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
             pattern_i = pattern_i[:obs_in_sample]
             # Use only complete seasonal cycles for mean calculation
             obs_in_sample_lags = int(np.floor(obs_in_sample / lags[i]) * lags[i])
-            pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
+            if obs_in_sample_lags > 0:
+                pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
             patterns.append(pattern_i)
     else:
         patterns = None
