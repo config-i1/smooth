@@ -59,7 +59,6 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
-    "tools/cookiecutter_templates",
 ]
 
 # Same as Black.
