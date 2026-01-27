@@ -159,6 +159,59 @@ class TestADAMModelTypes:
         assert (forecast['mean'] > 0).all()
 
 
+class TestADAMModelSelection:
+    """Tests for automatic model selection."""
+
+    def test_model_zzz(self, seasonal_series):
+        """Test automatic model selection with ZZZ."""
+        model = ADAM(model="ZZZ", lags=[12])
+        model.fit(seasonal_series)
+
+        assert model.adam_estimated is not None
+        forecast = model.predict(h=12)
+        assert forecast.shape[0] == 12
+        assert not forecast['mean'].isna().any()
+
+    def test_model_zxz(self, seasonal_series):
+        """Test automatic selection for error and seasonality (no trend) with ZXZ."""
+        model = ADAM(model="ZXZ", lags=[12])
+        model.fit(seasonal_series)
+
+        assert model.adam_estimated is not None
+        forecast = model.predict(h=12)
+        assert forecast.shape[0] == 12
+        assert not forecast['mean'].isna().any()
+
+    def test_model_fff(self, seasonal_series):
+        """Test full model with FFF."""
+        model = ADAM(model="FFF", lags=[12])
+        model.fit(seasonal_series)
+
+        assert model.adam_estimated is not None
+        forecast = model.predict(h=12)
+        assert forecast.shape[0] == 12
+        assert not forecast['mean'].isna().any()
+
+    def test_model_ppp(self, seasonal_series):
+        """Test partial automatic selection with PPP."""
+        model = ADAM(model="PPP", lags=[12])
+        model.fit(seasonal_series)
+
+        assert model.adam_estimated is not None
+        forecast = model.predict(h=12)
+        assert forecast.shape[0] == 12
+        assert not forecast['mean'].isna().any()
+
+    def test_model_zzz_nonseasonal(self, simple_series):
+        """Test ZZZ model selection without seasonality."""
+        model = ADAM(model="ZZZ", lags=[1])
+        model.fit(simple_series)
+
+        assert model.adam_estimated is not None
+        forecast = model.predict(h=5)
+        assert forecast.shape[0] == 5
+
+
 class TestADAMEdgeCases:
     """Edge case tests for ADAM."""
 
