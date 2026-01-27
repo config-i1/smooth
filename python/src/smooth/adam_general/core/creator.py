@@ -590,15 +590,16 @@ def _setup_persistence_vector(
 
         if model_is_seasonal:
             if not all(persistence_checked["persistence_seasonal_estimate"]):
-                vec_g[
-                    j
-                    + np.where(
-                        np.logical_not(
-                            persistence_checked["persistence_seasonal_estimate"]
-                        )
-                    )[0],
-                    0,
-                ] = persistence_checked["persistence_seasonal"]
+                # Get indices where persistence was provided (not estimated)
+                provided_indices = np.where(
+                    np.logical_not(persistence_checked["persistence_seasonal_estimate"])
+                )[0]
+                # Get only the provided values at those indices
+                provided_values = [
+                    persistence_checked["persistence_seasonal"][i]
+                    for i in provided_indices
+                ]
+                vec_g[j + provided_indices, 0] = provided_values
 
     # ARIMA model, persistence
     if arima_checked["arima_model"]:

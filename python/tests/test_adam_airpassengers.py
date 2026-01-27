@@ -478,3 +478,96 @@ class TestADAMAirPassengersModelComparison:
         loss_values = list(losses.values())
         assert len(set(loss_values)) == len(loss_values), \
             f"Expected different losses, got: {losses}"
+
+
+class TestADAMMultipleSeasonalPersistence:
+    """Tests for models with multiple seasonal components and partial persistence."""
+
+    def test_two_seasonal_full_persistence(self):
+        """Test model with two seasonal lags and full persistence provided."""
+        # Model with two seasonal components (quarterly and annual for monthly data)
+        model = ADAM(
+            model="ANA",
+            lags=[3, 12],
+            persistence={"level": 0.3, "seasonal": [0.4, 0.5]}
+        )
+        model.fit(AIRPASSENGERS)
+
+        assert model.adam_estimated is not None
+        # Verify model runs without error with full seasonal specification
+
+    def test_two_seasonal_partial_persistence_first_only(self):
+        """Test model with two seasonal lags, only first gamma provided."""
+        # Only gamma_1 provided, gamma_2 should be estimated
+        model = ADAM(
+            model="ANA",
+            lags=[3, 12],
+            persistence={"level": 0.3, "seasonal": [0.4]}
+        )
+        model.fit(AIRPASSENGERS)
+
+        assert model.adam_estimated is not None
+        # B should contain estimated gamma_2
+        B = model.adam_estimated["B"]
+        assert len(B) >= 1, "Should have at least one estimated parameter (gamma_2)"
+
+    def test_two_seasonal_no_persistence(self):
+        """Test model with two seasonal lags, all persistence estimated."""
+        model = ADAM(model="ANA", lags=[3, 12])
+        model.fit(AIRPASSENGERS)
+
+        assert model.adam_estimated is not None
+        B = model.adam_estimated["B"]
+        # Should estimate alpha + gamma = 2 persistence params (lags combined)
+        assert len(B) >= 2
+
+    def test_partial_seasonal_different_from_full(self):
+        """Test that partial and full seasonal persistence produce different results."""
+        # Full specification
+        model_full = ADAM(
+            model="ANA",
+            lags=[3, 12],
+            persistence={"seasonal": [0.4, 0.5]}
+        )
+        model_full.fit(AIRPASSENGERS)
+        loss_full = model_full.adam_estimated["CF_value"]
+
+        # Partial specification (only first gamma, second estimated)
+        model_partial = ADAM(
+            model="ANA",
+            lags=[3, 12],
+            persistence={"seasonal": [0.4]}
+        )
+        model_partial.fit(AIRPASSENGERS)
+        loss_partial = model_partial.adam_estimated["CF_value"]
+
+        # Losses should differ (partial has one free parameter)
+        assert loss_full != loss_partial, \
+            f"Full loss {loss_full} should differ from partial loss {loss_partial}"
+
+    def test_aaa_full_persistence_all_components(self):
+        """Test AAA with full persistence including trend and seasonal."""
+        model = ADAM(
+            model="AAA",
+            lags=[12],
+            persistence={"level": 0.3, "trend": 0.05, "seasonal": [0.6]}
+        )
+        model.fit(AIRPASSENGERS)
+
+        assert model.adam_estimated is not None
+        # With all persistence fixed, B should not contain persistence params
+        # (only initial states, phi, etc.)
+
+    def test_aaa_partial_persistence_trend_seasonal(self):
+        """Test AAA with trend provided but seasonal estimated."""
+        model = ADAM(
+            model="AAA",
+            lags=[12],
+            persistence={"level": 0.3, "trend": 0.05}
+        )
+        model.fit(AIRPASSENGERS)
+
+        assert model.adam_estimated is not None
+        # Should estimate gamma
+        B = model.adam_estimated["B"]
+        assert len(B) >= 1, "Should estimate at least gamma"
