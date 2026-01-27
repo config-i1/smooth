@@ -288,12 +288,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
     1. **Log Transform** (if multiplicative): Apply log to convert to additive form
     2. **Missing Value Imputation**: Fill NaN values using polynomial + Fourier regression
-    3. **Iterative Smoothing**: For each lag period (sorted ascending):
-
-       - Apply smoother with window = lag period
-       - Extract seasonal pattern as residual from next smoother level
-       - Remove seasonal mean to center patterns
-
+    3. **Iterative Smoothing**: For each lag period (sorted ascending), apply smoother
+       with window = lag period, extract seasonal pattern as residual from next
+       smoother level, and remove seasonal mean to center patterns
     4. **Trend Extraction**: Final smoothed series is the trend
     5. **Initial States**: Compute level and slope from trend for model initialization
 
@@ -350,25 +347,16 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         - **'states'** (numpy.ndarray): Matrix of extracted states, shape (T, n_states).
           Columns are [Level, Trend, Seasonal_1, Seasonal_2, ..., Seasonal_n].
           These states can be used as initial values for ADAM model estimation.
-
-        - **'initial'** (dict): Dictionary with initial values, containing:
-          - **'nonseasonal'** (dict): Dictionary with 'level' and 'trend' keys.
-            Level is the initial value at t=0, trend is the slope per period.
-            Computed from the first non-NaN trend values and adjusted back by lags_max.
-          - **'seasonal'** (list of numpy.ndarray): List of seasonal initial values.
-            Each seasonal[i] contains the first lags[i] values from pattern i.
-
+        - **'initial'** (dict): Dictionary with initial values. Contains
+          'nonseasonal' (dict with 'level' and 'trend' keys) and 'seasonal'
+          (list of numpy.ndarray with initial seasonal values for each lag).
         - **'trend'** (numpy.ndarray): Extracted trend component, shape (T,).
           Long-term movement after removing seasonal patterns.
-
         - **'seasonal'** (list of numpy.ndarray): Seasonal patterns, one array per lag.
           Each seasonal[i] has shape (T,) and is centered (mean = 0).
-
-        - **'component'** (list): Component type descriptions (for compatibility)
-
-        - **'lags'** (numpy.ndarray): Sorted unique lag periods used
-
-        - **'type'** (str): Decomposition type ('additive' or 'multiplicative')
+        - **'component'** (list): Component type descriptions (for compatibility).
+        - **'lags'** (numpy.ndarray): Sorted unique lag periods used.
+        - **'type'** (str): Decomposition type ('additive' or 'multiplicative').
 
     Raises
     ------

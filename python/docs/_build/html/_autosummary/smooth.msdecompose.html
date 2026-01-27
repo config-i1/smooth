@@ -75,6 +75,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../msdecompose.html">msdecompose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../lowess.html">lowess</a></li>
 </ul>
 
         </div>
@@ -129,13 +130,9 @@ multiple seasonal periods simultaneously.</p>
 <ol class="arabic simple">
 <li><p><strong>Log Transform</strong> (if multiplicative): Apply log to convert to additive form</p></li>
 <li><p><strong>Missing Value Imputation</strong>: Fill NaN values using polynomial + Fourier regression</p></li>
-<li><p><strong>Iterative Smoothing</strong>: For each lag period (sorted ascending):</p>
-<ul class="simple">
-<li><p>Apply smoother with window = lag period</p></li>
-<li><p>Extract seasonal pattern as residual from next smoother level</p></li>
-<li><p>Remove seasonal mean to center patterns</p></li>
-</ul>
-</li>
+<li><p><strong>Iterative Smoothing</strong>: For each lag period (sorted ascending), apply smoother
+with window = lag period, extract seasonal pattern as residual from next
+smoother level, and remove seasonal mean to center patterns</p></li>
 <li><p><strong>Trend Extraction</strong>: Final smoothed series is the trend</p></li>
 <li><p><strong>Initial States</strong>: Compute level and slope from trend for model initialization</p></li>
 </ol>
@@ -183,28 +180,20 @@ requires y &gt; 0)</p></li>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><p>Dictionary containing decomposition results:</p>
-<ul>
+<ul class="simple">
 <li><p><strong>’states’</strong> (numpy.ndarray): Matrix of extracted states, shape (T, n_states).
 Columns are [Level, Trend, Seasonal_1, Seasonal_2, …, Seasonal_n].
 These states can be used as initial values for ADAM model estimation.</p></li>
-<li><p><strong>’initial’</strong> (dict): Dictionary with initial values, containing:
-- <strong>‘nonseasonal’</strong> (dict): Dictionary with ‘level’ and ‘trend’ keys.</p>
-<blockquote>
-<div><p>Level is the initial value at t=0, trend is the slope per period.
-Computed from the first non-NaN trend values and adjusted back by lags_max.</p>
-</div></blockquote>
-<ul class="simple">
-<li><p><strong>’seasonal’</strong> (list of numpy.ndarray): List of seasonal initial values.
-Each seasonal[i] contains the first lags[i] values from pattern i.</p></li>
-</ul>
-</li>
+<li><p><strong>’initial’</strong> (dict): Dictionary with initial values. Contains
+‘nonseasonal’ (dict with ‘level’ and ‘trend’ keys) and ‘seasonal’
+(list of numpy.ndarray with initial seasonal values for each lag).</p></li>
 <li><p><strong>’trend’</strong> (numpy.ndarray): Extracted trend component, shape (T,).
 Long-term movement after removing seasonal patterns.</p></li>
 <li><p><strong>’seasonal’</strong> (list of numpy.ndarray): Seasonal patterns, one array per lag.
 Each seasonal[i] has shape (T,) and is centered (mean = 0).</p></li>
-<li><p><strong>’component’</strong> (list): Component type descriptions (for compatibility)</p></li>
-<li><p><strong>’lags’</strong> (numpy.ndarray): Sorted unique lag periods used</p></li>
-<li><p><strong>’type’</strong> (str): Decomposition type (‘additive’ or ‘multiplicative’)</p></li>
+<li><p><strong>’component’</strong> (list): Component type descriptions (for compatibility).</p></li>
+<li><p><strong>’lags’</strong> (numpy.ndarray): Sorted unique lag periods used.</p></li>
+<li><p><strong>’type’</strong> (str): Decomposition type (‘additive’ or ‘multiplicative’).</p></li>
 </ul>
 </p>
 </dd>
