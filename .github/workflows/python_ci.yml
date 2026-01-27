@@ -1,25 +1,10 @@
 name: Python Tests
 
 on:
-  push:
-    branches:
-      - main
-      - master
-      - Python
-    paths:
-      - 'python/**'
-      - 'src/python/**'
-      - 'src/headers/**'
-      - '.github/workflows/python_ci.yml'
   pull_request:
-    branches:
-      - main
-      - master
-      - Python
-    paths:
-      - 'python/**'
-      - 'src/python/**'
-      - 'src/headers/**'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1'
 
 jobs:
   lint:
