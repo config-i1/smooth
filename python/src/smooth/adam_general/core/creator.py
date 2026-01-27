@@ -1,12 +1,16 @@
-import numpy as np
-from typing import List, Dict, Union, Any
-from scipy.optimize import minimize
-
-from smooth.adam_general.core.utils.utils import msdecompose, calculate_acf, calculate_pacf, measurement_inverter
-from smooth.adam_general.core.utils.polynomials import adam_polynomialiser
-from smooth.adam_general._adamCore import adamCore
-
 import warnings
+from typing import Any, Dict, List, Union
+
+import numpy as np
+
+from smooth.adam_general._adamCore import adamCore
+from smooth.adam_general.core.utils.polynomials import adam_polynomialiser
+from smooth.adam_general.core.utils.utils import (
+    calculate_acf,
+    calculate_pacf,
+    msdecompose,
+)
+
 # Suppress divide by zero warnings
 warnings.filterwarnings('ignore', category=RuntimeWarning, message='divide by zero encountered')
 
@@ -29,6 +33,7 @@ def creator(
     # Components info
     components_dict,
     explanatory_checked=None,
+    smoother="lowess",
 ):
     """
     Create state-space matrices for ADAM model representation.
@@ -173,6 +178,13 @@ def creator(
         - 'xreg_number': Number of regressors
         - 'mat_xt': Regressor data matrix (T × p)
 
+    smoother : str, default="lowess"
+        Smoother type for time series decomposition used in initial state estimation.
+
+        - "lowess": Uses LOWESS for both trend and seasonal extraction
+        - "ma": Uses moving average for both
+        - "global": Uses lowess for trend and "ma" for seasonality
+
     Returns
     -------
     dict
@@ -282,6 +294,7 @@ def creator(
         phi_dict,
         profiles_dict,
     )
+    model_params["smoother"] = smoother
 
     # Setup matrices
     matrices = _setup_matrices(
@@ -319,8 +332,6 @@ def creator(
         explanatory_checked,
         constants_checked,
     )
-
-
 
     # Return created matrices
     return {
@@ -874,10 +885,12 @@ def _initialize_ets_seasonal_states_with_decomp(
     ot_logical = model_params["ot_logical"]
 
     # Run both additive and multiplicative decompositions (matching R lines 892-898)
+    smoother = model_params["smoother"]
     y_decomposition_additive = msdecompose(
         y_in_sample.ravel(),
         [lag for lag in lags if lag != 1],
         type="additive",
+        smoother=smoother,
     )
 
     if any(x == "M" for x in [e_type, t_type, s_type]):
@@ -885,6 +898,7 @@ def _initialize_ets_seasonal_states_with_decomp(
             y_in_sample.ravel(),
             [lag for lag in lags if lag != 1],
             type="multiplicative",
+            smoother=smoother,
         )
     else:
         y_decomposition_multiplicative = None
@@ -898,17 +912,6 @@ def _initialize_ets_seasonal_states_with_decomp(
         y_decomposition_multiplicative if decomposition_type == "multiplicative"
         else y_decomposition_additive
     )
-
-    # Debug output for comparing with R
-    import os
-    if os.environ.get("DEBUG_PROCESS_INIT"):
-        print(f"[DEBUG] msdecompose type: {decomposition_type}")
-        print(f"[DEBUG] additive initial: {y_decomposition_additive['initial']}")
-        if y_decomposition_multiplicative:
-            print(f"[DEBUG] multiplicative initial: {y_decomposition_multiplicative['initial']}")
-        if y_decomposition['seasonal']:
-            for i, s in enumerate(y_decomposition['seasonal']):
-                print(f"[DEBUG] msdecompose seasonal[{i}]: {s[:min(12, len(s))]}")
 
     j = 0
 
@@ -1014,18 +1017,6 @@ def _initialize_ets_seasonal_states_with_decomp(
     # Failsafe in case negatives were produced
     if e_type == "M" and mat_vt[0, 0] <= 0:
         mat_vt[0, 0:lags_model_max] = y_in_sample[0]
-
-    # Debug output for mat_vt after initialization
-    import os
-    if os.environ.get("DEBUG_PROCESS_INIT"):
-        print(f"[DEBUG] mat_vt level (row 0): {mat_vt[0, :lags_model_max]}")
-        if model_is_trendy:
-            print(f"[DEBUG] mat_vt trend (row 1): {mat_vt[1, :lags_model_max]}")
-        if components_number_ets_seasonal > 0:
-            start_row = 2 if model_is_trendy else 1
-            for i in range(components_number_ets_seasonal):
-                row = start_row + i
-                print(f"[DEBUG] mat_vt seasonal[{i}] (row {row}): {mat_vt[row, :min(12, lags_model[row])]}")
 
     return mat_vt
 
@@ -1158,10 +1149,12 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
 
     # This decomposition does not produce seasonal component
     # Run both additive and multiplicative decompositions (matching R lines 1021-1028)
+    smoother = model_params["smoother"]
     y_decomposition_additive = msdecompose(
         y_in_sample.ravel(),
         lags=[1],
         type="additive",
+        smoother=smoother,
     )
 
     if any(x == "M" for x in [e_type, t_type]):
@@ -1169,21 +1162,10 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
             y_in_sample.ravel(),
             lags=[1],
             type="multiplicative",
+            smoother=smoother,
         )
     else:
         y_decomposition_multiplicative = None
-
-    # DEBUG: Print msdecompose results for non-seasonal models
-    import os
-    if os.environ.get('DEBUG_INIT_STATES'):
-        print(f"[DEBUG INIT] Non-seasonal msdecompose results:")
-        print(f"  y_in_sample[0:5]: {y_in_sample.ravel()[0:5]}")
-        print(f"  additive initial: {y_decomposition_additive['initial']}")
-        if y_decomposition_multiplicative:
-            print(f"  multiplicative initial: {y_decomposition_multiplicative['initial']}")
-        print(f"  model_is_trendy: {model_is_trendy}")
-        print(f"  t_type: {t_type}")
-        print(f"  lags_model_max: {lags_model_max}")
 
     # level (matching R lines 1030-1044)
     if initials_checked["initial_level_estimate"]:
@@ -1212,13 +1194,6 @@ def _initialize_ets_nonseasonal_states(mat_vt, model_params, initials_checked):
     # Failsafe in case negatives were produced
     if e_type == "M" and mat_vt[0, 0] <= 0:
         mat_vt[0, 0:lags_model_max] = y_in_sample[0]
-
-    # DEBUG: Print final mat_vt values
-    if os.environ.get('DEBUG_INIT_STATES'):
-        print(f"[DEBUG INIT] Final mat_vt initial states:")
-        print(f"  mat_vt[0, 0] (level): {mat_vt[0, 0]}")
-        if model_is_trendy:
-            print(f"  mat_vt[1, 0] (trend): {mat_vt[1, 0]}")
 
     return mat_vt
 
@@ -1260,6 +1235,7 @@ def _initialize_arima_states(
                 y_in_sample,
                 [lag for lag in lags if lag != 1],
                 type="additive" if e_type == "A" else "multiplicative",
+                smoother=model_params["smoother"],
             )["seasonal"][-1][0]
         else:
             y_decomposition = (
@@ -1776,22 +1752,15 @@ def initialiser(
                 elif model_type_dict["error_type"] == "M" and model_type_dict["trend_type"] == "M":
                     B[j:j+sum(persistence_estimate_vector)] = [0.1, 0.05] + [0.3] * components_dict["components_number_ets_seasonal"]
                 else:
-                    initial_values = [0.1]
-                    if model_type_dict["model_is_trendy"]:
-                        initial_values.append(0.05)
-                    if model_type_dict["model_is_seasonal"]:
-                        initial_values.extend([0.3] * components_dict["components_number_ets_seasonal"])
-                    
+                    # Match R: c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)]
+                    # Always build full vector, then filter - this handles non-trendy seasonal models correctly
+                    initial_values = [0.1, 0.05] + [0.3] * components_dict["components_number_ets_seasonal"]
                     B[j:j+sum(persistence_estimate_vector)] = [val for val, estimate in zip(initial_values, persistence_estimate_vector) if estimate]
-            
+
             else:
-                
-                initial_values = [0.1]
-                if model_type_dict["model_is_trendy"]:
-                    initial_values.append(0.05)
-                if model_type_dict["model_is_seasonal"]:
-                    initial_values.extend([0.3] * components_dict["components_number_ets_seasonal"])
-                
+                # Match R: c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)]
+                # Always build full vector, then filter - this handles non-trendy seasonal models correctly
+                initial_values = [0.1, 0.05] + [0.3] * components_dict["components_number_ets_seasonal"]
                 B[j:j+sum(persistence_estimate_vector)] = [val for val, estimate in zip(initial_values, persistence_estimate_vector) if estimate]
 
             if bounds == "usual":
@@ -1832,23 +1801,31 @@ def initialiser(
 
     if arima_checked['arima_model']:
         if any([arima_checked['ar_estimate'], arima_checked['ma_estimate']]):
-            acf_values = [-0.1] * sum(arima_checked['ma_orders'] * lags_dict["lags"])
-            pacf_values = [0.1] * sum(arima_checked['ar_orders'] * lags_dict["lags"])
-            
-            if not (model_type_dict["ets_model"] or all(arima_checked['i_orders'] == 0)):
+            # Use numpy for element-wise multiplication of orders and lags
+            ma_orders_arr = np.array(arima_checked['ma_orders'])
+            ar_orders_arr = np.array(arima_checked['ar_orders'])
+            i_orders_arr = np.array(arima_checked['i_orders'])
+            lags_arr = np.array(lags_dict["lags"])
+
+            acf_values = [-0.1] * int(np.sum(ma_orders_arr * lags_arr))
+            pacf_values = [0.1] * int(np.sum(ar_orders_arr * lags_arr))
+
+            if not (model_type_dict["ets_model"] or np.all(i_orders_arr == 0)):
                 y_differenced = observations_dict['y_in_sample'].copy()
                 # Implement differencing if needed
-                if any(arima_checked['i_orders'] > 0):
+                if np.any(i_orders_arr > 0):
                     for i, order in enumerate(arima_checked['i_orders']):
                         if order > 0:
                             y_differenced = np.diff(y_differenced, n=order, axis=0)
-                
+
                 # ACF/PACF calculation for non-seasonal models
-                if all(np.array(lags_dict["lags"]) <= 1):
+                if np.all(lags_arr <= 1):
+                    ma_total = int(np.sum(ma_orders_arr * lags_arr))
+                    ar_total = int(np.sum(ar_orders_arr * lags_arr))
                     if arima_checked['ma_required'] and arima_checked['ma_estimate']:
-                        acf_values[:min(sum(arima_checked['ma_orders'] * lags_dict["lags"]), len(y_differenced) - 1)] = calculate_acf(y_differenced, nlags=max(1, sum(arima_checked['ma_orders'] * lags_dict["lags"])))[1:]
+                        acf_values[:min(ma_total, len(y_differenced) - 1)] = calculate_acf(y_differenced, nlags=max(1, ma_total))[1:]
                     if arima_checked['ar_required'] and arima_checked['ar_estimate']:
-                        pacf_values[:min(sum(arima_checked['ar_orders'] * lags_dict["lags"]), len(y_differenced) - 1)] = calculate_pacf(y_differenced, nlags=max(1, sum(arima_checked['ar_orders'] * lags_dict["lags"])))
+                        pacf_values[:min(ar_total, len(y_differenced) - 1)] = calculate_pacf(y_differenced, nlags=max(1, ar_total))
             
             for i, lag in enumerate(lags_dict["lags"]):
                 if arima_checked['ar_required'] and arima_checked['ar_estimate'] and arima_checked['ar_orders'][i] > 0:
@@ -1882,7 +1859,7 @@ def initialiser(
         if model_type_dict["model_is_trendy"] and initials_checked['initial_trend_estimate']:
             B[j] = adam_created['mat_vt'][1, 0]
             Bl[j] = -np.inf if model_type_dict["trend_type"] == "A" else 0
-            Bu[j] = np.inf
+            Bu[j] = np.inf if model_type_dict["trend_type"] == "A" else 2
             names.append("trend")
             j += 1
 
@@ -2207,11 +2184,52 @@ def _calculate_initial_parameters_and_bounds(
 
     # --- Populate B, Bl, Bu, names based on old initialiser logic ---
 
+    # Determine model-specific initial values for persistence parameters
+    # R has special initialization for "mixed" models (models with both A and M components)
+    # See R/adam.R lines 1450-1485
+    initial_type = initials_checked.get('initial_type')
+    is_mixed = (ets_model and
+                any(t == "M" for t in [error_type, trend_type, season_type]) and
+                any(t == "A" for t in [error_type, trend_type, season_type] if t != "N"))
+
+    if is_mixed:
+        # M*A models (MAM, MAA, MAN) with optimal initial
+        if error_type == "M" and trend_type == "A":
+            if initial_type not in ["complete", "backcasting"]:
+                alpha_init = 0.2
+                beta_init = 0.01
+                gamma_init = 0.3
+            else:
+                alpha_init = 0.1
+                beta_init = 0.05
+                gamma_init = 0.3
+        # AAM, AMA
+        elif (error_type == "A" and trend_type == "A" and season_type == "M") or \
+             (error_type == "A" and trend_type == "M" and season_type == "A"):
+            alpha_init = 0.01
+            beta_init = 0.005
+            gamma_init = 0.001
+        # MMA
+        elif error_type == "M" and trend_type == "M" and season_type == "A":
+            alpha_init = 0.01
+            beta_init = 0.005
+            gamma_init = 0.01
+        # MMM and other mixed
+        else:
+            alpha_init = 0.1
+            beta_init = 0.05
+            gamma_init = 0.3
+    else:
+        # Non-mixed models (ANN, AAA, MNM, MMM, etc.) - default values
+        alpha_init = 0.1
+        beta_init = 0.05
+        gamma_init = 0.3
+
     # ETS Persistence Parameters
     if ets_model:
         # Level Persistence (alpha)
         if est_level:
-            B[param_idx] = 0.1 # Default initial value
+            B[param_idx] = alpha_init
             if bounds == "usual": Bl[param_idx], Bu[param_idx] = 0, 1
             else: Bl[param_idx], Bu[param_idx] = -5, 5 # Old code's else
             names.append("alpha")
@@ -2219,7 +2237,7 @@ def _calculate_initial_parameters_and_bounds(
 
         # Trend Persistence (beta)
         if est_trend:
-            B[param_idx] = 0.05 # Default initial value
+            B[param_idx] = beta_init
             if bounds == "usual": Bl[param_idx], Bu[param_idx] = 0, 1
             else: Bl[param_idx], Bu[param_idx] = -5, 5 # Old code's else
             names.append("beta")
@@ -2227,7 +2245,7 @@ def _calculate_initial_parameters_and_bounds(
 
         # Seasonal Persistence (gamma)
         if est_seasonal:
-            B[param_idx:param_idx + num_seasonal_persistence_params] = 0.05 # Default initial value (approximation)
+            B[param_idx:param_idx + num_seasonal_persistence_params] = gamma_init
             # Old code had more complex B init for seasonal persistence based on model types
             # For Bl, Bu:
             if bounds == "usual":
@@ -2849,6 +2867,7 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
 
     # Calculate model lags for each component
     lags_model = []
+    lags_model_seasonal = []
 
     # ETS components
     if model_type_dict["ets_model"]:
@@ -2861,11 +2880,10 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
 
         # Seasonal components have lags corresponding to seasonal periods
         if model_type_dict["model_is_seasonal"]:
-            lags_model_seasonal = []
-            
             for lag in lags:
                 if lag > 1:
                     lags_model.append(lag)
+                    lags_model_seasonal.append(lag)
 
     # ARIMA components
     lags_model_arima = []
@@ -2888,6 +2906,7 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
     lags_dict_updated["lags_model_arima"] = lags_model_arima
     lags_dict_updated["lags_model_all"] = lags_model_all
     lags_dict_updated["lags_model_max"] = lags_model_max
+    lags_dict_updated["lags_model_seasonal"] = lags_model_seasonal
     return lags_dict_updated
 
 
@@ -3173,6 +3192,7 @@ def filler(B,
     
     # Damping parameter
     if model_type_dict['ets_model'] and phi_dict['phi_estimate']:
+        phi_dict['phi'] = B[j]  # Update phi_dict with estimated value
         j += 1
         matrices_dict['mat_wt'][:, 1] = B[j-1]
         matrices_dict['mat_f'][0:2, 1] = B[j-1]

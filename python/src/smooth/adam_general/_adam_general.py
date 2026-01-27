@@ -8,6 +8,7 @@ This module provides backward-compatible wrappers that:
 """
 
 import numpy as np
+
 from smooth.adam_general import _adamCore
 
 

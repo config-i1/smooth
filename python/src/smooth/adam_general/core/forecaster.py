@@ -1,15 +1,65 @@
+import warnings
+
 import numpy as np
 import pandas as pd
-import warnings
 from scipy import stats
 from scipy.special import gamma
 
 # Note: adam_cpp instance is passed to functions that need C++ integration
 # The adamCore object is created in architector() and passed through the pipeline
 from smooth.adam_general.core.creator import adam_profile_creator, filler
+from smooth.adam_general.core.utils.distributions import (
+    generate_errors,
+    normalize_errors,
+)
 from smooth.adam_general.core.utils.utils import scaler
-from smooth.adam_general.core.utils.var_covar import sigma, covar_anal, var_anal, matrix_power_wrap
-from smooth.adam_general.core.utils.distributions import generate_errors, normalize_errors
+from smooth.adam_general.core.utils.var_covar import (
+    covar_anal,
+    sigma,
+    var_anal,
+)
+
+
+def _safe_create_index(start, periods, freq):
+    """
+    Safely create a pandas index, handling both datetime and numeric cases.
+
+    Parameters
+    ----------
+    start : any
+        Start of the index (can be timestamp, int, etc.)
+    periods : int
+        Number of periods
+    freq : any
+        Frequency (can be pandas freq string or numeric)
+
+    Returns
+    -------
+    pandas.Index
+        Either DatetimeIndex or RangeIndex depending on input types
+    """
+    # If start is numeric, use RangeIndex
+    if isinstance(start, (int, float, np.integer, np.floating)):
+        return pd.RangeIndex(start=int(start), stop=int(start) + periods)
+
+    # If freq is numeric (not a valid pandas frequency string), use RangeIndex
+    if isinstance(freq, (int, float, np.integer, np.floating)):
+        # Try to infer start as numeric
+        if hasattr(start, '__len__') or start is None:
+            return pd.RangeIndex(start=0, stop=periods)
+        try:
+            start_int = int(start)
+            return pd.RangeIndex(start=start_int, stop=start_int + periods)
+        except (TypeError, ValueError):
+            pass
+
+    # Try to create DatetimeIndex
+    try:
+        return pd.date_range(start=start, periods=periods, freq=freq)
+    except (TypeError, ValueError):
+        # Fallback to RangeIndex
+        return pd.RangeIndex(start=0, stop=periods)
+
 
 def _prepare_forecast_index(observations_dict, general_dict):
     """
@@ -125,14 +175,13 @@ def _initialize_forecast_series(observations_dict, general_dict):
         return None
 
     if not isinstance(observations_dict.get("y_in_sample"), pd.Series):
-        forecast_series = pd.Series(
-            np.full(general_dict["h"], np.nan),
-            index=pd.date_range(
-                start=observations_dict["y_forecast_start"],
-                periods=general_dict["h"],
-                freq=observations_dict["frequency"],
-            ),
+        # Use safe index creation for non-Series input
+        index = _safe_create_index(
+            start=observations_dict["y_forecast_start"],
+            periods=general_dict["h"],
+            freq=observations_dict["frequency"],
         )
+        forecast_series = pd.Series(np.full(general_dict["h"], np.nan), index=index)
     else:
         forecast_series = pd.Series(
             np.full(general_dict["h"], np.nan),
@@ -1127,17 +1176,23 @@ def _initialize_fitted_series(observations_dict):
         Tuple of (y_fitted, errors) pandas Series
     """
     if not isinstance(observations_dict["y_in_sample"], pd.Series):
-            y_fitted = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan), 
-                            index=pd.date_range(start=observations_dict["y_start"], 
-                                            periods=observations_dict["obs_in_sample"], 
-                                            freq=observations_dict["frequency"]))
-            errors = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan), 
-                            index=pd.date_range(start=observations_dict["y_start"], 
-                                            periods=observations_dict["obs_in_sample"], 
-                                            freq=observations_dict["frequency"]))
+        # Use safe index creation for non-Series input
+        index = _safe_create_index(
+            start=observations_dict["y_start"],
+            periods=observations_dict["obs_in_sample"],
+            freq=observations_dict["frequency"],
+        )
+        y_fitted = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan), index=index)
+        errors = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan), index=index)
     else:
-            y_fitted = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan), index=observations_dict["y_in_sample_index"])
-            errors = pd.Series(np.full(observations_dict["obs_in_sample"], np.nan), index=observations_dict["y_in_sample_index"])
+        y_fitted = pd.Series(
+            np.full(observations_dict["obs_in_sample"], np.nan),
+            index=observations_dict["y_in_sample_index"],
+        )
+        errors = pd.Series(
+            np.full(observations_dict["obs_in_sample"], np.nan),
+            index=observations_dict["y_in_sample_index"],
+        )
 
     return y_fitted, errors
 
@@ -2351,8 +2406,19 @@ def generate_simulation_interval(
         arr_vt[:, :lags_model_max, i] = mat_vt[:, :lags_model_max]
 
     # 2. Calculate degrees of freedom for de-biasing
-    # params_info is a list of lists, params_info[0][-1] is the number of parameters
-    n_param = params_info[0][-1] if params_info and params_info[0] else 0
+    # For variance calculation, use n_param_all - n_param_scale
+    # Check if we have the new n_param table structure
+    n_param = None
+    if "n_param" in general_dict and general_dict["n_param"] is not None:
+        n_param = general_dict["n_param"].n_param_for_variance
+    elif params_info and params_info[0]:
+        # Legacy: params_info[0][-1] is n_param_all, params_info[0][3] is n_param_scale
+        n_param_all = params_info[0][-1] if len(params_info[0]) > 4 else params_info[0][0]
+        n_param_scale = params_info[0][3] if len(params_info[0]) > 3 else 0
+        n_param = n_param_all - n_param_scale
+    else:
+        n_param = 0
+
     df = observations_dict["obs_in_sample"] - n_param
     if df <= 0:
         df = observations_dict["obs_in_sample"]

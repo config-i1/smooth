@@ -1,0 +1,395 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smooth.ADAM &mdash; smooth  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="smooth.ADAM.fit" href="smooth.ADAM.fit.html" />
+    <link rel="prev" title="smooth documentation" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            smooth
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">smooth.ADAM</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#smooth.ADAM"><code class="docutils literal notranslate"><span class="pre">ADAM</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ADAM.fit.html">smooth.ADAM.fit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ADAM.predict.html">smooth.ADAM.predict</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ADAM.predict_intervals.html">smooth.ADAM.predict_intervals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ADAM.select_best_model.html">smooth.ADAM.select_best_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ADAM.summary.html">smooth.ADAM.summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.html">smooth.ES</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.fit.html">smooth.ADAM.fit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.predict.html">smooth.ADAM.predict</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.predict_intervals.html">smooth.ADAM.predict_intervals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.select_best_model.html">smooth.ADAM.select_best_model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.summary.html">smooth.ADAM.summary</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.fit.html">smooth.ES.fit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.predict.html">smooth.ES.predict</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.predict_intervals.html">smooth.ES.predict_intervals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.select_best_model.html">smooth.ES.select_best_model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.summary.html">smooth.ES.summary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../msdecompose.html">msdecompose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../lowess.html">lowess</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">smooth</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">smooth.ADAM</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/smooth.ADAM.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="smooth-adam">
+<h1>smooth.ADAM<a class="headerlink" href="#smooth-adam" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="smooth.ADAM">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">smooth.</span></span><span class="sig-name descname"><span class="pre">ADAM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ZXZ'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ar_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ma_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arima_select</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regressors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'use'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'likelihood'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_horizon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outliers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ignore'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outliers_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'AICc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'usual'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occurrence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">persistence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'backcasting'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_do</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'estimate'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">models_pool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profiles_recent_provided</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profiles_recent_table</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlopt_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlopt_upper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlopt_lower</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlopt_kargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_lambda</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gnorm_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smoother</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lowess'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#smooth.ADAM" title="Link to this definition"></a></dt>
+<dd><p>ADAM: Augmented Dynamic Adaptive Model for Time Series Forecasting.</p>
+<p>ADAM is an advanced state-space modeling framework that combines <strong>ETS</strong> (Error, Trend,
+Seasonal) and <strong>ARIMA</strong> components into a unified Single Source of Error (SSOE) model.
+It provides a flexible, data-driven approach to time series forecasting with automatic
+model selection, parameter estimation, and prediction intervals.</p>
+<p><strong>Mathematical Form</strong>:</p>
+<p>The ADAM model is specified in state-space form as:</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}y_t &amp;= o_t(w(v_{t-l}) + h(x_t, a_{t-1}) + r(v_{t-l})\epsilon_t)\\v_t &amp;= f(v_{t-l}, a_{t-1}) + g(v_{t-l}, a_{t-1}, x_t)\epsilon_t\end{aligned}\end{align} \]</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(y_t\)</span>: Observed value at time t</p></li>
+<li><p><span class="math notranslate nohighlight">\(o_t\)</span>: Occurrence indicator (Bernoulli variable for intermittent data, 1 otherwise)</p></li>
+<li><p><span class="math notranslate nohighlight">\(v_t\)</span>: State vector (level, trend, seasonal, ARIMA components)</p></li>
+<li><p><span class="math notranslate nohighlight">\(l\)</span>: Vector of lags</p></li>
+<li><p><span class="math notranslate nohighlight">\(x_t\)</span>: Vector of exogenous variables</p></li>
+<li><p><span class="math notranslate nohighlight">\(a_t\)</span>: Parameters for exogenous variables</p></li>
+<li><p><span class="math notranslate nohighlight">\(w(\cdot)\)</span>: Measurement function</p></li>
+<li><p><span class="math notranslate nohighlight">\(r(\cdot)\)</span>: Error function (additive or multiplicative)</p></li>
+<li><p><span class="math notranslate nohighlight">\(f(\cdot)\)</span>: Transition function (state evolution)</p></li>
+<li><p><span class="math notranslate nohighlight">\(g(\cdot)\)</span>: Persistence function (smoothing parameters)</p></li>
+<li><p><span class="math notranslate nohighlight">\(\epsilon_t\)</span>: Error term (various distributions supported)</p></li>
+</ul>
+<p><strong>Key Features</strong>:</p>
+<ol class="arabic simple">
+<li><p><strong>Unified Framework</strong>: Seamlessly combines ETS and ARIMA in a single model</p></li>
+<li><p><strong>Multiple Seasonality</strong>: Supports multiple seasonal periods (e.g., daily + weekly)</p></li>
+<li><p><strong>Automatic Selection</strong>: Branch &amp; Bound algorithm for efficient model selection</p></li>
+<li><p><strong>Flexible Distributions</strong>: Normal, Laplace, Gamma, Log-Normal, and more</p></li>
+<li><p><strong>Intermittent Demand</strong>: Built-in occurrence models for sparse data</p></li>
+<li><p><strong>External Regressors</strong>: Include covariates with adaptive or fixed coefficients</p></li>
+<li><p><strong>Scikit-learn Compatible</strong>: Familiar <cite>.fit()</cite> and <cite>.predict()</cite> API</p></li>
+</ol>
+<p><strong>Model Specification</strong>:</p>
+<p>Models are specified using a string notation:</p>
+<ul>
+<li><p><strong>ETS Models</strong>: “ETS” where E=Error, T=Trend, S=Seasonal</p>
+<ul class="simple">
+<li><p>E (Error): “A” (Additive), “M” (Multiplicative)</p></li>
+<li><p>T (Trend): “N” (None), “A” (Additive), “Ad” (Additive Damped), “M” (Multiplicative), “Md” (Multiplicative Damped)</p></li>
+<li><p>S (Seasonal): “N” (None), “A” (Additive), “M” (Multiplicative)</p></li>
+</ul>
+<p>Examples: “ANN” (Simple Exponential Smoothing), “AAN” (Holt’s Linear), “AAA” (Holt-Winters Additive)</p>
+</li>
+<li><p><strong>Automatic Selection</strong>:</p>
+<ul class="simple">
+<li><p>“ZZZ”: Select best model using Branch &amp; Bound</p></li>
+<li><p>“XXX”: Select only additive components</p></li>
+<li><p>“YYY”: Select only multiplicative components</p></li>
+<li><p>“ZXZ”: Auto-select error and seasonal, additive trend only (<strong>default</strong>, safer)</p></li>
+<li><p>“FFF”: Full search across all 30 ETS model types</p></li>
+</ul>
+</li>
+<li><p><strong>ARIMA Models</strong>: Specified via <cite>ar_order</cite>, <cite>i_order</cite>, <cite>ma_order</cite> parameters</p>
+<ul class="simple">
+<li><p>Supports seasonal ARIMA: SARIMA(p,d,q)(P,D,Q)m</p></li>
+<li><p>Multiple seasonality: e.g., hourly data with daily (24) and weekly (168) patterns</p></li>
+</ul>
+</li>
+</ul>
+<p><strong>Supported Error Distributions</strong>:</p>
+<ul class="simple">
+<li><p><strong>Normal</strong> (<code class="docutils literal notranslate"><span class="pre">distribution=&quot;dnorm&quot;</span></code>): Default for additive errors</p></li>
+<li><p><strong>Gamma</strong> (<code class="docutils literal notranslate"><span class="pre">distribution=&quot;dgamma&quot;</span></code>): Default for multiplicative errors</p></li>
+<li><p><strong>Laplace</strong> (<code class="docutils literal notranslate"><span class="pre">distribution=&quot;dlaplace&quot;</span></code>): For heavy-tailed errors (MAE loss)</p></li>
+<li><p><strong>Log-Normal</strong> (<code class="docutils literal notranslate"><span class="pre">distribution=&quot;dlnorm&quot;</span></code>): For positive-only data</p></li>
+<li><p><strong>Inverse Gaussian</strong> (<code class="docutils literal notranslate"><span class="pre">distribution=&quot;dinvgauss&quot;</span></code>): For skewed positive data</p></li>
+<li><p><strong>S distribution</strong> (<code class="docutils literal notranslate"><span class="pre">distribution=&quot;ds&quot;</span></code>): For extremely heavy-tailed data</p></li>
+<li><p><strong>Generalized Normal</strong> (<code class="docutils literal notranslate"><span class="pre">distribution=&quot;dgnorm&quot;</span></code>): Flexible shape parameter</p></li>
+</ul>
+<p>Distribution is auto-selected based on loss function if <code class="docutils literal notranslate"><span class="pre">distribution=None</span></code>.</p>
+<p><strong>Loss Functions</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;likelihood&quot;</span></code>: Maximum likelihood estimation (<strong>default</strong>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;MSE&quot;</span></code>: Mean Squared Error</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;MAE&quot;</span></code>: Mean Absolute Error</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;HAM&quot;</span></code>: Half-Absolute Moment</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;MSEh&quot;</span></code>: Multi-step MSE (h-step ahead)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;LASSO&quot;</span></code>: L1 regularization for variable selection</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;RIDGE&quot;</span></code>: L2 regularization for shrinkage</p></li>
+</ul>
+<p><strong>Initialization Methods</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">initial=&quot;optimal&quot;</span></code>: Optimize all initial states (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initial=&quot;backcasting&quot;</span></code>: Use backcasting to initialize states</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initial=&quot;two-stage&quot;</span></code>: Backcast then optimize</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initial=&quot;complete&quot;</span></code>: Pure backcasting without optimization</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initial={&quot;level&quot;:</span> <span class="pre">100,</span> <span class="pre">...}</span></code>: Provide custom initial states</p></li>
+</ul>
+<p><strong>Workflow Example</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">smooth</span><span class="w"> </span><span class="kn">import</span> <span class="n">ADAM</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># Generate sample data</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">112</span><span class="p">,</span> <span class="mi">118</span><span class="p">,</span> <span class="mi">132</span><span class="p">,</span> <span class="mi">129</span><span class="p">,</span> <span class="mi">121</span><span class="p">,</span> <span class="mi">135</span><span class="p">,</span> <span class="mi">148</span><span class="p">,</span> <span class="mi">148</span><span class="p">,</span> <span class="mi">136</span><span class="p">,</span> <span class="mi">119</span><span class="p">,</span> <span class="mi">104</span><span class="p">,</span> <span class="mi">118</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)</span>
+
+<span class="c1"># Automatic model selection</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ADAM</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;ZZZ&quot;</span><span class="p">,</span> <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span> <span class="n">ic</span><span class="o">=</span><span class="s2">&quot;AICc&quot;</span><span class="p">)</span>
+<span class="n">ADAM_fit</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ADAM_fit</span><span class="p">)</span>
+
+<span class="c1"># Generate 12-step ahead forecasts with intervals</span>
+<span class="n">forecasts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">h</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">calculate_intervals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mf">0.95</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">forecasts</span><span class="p">)</span>
+
+<span class="c1"># Access fitted parameters</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model: </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">model_type_dict</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alpha: </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">persistence_level_</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;AICc: </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">ic_selection</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Attributes (After Fitting)</strong>:</p>
+<p>The model stores fitted results as attributes with trailing underscores (scikit-learn convention):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">persistence_level_</span></code>: Level smoothing parameter (α)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">persistence_trend_</span></code>: Trend smoothing parameter (β)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">persistence_seasonal_</span></code>: Seasonal smoothing parameter(s) (γ)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">phi_</span></code>: Damping parameter (φ)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initial_states_</span></code>: Estimated initial states</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">arma_parameters_</span></code>: AR/MA coefficients (if ARIMA)</p></li>
+</ul>
+<p>Additional fitted attributes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">model_type_dict</span></code>: Complete model specification</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">adam_estimated</span></code>: Full estimation results</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">adam_created</span></code>: State-space matrices</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ic_selection</span></code>: Information criterion value</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">prepared_model</span></code>: Model prepared for forecasting</p></li>
+</ul>
+<p><strong>Performance Considerations</strong>:</p>
+<ul class="simple">
+<li><p><strong>Small Data</strong> (T &lt; 100): Use “backcasting” initialization, it’s faster</p></li>
+<li><p><strong>Large Data</strong> (T &gt; 1000): “optimal” initialization works well</p></li>
+<li><p><strong>Multiple Seasonality</strong>: Can be slow; consider simpler models first</p></li>
+<li><p><strong>Model Selection</strong>: “ZZZ” with Branch &amp; Bound is much faster than “FFF” exhaustive search</p></li>
+</ul>
+<p><strong>Common Use Cases</strong>:</p>
+<ol class="arabic simple">
+<li><p><strong>Automatic Forecasting</strong>: <code class="docutils literal notranslate"><span class="pre">ADAM(model=&quot;ZXZ&quot;,</span> <span class="pre">lags=[12])</span></code> - Let the model choose</p></li>
+<li><p><strong>Intermittent Demand</strong>: <code class="docutils literal notranslate"><span class="pre">ADAM(model=&quot;ANN&quot;,</span> <span class="pre">occurrence=&quot;auto&quot;)</span></code> - For sparse data</p></li>
+<li><p><strong>External Regressors</strong>: <code class="docutils literal notranslate"><span class="pre">ADAM(model=&quot;AAN&quot;).fit(y,</span> <span class="pre">X=regressors)</span></code> - Include covariates</p></li>
+<li><p><strong>Multiple Seasonality</strong>: <code class="docutils literal notranslate"><span class="pre">ADAM(model=&quot;AAA&quot;,</span> <span class="pre">lags=[24,</span> <span class="pre">168])</span></code> - Hourly data with daily/weekly patterns</p></li>
+<li><p><strong>ARIMA</strong>: <code class="docutils literal notranslate"><span class="pre">ADAM(model=&quot;NNN&quot;,</span> <span class="pre">ar_order=1,</span> <span class="pre">i_order=1,</span> <span class="pre">ma_order=1)</span></code> - Pure ARIMA(1,1,1)</p></li>
+<li><p><strong>Custom Model</strong>: <code class="docutils literal notranslate"><span class="pre">ADAM(model=&quot;MAM&quot;,</span> <span class="pre">persistence={&quot;alpha&quot;:</span> <span class="pre">0.3})</span></code> - Fix some parameters</p></li>
+</ol>
+<p><strong>Comparison to R’s smooth::adam</strong>:</p>
+<p>This Python implementation is a direct translation of the R smooth package’s <code class="docutils literal notranslate"><span class="pre">adam()</span></code> function,
+maintaining mathematical equivalence while adapting to scikit-learn conventions:</p>
+<ul class="simple">
+<li><p>R: <code class="docutils literal notranslate"><span class="pre">adam(data,</span> <span class="pre">model=&quot;ZZZ&quot;,</span> <span class="pre">h=10)</span></code> → Python: <code class="docutils literal notranslate"><span class="pre">ADAM(model=&quot;ZZZ&quot;).fit(y).predict(h=10)</span></code></p></li>
+<li><p>R: <code class="docutils literal notranslate"><span class="pre">persistence=list(alpha=0.3)</span></code> → Python: <code class="docutils literal notranslate"><span class="pre">persistence={&quot;alpha&quot;:</span> <span class="pre">0.3}</span></code></p></li>
+<li><p>R: <code class="docutils literal notranslate"><span class="pre">orders=list(ar=c(1,1))</span></code> → Python: <code class="docutils literal notranslate"><span class="pre">ar_order=[1,</span> <span class="pre">1]</span></code></p></li>
+</ul>
+<p><strong>References</strong>:</p>
+<ul class="simple">
+<li><p>Svetunkov, I. (2023). “Smooth forecasting in R”. <a class="reference external" href="https://openforecast.org/adam/">https://openforecast.org/adam/</a></p></li>
+<li><p>Hyndman, R.J., et al. (2008). “Forecasting with Exponential Smoothing”</p></li>
+<li><p>Svetunkov, I. &amp; Boylan, J.E. (2017). “State-space ARIMA for supply-chain forecasting”</p></li>
+</ul>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">adam.fit</span></code></dt><dd><p>Fit the ADAM model to data</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">adam.predict</span></code></dt><dd><p>Generate point forecasts</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">adam.predict_intervals</span></code></dt><dd><p>Generate prediction intervals</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">selector</span></code></dt><dd><p>Automatic model selection function</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimator</span></code></dt><dd><p>Parameter estimation function</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">forecaster</span></code></dt><dd><p>Forecasting function</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">print</span></code></dt><dd><p>Print the outputs of the ADAM class</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Examples</p>
+<p>Simple exponential smoothing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">smooth</span><span class="w"> </span><span class="kn">import</span> <span class="n">ADAM</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">112</span><span class="p">,</span> <span class="mi">118</span><span class="p">,</span> <span class="mi">132</span><span class="p">,</span> <span class="mi">129</span><span class="p">,</span> <span class="mi">121</span><span class="p">,</span> <span class="mi">135</span><span class="p">,</span> <span class="mi">148</span><span class="p">,</span> <span class="mi">148</span><span class="p">,</span> <span class="mi">136</span><span class="p">,</span> <span class="mi">119</span><span class="p">,</span> <span class="mi">104</span><span class="p">,</span> <span class="mi">118</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ADAM</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;ANN&quot;</span><span class="p">,</span> <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">forecasts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">h</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">forecasts</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Automatic model selection with multiple seasonality:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ADAM</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;ZZZ&quot;</span><span class="p">,</span> <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span> <span class="n">ic</span><span class="o">=</span><span class="s2">&quot;AICc&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Selected model: </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">model_type_dict</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>SARIMA(1,1,1)(1,1,1)₁₂:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ADAM</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;NNN&quot;</span><span class="p">,</span>  <span class="c1"># Pure ARIMA</span>
+<span class="gp">... </span>    <span class="n">ar_order</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">i_order</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">ma_order</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">12</span><span class="p">]</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">forecasts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">h</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>With external regressors:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># Two regressors</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">X_future</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># Regressors for forecast period</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ADAM</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;AAN&quot;</span><span class="p">,</span> <span class="n">regressors</span><span class="o">=</span><span class="s2">&quot;use&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">forecasts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">h</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">X</span><span class="o">=</span><span class="n">X_future</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Fix some parameters, estimate others:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ADAM</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;AAA&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">persistence</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">},</span>  <span class="c1"># Fix alpha, estimate beta and gamma</span>
+<span class="gp">... </span>    <span class="n">initial</span><span class="o">=</span><span class="s2">&quot;backcasting&quot;</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Intermittent demand forecasting:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sparse_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ADAM</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;ANN&quot;</span><span class="p">,</span> <span class="n">occurrence</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sparse_data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">forecasts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">h</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>  <span class="c1"># Accounts for zero-demand probability</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ADAM.fit.html#smooth.ADAM.fit" title="smooth.ADAM.fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fit</span></code></a>(y[, X])</p></td>
+<td><p>Fit the ADAM model to time series data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ADAM.predict.html#smooth.ADAM.predict" title="smooth.ADAM.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(h[, X, calculate_intervals, ...])</p></td>
+<td><p>Generate point forecasts using the fitted ADAM model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ADAM.predict_intervals.html#smooth.ADAM.predict_intervals" title="smooth.ADAM.predict_intervals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_intervals</span></code></a>(h[, X, levels, side])</p></td>
+<td><p>Generate prediction intervals using the fitted ADAM model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ADAM.select_best_model.html#smooth.ADAM.select_best_model" title="smooth.ADAM.select_best_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_best_model</span></code></a>()</p></td>
+<td><p>Select the best model based on information criteria and update model parameters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ADAM.summary.html#smooth.ADAM.summary" title="smooth.ADAM.summary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summary</span></code></a>([digits])</p></td>
+<td><p>Generate a formatted summary of the fitted model.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="smooth documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="smooth.ADAM.fit.html" class="btn btn-neutral float-right" title="smooth.ADAM.fit" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Filotas Theodosiou, Ivan Svetunkov, Leonidas Tsaprounis, Claude AI.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

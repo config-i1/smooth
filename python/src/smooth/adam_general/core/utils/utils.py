@@ -1,14 +1,259 @@
 import numpy as np
-from scipy import stats
-from scipy.linalg import eigvals
-from scipy.special import gamma, digamma, beta
 import pandas as pd
+from scipy import stats
+from scipy.special import beta, digamma, gamma
 
+# Import C++ lowess for performance (with Python fallback)
 try:
-    from statsmodels.nonparametric.smoothers_lowess import lowess as sm_lowess
-    HAS_STATSMODELS = True
+    from smooth.adam_general import lowess_cpp as _lowess_cpp
+    _USE_CPP_LOWESS = True
 except ImportError:
-    HAS_STATSMODELS = False
+    _USE_CPP_LOWESS = False
+
+# Note: Custom lowess_r function is kept as reference/fallback implementation
+
+
+def lowess_r(x, y, f=2/3, nsteps=3, delta=None):
+    """
+    LOWESS smoother that exactly matches R's stats::lowess function.
+
+    This is a pure Python/NumPy implementation of Cleveland's LOWESS algorithm
+    as implemented in R's stats package (clowess C function).
+
+    Parameters
+    ----------
+    x : array-like
+        X values (will be converted to float)
+    y : array-like
+        Y values (will be converted to float)
+    f : float
+        Smoother span (fraction of points), default 2/3
+    nsteps : int
+        Number of robustifying iterations, default 3
+    delta : float or None
+        Distance threshold for interpolation. If None, uses 0.01 * range(x)
+
+    Returns
+    -------
+    ndarray
+        Smoothed y values
+
+    References
+    ----------
+    Cleveland, W.S. (1979) "Robust Locally Weighted Regression and
+    Smoothing Scatterplots". JASA 74(368): 829-836.
+    R source: https://github.com/SurajGupta/r-source/blob/master/src/library/stats/src/lowess.c
+    """
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    n = len(x)
+
+    if n < 2:
+        return y.copy()
+
+    if delta is None:
+        delta = 0.01 * (x.max() - x.min())
+
+    # Number of points in local window - at least 2, at most n
+    ns = max(2, min(n, int(f * n + 1e-7)))
+
+    # Sort by x if not already sorted
+    order = np.argsort(x)
+    x_sorted = x[order]
+    y_sorted = y[order]
+
+    ys = np.zeros(n)  # smoothed values
+    rw = np.ones(n)   # robustness weights
+    res = np.zeros(n) # residuals
+    
+    # Compute range for stability checks
+    x_range = x_sorted[n - 1] - x_sorted[0]
+
+    def lowest(xs, nleft, nright, rw_iter):
+        """
+        Compute weighted local regression at point xs.
+        This matches R's lowest() function exactly.
+        """
+        # Compute bandwidth h
+        h = max(xs - x_sorted[nleft], x_sorted[nright] - xs)
+        
+        # Thresholds for weight calculation (R's h9 and h1)
+        h9 = 0.999 * h
+        h1 = 0.001 * h
+        
+        # Sum of weights
+        a = 0.0
+        # Store weights - allocate enough space for potential ties beyond nright
+        w = np.zeros(n)
+        
+        # Loop through points - continue past nright to pick up ties
+        j = nleft
+        nrt = nright  # will track rightmost point with non-zero weight
+        
+        while j < n:
+            # Compute absolute distance
+            r = abs(x_sorted[j] - xs)
+            
+            # Check if within bandwidth (using h9 threshold)
+            if r <= h9:
+                if r <= h1:
+                    # Very close - weight = 1
+                    w[j] = 1.0
+                else:
+                    # Tricube weight: (1 - (r/h)^3)^3
+                    w[j] = (1.0 - (r / h) ** 3) ** 3
+                
+                # Apply robustness weight from previous iteration
+                w[j] *= rw_iter[j]
+                a += w[j]
+                nrt = j
+            elif x_sorted[j] > xs:
+                # Past the point, no more ties possible
+                break
+            
+            j += 1
+        
+        # Check if we have any non-zero weights
+        if a <= 0.0:
+            return 0.0, False
+        
+        # Normalize weights to sum to 1
+        for j in range(nleft, nrt + 1):
+            w[j] /= a
+        
+        # Check if we can fit a line (h > 0)
+        if h > 0.0:
+            # Compute weighted center of x values
+            a = 0.0
+            for j in range(nleft, nrt + 1):
+                a += w[j] * x_sorted[j]
+            
+            # Compute slope if points are spread out enough
+            b = xs - a
+            c = 0.0
+            for j in range(nleft, nrt + 1):
+                c += w[j] * (x_sorted[j] - a) ** 2
+            
+            # Stability check - only use slope if points are spread out
+            # (R checks: sqrt(c) > 0.001 * range)
+            if np.sqrt(c) > 0.001 * x_range:
+                b /= c
+                # Adjust weights for linear fit
+                for j in range(nleft, nrt + 1):
+                    w[j] *= (b * (x_sorted[j] - a) + 1.0)
+        
+        # Compute fitted value as weighted sum
+        ys_out = 0.0
+        for j in range(nleft, nrt + 1):
+            ys_out += w[j] * y_sorted[j]
+        
+        return ys_out, True
+
+    # Main robustness iterations
+    iteration = 0
+    while iteration <= nsteps:
+        nleft = 0
+        nright = ns - 1
+        last = -1  # index of previous estimated point
+        i = 0      # index of current point
+        
+        while True:
+            # Move window right if it decreases radius
+            if nright < n - 1:
+                d1 = x_sorted[i] - x_sorted[nleft]
+                d2 = x_sorted[nright + 1] - x_sorted[i]
+                
+                if d1 > d2:
+                    # Radius decreases by moving right
+                    nleft += 1
+                    nright += 1
+                    continue
+            
+            # Compute fitted value at x[i]
+            ys[i], ok = lowest(x_sorted[i], nleft, nright, rw)
+            
+            if not ok:
+                # All weights zero - copy over value
+                ys[i] = y_sorted[i]
+            
+            # Interpolate skipped points
+            if last < i - 1:
+                denom = x_sorted[i] - x_sorted[last]
+                # Should be non-zero by construction
+                if denom > 0:
+                    for j in range(last + 1, i):
+                        alpha = (x_sorted[j] - x_sorted[last]) / denom
+                        ys[j] = alpha * ys[i] + (1.0 - alpha) * ys[last]
+            
+            # Update last estimated point
+            last = i
+            
+            # Skip ahead using delta - find next point beyond delta
+            cut = x_sorted[last] + delta
+            i += 1
+            while i < n:
+                if x_sorted[i] > cut:
+                    break
+                # Special case: exact ties get same value
+                if x_sorted[i] == x_sorted[last]:
+                    ys[i] = ys[last]
+                    last = i
+                i += 1
+            
+            # Adjust i (R's: i = max(last+1, i-1))
+            i = max(last + 1, i - 1)
+            
+            if last >= n - 1:
+                break
+        
+        # Compute residuals
+        for i in range(n):
+            res[i] = y_sorted[i] - ys[i]
+        
+        # Overall scale estimate (mean absolute residual)
+        sc = np.sum(np.abs(res)) / n
+        
+        # Compute robustness weights (except on last iteration)
+        if iteration >= nsteps:
+            break
+        
+        # Compute median absolute deviation (cmad = 6 * median)
+        abs_res = np.abs(res)
+        m1 = n // 2
+        
+        # Partial sort to find median
+        abs_res_sorted = np.partition(abs_res, m1)
+        if n % 2 == 0:
+            m2 = n - m1 - 1
+            abs_res_sorted = np.partition(abs_res_sorted, m2)
+            cmad = 3.0 * (abs_res_sorted[m1] + abs_res_sorted[m2])
+        else:
+            cmad = 6.0 * abs_res_sorted[m1]
+        
+        # Check if effectively zero (R's threshold: 1e-7 * sc)
+        if cmad < 1e-7 * sc:
+            break
+        
+        # Compute biweight robustness weights
+        c9 = 0.999 * cmad
+        c1 = 0.001 * cmad
+        for i in range(n):
+            r = abs(res[i])
+            if r <= c1:
+                rw[i] = 1.0
+            elif r <= c9:
+                rw[i] = (1.0 - (r / cmad) ** 2) ** 2
+            else:
+                rw[i] = 0.0
+        
+        iteration += 1
+
+    # Restore original order
+    result = np.zeros(n)
+    result[order] = ys
+
+    return result
+
 
 def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     """
@@ -43,12 +288,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
     1. **Log Transform** (if multiplicative): Apply log to convert to additive form
     2. **Missing Value Imputation**: Fill NaN values using polynomial + Fourier regression
-    3. **Iterative Smoothing**: For each lag period (sorted ascending):
-
-       - Apply smoother with window = lag period
-       - Extract seasonal pattern as residual from next smoother level
-       - Remove seasonal mean to center patterns
-
+    3. **Iterative Smoothing**: For each lag period (sorted ascending), apply smoother
+       with window = lag period, extract seasonal pattern as residual from next
+       smoother level, and remove seasonal mean to center patterns
     4. **Trend Extraction**: Final smoothed series is the trend
     5. **Initial States**: Compute level and slope from trend for model initialization
 
@@ -105,25 +347,16 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         - **'states'** (numpy.ndarray): Matrix of extracted states, shape (T, n_states).
           Columns are [Level, Trend, Seasonal_1, Seasonal_2, ..., Seasonal_n].
           These states can be used as initial values for ADAM model estimation.
-
-        - **'initial'** (dict): Dictionary with initial values, containing:
-          - **'nonseasonal'** (dict): Dictionary with 'level' and 'trend' keys.
-            Level is the initial value at t=0, trend is the slope per period.
-            Computed from the first non-NaN trend values and adjusted back by lags_max.
-          - **'seasonal'** (list of numpy.ndarray): List of seasonal initial values.
-            Each seasonal[i] contains the first lags[i] values from pattern i.
-
+        - **'initial'** (dict): Dictionary with initial values. Contains
+          'nonseasonal' (dict with 'level' and 'trend' keys) and 'seasonal'
+          (list of numpy.ndarray with initial seasonal values for each lag).
         - **'trend'** (numpy.ndarray): Extracted trend component, shape (T,).
           Long-term movement after removing seasonal patterns.
-
         - **'seasonal'** (list of numpy.ndarray): Seasonal patterns, one array per lag.
           Each seasonal[i] has shape (T,) and is centered (mean = 0).
-
-        - **'component'** (list): Component type descriptions (for compatibility)
-
-        - **'lags'** (numpy.ndarray): Sorted unique lag periods used
-
-        - **'type'** (str): Decomposition type ('additive' or 'multiplicative')
+        - **'component'** (list): Component type descriptions (for compatibility).
+        - **'lags'** (numpy.ndarray): Sorted unique lag periods used.
+        - **'type'** (str): Decomposition type ('additive' or 'multiplicative').
 
     Raises
     ------
@@ -229,10 +462,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     if smoother not in ["ma", "lowess", "supsmu", "global"]:
         raise ValueError("smoother must be 'ma', 'lowess', 'supsmu', or 'global'")
 
-    # Check statsmodels availability for lowess
-    if smoother in ["lowess", "supsmu"] and not HAS_STATSMODELS:
-        raise ImportError("statsmodels is required for lowess/supsmu smoother. "
-                         "Install it with: pip install statsmodels")
+    # Note: lowess/supsmu now use custom lowess_r implementation that matches R exactly
+    # No external dependencies required
 
     # Variable name handling
     y_name = "y"
@@ -240,6 +471,14 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     # Data preparation
     y = np.asarray(y)
     obs_in_sample = len(y)
+
+    # Handle empty lags case - treat as lags=[1] to match R behavior
+    # In R, msdecompose is never called with empty lags, but the Python code
+    # filters lags to remove lag=1, which can result in empty lags.
+    # We treat empty lags as lags=[1] to ensure consistent smoothing behavior.
+    if len(lags) == 0:
+        lags = [1]
+
     seasonal_lags = any(lag > 1 for lag in lags)
 
     # Smoothing function definition
@@ -262,40 +501,38 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         return trend
 
     def smoothing_function_lowess(y, order):
-        """LOWESS smoother (equivalent to R's lowess/supsmu)"""
+        """LOWESS smoother matching R's stats::lowess exactly."""
         y = y.astype(float)
         n = len(y)
-        x = np.arange(1, n + 1)
+        x = np.arange(1, n + 1, dtype=float)
 
-        # Calculate span similar to R's supsmu
-        # R uses span = max(3/n, 1/order) for supsmu
-        if order == 1:
-            # R's lowess uses f = 2/3 for default
-            span = 2/3
-        elif order == lags[len(lags)-1] or order == obs_in_sample:
-             span = 2/3 # 1/(1.5)
-        elif order > n:
-            span = 3 / n
+        # Match R's span calculation
+        if order is None or order == 1 or order == lags[-1] or order == obs_in_sample:
+            span = 2 / 3
         else:
             span = 1 / order
-
-        # Ensure span is reasonable (between 0 and 1)
-        span = max(min(span, 1.0), 3 / n)
 
         # Handle missing values
         valid_mask = ~np.isnan(y)
         if not np.any(valid_mask):
             return np.full_like(y, np.nan)
 
-        # Apply LOWESS
-        # statsmodels lowess returns array of (x, y) pairs
-        # R's lowess uses iter=3 by default
-        smoothed = sm_lowess(y[valid_mask], x[valid_mask], frac=span,
-                            return_sorted=True, it=3)
+        x_valid = x[valid_mask]
+        y_valid = y[valid_mask]
+
+        # R's delta default: 0.01 * diff(range(x))
+        x_range = x_valid.max() - x_valid.min()
+        delta = 0.01 * x_range if x_range > 0 else 0.0
+
+        # Use C++ lowess for performance, fall back to Python if unavailable
+        if _USE_CPP_LOWESS:
+            smoothed_y = _lowess_cpp(x_valid, y_valid, f=span, nsteps=3, delta=delta)
+        else:
+            smoothed_y = lowess_r(x_valid, y_valid, f=span, nsteps=3, delta=delta)
 
         # Map back to original indices
         result = np.full_like(y, np.nan)
-        result[valid_mask] = smoothed[:, 1]
+        result[valid_mask] = smoothed_y
 
         return result
 
@@ -318,12 +555,6 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     else:  # lowess or supsmu
         smoothing_function = smoothing_function_lowess
 
-    # DEBUG: Print selected smoother
-    import os
-    DEBUG_DECOMP = os.environ.get("DEBUG_CREATOR") == "True"
-    if DEBUG_DECOMP:
-        print(f"[MSDECOMPOSE DEBUG] Smoother selected: {smoother}")
-
     # Check if MA smoother works with the given sample size
     if smoother == "ma" and obs_in_sample <= min(lags):
         import warnings
@@ -334,9 +565,6 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
             stacklevel=2
         )
         smoother = "lowess"
-        if not HAS_STATSMODELS:
-            raise ImportError("statsmodels is required for lowess smoother. "
-                             "Install it with: pip install statsmodels")
         smoothing_function = smoothing_function_lowess
 
     y_na_values = np.isnan(y)
@@ -376,25 +604,32 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
             y_clear[i] = y_smooth[i] - y_smooth[i + 1]
 
     # Seasonal patterns
+    # Use "ma" smoother for seasonality when original smoother is "global"
+    smoother_second = "ma" if smoother == "global" else smoother
+
     if seasonal_lags:
         patterns = []
         for i in range(lags_length):
-            pattern_i = np.full(obs_in_sample, np.nan)
+            pattern_i = np.zeros(obs_in_sample)
             for j in range(lags[i]):
                 indices = np.arange(j, obs_in_sample, lags[i])
                 y_seasonal = y_clear[i][indices]
                 y_seasonal_non_na = y_seasonal[~np.isnan(y_seasonal)]
-                
+
                 if len(y_seasonal_non_na) > 0:
-                    if smoother == "ma":
+                    if smoother_second == "ma":
                         y_seasonal_smooth = np.mean(y_seasonal_non_na)
-                        pattern_i[indices[~np.isnan(y_seasonal)]] = y_seasonal_smooth
+                        pattern_i[indices] = y_seasonal_smooth
                     else:
                         y_seasonal_smooth = smoothing_function(y_seasonal_non_na, order=obs_in_sample)
-                        pattern_i[indices[~np.isnan(y_seasonal)]] = y_seasonal_smooth
-            
-            if np.any(~np.isnan(pattern_i)):
-                pattern_i -= np.nanmean(pattern_i)
+                        new_indices = np.arange(len(y_seasonal_smooth)) * lags[i] + j
+                        pattern_i[new_indices] = y_seasonal_smooth
+
+            # Truncate to obs_in_sample and normalize (matching R lines 186-189)
+            pattern_i = pattern_i[:obs_in_sample]
+            # Use only complete seasonal cycles for mean calculation
+            obs_in_sample_lags = int(np.floor(obs_in_sample / lags[i]) * lags[i])
+            pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
             patterns.append(pattern_i)
     else:
         patterns = None
@@ -404,14 +639,19 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     initial = {"nonseasonal": {}, "seasonal": []}
 
     # Calculate nonseasonal initial values (level and trend)
+    # R: initial$nonseasonal <- c(ySmooth[[ySmoothLength]][!is.na(ySmooth[[ySmoothLength]])][1],
+    #                             mean(diff(ySmooth[[ySmoothLength]]),na.rm=T));
     data_for_initial = y_smooth[lags_length]  # Matches R's ySmooth[[ySmoothLength]]
     valid_data_for_initial = data_for_initial[~np.isnan(data_for_initial)]
     if len(valid_data_for_initial) == 0:
         init_level = 0.0
         init_trend = 0.0
     else:
+        # Level: first non-NA value
         init_level = valid_data_for_initial[0]
-        diffs = np.diff(valid_data_for_initial)
+        # Trend: mean of diffs of full series (with NAs), then remove NAs from mean
+        # This matches R's mean(diff(x), na.rm=T) behavior
+        diffs = np.diff(data_for_initial)  # Diff full series, NAs propagate
         init_trend = np.nanmean(diffs) if len(diffs) > 0 else 0.0
 
     lags_max = max(lags)
@@ -426,64 +666,14 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     # Store in nonseasonal dict
     initial["nonseasonal"] = {"level": init_level, "trend": init_trend}
 
-    # Deterministic trend fit to the smooth series
-    # This is required by adam() with backcasting
-    valid_trend = ~np.isnan(trend)
-    X_determ = np.column_stack([np.ones(obs_in_sample), np.arange(1, obs_in_sample + 1)])
-
-    # DEBUG: Print trend values before regression
-    if DEBUG_DECOMP:
-        print(f"[MSDECOMPOSE DEBUG] Trend before regression:")
-        print(f"  trend length: {len(trend)}")
-        print(f"  trend valid count: {np.sum(valid_trend)}")
-        print(f"  trend[0:5] (first 5): {trend[0:5]}")
-        print(f"  trend[-5:] (last 5): {trend[-5:]}")
-        print(f"  trend mean: {np.mean(trend[valid_trend])}")
-
-    gta = np.linalg.lstsq(X_determ[valid_trend], trend[valid_trend], rcond=None)[0]
-
-    # DEBUG: Print gta before adjustment
-    if DEBUG_DECOMP:
-        print(f"[MSDECOMPOSE DEBUG] gta before adjustment: {gta}")
-        print(f"[MSDECOMPOSE DEBUG] max(lags): {max(lags)}")
-        print(f"[MSDECOMPOSE DEBUG] gta adjustment: -{gta[1]} * {max(lags)} = {-gta[1] * max(lags)}")
-
-    # Move the trend back to start it off-sample in case of ADAM
-    gta[0] = gta[0] - gta[1] * max(lags)
-
     # Return to the original scale
     if type == "multiplicative":
         # Transform nonseasonal initial values back to exponential scale
         initial["nonseasonal"]["level"] = np.exp(initial["nonseasonal"]["level"])
         initial["nonseasonal"]["trend"] = np.exp(initial["nonseasonal"]["trend"])
-        trend_exp = np.exp(trend)
-
-        # Sort out additive/multiplicative trend for ADAM
-        gtm = np.exp(gta.copy())
-
-        # Recalculate gta on the exponential scale
-        gta = np.linalg.lstsq(X_determ[valid_trend], trend_exp[valid_trend], rcond=None)[0]
-        gta[0] = gta[0] - gta[1] * max(lags)
-
-        trend = trend_exp
+        trend = np.exp(trend)
         if seasonal_lags:
             patterns = [np.exp(pattern) for pattern in patterns]
-    else:
-        # Get the deterministic multiplicative trend for additive decomposition
-        # Shift the trend if it contains negative values
-        non_positive_values = False
-        trend_for_gtm = trend.copy()
-        if np.any(trend[valid_trend] <= 0):
-            non_positive_values = True
-            trend_min = np.nanmin(trend)
-            trend_for_gtm = trend - trend_min + 1
-
-        gtm = np.linalg.lstsq(X_determ[valid_trend], np.log(trend_for_gtm[valid_trend]), rcond=None)[0]
-        gtm = np.exp(gtm)
-
-        # Correct the initial level
-        if non_positive_values:
-            gtm[0] = gtm[0] - trend_min - 1
 
     # Extract seasonal initial values (first lags[i] values from each pattern)
     # Lines 256-258 in R
@@ -517,9 +707,6 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         "initial": initial,
         "seasonal": patterns,
         "fitted": y_fitted,
-        # gta is the Global Trend, Additive. gtm is the Global Trend, Multiplicative
-        "gta": gta,
-        "gtm": gtm,
         "loss": "MSE",
         "lags": lags,
         "type": type,
