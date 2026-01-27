@@ -3,7 +3,14 @@ import pandas as pd
 from scipy import stats
 from scipy.special import beta, digamma, gamma
 
-# Note: Custom lowess_r function is used instead of statsmodels for exact R compatibility
+# Import C++ lowess for performance (with Python fallback)
+try:
+    from smooth.adam_general import lowess_cpp as _lowess_cpp
+    _USE_CPP_LOWESS = True
+except ImportError:
+    _USE_CPP_LOWESS = False
+
+# Note: Custom lowess_r function is kept as reference/fallback implementation
 
 
 def lowess_r(x, y, f=2/3, nsteps=3, delta=None):
@@ -529,8 +536,11 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         x_range = x_valid.max() - x_valid.min()
         delta = 0.01 * x_range if x_range > 0 else 0.0
 
-        # Use our R-compatible lowess
-        smoothed_y = lowess_r(x_valid, y_valid, f=span, nsteps=3, delta=delta)
+        # Use C++ lowess for performance, fall back to Python if unavailable
+        if _USE_CPP_LOWESS:
+            smoothed_y = _lowess_cpp(x_valid, y_valid, f=span, nsteps=3, delta=delta)
+        else:
+            smoothed_y = lowess_r(x_valid, y_valid, f=span, nsteps=3, delta=delta)
 
         # Map back to original indices
         result = np.full_like(y, np.nan)
