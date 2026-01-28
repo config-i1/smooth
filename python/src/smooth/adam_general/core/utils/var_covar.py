@@ -300,8 +300,9 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
                     num_inner_loops_j = np.sum(steps < (i + 1)) # Same limit as k loop
                     for j in range(num_inner_loops_j):
                         # Condition uses R's i, which is Python's i + 1
-                        if steps[j] == 0: continue # Avoid division by zero
-                        if ((i + 1 - steps[k]) / steps[j] > 1): # Use Py i+1
+                        if steps[j] == 0:
+                            continue  # Avoid division by zero
+                        if ((i + 1 - steps[k]) / steps[j] > 1):  # Use Py i+1
                             transition_new = array_transition[:, :, j]
                         else:
                             transition_new = np.eye(n_components)

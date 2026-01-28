@@ -2234,16 +2234,20 @@ def _calculate_initial_parameters_and_bounds(
         # Level Persistence (alpha)
         if est_level:
             B[param_idx] = alpha_init
-            if bounds == "usual": Bl[param_idx], Bu[param_idx] = 0, 1
-            else: Bl[param_idx], Bu[param_idx] = -5, 5 # Old code's else
+            if bounds == "usual":
+                Bl[param_idx], Bu[param_idx] = 0, 1
+            else:
+                Bl[param_idx], Bu[param_idx] = -5, 5  # Old code's else
             names.append("alpha")
             param_idx += 1
 
         # Trend Persistence (beta)
         if est_trend:
             B[param_idx] = beta_init
-            if bounds == "usual": Bl[param_idx], Bu[param_idx] = 0, 1
-            else: Bl[param_idx], Bu[param_idx] = -5, 5 # Old code's else
+            if bounds == "usual":
+                Bl[param_idx], Bu[param_idx] = 0, 1
+            else:
+                Bl[param_idx], Bu[param_idx] = -5, 5  # Old code's else
             names.append("beta")
             param_idx += 1
 
@@ -2486,7 +2490,8 @@ def _calculate_initial_parameters_and_bounds(
                     log_y_valid = y_in_sample[valid_ot_logical]
                     if error_type != "A":
                          log_y_valid = log_y_valid[log_y_valid > 1e-10]
-                         if len(log_y_valid) < 2: raise ValueError("Not enough positive values for log diff")
+                         if len(log_y_valid) < 2:
+                             raise ValueError("Not enough positive values for log diff")
                          diff_log_y = np.diff(np.log(log_y_valid))
                     else:
                          # diff_log_y = np.array([]) # Not needed for Additive
@@ -2500,15 +2505,17 @@ def _calculate_initial_parameters_and_bounds(
                         if not np.isfinite(bound_val) or (len(diff_y) > 0 and np.all(diff_y == diff_y[0])): # if diff_y results in non-finite quantile
                              Bl[param_idx], Bu[param_idx] = -np.inf, np.inf
                         else:
-                             Bl[param_idx] = -np.abs(bound_val) # ensure symmetry around 0 if bound_val can be negative
+                             Bl[param_idx] = -np.abs(bound_val)  # ensure symmetry around 0 if bound_val can be negative
                              Bu[param_idx] = np.abs(bound_val)
-                             if Bu[param_idx] <= Bl[param_idx]: Bl[param_idx], Bu[param_idx] = -np.inf, np.inf
-                    elif bounds == "none": # New code path, keep for flexibility, though old didn't have it
+                             if Bu[param_idx] <= Bl[param_idx]:
+                                 Bl[param_idx], Bu[param_idx] = -np.inf, np.inf
+                    elif bounds == "none":  # New code path, keep for flexibility, though old didn't have it
                         Bl[param_idx], Bu[param_idx] = -np.inf, np.inf
-                    else: # Multiplicative or Mixed from old logic
+                    else:  # Multiplicative or Mixed from old logic
                         Bl[param_idx] = np.exp(np.quantile(diff_log_y, 0.4))
                         Bu[param_idx] = np.exp(np.quantile(diff_log_y, 0.6))
-                        if Bu[param_idx] <= Bl[param_idx] or not np.isfinite(Bu[param_idx]): Bl[param_idx], Bu[param_idx] = 0, np.inf # Old: 0, not 1e-10
+                        if Bu[param_idx] <= Bl[param_idx] or not np.isfinite(Bu[param_idx]):
+                            Bl[param_idx], Bu[param_idx] = 0, np.inf  # Old: 0, not 1e-10
                 else:
                      raise ValueError("Not enough valid observations for diff")
             except Exception as e:

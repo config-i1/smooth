@@ -7,7 +7,6 @@ results between R and Python implementations.
 
 import numpy as np
 from scipy import stats
-from scipy.special import gamma
 
 
 def rlaplace(n, mu=0, b=1, random_state=None):

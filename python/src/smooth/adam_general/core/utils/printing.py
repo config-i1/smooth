@@ -91,8 +91,8 @@ def _get_persistence_from_model(model: Any) -> Dict[str, Any]:
         if B is not None and len(B) > 0:
             # Import filler to fill matrices with estimated parameters
             try:
+
                 from smooth.adam_general.core.creator import filler
-                import copy
 
                 # Make a deep copy of matrices to avoid modifying originals
                 matrices_copy = {

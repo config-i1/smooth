@@ -7,6 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
 import sys
+
 # Point Sphinx to the source code directory
 sys.path.insert(0, os.path.abspath('../src'))
 
