@@ -4,7 +4,9 @@
 
 #include <armadillo>
 
-#define PYTHON_BUILD  // Define this before including headers to enable Python-specific code paths
+#ifndef PYTHON_BUILD
+#define PYTHON_BUILD 1  // Define this before including headers to enable Python-specific code paths
+#endif
 #include <carma>
 
 #include "../headers/adamCore.h"
