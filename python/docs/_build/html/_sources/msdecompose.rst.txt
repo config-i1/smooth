@@ -6,6 +6,7 @@ Multiple seasonal decomposition for time series with multiple frequencies.
 .. currentmodule:: smooth
 
 .. autofunction:: smooth.msdecompose
+   :no-index:
 
 Example Usage
 -------------

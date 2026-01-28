@@ -1282,11 +1282,13 @@ def estimator(
         # Calculate number of ETS persistence parameters (alpha, beta, gamma)
         components_number_ets = 0
         if model_type_dict["ets_model"]:
+            # Build persistence estimate vector with proper seasonal expansion
             persistence_estimate_vector = [
                 persistence_dict['persistence_level_estimate'],
                 model_type_dict["model_is_trendy"] and persistence_dict['persistence_trend_estimate'],
-                model_type_dict["model_is_seasonal"] and any(persistence_dict['persistence_seasonal_estimate'])
             ]
+            if model_type_dict["model_is_seasonal"]:
+                persistence_estimate_vector.extend(persistence_dict['persistence_seasonal_estimate'])
             components_number_ets = sum(persistence_estimate_vector)
             if components_number_ets > 0:
                 B[:components_number_ets] = 0

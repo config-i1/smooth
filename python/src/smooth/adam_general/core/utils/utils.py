@@ -3,7 +3,14 @@ import pandas as pd
 from scipy import stats
 from scipy.special import beta, digamma, gamma
 
-# Note: Custom lowess_r function is used instead of statsmodels for exact R compatibility
+# Import C++ lowess for performance (with Python fallback)
+try:
+    from smooth.adam_general import lowess_cpp as _lowess_cpp
+    _USE_CPP_LOWESS = True
+except ImportError:
+    _USE_CPP_LOWESS = False
+
+# Note: Custom lowess_r function is kept as reference/fallback implementation
 
 
 def lowess_r(x, y, f=2/3, nsteps=3, delta=None):
@@ -281,12 +288,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
     1. **Log Transform** (if multiplicative): Apply log to convert to additive form
     2. **Missing Value Imputation**: Fill NaN values using polynomial + Fourier regression
-    3. **Iterative Smoothing**: For each lag period (sorted ascending):
-
-       - Apply smoother with window = lag period
-       - Extract seasonal pattern as residual from next smoother level
-       - Remove seasonal mean to center patterns
-
+    3. **Iterative Smoothing**: For each lag period (sorted ascending), apply smoother
+       with window = lag period, extract seasonal pattern as residual from next
+       smoother level, and remove seasonal mean to center patterns
     4. **Trend Extraction**: Final smoothed series is the trend
     5. **Initial States**: Compute level and slope from trend for model initialization
 
@@ -343,25 +347,16 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         - **'states'** (numpy.ndarray): Matrix of extracted states, shape (T, n_states).
           Columns are [Level, Trend, Seasonal_1, Seasonal_2, ..., Seasonal_n].
           These states can be used as initial values for ADAM model estimation.
-
-        - **'initial'** (dict): Dictionary with initial values, containing:
-          - **'nonseasonal'** (dict): Dictionary with 'level' and 'trend' keys.
-            Level is the initial value at t=0, trend is the slope per period.
-            Computed from the first non-NaN trend values and adjusted back by lags_max.
-          - **'seasonal'** (list of numpy.ndarray): List of seasonal initial values.
-            Each seasonal[i] contains the first lags[i] values from pattern i.
-
+        - **'initial'** (dict): Dictionary with initial values. Contains
+          'nonseasonal' (dict with 'level' and 'trend' keys) and 'seasonal'
+          (list of numpy.ndarray with initial seasonal values for each lag).
         - **'trend'** (numpy.ndarray): Extracted trend component, shape (T,).
           Long-term movement after removing seasonal patterns.
-
         - **'seasonal'** (list of numpy.ndarray): Seasonal patterns, one array per lag.
           Each seasonal[i] has shape (T,) and is centered (mean = 0).
-
-        - **'component'** (list): Component type descriptions (for compatibility)
-
-        - **'lags'** (numpy.ndarray): Sorted unique lag periods used
-
-        - **'type'** (str): Decomposition type ('additive' or 'multiplicative')
+        - **'component'** (list): Component type descriptions (for compatibility).
+        - **'lags'** (numpy.ndarray): Sorted unique lag periods used.
+        - **'type'** (str): Decomposition type ('additive' or 'multiplicative').
 
     Raises
     ------
@@ -529,8 +524,11 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         x_range = x_valid.max() - x_valid.min()
         delta = 0.01 * x_range if x_range > 0 else 0.0
 
-        # Use our R-compatible lowess
-        smoothed_y = lowess_r(x_valid, y_valid, f=span, nsteps=3, delta=delta)
+        # Use C++ lowess for performance, fall back to Python if unavailable
+        if _USE_CPP_LOWESS:
+            smoothed_y = _lowess_cpp(x_valid, y_valid, f=span, nsteps=3, delta=delta)
+        else:
+            smoothed_y = lowess_r(x_valid, y_valid, f=span, nsteps=3, delta=delta)
 
         # Map back to original indices
         result = np.full_like(y, np.nan)
@@ -631,7 +629,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
             pattern_i = pattern_i[:obs_in_sample]
             # Use only complete seasonal cycles for mean calculation
             obs_in_sample_lags = int(np.floor(obs_in_sample / lags[i]) * lags[i])
-            pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
+            if obs_in_sample_lags > 0:
+                pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
             patterns.append(pattern_i)
     else:
         patterns = None

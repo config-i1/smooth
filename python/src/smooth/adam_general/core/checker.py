@@ -1131,13 +1131,13 @@ def _check_persistence(
         result["persistence"] = persistence
         result["persistence_level"] = persistence
         result["persistence_trend"] = persistence
-        result["persistence_seasonal"] = persistence
+        result["persistence_seasonal"] = [persistence] * n_seasonal if n_seasonal > 0 else None
 
         # Mark all as not estimated
         result["persistence_estimate"] = False
         result["persistence_level_estimate"] = False
         result["persistence_trend_estimate"] = False
-        result["persistence_seasonal_estimate"] = False
+        result["persistence_seasonal_estimate"] = [False] * n_seasonal if n_seasonal > 0 else []
 
         return result
 
@@ -1168,8 +1168,9 @@ def _check_persistence(
                 pos += 1
 
             if len(lags_model_seasonal) > 0 and pos < len(persistence):
-                result["persistence_seasonal"] = persistence[pos]
-                result["persistence_seasonal_estimate"] = False
+                # Single value applies to all seasonal components
+                result["persistence_seasonal"] = [persistence[pos]] * n_seasonal
+                result["persistence_seasonal_estimate"] = [False] * n_seasonal
                 pos += 1
 
         if xreg_model and pos < len(persistence):
@@ -1196,8 +1197,26 @@ def _check_persistence(
 
         # Process seasonal persistence
         if "seasonal" in persistence and len(lags_model_seasonal) > 0:
-            result["persistence_seasonal"] = persistence["seasonal"]
-            result["persistence_seasonal_estimate"] = False
+            seasonal_val = persistence["seasonal"]
+            if isinstance(seasonal_val, (int, float)):
+                # Single value applies to all seasonal components
+                result["persistence_seasonal"] = [seasonal_val] * n_seasonal
+                result["persistence_seasonal_estimate"] = [False] * n_seasonal
+            elif isinstance(seasonal_val, (list, tuple)):
+                # List of values - could be partial specification
+                # Fill provided values, leave rest as None (to be estimated)
+                seasonal_list = [None] * n_seasonal
+                estimate_list = [True] * n_seasonal
+                for i, val in enumerate(seasonal_val):
+                    if i < n_seasonal:
+                        seasonal_list[i] = val
+                        estimate_list[i] = False
+                result["persistence_seasonal"] = seasonal_list
+                result["persistence_seasonal_estimate"] = estimate_list
+            else:
+                # Fallback - treat as single value
+                result["persistence_seasonal"] = [seasonal_val] * n_seasonal
+                result["persistence_seasonal_estimate"] = [False] * n_seasonal
 
         # Process xreg persistence
         if "xreg" in persistence and xreg_model:

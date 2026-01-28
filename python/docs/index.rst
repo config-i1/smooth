@@ -48,6 +48,7 @@ Utility Functions
 -----------------
 
 - :doc:`msdecompose` - Multiple seasonal decomposition for time series
+- :doc:`lowess` - LOWESS (Locally Weighted Scatterplot Smoothing)
 
 Optimization Settings
 ---------------------
@@ -71,26 +72,28 @@ customize the optimization behavior via the ``nlopt_kargs`` parameter:
 
 **Available parameters:**
 
-+----------------+-------------------------------------------------------------------+---------------+
-| Parameter      | Description                                                       | Default       |
-+================+===================================================================+===============+
-| print_level    | Verbosity level. When >0, prints B and CF on every iteration.    | 0             |
-+----------------+-------------------------------------------------------------------+---------------+
-| xtol_rel       | Relative tolerance on parameters. Stops when changes < xtol_rel  | 1e-6          |
-|                | \* \|params\|.                                                    |               |
-+----------------+-------------------------------------------------------------------+---------------+
-| xtol_abs       | Absolute tolerance on parameters. Stops when changes < xtol_abs. | 1e-8          |
-+----------------+-------------------------------------------------------------------+---------------+
-| ftol_rel       | Relative tolerance on cost function. Stops when changes <        | 1e-8          |
-|                | ftol_rel \* \|CF\|.                                               |               |
-+----------------+-------------------------------------------------------------------+---------------+
-| ftol_abs       | Absolute tolerance on cost function. Stops when changes <        | 0             |
-|                | ftol_abs.                                                         |               |
-+----------------+-------------------------------------------------------------------+---------------+
-| algorithm      | NLopt algorithm name. Use "LN\_" prefix for derivative-free.     | NLOPT_LN\_    |
-|                | Options: NLOPT_LN_NELDERMEAD, NLOPT_LN_SBPLX, NLOPT_LN_COBYLA,   | NELDERMEAD    |
-|                | NLOPT_LN_BOBYQA.                                                  |               |
-+----------------+-------------------------------------------------------------------+---------------+
++--------------+--------------------------------------------------------------+--------------------+
+| Parameter    | Description                                                  | Default            |
++==============+==============================================================+====================+
+| print_level  | Verbosity level. When >0, prints B and CF on every           | 0                  |
+|              | iteration.                                                   |                    |
++--------------+--------------------------------------------------------------+--------------------+
+| xtol_rel     | Relative tolerance on parameters. Stops when changes         | 1e-6               |
+|              | < xtol_rel * \|params\|.                                     |                    |
++--------------+--------------------------------------------------------------+--------------------+
+| xtol_abs     | Absolute tolerance on parameters. Stops when changes         | 1e-8               |
+|              | < xtol_abs.                                                  |                    |
++--------------+--------------------------------------------------------------+--------------------+
+| ftol_rel     | Relative tolerance on cost function. Stops when changes      | 1e-8               |
+|              | < ftol_rel * \|CF\|.                                         |                    |
++--------------+--------------------------------------------------------------+--------------------+
+| ftol_abs     | Absolute tolerance on cost function. Stops when changes      | 0                  |
+|              | < ftol_abs.                                                  |                    |
++--------------+--------------------------------------------------------------+--------------------+
+| algorithm    | NLopt algorithm name. Use "LN\_" prefix for derivative-free. | NLOPT_LN_NELDERMEAD|
+|              | Options: NLOPT_LN_NELDERMEAD, NLOPT_LN_SBPLX,                |                    |
+|              | NLOPT_LN_COBYLA, NLOPT_LN_BOBYQA.                            |                    |
++--------------+--------------------------------------------------------------+--------------------+
 
 .. toctree::
    :maxdepth: 2
@@ -99,3 +102,4 @@ customize the optimization behavior via the ``nlopt_kargs`` parameter:
 
    api
    msdecompose
+   lowess
