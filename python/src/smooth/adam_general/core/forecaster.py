@@ -1363,6 +1363,7 @@ def _process_arma_parameters(arima_checked, adam_estimated):
     """
     if arima_checked["arima_model"]:
             arma_parameters_list = {}
+            B = adam_estimated["B"]  # Extract parameter estimates dict
             j = 0
             if arima_checked["ar_required"] and arima_checked["ar_estimate"]:
                 # Avoid damping parameter phi by checking name length > 3

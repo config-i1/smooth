@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy.special import beta, digamma, gamma
+from statsmodels.tsa.stattools import acf, pacf
 
 # Import C++ lowess for performance (with Python fallback)
 try:
