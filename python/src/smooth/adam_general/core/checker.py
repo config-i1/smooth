@@ -107,6 +107,9 @@ def _check_lags(lags, obs_in_sample, silent=False):
     # Handle None or empty lags - default to [1]
     if lags is None:
         lags = [1]
+    # Handle scalar lags - wrap in list for convenience
+    elif isinstance(lags, (int, float, np.integer, np.floating)):
+        lags = [int(lags)]
 
     # Remove any zero-lags
     lags = [lg for lg in lags if lg != 0]

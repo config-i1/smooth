@@ -350,8 +350,9 @@ class ADAM:
         ----------
         model : Union[str, List[str]], default="ZXZ"
             Model specification string (e.g., "ANN" for ETS) or list of model strings.
-        lags : Optional[NDArray], default=None
-            List of seasonal periods.
+        lags : Optional[Union[int, List[int]]], default=None
+            Seasonal period(s). Can be a single integer or a list of integers.
+            E.g., ``lags=12`` is equivalent to ``lags=[12]``.
         ar_order : Union[int, List[int]], default=0
             Autoregressive order(s) for ARIMA components.
         i_order : Union[int, List[int]], default=0

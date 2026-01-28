@@ -57,8 +57,10 @@ class ES(ADAM):
 
         Can also be a list of model names for custom model pool.
 
-    lags : Optional[List[int]], default=None
-        Seasonal periods. For monthly data with annual seasonality: [1, 12].
+    lags : Optional[Union[int, List[int]]], default=None
+        Seasonal period(s). Can be a single integer or a list of integers.
+        E.g., ``lags=12`` is equivalent to ``lags=[12]``.
+        For monthly data with annual seasonality: ``lags=12`` or ``lags=[1, 12]``.
         If None, defaults to [1] (no seasonality).
 
     persistence : Optional[Dict[str, float]], default=None
