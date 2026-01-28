@@ -23,7 +23,16 @@ include = ["smooth*"]
 exclude = ["tests*", "tests.*", "*.tests", "*.tests.*"]
 
 [project.optional-dependencies]
-dev = ["pytest", "ruff", "pre-commit", "ipykernel"]
+dev = [
+    "pytest",
+    "ruff",
+    "pre-commit",
+    "ipykernel",
+    "tqdm",
+    "matplotlib",  
+    "rpy2>=3.5.0",
+    "ipython>=8.0.0"
+]
 
 [tool.scikit-build]
 # wheel.expand-macos-universal-tags = true
