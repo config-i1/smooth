@@ -439,12 +439,11 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
                         # Add check for NaN propagation
                         if j >= 0 and j < len(c_values) and np.isnan(c_values[j]):
                             covar_mat[i, j] = np.nan
-                        elif (
-                            j == 0
-                        ):  # Explicitly handle Py j=0 case if needed, maybe should be 0? R's cValues[1] is 0.
-                            covar_mat[i, j] = (
-                                0.0  # Tentatively set to 0.0 based on R cValues[1] initial value
-                            )
+                        # Explicitly handle Py j=0 case if needed.
+                        # Maybe should be 0? R's cValues[1] is 0.
+                        elif j == 0:
+                            # Tentatively set to 0.0 based on R cValues[1]
+                            covar_mat[i, j] = 0.0
                         #  If j is out of bounds, something else is wrong. Let it raise
                         # IndexError or handle as NaN?
                 elif i > j:
