@@ -123,7 +123,8 @@ def lowess(x, y=None, f=2/3, iter=3, delta=None):
     y_sorted = y[order]
 
     # Call C++ implementation
-    # Note: C++ version handles sorting internally but we need sorted output for R compatibility
+    #  Note: C++ version handles sorting internally but we need sorted output for R
+    # compatibility
     smoothed = _lowess_cpp(x_sorted, y_sorted, f=f, nsteps=iter, delta=delta)
 
     return {"x": x_sorted, "y": smoothed}
