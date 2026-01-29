@@ -79,7 +79,8 @@ class ES(ADAM):
     ic : Literal["AIC", "AICc", "BIC", "BICc"], default="AICc"
         Information criterion for model selection.
 
-    loss : Literal["likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"], default="likelihood"
+    loss : Literal["likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"],
+    default="likelihood"
         Loss function for parameter estimation.
 
     h : Optional[int], default=None
