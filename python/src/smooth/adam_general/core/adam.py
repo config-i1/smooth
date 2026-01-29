@@ -152,9 +152,12 @@ class ADAM:
 
     - ``loss="MSEh"``: Mean Squared Error for specific h-steps ahead
     - ``loss="TMSE"``: Trace Mean Squared Error (sum of MSEh from 1 to h)
-    - ``loss="GTMSE"``: Geometric Trace Mean Squared Error (sum of logs of MSEh from 1 to h)
-    - ``loss="MSCE"``: Mean Squared Cumulative Error (sum of MSEh from 1 to h and covariances between them)
-    - ``loss="GPL"``: Generalised Predictive Likelihood (minimum of the determinant of the covariance matrix of multistep errors)
+    - ``loss="GTMSE"``: Geometric Trace Mean Squared Error (sum of logs of MSEh
+      from 1 to h)
+    - ``loss="MSCE"``: Mean Squared Cumulative Error (sum of MSEh from 1 to h and
+      covariances between them)
+    - ``loss="GPL"``: Generalised Predictive Likelihood (minimum of the determinant of
+      the covariance matrix of multistep errors)
 
     **Initialization Methods**:
 
