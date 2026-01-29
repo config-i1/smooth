@@ -149,14 +149,12 @@ class ADAM:
     - ``loss="RIDGE"``: L2 regularization for shrinkage
 
     **Multistep loss functions**:
+
     - ``loss="MSEh"``: Mean Squared Error for specific h-steps ahead
     - ``loss="TMSE"``: Trace Mean Squared Error (sum of MSEh from 1 to h)
-    - ``loss="GTMSE"``: Geometric Trace Mean Squared Error (sum of logs of MSEh from
-    1 to h)
-    - ``loss="MSCE"``: Mean Squared Cumulative Error (sum of MSEh from 1 to h and
-    covariances between them)
-    - ``loss="GPL"``: Generalised Predictive Likelihood (minimum of the determinant of
-    the covariance matrix of multistep errors)
+    - ``loss="GTMSE"``: Geometric Trace Mean Squared Error (sum of logs of MSEh from 1 to h)
+    - ``loss="MSCE"``: Mean Squared Cumulative Error (sum of MSEh from 1 to h and covariances between them)
+    - ``loss="GPL"``: Generalised Predictive Likelihood (minimum of the determinant of the covariance matrix of multistep errors)
 
     **Initialization Methods**:
 
@@ -236,13 +234,10 @@ class ADAM:
 
     **References**:
 
-    - Svetunkov, I. (2023). Forecasting and Analytics with the Augmented Dynamic
-    Adaptive Model. https://openforecast.org/adam/
+    - Svetunkov, I. (2023). Forecasting and Analytics with the Augmented Dynamic Adaptive Model. https://openforecast.org/adam/
     - Hyndman, R.J., et al. (2008). "Forecasting with Exponential Smoothing"
-    - Svetunkov, I. & Boylan, J.E. (2017). "State-space ARIMA for supply-chain
-    forecasting"
-    - Svetunkov, I. & Kourentzes, N. & Killick, R. (2023). "Multi-step estimators and
-    shrinkage effect in time series models". DOI: 10.1007/s00180-023-01377-x
+    - Svetunkov, I. & Boylan, J.E. (2017). "State-space ARIMA for supply-chain forecasting"
+    - Svetunkov, I. & Kourentzes, N. & Killick, R. (2023). "Multi-step estimators and shrinkage effect in time series models". DOI: 10.1007/s00180-023-01377-x
 
     See Also
     --------

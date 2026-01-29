@@ -148,7 +148,9 @@ and the third for seasonality (“N”, “A” or “M”).</p>
 - “CCC”: Combination of all models using AIC weights</p>
 <p>Can also be a list of model names for custom model pool.</p>
 </p></li>
-<li><p><strong>lags</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>int</em><em>]</em><em>]</em><em>, </em><em>default=None</em>) – Seasonal periods. For monthly data with annual seasonality: [1, 12].
+<li><p><strong>lags</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>int</em><em>, </em><em>List</em><em>[</em><em>int</em><em>]</em><em>]</em><em>]</em><em>, </em><em>default=None</em>) – Seasonal period(s). Can be a single integer or a list of integers.
+E.g., <code class="docutils literal notranslate"><span class="pre">lags=12</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">lags=[12]</span></code>.
+For monthly data with annual seasonality: <code class="docutils literal notranslate"><span class="pre">lags=12</span></code> or <code class="docutils literal notranslate"><span class="pre">lags=[1,</span> <span class="pre">12]</span></code>.
 If None, defaults to [1] (no seasonality).</p></li>
 <li><p><strong>persistence</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>]</em><em>]</em><em>, </em><em>default=None</em>) – Fixed persistence (smoothing) parameters. If None, estimated.
 Keys: “alpha” (level), “beta” (trend), “gamma” (seasonal).</p></li>
@@ -158,7 +160,7 @@ String options: “backcasting”, “optimal”, “complete”, “two-stage�
 <li><p><strong>initial_season</strong> (<em>Optional</em><em>[</em><em>NDArray</em><em>]</em><em>, </em><em>default=None</em>) – Initial values for seasonal components. If None, estimated.
 Length should be (seasonal_period - 1) for each seasonal component.</p></li>
 <li><p><strong>ic</strong> (<em>Literal</em><em>[</em><em>&quot;AIC&quot;</em><em>, </em><em>&quot;AICc&quot;</em><em>, </em><em>&quot;BIC&quot;</em><em>, </em><em>&quot;BICc&quot;</em><em>]</em><em>, </em><em>default=&quot;AICc&quot;</em>) – Information criterion for model selection.</p></li>
-<li><p><strong>loss</strong> (<em>Literal</em><em>[</em><em>&quot;likelihood&quot;</em><em>, </em><em>&quot;MSE&quot;</em><em>, </em><em>&quot;MAE&quot;</em><em>, </em><em>&quot;HAM&quot;</em><em>, </em><em>&quot;MSEh&quot;</em><em>, </em><em>&quot;TMSE&quot;</em><em>, </em><em>&quot;GTMSE&quot;</em><em>, </em><em>&quot;MSCE&quot;</em><em>]</em><em>, </em><em>default=&quot;likelihood&quot;</em>) – Loss function for parameter estimation.</p></li>
+<li><p><strong>loss</strong> (<em>LOSS_OPTIONS</em><em>, </em><em>default=&quot;likelihood&quot;</em>) – Loss function for parameter estimation.</p></li>
 <li><p><strong>h</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em><em>, </em><em>default=None</em>) – Forecast horizon. Can also be set in predict().</p></li>
 <li><p><strong>holdout</strong> (<em>bool</em><em>, </em><em>default=False</em>) – Whether to use holdout sample for validation.</p></li>
 <li><p><strong>bounds</strong> (<em>Literal</em><em>[</em><em>&quot;usual&quot;</em><em>, </em><em>&quot;admissible&quot;</em><em>, </em><em>&quot;none&quot;</em><em>]</em><em>, </em><em>default=&quot;usual&quot;</em>) – Parameter bounds type:
@@ -279,7 +281,7 @@ Length should be (seasonal_period - 1) for each seasonal component.</p></li>
 </div>
 <p class="rubric">References</p>
 <ul class="simple">
-<li><p>Svetunkov, I. (2023). “Smooth forecasting in R”. <a class="reference external" href="https://openforecast.org/adam/">https://openforecast.org/adam/</a></p></li>
+<li><p>Svetunkov, I. (2023). Forecasting and Analytics with the Augmented Dynamic Adaptive Model. <a class="reference external" href="https://openforecast.org/adam/">https://openforecast.org/adam/</a></p></li>
 <li><p>Hyndman, R.J., et al. (2008). “Forecasting with Exponential Smoothing”</p></li>
 </ul>
 <div class="admonition seealso">
