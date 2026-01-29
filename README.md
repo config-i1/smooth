@@ -49,6 +49,9 @@ Here is the list of the included functions:
 1. **oes** - Occurrence state-space Exponential Smoothing model for intermittent demand forecasting. Models the probability of non-zero demand using ETS-style state space models. Supports multiple occurrence types: fixed probability, odds ratio, inverse odds ratio, direct, and general. Can automatically select the best occurrence model.
 2. **oesg** - Occurrence ETS General model. Implements the most flexible oETS_G specification where the probability is modelled as p_t = a_t/(a_t + b_t), with both a_t and b_t following separate ETS models. Provides the most flexibility for complex intermittent demand patterns.
 
+### Scale model (GARCH style)
+1. **sm** - Scale Model. Creates a model for the scale (variance) of the error term based on the provided ADAM model. Allows modelling heteroscedasticity using ETS or ARIMA structures for the scale parameter (GARCH or GAMLSS style). Only works with models estimated via maximum likelihood.
+
 ## Tools
 
 ### Utility functions
@@ -64,7 +67,6 @@ Here is the list of the included functions:
 
 1. **reapply** - Reapplies the model with randomly generated parameters based on the covariance matrix of the estimated parameters. Useful for understanding parameter uncertainty and its impact on fitted values. Returns fitted paths for each parameter set.
 2. **reforecast** - Produces forecasts using randomly generated parameters (via reapply) and simulated future errors. Provides a way to construct prediction intervals that account for both parameter uncertainty and future uncertainty.
-3. **sm** - Scale Model. Creates a model for the scale (variance) of the error term based on the provided ADAM model. Allows modelling heteroscedasticity using ETS or ARIMA structures for the scale parameter (GARCH or GAMLSS style). Only works with models estimated via maximum likelihood.
 
 ### Visualisation and output
 
