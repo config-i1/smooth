@@ -945,15 +945,16 @@ def _check_distribution_loss(distribution, loss, silent=False):
     ----------
     distribution : str
         Probability distribution
-    loss : str
-        Loss function name
+    loss : str or callable
+        Loss function name or custom callable.
+        If callable, it should accept (actual, fitted, B) arguments.
     silent : bool, optional
         Whether to suppress warnings
 
     Returns
     -------
     dict
-        Dictionary with validated distribution and loss
+        Dictionary with validated distribution, loss, and optionally loss_function
     """
     # Valid distribution types
     valid_distributions = [
@@ -997,12 +998,19 @@ def _check_distribution_loss(distribution, loss, silent=False):
         _warn(f"Unknown distribution: {distribution}. Switching to 'default'.", silent)
         distribution = "default"
 
-    # Check loss function
-    if loss not in valid_losses:
+    # Check loss function - handle callable custom loss
+    loss_function = None
+    if callable(loss):
+        loss_function = loss
+        loss = "custom"
+    elif loss not in valid_losses:
         _warn(f"Unknown loss function: {loss}. Switching to 'likelihood'.", silent)
         loss = "likelihood"
 
-    return {"distribution": distribution, "loss": loss}
+    result = {"distribution": distribution, "loss": loss}
+    if loss_function is not None:
+        result["loss_function"] = loss_function
+    return result
 
 
 def _check_outliers(outliers_mode, silent=False):
@@ -2986,6 +2994,7 @@ def parameters_checker(
     dist_info = _check_distribution_loss(distribution, loss, silent)
     distribution = dist_info["distribution"]
     loss = dist_info["loss"]
+    loss_function = dist_info.get("loss_function", None)
 
     #####################
     # 6) Check Outliers
@@ -3287,6 +3296,9 @@ def parameters_checker(
         "scenarios": scenarios,
         "ellipsis": ellipsis,
     }
+    # Add custom loss function if provided
+    if loss_function is not None:
+        general_dict["loss_function"] = loss_function
 
     # Initialize estimation parameters if needed
     if model_do == "estimate":

@@ -500,8 +500,12 @@ def CF(B,
                 CFValue += general['lambda'] * np.sqrt(np.sum(B**2))
 
         elif general['loss'] == "custom":
-            CFValue = general['loss_function'](actual=observations_dict['y_in_sample'],
-                                                fitted=adam_fitted.fitted,
+            # Ensure arrays are 1D to avoid broadcasting issues
+            # (armadillo vectors are column vectors that may become (n,1) shaped arrays)
+            actual_1d = np.asarray(y_in_sample).ravel()
+            fitted_1d = np.asarray(adam_fitted.fitted).ravel()
+            CFValue = general['loss_function'](actual=actual_1d,
+                                                fitted=fitted_1d,
                                                 B=B)
     else:
         # Multistep loss functions (MSEh, TMSE, GTMSE, MSCE, etc.)

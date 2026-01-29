@@ -1538,7 +1538,8 @@ class ADAM:
                 self.general["distribution_new"] = "ds"
             elif self.general["loss"] in [
                 "MSE", "MSEh", "TMSE", "GTMSE", "MSCE",
-                "GPL", "aMSEh", "aTMSE", "aGTMSE", "aMSCE", "aGPL"
+                "GPL", "aMSEh", "aTMSE", "aGTMSE", "aMSCE", "aGPL",
+                "custom"
             ]:
                 self.general["distribution_new"] = "dnorm"
         else:
