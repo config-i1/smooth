@@ -157,7 +157,8 @@ class ES(ADAM):
 
     References
     ----------
-    - Svetunkov, I. (2023). Forecasting and Analytics with the Augmented Dynamic Adaptive Model. https://openforecast.org/adam/
+    - Svetunkov, I. (2023). Forecasting and Analytics with the
+      Augmented Dynamic Adaptive Model. https://openforecast.org/adam/
     - Hyndman, R.J., et al. (2008). "Forecasting with Exponential Smoothing"
 
     See Also

@@ -370,11 +370,13 @@ def CF(
         #                               components_dict['components_number_ets'] +
         #                               components_dict['components_number_arima'] +
         #                               explanatory_checked['xreg_number']] < 0):
-        #         return 1e100 * np.max(np.abs(adam_elements['vec_g'][components_dict['components_number_ets'] +
-        #                                                          components_dict['components_number_arima']:
-        #                                                          components_dict['components_number_ets'] +
-        #                                                          components_dict['components_number_arima'] +
-        #                                                          explanatory_checked['xreg_number']] - 0.5))
+        #         return 1e100 * np.max(np.abs(
+        #             adam_elements['vec_g'][
+        #                 components_dict['components_number_ets'] +
+        #                 components_dict['components_number_arima']:
+        #                 components_dict['components_number_ets'] +
+        #                 components_dict['components_number_arima'] +
+        #                 explanatory_checked['xreg_number']] - 0.5))
 
     elif bounds == "admissible":
         if arima_checked["arima_model"]:
@@ -459,7 +461,7 @@ def CF(
     mat_wt = np.asfortranarray(adam_elements["mat_wt"], dtype=np.float64)
     mat_f = np.asfortranarray(
         adam_elements["mat_f"], dtype=np.float64
-    )  # Also copy mat_f since it's passed by reference
+    )  # Also copy mat_f since it's passed by ref
     vec_g = np.asfortranarray(
         adam_elements["vec_g"], dtype=np.float64
     )  # Make sure it's a 1D array

@@ -261,7 +261,8 @@ class ADAM:
     - Svetunkov, I. & Boylan, J.E. (2017). "State-space ARIMA for
       supply-chain forecasting"
     - Svetunkov, I. & Kourentzes, N. & Killick, R. (2023). "Multi-step
-      estimators and shrinkage effect in time series models". DOI: 10.1007/s00180-023-01377-x
+      estimators and shrinkage effect in time series models".
+      DOI: 10.1007/s00180-023-01377-x
 
     See Also
     --------
