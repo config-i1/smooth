@@ -3077,7 +3077,7 @@ def parameters_checker(
         # Convert to numeric if needed
         try:
             data_values = pd.to_numeric(data, errors="coerce")
-        except:
+        except Exception:
             raise ValueError("Data must be numeric or convertible to numeric values")
 
     occ_info = _check_occurrence(data_values, occurrence, frequency, silent, holdout, h)

@@ -344,7 +344,7 @@ def _run_optimization(opt, B):
     # Any nlopt termination (including RoundoffLimited) still returns valid B
     try:
         x = opt.optimize(B)
-    except:
+    except Exception:
         # If any exception, B has still been updated in-place
         x = B.copy()
     return x
