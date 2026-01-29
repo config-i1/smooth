@@ -260,9 +260,12 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     """
     Multiple seasonal decomposition of time series with multiple frequencies.
 
-    This function performs **classical seasonal decomposition** for time series with multiple
-    seasonal patterns (e.g., hourly data with daily and weekly seasonality, or daily data
-    with weekly and yearly patterns). It extends the standard STL decomposition to handle
+    This function performs **classical seasonal decomposition** for time series with
+    multiple
+    seasonal patterns (e.g., hourly data with daily and weekly seasonality, or daily
+    data
+    with weekly and yearly patterns). It extends the standard STL decomposition to
+    handle
     multiple seasonal periods simultaneously.
 
     The decomposition separates the time series into:
@@ -288,7 +291,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     **Algorithm Steps**:
 
     1. **Log Transform** (if multiplicative): Apply log to convert to additive form
-    2. **Missing Value Imputation**: Fill NaN values using polynomial + Fourier regression
+    2. **Missing Value Imputation**: Fill NaN values using polynomial + Fourier
+    regression
     3. **Iterative Smoothing**: For each lag period (sorted ascending), apply smoother
        with window = lag period, extract seasonal pattern as residual from next
        smoother level, and remove seasonal mean to center patterns
@@ -300,7 +304,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     - **"ma"**: Moving average with window = lag period. Fast but less flexible.
       Automatically switches to LOWESS if sample size < minimum lag.
 
-    - **"lowess"** (default): Locally weighted scatterplot smoothing. Robust to outliers,
+    - **"lowess"** (default): Locally weighted scatterplot smoothing. Robust to
+    outliers,
       adapts to local patterns. Equivalent to R's `lowess()`.
 
     - **"supsmu"**: Friedman's super smoother (uses LOWESS implementation in Python).
@@ -375,7 +380,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
     .. math::
 
-        \\hat{y}_t = \\sum_{k=0}^d \\beta_k t^k + \\sum_{j=1}^m \\alpha_j \\sin(\\pi t j / m)
+        \\hat{y}_t = \\sum_{k=0}^d \\beta_k t^k + \\sum_{j=1}^m \\alpha_j \\sin(\\pi t j
+        / m)
 
     where d is polynomial degree (up to 5) and m is the maximum lag.
     This preserves trend and seasonal structure during imputation.
@@ -445,7 +451,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
     Multiplicative decomposition for positive data::
 
-        >>> sales = np.array([100, 120, 150, 140, 130, 160, 200, 210, 180, 140, 110, 130])
+        >>> sales = np.array([100, 120, 150, 140, 130, 160, 200, 210, 180, 140, 110,
+        130])
         >>> result = msdecompose(sales, lags=[12], type='multiplicative')
         >>> # Seasonality proportional to level
 
@@ -641,7 +648,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     initial = {"nonseasonal": {}, "seasonal": []}
 
     # Calculate nonseasonal initial values (level and trend)
-    # R: initial$nonseasonal <- c(ySmooth[[ySmoothLength]][!is.na(ySmooth[[ySmoothLength]])][1],
+    #  R: initial$nonseasonal <-
+    # c(ySmooth[[ySmoothLength]][!is.na(ySmooth[[ySmoothLength]])][1],
     #                             mean(diff(ySmooth[[ySmoothLength]]),na.rm=T));
     data_for_initial = y_smooth[lags_length]  # Matches R's ySmooth[[ySmoothLength]]
     valid_data_for_initial = data_for_initial[~np.isnan(data_for_initial)]
