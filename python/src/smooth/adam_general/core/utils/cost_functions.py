@@ -11,7 +11,7 @@ from smooth.adam_general.core.utils.utils import (
 )
 
 
-def CF(
+def CF(  # noqa: N802
     B,
     model_type_dict,
     components_dict,
@@ -665,7 +665,7 @@ def CF(
     return CFValue
 
 
-def log_Lik_ADAM(
+def log_Lik_ADAM(  # noqa: N802
     B,
     model_type_dict,
     components_dict,

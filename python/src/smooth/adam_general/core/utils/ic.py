@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def AIC(loglik, nobs=None, df=None):
+def AIC(loglik, nobs=None, df=None):  # noqa: N802
     """
     Calculate Akaike Information Criterion
 
@@ -30,7 +30,7 @@ def AIC(loglik, nobs=None, df=None):
     return -2 * loglik + 2 * df
 
 
-def AICc(loglik, nobs=None, df=None):
+def AICc(loglik, nobs=None, df=None):  # noqa: N802
     """
     Calculate corrected Akaike Information Criterion
 
@@ -65,7 +65,7 @@ def AICc(loglik, nobs=None, df=None):
         return aic + (2 * df * (df + 1)) / denominator
 
 
-def BIC(loglik, nobs=None, df=None):
+def BIC(loglik, nobs=None, df=None):  # noqa: N802
     """
     Calculate Bayesian Information Criterion
 
@@ -94,7 +94,7 @@ def BIC(loglik, nobs=None, df=None):
     return -2 * loglik + np.log(nobs) * df
 
 
-def BICc(loglik, nobs=None, df=None):
+def BICc(loglik, nobs=None, df=None):  # noqa: N802
     """
     Calculate corrected Bayesian Information Criterion
 

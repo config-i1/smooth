@@ -2721,7 +2721,7 @@ def _calculate_initial_parameters_and_bounds(
                         0.1  # Pad with fallback
                     )
 
-            except Exception as e:
+            except Exception:
                 # print(f"PACF calculation failed: {e}") # Optional debug print
                 B[param_idx : param_idx + num_ar_params] = 0.1  # Fallback
 
@@ -2754,7 +2754,7 @@ def _calculate_initial_parameters_and_bounds(
                     B[
                         param_idx + len(acf_values) : param_idx + num_ma_params
                     ] = -0.1  # Pad with fallback
-            except Exception as e:
+            except Exception:
                 # print(f"ACF calculation failed: {e}") # Optional debug print
                 B[param_idx : param_idx + num_ma_params] = -0.1  # Fallback
 
@@ -3013,7 +3013,7 @@ def _calculate_initial_parameters_and_bounds(
                             )  # Old: 0, not 1e-10
                 else:
                     raise ValueError("Not enough valid observations for diff")
-            except Exception as e:
+            except Exception:
                 # print(f"Constant bounds calculation failed: {e}") # Optional debug
                 Bl[param_idx], Bu[param_idx] = (
                     (-np.inf, np.inf) if error_type == "A" else (0, np.inf)
