@@ -33,13 +33,16 @@ def CF(B,
     Cost Function for ADAM model parameter estimation.
 
     This function calculates the value of the cost function (CF) for given parameters
-    during the optimization process. The CF is minimized to find optimal parameter values
-    for the ADAM model. The function implements various loss functions (likelihood, MSE, MAE,
+    during the optimization process. The CF is minimized to find optimal parameter
+    values
+    for the ADAM model. The function implements various loss functions (likelihood, MSE,
+    MAE,
     HAM, LASSO, RIDGE) and enforces parameter constraints (bounds).
 
     The cost function is evaluated as follows:
 
-    1. **Parameter Filling**: Fill model matrices with current parameter values from vector B
+    1. **Parameter Filling**: Fill model matrices with current parameter values from
+    vector B
     2. **Bounds Checking**: Apply parameter constraints based on the 'bounds' setting:
 
        - **"usual"**: Classical restrictions on smoothing parameters:
@@ -50,7 +53,8 @@ def CF(B,
          * Damping constraint: :math:`0 \\leq \\phi \\leq 1`
          * ARIMA stationarity: AR and MA polynomial roots outside unit circle
 
-       - **"admissible"**: Check eigenvalues of the state transition matrix to ensure stability
+       - **"admissible"**: Check eigenvalues of the state transition matrix to ensure
+       stability
        - **None**: No bounds checking
 
     3. **Model Fitting**: Call C++ fitter to compute fitted values and errors
@@ -167,7 +171,8 @@ def CF(B,
         General model configuration containing:
 
         - 'loss': Loss function ('likelihood', 'MSE', 'MAE', 'HAM', 'LASSO', 'RIDGE')
-        - 'distribution_new': Error distribution ('dnorm', 'dlaplace', 'ds', 'dgnorm', 'dlnorm', 'dgamma', 'dinvgauss')
+        - 'distribution_new': Error distribution ('dnorm', 'dlaplace', 'ds', 'dgnorm',
+        'dlnorm', 'dgamma', 'dinvgauss')
         - 'multisteps': Whether to use multistep loss
         - 'lambda': Regularization parameter for LASSO/RIDGE
         - 'denominator': Scaling denominator for LASSO/RIDGE
@@ -181,7 +186,8 @@ def CF(B,
         - None: No bounds checking
 
     other : float, optional
-        Additional distribution parameters (e.g., shape parameter for generalized normal)
+        Additional distribution parameters (e.g., shape parameter for generalized
+        normal)
     otherParameterEstimate : bool, optional
         Whether to estimate distribution parameters from B vector
     arPolynomialMatrix : numpy.ndarray, optional
@@ -195,12 +201,14 @@ def CF(B,
     -------
     float
         Cost function value. Returns a large penalty (1e100 or 1e300) if constraints are
-        violated or computation fails. Otherwise returns the computed loss value based on
+        violated or computation fails. Otherwise returns the computed loss value based
+        on
         the specified loss function.
 
     Notes
     -----
-    The function is called repeatedly during optimization by NLopt. It performs the following:
+    The function is called repeatedly during optimization by NLopt. It performs the
+    following:
 
     1. Fills model matrices with current parameter values using ``filler()``
     2. Checks parameter bounds and returns penalty if violated
@@ -247,7 +255,8 @@ def CF(B,
     This function is typically called internally during optimization::
 
         >>> # During optimization, NLopt calls CF repeatedly
-        >>> cf_value = CF(B=initial_params, model_type_dict=..., components_dict=..., ...)
+        >>> cf_value = CF(B=initial_params, model_type_dict=..., components_dict=...,
+        ...)
         >>> # If cf_value is large (1e100), constraints were violated
     """
 
@@ -332,11 +341,13 @@ def CF(B,
         #                               components_dict['components_number_ets'] + 
         #                               components_dict['components_number_arima'] + 
         #                               explanatory_checked['xreg_number']] < 0):
-        #         return 1e100 * np.max(np.abs(adamElements['vec_g'][components_dict['components_number_ets'] + 
-        #                                                          components_dict['components_number_arima']:
-        #                                                          components_dict['components_number_ets'] + 
-        #                                                          components_dict['components_number_arima'] + 
-        #                                                          explanatory_checked['xreg_number']] - 0.5))
+        #  return 1e100 *
+        # np.max(np.abs(adamElements['vec_g'][
+        #     components_dict['components_number_ets'] +
+        #     components_dict['components_number_arima']:
+        #     components_dict['components_number_ets'] +
+        #     components_dict['components_number_arima'] +
+        #     explanatory_checked['xreg_number']] - 0.5))
 
     elif bounds == "admissible":
         if arima_checked['arima_model']:
@@ -398,15 +409,19 @@ def CF(B,
     # print('mat_f:', mat_f)
     # print('vec_g shape:', vec_g.shape, 'dtype:', vec_g.dtype)
     # print('vec_g:', vec_g)
-    # print('lags_model_all shape:', lags_model_all.shape, 'dtype:', lags_model_all.dtype)
+    #  print('lags_model_all shape:', lags_model_all.shape, 'dtype:',
+    # lags_model_all.dtype)
     # print('lags_model_all:', lags_model_all)
-    #print('index_lookup_table shape:', index_lookup_table.shape, 'dtype:', index_lookup_table)
-    # print('profiles_recent_table shape:', profiles_recent_table.shape, 'dtype:', profiles_recent_table)
+    #  print('index_lookup_table shape:', index_lookup_table.shape, 'dtype:',
+    # index_lookup_table)
+    #  print('profiles_recent_table shape:', profiles_recent_table.shape, 'dtype:',
+    # profiles_recent_table)
     # print('error_type:', model_type_dict['error_type'])
     # print('trend_type:', model_type_dict['trend_type'])
     # print('season_type:', model_type_dict['season_type'])
     # print('components_number_ets:', components_dict['components_number_ets'])
-    # print('components_number_ets_seasonal:', components_dict['components_number_ets_seasonal'])
+    #  print('components_number_ets_seasonal:',
+    # components_dict['components_number_ets_seasonal'])
     # print('components_number_arima:', components_dict['components_number_arima'])
     # print('xreg_number:', explanatory_checked['xreg_number'])
     # print('constant_required:', constants_checked['constant_required'])
@@ -427,7 +442,8 @@ def CF(B,
         backcast_value = initials_checked['initial_type'] in ["complete", "backcasting"]
 
     # Call adam_cpp.fit() using the new class-based interface
-    # Parameters that were passed to adam_fitter are now stored in adam_cpp (E, T, S, etc.)
+    #  Parameters that were passed to adam_fitter are now stored in adam_cpp (E, T, S,
+    # etc.)
     adam_fitted = adam_cpp.fit(
         matrixVt=mat_vt,
         matrixWt=mat_wt,
@@ -537,12 +553,17 @@ def CF(B,
         #adam_errors = adam_errorer_wrap(
         #    adam_fitted['matVt'], adamElements['matWt'], adamElements['matF'],
         #    lags_dict['lags_model_all'], index_lookup_table, profiles_recent_table,
-        #    model_type_dict['error_type'], model_type_dict['trend_type'], model_type_dict['season_type'],
-        #    components_dict['components_number_ets'], components_dict['components_number_ets_seasonal'],
-        #    components_dict['components_number_arima'], explanatory_checked['xreg_number'], constants_checked['constant_required'], general['horizon'],
+        #  model_type_dict['error_type'], model_type_dict['trend_type'],
+        # model_type_dict['season_type'],
+        #  components_dict['components_number_ets'],
+        # components_dict['components_number_ets_seasonal'],
+        #  components_dict['components_number_arima'],
+        # explanatory_checked['xreg_number'], constants_checked['constant_required'],
+        # general['horizon'],
         #    observations_dict['y_in_sample'], observations_dict['ot'])
 
-        #CFValue = calculate_multistep_loss(general['loss'], adamErrors, observations_dict['obs_in_sample'], general['horizon'])
+        #  CFValue = calculate_multistep_loss(general['loss'], adamErrors,
+        # observations_dict['obs_in_sample'], general['horizon'])
     if np.isnan(CFValue):
         #print("CFValue is NaN")
         CFValue = 1e300
@@ -572,7 +593,8 @@ def log_Lik_ADAM(
     """
     Calculate log-likelihood for the ADAM model.
 
-    This function computes the log-likelihood value for an ADAM model with given parameters.
+    This function computes the log-likelihood value for an ADAM model with given
+    parameters.
     The log-likelihood is used for model selection (via information criteria) and for
     computing confidence intervals. The function handles various loss functions and can
     compute both one-step-ahead and multi-step-ahead likelihoods.
@@ -692,7 +714,8 @@ def log_Lik_ADAM(
     general_dict : dict
         General model configuration containing:
 
-        - 'loss': Loss function ('likelihood', 'MSE', 'MAE', 'HAM', 'LASSO', 'RIDGE', multistep variants)
+        - 'loss': Loss function ('likelihood', 'MSE', 'MAE', 'HAM', 'LASSO', 'RIDGE',
+        multistep variants)
         - 'distribution_new': Error distribution ('dnorm', 'dlaplace', 'ds', etc.)
         - 'h': Forecast horizon (for multistep losses)
 
@@ -727,7 +750,8 @@ def log_Lik_ADAM(
 
     **Multi-step Likelihood**:
 
-    For multi-step loss functions (MSEh, MAEh, HAMh, etc.), concentrated likelihoods are computed:
+    For multi-step loss functions (MSEh, MAEh, HAMh, etc.), concentrated likelihoods are
+    computed:
 
     - MSEh, TMSE, MSCE: :math:`-\\frac{T-h}{2}(\\log(2\\pi) + 1 + \\log(\\text{loss}))`
     - MAEh, TMAE, MACE: :math:`-(T-h)(\\log(2) + 1 + \\log(\\text{loss}))`
@@ -745,7 +769,8 @@ def log_Lik_ADAM(
     **Multiplicative Models**:
 
     For multiplicative error models in multistep context, the likelihood is adjusted by
-    the Jacobian term: :math:`-\\sum_t \\log|y_t|` to account for the log transformation.
+    the Jacobian term: :math:`-\\sum_t \\log|y_t|` to account for the log
+    transformation.
 
     See Also
     --------
@@ -756,7 +781,8 @@ def log_Lik_ADAM(
     ----------
     .. [1] Svetunkov, I. (2023). "Smooth forecasting with the smooth package in R".
            arXiv:2301.01790.
-    .. [2] Snyder, R.D., Ord, J.K., Koehler, A.B., McLaren, K.R., and Beaumont, A.N. (2017).
+    .. [2] Snyder, R.D., Ord, J.K., Koehler, A.B., McLaren, K.R., and Beaumont, A.N.
+    (2017).
            "Forecasting compositional time series: A state space approach".
            International Journal of Forecasting, 33(2), 502-512.
 
