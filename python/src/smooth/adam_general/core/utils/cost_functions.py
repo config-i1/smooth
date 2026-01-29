@@ -261,7 +261,7 @@ def CF(B,
     """
 
     # Fill in the matrices
-    adamElements = filler(B,
+    adam_elements = filler(B,
                         model_type_dict,
                         components_dict,
                         lags_dict,
@@ -285,16 +285,16 @@ def CF(B,
     if bounds == "usual":
         
         if arima_checked['arima_model'] and any([arima_checked['ar_estimate'], arima_checked['ma_estimate']]):
-            if arima_checked['ar_estimate'] and sum(-adamElements['arimaPolynomials']['arPolynomial'][1:]) >= 1:
-                arPolynomialMatrix[:, 0] = -adamElements['arimaPolynomials']['arPolynomial'][1:]
+            if arima_checked['ar_estimate'] and sum(-adam_elements['arimaPolynomials']['arPolynomial'][1:]) >= 1:
+                arPolynomialMatrix[:, 0] = -adam_elements['arimaPolynomials']['arPolynomial'][1:]
                 arPolyroots = np.abs(eigvals(arPolynomialMatrix))
                 # Strict constraint enforcement like in R
                 if any(arPolyroots > 1):
                     # Return a large penalty value
                     return 1e100
             
-            if arima_checked['ma_estimate'] and sum(adamElements['arimaPolynomials']['maPolynomial'][1:]) >= 1:
-                maPolynomialMatrix[:, 0] = adamElements['arimaPolynomials']['maPolynomial'][1:]
+            if arima_checked['ma_estimate'] and sum(adam_elements['arimaPolynomials']['maPolynomial'][1:]) >= 1:
+                maPolynomialMatrix[:, 0] = adam_elements['arimaPolynomials']['maPolynomial'][1:]
                 maPolyroots = np.abs(eigvals(maPolynomialMatrix))
                 # Strict constraint enforcement like in R
                 if any(maPolyroots > 1):
@@ -304,55 +304,53 @@ def CF(B,
         if model_type_dict['ets_model']:
             # Strict constraint enforcement like in R
             # Check if any smoothing parameters are outside the [0,1] bounds
-            if any(adamElements['vec_g'][:components_dict['components_number_ets']] > 1) or any(adamElements['vec_g'][:components_dict['components_number_ets']] < 0):
+            if any(adam_elements['vec_g'][:components_dict['components_number_ets']] > 1) or any(adam_elements['vec_g'][:components_dict['components_number_ets']] < 0):
                 
                 return 1e100
             if model_type_dict['model_is_trendy']:
                 # Strict constraint enforcement like in R
-                if adamElements['vec_g'][1] > adamElements['vec_g'][0]:
+                if adam_elements['vec_g'][1] > adam_elements['vec_g'][0]:
                     return 1e100
                 if model_type_dict['model_is_seasonal'] and \
-                    any(adamElements['vec_g'][components_dict['components_number_ets_non_seasonal']:
+                    any(adam_elements['vec_g'][components_dict['components_number_ets_non_seasonal']:
                                     components_dict['components_number_ets_non_seasonal'] + 
-                                    components_dict['components_number_ets_seasonal']] > (1 - adamElements['vec_g'][0])):
+                                    components_dict['components_number_ets_seasonal']] > (1 - adam_elements['vec_g'][0])):
                     
                     return 1e100
             
             elif model_type_dict['model_is_seasonal'] and \
-                    any(adamElements['vec_g'][components_dict['components_number_ets_non_seasonal']:
+                    any(adam_elements['vec_g'][components_dict['components_number_ets_non_seasonal']:
                                 components_dict['components_number_ets_non_seasonal'] + 
-                                components_dict['components_number_ets_seasonal']] > (1 - adamElements['vec_g'][0])):
+                                components_dict['components_number_ets_seasonal']] > (1 - adam_elements['vec_g'][0])):
                     
                     return 1e100
 
             # Strict constraint enforcement like in R
-            if phi_dict['phi_estimate'] and (adamElements['mat_f'][1, 1] > 1 or adamElements['mat_f'][1, 1] < 0):
+            if phi_dict['phi_estimate'] and (adam_elements['mat_f'][1, 1] > 1 or adam_elements['mat_f'][1, 1] < 0):
                 return 1e100
         
         # Not supporting regression model now
         # if explanatory_checked['xreg_model'] and regressors == "adapt":
-        #     if any(adamElements['vec_g'][components_dict['components_number_ets'] + 
+        #     if any(adam_elements['vec_g'][components_dict['components_number_ets'] + 
         #                               components_dict['components_number_arima']:
         #                               components_dict['components_number_ets'] + 
         #                               components_dict['components_number_arima'] + 
         #                               explanatory_checked['xreg_number']] > 1) or \
-        #        any(adamElements['vec_g'][components_dict['components_number_ets'] + 
+        #        any(adam_elements['vec_g'][components_dict['components_number_ets'] + 
         #                               components_dict['components_number_arima']:
         #                               components_dict['components_number_ets'] + 
         #                               components_dict['components_number_arima'] + 
         #                               explanatory_checked['xreg_number']] < 0):
-        #  return 1e100 *
-        # np.max(np.abs(adamElements['vec_g'][
-        #     components_dict['components_number_ets'] +
-        #     components_dict['components_number_arima']:
-        #     components_dict['components_number_ets'] +
-        #     components_dict['components_number_arima'] +
-        #     explanatory_checked['xreg_number']] - 0.5))
+        #         return 1e100 * np.max(np.abs(adam_elements['vec_g'][components_dict['components_number_ets'] + 
+        #                                                          components_dict['components_number_arima']:
+        #                                                          components_dict['components_number_ets'] + 
+        #                                                          components_dict['components_number_arima'] + 
+        #                                                          explanatory_checked['xreg_number']] - 0.5))
 
     elif bounds == "admissible":
         if arima_checked['arima_model']:
-            if arima_checked['ar_estimate'] and (sum(-adamElements['arimaPolynomials']['arPolynomial'][1:]) >= 1 or sum(-adamElements['arimaPolynomials']['arPolynomial'][1:]) < 0):
-                arPolynomialMatrix[:, 0] = -adamElements['arimaPolynomials']['arPolynomial'][1:]
+            if arima_checked['ar_estimate'] and (sum(-adam_elements['arimaPolynomials']['arPolynomial'][1:]) >= 1 or sum(-adam_elements['arimaPolynomials']['arPolynomial'][1:]) < 0):
+                arPolynomialMatrix[:, 0] = -adam_elements['arimaPolynomials']['arPolynomial'][1:]
                 eigenValues = np.abs(eigvals(arPolynomialMatrix))
                 if any(eigenValues > 1):
                     return 1e100 * np.max(eigenValues)
@@ -361,23 +359,23 @@ def CF(B,
             if explanatory_checked['xreg_model']:
                 if regressors == "adapt":
                     eigenValues = np.abs(eigvals(
-                        adamElements['mat_f'] -
-                        np.diag(adamElements['vec_g'].flatten()) @
-                        measurement_inverter(adamElements['mat_wt'][:observations_dict['obs_in_sample']]).T @
-                        adamElements['mat_wt'][:observations_dict['obs_in_sample']] / observations_dict['obs_in_sample']
+                        adam_elements['mat_f'] -
+                        np.diag(adam_elements['vec_g'].flatten()) @
+                        measurement_inverter(adam_elements['mat_wt'][:observations_dict['obs_in_sample']]).T @
+                        adam_elements['mat_wt'][:observations_dict['obs_in_sample']] / observations_dict['obs_in_sample']
                     ))
                 else:
                     indices = np.arange(components_dict['components_number_ets'] + components_dict['components_number_arima'])
                     eigenValues = np.abs(eigvals(
-                        adamElements['mat_f'][np.ix_(indices, indices)] -
-                        adamElements['vec_g'][indices] @
-                        adamElements['mat_wt'][observations_dict['obs_in_sample']-1, indices]
+                        adam_elements['mat_f'][np.ix_(indices, indices)] -
+                        adam_elements['vec_g'][indices] @
+                        adam_elements['mat_wt'][observations_dict['obs_in_sample']-1, indices]
                     ))
             else:
-                if model_type_dict['ets_model'] or (arima_checked['arima_model'] and arima_checked['ma_estimate'] and (sum(adamElements['arimaPolynomials']['maPolynomial'][1:]) >= 1 or sum(adamElements['arimaPolynomials']['maPolynomial'][1:]) < 0)):
+                if model_type_dict['ets_model'] or (arima_checked['arima_model'] and arima_checked['ma_estimate'] and (sum(adam_elements['arimaPolynomials']['maPolynomial'][1:]) >= 1 or sum(adam_elements['arimaPolynomials']['maPolynomial'][1:]) < 0)):
                     eigenValues = np.abs(eigvals(
-                        adamElements['mat_f'] -
-                        adamElements['vec_g'] @ adamElements['mat_wt'][observations_dict['obs_in_sample']-1]
+                        adam_elements['mat_f'] -
+                        adam_elements['vec_g'] @ adam_elements['mat_wt'][observations_dict['obs_in_sample']-1]
                     ))
                 else:
                     eigenValues = np.array([0])
@@ -386,54 +384,21 @@ def CF(B,
                 return 1e100 * np.max(eigenValues)
 
     # Write down the initials in the recent profile
-    profile_dict['profiles_recent_table'][:] = adamElements['mat_vt'][:, :lags_dict['lags_model_max']]
+    profile_dict['profiles_recent_table'][:] = adam_elements['mat_vt'][:, :lags_dict['lags_model_max']]
     # Convert pandas Series/DataFrames to numpy arrays
     y_in_sample = np.asarray(observations_dict['y_in_sample'], dtype=np.float64)
     ot = np.asarray(observations_dict['ot'], dtype=np.float64)
     # CRITICAL FIX: C++ adamFitter takes matrixVt by reference and modifies it!
-    # We must pass a COPY to avoid polluting adamElements across optimization iterations
-    mat_vt = np.asfortranarray(adamElements['mat_vt'].copy(), dtype=np.float64)
-    mat_wt = np.asfortranarray(adamElements['mat_wt'], dtype=np.float64)
-    mat_f = np.asfortranarray(adamElements['mat_f'].copy(), dtype=np.float64)  # Also copy mat_f since it's passed by reference
-    vec_g = np.asfortranarray(adamElements['vec_g'], dtype=np.float64) # Make sure it's a 1D array
-    lags_model_all = np.asfortranarray(lags_dict['lags_model_all'], dtype=np.uint64).reshape(-1,1)  # Make sure it's a 1D array
+    # We must pass a COPY to avoid polluting adam_elements across optimization iterations
+    mat_vt = np.asfortranarray(adam_elements['mat_vt'], dtype=np.float64)
+    mat_wt = np.asfortranarray(adam_elements['mat_wt'], dtype=np.float64)
+    mat_f = np.asfortranarray(adam_elements['mat_f'], dtype=np.float64)  # Also copy mat_f since it's passed by reference
+    vec_g = np.asfortranarray(adam_elements['vec_g'], dtype=np.float64) # Make sure it's a 1D array
     index_lookup_table = np.asfortranarray(profile_dict['index_lookup_table'], dtype=np.uint64)
-    profiles_recent_table = np.asfortranarray(profile_dict['profiles_recent_table'].copy(), dtype=np.float64)
-
-    # Print detailed debug information
-    # print('mat_vt shape:', mat_vt.shape, 'dtype:', mat_vt.dtype)
-    # print('mat_vt:', mat_vt)
-    # print('mat_wt shape:', mat_wt.shape, 'dtype:', mat_wt.dtype)
-    # print('mat_wt:', mat_wt)
-    # print('mat_f shape:', mat_f.shape, 'dtype:', mat_f.dtype)
-    # print('mat_f:', mat_f)
-    # print('vec_g shape:', vec_g.shape, 'dtype:', vec_g.dtype)
-    # print('vec_g:', vec_g)
-    #  print('lags_model_all shape:', lags_model_all.shape, 'dtype:',
-    # lags_model_all.dtype)
-    # print('lags_model_all:', lags_model_all)
-    #  print('index_lookup_table shape:', index_lookup_table.shape, 'dtype:',
-    # index_lookup_table)
-    #  print('profiles_recent_table shape:', profiles_recent_table.shape, 'dtype:',
-    # profiles_recent_table)
-    # print('error_type:', model_type_dict['error_type'])
-    # print('trend_type:', model_type_dict['trend_type'])
-    # print('season_type:', model_type_dict['season_type'])
-    # print('components_number_ets:', components_dict['components_number_ets'])
-    #  print('components_number_ets_seasonal:',
-    # components_dict['components_number_ets_seasonal'])
-    # print('components_number_arima:', components_dict['components_number_arima'])
-    # print('xreg_number:', explanatory_checked['xreg_number'])
-    # print('constant_required:', constants_checked['constant_required'])
-    # print('y_in_sample shape:', y_in_sample.shape, 'dtype:', y_in_sample.dtype)
-    # print('y_in_sample:', y_in_sample)
-    # print('ot shape:', ot.shape, 'dtype:', ot.dtype)
-    # print('ot:', ot)
+    profiles_recent_table = np.asfortranarray(profile_dict['profiles_recent_table'], dtype=np.float64)
 
     # refineHead should always be True (fixed backcasting issue)
     refine_head = True
-    # Use conventional ETS for now (adamETS=False)
-    adam_ets = False
 
     # Check if initial_type is a list or string and compute backcast correctly
     if isinstance(initials_checked['initial_type'], list):
@@ -544,27 +509,34 @@ def CF(B,
                 CFValue += general['lambda'] * np.sqrt(np.sum(B**2))
 
         elif general['loss'] == "custom":
-            CFValue = general['loss_function'](actual=observations_dict['y_in_sample'], 
-                                                fitted=adam_fitted.fitted, 
+            # Ensure arrays are 1D to avoid broadcasting issues
+            # (armadillo vectors are column vectors that may become (n,1) shaped arrays)
+            fitted_1d = np.asarray(adam_fitted.fitted).ravel()
+            CFValue = general['loss_function'](actual=y_in_sample,
+                                                fitted=fitted_1d,
                                                 B=B)
-    #else:
-    # currently no multistep loss function
+    else:
+        # Multistep loss functions (MSEh, TMSE, GTMSE, MSCE, etc.)
+        h = general['h']
+        obs_in_sample = observations_dict['obs_in_sample']
 
-        #adam_errors = adam_errorer_wrap(
-        #    adam_fitted['matVt'], adamElements['matWt'], adamElements['matF'],
-        #    lags_dict['lags_model_all'], index_lookup_table, profiles_recent_table,
-        #  model_type_dict['error_type'], model_type_dict['trend_type'],
-        # model_type_dict['season_type'],
-        #  components_dict['components_number_ets'],
-        # components_dict['components_number_ets_seasonal'],
-        #  components_dict['components_number_arima'],
-        # explanatory_checked['xreg_number'], constants_checked['constant_required'],
-        # general['horizon'],
-        #    observations_dict['y_in_sample'], observations_dict['ot'])
+        # Get multistep forecast errors using ferrors method
+        error_result = adam_cpp.ferrors(
+            matrixVt=adam_fitted.states,
+            matrixWt=mat_wt,
+            matrixF=mat_f,
+            indexLookupTable=index_lookup_table,
+            profilesRecent=profiles_recent_table,
+            horizon=h,
+            vectorYt=y_in_sample
+        )
+        adam_errors = error_result.errors  # Matrix: (obs_in_sample - h) x h
 
-        #  CFValue = calculate_multistep_loss(general['loss'], adamErrors,
-        # observations_dict['obs_in_sample'], general['horizon'])
-    if np.isnan(CFValue):
+        # Calculate loss based on type
+        loss = general['loss']
+        CFValue = calculate_multistep_loss(loss, adam_errors, obs_in_sample, h)
+
+    if np.isnan(CFValue) or np.isinf(CFValue):
         #print("CFValue is NaN")
         CFValue = 1e300
     return CFValue
@@ -913,16 +885,15 @@ def log_Lik_ADAM(
                                     arima_dict,
                                     explanatory_dict,
                                     phi_dict,
-                                    constant_dict)
+                                    constant_dict,
+                                    adam_cpp)
 
             # Write down the initials in the recent profile
-            profile_dict['profiles_recent_table'][:] = adam_elements['matVt'][:, :lags_dict['lags_model_max']]
+            profile_dict['profiles_recent_table'][:] = adam_elements['mat_vt'][:, :lags_dict['lags_model_max']]
 
             # Fit the model again to extract the fitted values
             # refineHead should always be True (fixed backcasting issue)
             refine_head = True
-            # Use conventional ETS for now (adamETS=False)
-            adam_ets = False
 
             # Check if initial_type is a list or string and compute backcast correctly
             if isinstance(initials_dict['initial_type'], list):
@@ -930,15 +901,25 @@ def log_Lik_ADAM(
             else:
                 backcast_value_log = initials_dict['initial_type'] in ["complete", "backcasting"]
 
+            # Convert stuff to numpy arrays with float64 - C++ requires that
+            y_in_sample = np.asarray(observations_dict['y_in_sample'], dtype=np.float64)
+            ot = np.asarray(observations_dict['ot'], dtype=np.float64)
+            mat_vt = np.asfortranarray(adam_elements['mat_vt'], dtype=np.float64)
+            mat_wt = np.asfortranarray(adam_elements['mat_wt'], dtype=np.float64)
+            mat_f = np.asfortranarray(adam_elements['mat_f'], dtype=np.float64)  # Also copy mat_f since it's passed by reference
+            vec_g = np.asfortranarray(adam_elements['vec_g'], dtype=np.float64) # Make sure it's a 1D array
+            index_lookup_table = np.asfortranarray(profile_dict['index_lookup_table'], dtype=np.uint64)
+            profiles_recent_table = np.asfortranarray(profile_dict['profiles_recent_table'], dtype=np.float64)
+
             adam_fitted = adam_cpp.fit(
-                matrixVt=adam_elements['mat_vt'],
-                matrixWt=adam_elements['mat_wt'],
-                matrixF=adam_elements['mat_f'],
-                vectorG=adam_elements['vec_g'],
-                indexLookupTable=profile_dict['index_lookup_table'],
-                profilesRecent=profile_dict['profiles_recent_table'],
-                vectorYt=observations_dict['y_in_sample'],
-                vectorOt=observations_dict['ot'],
+                matrixVt=mat_vt,
+                matrixWt=mat_wt,
+                matrixF=mat_f,
+                vectorG=vec_g,
+                indexLookupTable=index_lookup_table,
+                profilesRecent=profiles_recent_table,
+                vectorYt=y_in_sample,
+                vectorOt=ot,
                 backcast=backcast_value_log,
                 nIterations=initials_dict['n_iterations'],
                 refineHead=refine_head

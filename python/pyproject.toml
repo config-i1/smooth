@@ -43,6 +43,7 @@ ninja.make-fallback = true
 cmake.version = ">=3.25.0"
 ninja.version = ">=1.5.0"
 build.verbose = true
+cmake.build-type = "Release"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
