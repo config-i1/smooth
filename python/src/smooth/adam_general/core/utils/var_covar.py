@@ -18,7 +18,8 @@ def sigma(observations_dict, params_info, general, prepared_model):
 
     **Calculation Method**:
 
-    The scale is estimated as the square root of the mean squared (transformed) residuals:
+    The scale is estimated as the square root of the mean squared (transformed)
+    residuals:
 
     .. math::
 
@@ -74,7 +75,8 @@ def sigma(observations_dict, params_info, general, prepared_model):
     prepared_model : dict
         Prepared model from ``preparator()`` containing:
 
-        - **'residuals'**: In-sample residuals (y_t - y_fitted_t), pandas Series or ndarray.
+        - **'residuals'**: In-sample residuals (y_t - y_fitted_t), pandas Series or
+        ndarray.
           May contain NaN values which are excluded from calculation.
 
     Returns
@@ -115,7 +117,8 @@ def sigma(observations_dict, params_info, general, prepared_model):
 
     .. math::
 
-        \\log L = -\\frac{T}{2}\\log(2\\pi) - \\frac{T}{2}\\log(\\sigma^2) - \\frac{1}{2\\sigma^2}\\sum r_t^2
+        \\log L = -\\frac{T}{2}\\log(2\\pi) - \\frac{T}{2}\\log(\\sigma^2) -
+        \\frac{1}{2\\sigma^2}\\sum r_t^2
 
     Maximizing likelihood is equivalent to minimizing σ² for normal distribution.
 
@@ -201,13 +204,16 @@ def sigma(observations_dict, params_info, general, prepared_model):
 
 def covar_anal(lags_model, h, measurement, transition, persistence, s2):
     """
-    Returns analytical conditional h-steps ahead covariance matrix. Corrected Python version.
-    This is used in covar() method and in the construction of parametric prediction intervals.
+    Returns analytical conditional h-steps ahead covariance matrix. Corrected Python
+    version.
+    This is used in covar() method and in the construction of parametric prediction
+    intervals.
 
     Parameters:
     - lags_model: list or array, model lags assigned to each state (e.g., [1, 1, 12])
     - h: int, forecast horizon
-    - measurement: array, measurement matrix (typically h x n_components from forecaster).
+    - measurement: array, measurement matrix (typically h x n_components from
+    forecaster).
                    The function logic uses the first row measurement[0, :].
     - transition: array, transition matrix (n_components x n_components)
     - persistence: array, persistence vector (k_states,)
@@ -267,7 +273,8 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
                  component_mask = mask
             else:
                  # Assuming persistence corresponds to the first k_states components
-                 # This might need adjustment based on specific model structure if k_states < n_components
+                 #  This might need adjustment based on specific model structure if
+                 # k_states < n_components
                  component_mask[:k_states] = mask
 
             if np.sum(component_mask) > 0:
@@ -290,13 +297,15 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
         # Generate values for the transition matrix
         # R loops i from (min(steps)+1) to h. Python loops i from min(steps) to h-1.
         for i in range(current_min_step, h):
-            # R loops k from 1 to sum(steps<i). Python loops k from 0 to sum(steps < i+1)-1
+            #  R loops k from 1 to sum(steps<i). Python loops k from 0 to sum(steps <
+            # i+1)-1
             num_inner_loops_k = np.sum(steps < (i + 1))
             for k in range(num_inner_loops_k):
                 # This needs to be produced only for the lower lag (k=0).
                 # Then it will be reused for the higher ones.
                 if k == 0:  # R's k==1
-                    # R loops j from 1 to sum(steps<i). Python loops j from 0 to sum(steps < i+1)-1
+                    #  R loops j from 1 to sum(steps<i). Python loops j from 0 to
+                    # sum(steps < i+1)-1
                     num_inner_loops_j = np.sum(steps < (i + 1)) # Same limit as k loop
                     for j in range(num_inner_loops_j):
                         # Condition uses R's i, which is Python's i + 1
@@ -310,7 +319,8 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
                         # Indexing transition_powered uses Python's i, k, j
                         past_index = i - steps[j]
                         if past_index < 0: # Ensure index is valid
-                            # This case might indicate an issue or need specific handling.
+                            #  This case might indicate an issue or need specific
+                            # handling.
                             # For now, assume identity if index is invalid.
                              past_transition_powered = np.eye(n_components)
                         else:
@@ -331,15 +341,18 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
                     # Py: transition_powered[:, :, i-steps[k]+1, 0] (Index 0 for k=0)
                     time_index_copy = i - steps[k] + 1
                     if time_index_copy < 0 or time_index_copy >= h : # Ensure index is valid within h dimension
-                         # Handle invalid index - maybe copy identity or latest available?
+                         #  Handle invalid index - maybe copy identity or latest
+                         # available?
                          # Copying identity might be safest default if state is unknown.
                          transition_powered[:, :, i, k] = np.eye(n_components)
                     else:
                          transition_powered[:, :, i, k] = transition_powered[:, :, time_index_copy, 0]
 
                 # Generate values of cj
-                # Uses Python's i, k. Stores result in c_values[i] (maps to R's cValues[i+1])
-                # Ensure array_measurement slice has correct shape (1, n_components) before matmul
+                #  Uses Python's i, k. Stores result in c_values[i] (maps to R's
+                # cValues[i+1])
+                #  Ensure array_measurement slice has correct shape (1, n_components)
+                # before matmul
                 meas_slice = array_measurement[:, :, k]
                 if meas_slice.shape != (1, n_components):
                     # This case shouldn't happen with current logic, but good practice
@@ -350,7 +363,8 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
 
         # Fill in diagonals
         # R loops i from 2 to h. Uses cValues[i].
-        # Python loops i from 1 to h-1. Needs value corresponding to R's cValues[i+1], which is Py's c_values[i].
+        #  Python loops i from 1 to h-1. Needs value corresponding to R's cValues[i+1],
+        # which is Py's c_values[i].
         # <<< FIX START >>>
         for i in range(1, h):
             # Index i is valid for c_values (0 to h-1)
@@ -373,23 +387,27 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
                 if i == j:
                     continue
                 elif i == 0:  # R's i==1
-                    # R uses cValues[j]. Python needs element corresponding to R's cValues[j+1], which is Py's c_values[j].
+                    #  R uses cValues[j]. Python needs element corresponding to R's
+                    # cValues[j+1], which is Py's c_values[j].
                     if j >= 0 and j < len(c_values): # Check index validity for c_values[j]
                          covar_mat[i, j] = c_values[j] # Use c_values[j] instead of c_values[j-1]
                     else:
-                         # Handle cases where index j might be out of bounds for c_values (shouldn't happen if j<h)
+                         #  Handle cases where index j might be out of bounds for
+                         # c_values (shouldn't happen if j<h)
                          # Add check for NaN propagation
                          if j >= 0 and j < len(c_values) and np.isnan(c_values[j]):
                               covar_mat[i,j] = np.nan
                          elif j==0: # Explicitly handle Py j=0 case if needed, maybe should be 0? R's cValues[1] is 0.
                               covar_mat[i,j] = 0.0 # Tentatively set to 0.0 based on R cValues[1] initial value
-                         # If j is out of bounds, something else is wrong. Let it raise IndexError or handle as NaN?
+                         #  If j is out of bounds, something else is wrong. Let it raise
+                         # IndexError or handle as NaN?
                 elif i > j:
                     covar_mat[i, j] = covar_mat[j, i] # Symmetry
                 else: # i < j
                     # R: covarMat[i-1,j-1] + covarMat[1,j] * covarMat[1,i];
                     # Py: covar_mat[i-1, j-1] + covar_mat[0, j] * covar_mat[0, i]
-                    # This recursive relation should now use the correctly filled first row/col
+                    #  This recursive relation should now use the correctly filled first
+                    # row/col
                     if (i-1) >= 0 and (j-1) >= 0: # Check indices
                         term1 = covar_mat[i-1, j-1]
                         term2 = covar_mat[0, j]
@@ -400,7 +418,8 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
                         else:
                             covar_mat[i, j] = np.nan # Propagate NaN if components are NaN
                     else:
-                        # Handle cases where indices i-1 or j-1 are invalid (shouldn't happen if i < j and i >= 1)
+                        #  Handle cases where indices i-1 or j-1 are invalid (shouldn't
+                        # happen if i < j and i >= 1)
                          covar_mat[i, j] = np.nan # Or some other default?
 
     # Multiply the matrix by the one-step-ahead variance
@@ -488,7 +507,8 @@ def var_anal(lags_model, h, measurement, transition, persistence, s2):
             # Python equivalent limit: sum(steps < Py_i + 1) = sum(steps < i + 1)
             num_inner_loops = np.sum(steps < (i + 1))
 
-            # Inner loop: R k goes 1..num_inner_loops. Python k_idx goes 0..num_inner_loops-1. (Py_k_idx = R_k - 1)
+            #  Inner loop: R k goes 1..num_inner_loops. Python k_idx goes
+            # 0..num_inner_loops-1. (Py_k_idx = R_k - 1)
             for k_idx in range(num_inner_loops):
                 # Get persistence slice corresponding to the k_idx-th step (< i+1)
                 matrix_persistence_q[:] = array_persistence_q[:, :, k_idx]
@@ -518,7 +538,8 @@ def var_anal(lags_model, h, measurement, transition, persistence, s2):
                     iq[0] = np.nan # Propagate error as NaN
                     break # Exit inner loop for this step i
 
-            # Assign log(iq) to the variance matrix (index i corresponds to R's i+1 step)
+            #  Assign log(iq) to the variance matrix (index i corresponds to R's i+1
+            # step)
             if np.isnan(iq[0]):
                  var_mat[i] = np.nan
             elif iq[0] <= 0:
