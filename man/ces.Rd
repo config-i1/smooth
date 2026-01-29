@@ -7,7 +7,7 @@
 \usage{
 ces(y, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(y)), initial = c("backcasting", "optimal",
-  "two-stage", "com plete"), a = NULL, b = NULL, loss = c("likelihood",
+  "two-stage", "complete"), a = NULL, b = NULL, loss = c("likelihood",
   "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE", "GPL"), h = 0,
   holdout = FALSE, bounds = c("admissible", "none"), silent = TRUE,
   model = NULL, xreg = NULL, regressors = c("use", "select", "adapt"),
