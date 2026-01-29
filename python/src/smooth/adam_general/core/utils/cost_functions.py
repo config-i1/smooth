@@ -359,8 +359,23 @@ def CF(  # noqa: N802
             ):
                 return 1e100
 
-        # NOTE: Regression model constraints not yet implemented.
-        # Original R code checked xreg persistence bounds here.
+        # Not supporting regression model now
+        # if explanatory_checked['xreg_model'] and regressors == "adapt":
+        #     if any(adam_elements['vec_g'][components_dict['components_number_ets'] +
+        #                               components_dict['components_number_arima']:
+        #                               components_dict['components_number_ets'] +
+        #                               components_dict['components_number_arima'] +
+        #                               explanatory_checked['xreg_number']] > 1) or \
+        #        any(adam_elements['vec_g'][components_dict['components_number_ets'] +
+        #                               components_dict['components_number_arima']:
+        #                               components_dict['components_number_ets'] +
+        #                               components_dict['components_number_arima'] +
+        #                               explanatory_checked['xreg_number']] < 0):
+        #         return 1e100 * np.max(np.abs(adam_elements['vec_g'][components_dict['components_number_ets'] +
+        #             components_dict['components_number_arima']:
+        #             components_dict['components_number_ets'] +
+        #             components_dict['components_number_arima'] +
+        #             explanatory_checked['xreg_number']] - 0.5))
 
     elif bounds == "admissible":
         if arima_checked["arima_model"]:
