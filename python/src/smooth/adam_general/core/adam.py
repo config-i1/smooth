@@ -25,15 +25,24 @@ DISTRIBUTION_OPTIONS = Literal[
 
 LOSS_OPTIONS = Literal[
     "likelihood",
+    "GPL",
     "MSE",
     "MAE",
     "HAM",
+    "MSEh",
+    "MAEh",
+    "HAMh",
+    "MSCE",
+    "MACE",
+    "CHAM",
+    "TMSE",
+    "TMAE",
+    "THAM",
+    "GTMSE",
+    "GTAME",
+    "GTHAM",
     "LASSO",
     "RIDGE",
-    "MSEh",
-    "TMSE",
-    "GTMSE",
-    "MSCE",
 ]
 
 OCCURRENCE_OPTIONS = Literal[
@@ -139,6 +148,17 @@ class ADAM:
     - ``loss="LASSO"``: L1 regularization for variable selection
     - ``loss="RIDGE"``: L2 regularization for shrinkage
 
+    **Multistep loss functions**:
+
+    - ``loss="MSEh"``: Mean Squared Error for specific h-steps ahead
+    - ``loss="TMSE"``: Trace Mean Squared Error (sum of MSEh from 1 to h)
+    - ``loss="GTMSE"``: Geometric Trace Mean Squared Error (sum of logs of MSEh
+      from 1 to h)
+    - ``loss="MSCE"``: Mean Squared Cumulative Error (sum of MSEh from 1 to h and
+      covariances between them)
+    - ``loss="GPL"``: Generalised Predictive Likelihood (minimum of the determinant of
+      the covariance matrix of multistep errors)
+
     **Initialization Methods**:
 
     - ``initial="optimal"``: Optimize all initial states (default)
@@ -217,9 +237,10 @@ class ADAM:
 
     **References**:
 
-    - Svetunkov, I. (2023). "Smooth forecasting in R". https://openforecast.org/adam/
+    - Svetunkov, I. (2023). Forecasting and Analytics with the Augmented Dynamic Adaptive Model. https://openforecast.org/adam/
     - Hyndman, R.J., et al. (2008). "Forecasting with Exponential Smoothing"
     - Svetunkov, I. & Boylan, J.E. (2017). "State-space ARIMA for supply-chain forecasting"
+    - Svetunkov, I. & Kourentzes, N. & Killick, R. (2023). "Multi-step estimators and shrinkage effect in time series models". DOI: 10.1007/s00180-023-01377-x
 
     See Also
     --------
@@ -350,8 +371,9 @@ class ADAM:
         ----------
         model : Union[str, List[str]], default="ZXZ"
             Model specification string (e.g., "ANN" for ETS) or list of model strings.
-        lags : Optional[NDArray], default=None
-            List of seasonal periods.
+        lags : Optional[Union[int, List[int]]], default=None
+            Seasonal period(s). Can be a single integer or a list of integers.
+            E.g., ``lags=12`` is equivalent to ``lags=[12]``.
         ar_order : Union[int, List[int]], default=0
             Autoregressive order(s) for ARIMA components.
         i_order : Union[int, List[int]], default=0
@@ -1126,6 +1148,7 @@ class ADAM:
                 occurrence_dict=self.occurrence_dict,
                 phi_dict=self.phi_dict,
                 components_dict=self.components_dict,
+                multisteps=self.general.get("multisteps", False),
                 smoother=self.smoother,
                 **nlopt_params,
             )
@@ -1505,11 +1528,19 @@ class ADAM:
                     self.general["distribution_new"] = "dnorm"
                 elif self.model_type_dict["error_type"] == "M":
                     self.general["distribution_new"] = "dgamma"
-            elif self.general["loss"] in ["MAEh", "MACE", "MAE"]:
+            elif self.general["loss"] in [
+                "MAE", "MAEh", "TMAE", "GTMAE", "MACE"
+            ]:
                 self.general["distribution_new"] = "dlaplace"
-            elif self.general["loss"] in ["HAMh", "CHAM", "HAM"]:
+            elif self.general["loss"] in [
+                "HAM", "HAMh", "THAM", "GTHAM", "CHAM"
+            ]:
                 self.general["distribution_new"] = "ds"
-            elif self.general["loss"] in ["MSEh", "MSCE", "MSE", "GPL"]:
+            elif self.general["loss"] in [
+                "MSE", "MSEh", "TMSE", "GTMSE", "MSCE",
+                "GPL", "aMSEh", "aTMSE", "aGTMSE", "aMSCE", "aGPL",
+                "custom"
+            ]:
                 self.general["distribution_new"] = "dnorm"
         else:
             self.general["distribution_new"] = self.general["distribution"]

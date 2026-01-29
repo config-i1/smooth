@@ -629,7 +629,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
             pattern_i = pattern_i[:obs_in_sample]
             # Use only complete seasonal cycles for mean calculation
             obs_in_sample_lags = int(np.floor(obs_in_sample / lags[i]) * lags[i])
-            pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
+            if obs_in_sample_lags > 0:
+                pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
             patterns.append(pattern_i)
     else:
         patterns = None
@@ -812,33 +813,33 @@ def calculate_entropy(distribution, scale, other, obsZero, y_fitted):
         return obsZero * (1 / scale + np.log(gamma(1 / scale)) + (1 - 1 / scale) * digamma(1 / scale)) + \
                np.sum(np.log(scale * y_fitted))
 
-def calculate_multistep_loss(loss, adamErrors, obsInSample, horizon):
+def calculate_multistep_loss(loss, adam_errors, obs_in_sample, h):
     if loss == "MSEh":
-        return np.sum(adamErrors[:, horizon-1]**2) / (obsInSample - horizon)
+        return np.sum(adam_errors[:, h-1]**2) / (obs_in_sample - h)
     elif loss == "TMSE":
-        return np.sum(np.sum(adamErrors**2, axis=0) / (obsInSample - horizon))
+        return np.sum(np.sum(adam_errors**2, axis=0) / (obs_in_sample - h))
     elif loss == "GTMSE":
-        return np.sum(np.log(np.sum(adamErrors**2, axis=0) / (obsInSample - horizon)))
+        return np.sum(np.log(np.sum(adam_errors**2, axis=0) / (obs_in_sample - h)))
     elif loss == "MSCE":
-        return np.sum(np.sum(adamErrors, axis=1)**2) / (obsInSample - horizon)
+        return np.sum(np.sum(adam_errors, axis=1)**2) / (obs_in_sample - h)
     elif loss == "MAEh":
-        return np.sum(np.abs(adamErrors[:, horizon-1])) / (obsInSample - horizon)
+        return np.sum(np.abs(adam_errors[:, h-1])) / (obs_in_sample - h)
     elif loss == "TMAE":
-        return np.sum(np.sum(np.abs(adamErrors), axis=0) / (obsInSample - horizon))
+        return np.sum(np.sum(np.abs(adam_errors), axis=0) / (obs_in_sample - h))
     elif loss == "GTMAE":
-        return np.sum(np.log(np.sum(np.abs(adamErrors), axis=0) / (obsInSample - horizon)))
+        return np.sum(np.log(np.sum(np.abs(adam_errors), axis=0) / (obs_in_sample - h)))
     elif loss == "MACE":
-        return np.sum(np.abs(np.sum(adamErrors, axis=1))) / (obsInSample - horizon)
+        return np.sum(np.abs(np.sum(adam_errors, axis=1))) / (obs_in_sample - h)
     elif loss == "HAMh":
-        return np.sum(np.sqrt(np.abs(adamErrors[:, horizon-1]))) / (obsInSample - horizon)
+        return np.sum(np.sqrt(np.abs(adam_errors[:, h-1]))) / (obs_in_sample - h)
     elif loss == "THAM":
-        return np.sum(np.sum(np.sqrt(np.abs(adamErrors)), axis=0) / (obsInSample - horizon))
+        return np.sum(np.sum(np.sqrt(np.abs(adam_errors)), axis=0) / (obs_in_sample - h))
     elif loss == "GTHAM":
-        return np.sum(np.log(np.sum(np.sqrt(np.abs(adamErrors)), axis=0) / (obsInSample - horizon)))
+        return np.sum(np.log(np.sum(np.sqrt(np.abs(adam_errors)), axis=0) / (obs_in_sample - h)))
     elif loss == "CHAM":
-        return np.sum(np.sqrt(np.abs(np.sum(adamErrors, axis=1)))) / (obsInSample - horizon)
+        return np.sum(np.sqrt(np.abs(np.sum(adam_errors, axis=1)))) / (obs_in_sample - h)
     elif loss == "GPL":
-        return np.log(np.linalg.det(adamErrors.T @ adamErrors / (obsInSample - horizon)))
+        return np.log(np.linalg.det(adam_errors.T @ adam_errors / (obs_in_sample - h)))
     else:
         return 0
     

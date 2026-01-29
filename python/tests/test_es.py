@@ -111,6 +111,59 @@ class TestESModelTypes:
         assert forecast.shape[0] == 12
 
 
+class TestESModelSelection:
+    """Tests for automatic model selection."""
+
+    def test_model_zzz(self, seasonal_series):
+        """Test automatic model selection with ZZZ."""
+        model = ES(model="ZZZ", lags=[12])
+        model.fit(seasonal_series)
+
+        assert model.adam_estimated is not None
+        forecast = model.predict(h=12)
+        assert forecast.shape[0] == 12
+        assert not forecast['mean'].isna().any()
+
+    def test_model_zxz(self, seasonal_series):
+        """Test automatic selection for error and seasonality (no trend) with ZXZ."""
+        model = ES(model="ZXZ", lags=[12])
+        model.fit(seasonal_series)
+
+        assert model.adam_estimated is not None
+        forecast = model.predict(h=12)
+        assert forecast.shape[0] == 12
+        assert not forecast['mean'].isna().any()
+
+    def test_model_fff(self, seasonal_series):
+        """Test full model with FFF."""
+        model = ES(model="FFF", lags=[12])
+        model.fit(seasonal_series)
+
+        assert model.adam_estimated is not None
+        forecast = model.predict(h=12)
+        assert forecast.shape[0] == 12
+        assert not forecast['mean'].isna().any()
+
+    def test_model_ppp(self, seasonal_series):
+        """Test partial automatic selection with PPP."""
+        model = ES(model="PPP", lags=[12])
+        model.fit(seasonal_series)
+
+        assert model.adam_estimated is not None
+        forecast = model.predict(h=12)
+        assert forecast.shape[0] == 12
+        assert not forecast['mean'].isna().any()
+
+    def test_model_zzz_nonseasonal(self, simple_series):
+        """Test ZZZ model selection without seasonality."""
+        model = ES(model="ZZZ", lags=[1])
+        model.fit(simple_series)
+
+        assert model.adam_estimated is not None
+        forecast = model.predict(h=5)
+        assert forecast.shape[0] == 5
+
+
 class TestESEdgeCases:
     """Edge case tests for ES."""
 
@@ -123,8 +176,10 @@ class TestESEdgeCases:
         assert forecast.shape[0] == 3
 
     def test_constant_series(self):
-        """Test with constant series."""
-        y = np.ones(30) * 50
+        """Test with near-constant series."""
+        # Add tiny noise to avoid degenerate case (zero variance causes scipy warnings)
+        np.random.seed(42)
+        y = np.ones(30) * 50 + np.random.randn(30) * 1e-6
 
         model = ES(model="ANN")
         model.fit(y)

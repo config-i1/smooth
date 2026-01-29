@@ -80,9 +80,13 @@ def _set_distribution(general_dict, model_type_dict):
             general_dict_updated["distribution_new"] = (
                 "dnorm" if model_type_dict["error_type"] == "A" else "dgamma"
             )
-        elif general_dict["loss"] in ["MAEh", "MACE", "MAE"]:
+        elif general_dict["loss"] in [
+            "MAE", "MAEh", "TMAE", "GTMAE", "MACE"
+        ]:
             general_dict_updated["distribution_new"] = "dlaplace"
-        elif general_dict["loss"] in ["HAMh", "CHAM", "HAM"]:
+        elif general_dict["loss"] in [
+            "HAM", "HAMh", "THAM", "GTHAM", "CHAM"
+        ]:
             general_dict_updated["distribution_new"] = "ds"
         else:
             general_dict_updated["distribution_new"] = "dnorm"
@@ -1282,11 +1286,13 @@ def estimator(
         # Calculate number of ETS persistence parameters (alpha, beta, gamma)
         components_number_ets = 0
         if model_type_dict["ets_model"]:
+            # Build persistence estimate vector with proper seasonal expansion
             persistence_estimate_vector = [
                 persistence_dict['persistence_level_estimate'],
                 model_type_dict["model_is_trendy"] and persistence_dict['persistence_trend_estimate'],
-                model_type_dict["model_is_seasonal"] and any(persistence_dict['persistence_seasonal_estimate'])
             ]
+            if model_type_dict["model_is_seasonal"]:
+                persistence_estimate_vector.extend(persistence_dict['persistence_seasonal_estimate'])
             components_number_ets = sum(persistence_estimate_vector)
             if components_number_ets > 0:
                 B[:components_number_ets] = 0

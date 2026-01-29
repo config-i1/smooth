@@ -186,6 +186,17 @@ model selection, parameter estimation, and prediction intervals.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;LASSO&quot;</span></code>: L1 regularization for variable selection</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;RIDGE&quot;</span></code>: L2 regularization for shrinkage</p></li>
 </ul>
+<p><strong>Multistep loss functions</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;MSEh&quot;</span></code>: Mean Squared Error for specific h-steps ahead</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;TMSE&quot;</span></code>: Trace Mean Squared Error (sum of MSEh from 1 to h)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;GTMSE&quot;</span></code>: Geometric Trace Mean Squared Error (sum of logs of MSEh
+from 1 to h)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;MSCE&quot;</span></code>: Mean Squared Cumulative Error (sum of MSEh from 1 to h and
+covariances between them)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loss=&quot;GPL&quot;</span></code>: Generalised Predictive Likelihood (minimum of the determinant of
+the covariance matrix of multistep errors)</p></li>
+</ul>
 <p><strong>Initialization Methods</strong>:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">initial=&quot;optimal&quot;</span></code>: Optimize all initial states (default)</p></li>
@@ -260,9 +271,10 @@ maintaining mathematical equivalence while adapting to scikit-learn conventions:
 </ul>
 <p><strong>References</strong>:</p>
 <ul class="simple">
-<li><p>Svetunkov, I. (2023). “Smooth forecasting in R”. <a class="reference external" href="https://openforecast.org/adam/">https://openforecast.org/adam/</a></p></li>
+<li><p>Svetunkov, I. (2023). Forecasting and Analytics with the Augmented Dynamic Adaptive Model. <a class="reference external" href="https://openforecast.org/adam/">https://openforecast.org/adam/</a></p></li>
 <li><p>Hyndman, R.J., et al. (2008). “Forecasting with Exponential Smoothing”</p></li>
 <li><p>Svetunkov, I. &amp; Boylan, J.E. (2017). “State-space ARIMA for supply-chain forecasting”</p></li>
+<li><p>Svetunkov, I. &amp; Kourentzes, N. &amp; Killick, R. (2023). “Multi-step estimators and shrinkage effect in time series models”. DOI: 10.1007/s00180-023-01377-x</p></li>
 </ul>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>

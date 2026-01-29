@@ -107,6 +107,9 @@ def _check_lags(lags, obs_in_sample, silent=False):
     # Handle None or empty lags - default to [1]
     if lags is None:
         lags = [1]
+    # Handle scalar lags - wrap in list for convenience
+    elif isinstance(lags, (int, float, np.integer, np.floating)):
+        lags = [int(lags)]
 
     # Remove any zero-lags
     lags = [lg for lg in lags if lg != 0]
@@ -942,15 +945,16 @@ def _check_distribution_loss(distribution, loss, silent=False):
     ----------
     distribution : str
         Probability distribution
-    loss : str
-        Loss function name
+    loss : str or callable
+        Loss function name or custom callable.
+        If callable, it should accept (actual, fitted, B) arguments.
     silent : bool, optional
         Whether to suppress warnings
 
     Returns
     -------
     dict
-        Dictionary with validated distribution and loss
+        Dictionary with validated distribution, loss, and optionally loss_function
     """
     # Valid distribution types
     valid_distributions = [
@@ -969,6 +973,7 @@ def _check_distribution_loss(distribution, loss, silent=False):
     # Valid loss functions
     valid_losses = [
         "likelihood",
+        "GPL",
         "MSE",
         "MAE",
         "HAM",
@@ -979,7 +984,11 @@ def _check_distribution_loss(distribution, loss, silent=False):
         "MACE",
         "CHAM",
         "TMSE",
+        "TMAE",
+        "THAM",
         "GTMSE",
+        "GTAME",
+        "GTHAM",
         "LASSO",
         "RIDGE",
     ]
@@ -989,12 +998,19 @@ def _check_distribution_loss(distribution, loss, silent=False):
         _warn(f"Unknown distribution: {distribution}. Switching to 'default'.", silent)
         distribution = "default"
 
-    # Check loss function
-    if loss not in valid_losses:
+    # Check loss function - handle callable custom loss
+    loss_function = None
+    if callable(loss):
+        loss_function = loss
+        loss = "custom"
+    elif loss not in valid_losses:
         _warn(f"Unknown loss function: {loss}. Switching to 'likelihood'.", silent)
         loss = "likelihood"
 
-    return {"distribution": distribution, "loss": loss}
+    result = {"distribution": distribution, "loss": loss}
+    if loss_function is not None:
+        result["loss_function"] = loss_function
+    return result
 
 
 def _check_outliers(outliers_mode, silent=False):
@@ -1131,13 +1147,13 @@ def _check_persistence(
         result["persistence"] = persistence
         result["persistence_level"] = persistence
         result["persistence_trend"] = persistence
-        result["persistence_seasonal"] = persistence
+        result["persistence_seasonal"] = [persistence] * n_seasonal if n_seasonal > 0 else None
 
         # Mark all as not estimated
         result["persistence_estimate"] = False
         result["persistence_level_estimate"] = False
         result["persistence_trend_estimate"] = False
-        result["persistence_seasonal_estimate"] = False
+        result["persistence_seasonal_estimate"] = [False] * n_seasonal if n_seasonal > 0 else []
 
         return result
 
@@ -1168,8 +1184,9 @@ def _check_persistence(
                 pos += 1
 
             if len(lags_model_seasonal) > 0 and pos < len(persistence):
-                result["persistence_seasonal"] = persistence[pos]
-                result["persistence_seasonal_estimate"] = False
+                # Single value applies to all seasonal components
+                result["persistence_seasonal"] = [persistence[pos]] * n_seasonal
+                result["persistence_seasonal_estimate"] = [False] * n_seasonal
                 pos += 1
 
         if xreg_model and pos < len(persistence):
@@ -1196,8 +1213,26 @@ def _check_persistence(
 
         # Process seasonal persistence
         if "seasonal" in persistence and len(lags_model_seasonal) > 0:
-            result["persistence_seasonal"] = persistence["seasonal"]
-            result["persistence_seasonal_estimate"] = False
+            seasonal_val = persistence["seasonal"]
+            if isinstance(seasonal_val, (int, float)):
+                # Single value applies to all seasonal components
+                result["persistence_seasonal"] = [seasonal_val] * n_seasonal
+                result["persistence_seasonal_estimate"] = [False] * n_seasonal
+            elif isinstance(seasonal_val, (list, tuple)):
+                # List of values - could be partial specification
+                # Fill provided values, leave rest as None (to be estimated)
+                seasonal_list = [None] * n_seasonal
+                estimate_list = [True] * n_seasonal
+                for i, val in enumerate(seasonal_val):
+                    if i < n_seasonal:
+                        seasonal_list[i] = val
+                        estimate_list[i] = False
+                result["persistence_seasonal"] = seasonal_list
+                result["persistence_seasonal_estimate"] = estimate_list
+            else:
+                # Fallback - treat as single value
+                result["persistence_seasonal"] = [seasonal_val] * n_seasonal
+                result["persistence_seasonal_estimate"] = [False] * n_seasonal
 
         # Process xreg persistence
         if "xreg" in persistence and xreg_model:
@@ -2959,6 +2994,7 @@ def parameters_checker(
     dist_info = _check_distribution_loss(distribution, loss, silent)
     distribution = dist_info["distribution"]
     loss = dist_info["loss"]
+    loss_function = dist_info.get("loss_function", None)
 
     #####################
     # 6) Check Outliers
@@ -3229,10 +3265,21 @@ def parameters_checker(
         "y_forecast_index": ot_info.get("y_forecast_index", None)
     }
 
+    # Determine if multistep loss is used
+    multistep_losses = [
+        "MSEh", "TMSE", "GTMSE", "MSCE",
+        "MAEh", "TMAE", "GTMAE", "MACE",
+        "HAMh", "THAM", "GTHAM", "CHAM",
+        "GPL",
+        "aMSEh", "aTMSE", "aGTMSE", "aMSCE", "aGPL"
+    ]
+    multisteps = loss in multistep_losses
+
     # Create general dictionary with remaining parameters
     general_dict = {
         "distribution": distribution,
         "loss": loss,
+        "multisteps": multisteps,
         "outliers": outliers_mode,
         "h": h,
         "holdout": holdout,
@@ -3249,6 +3296,9 @@ def parameters_checker(
         "scenarios": scenarios,
         "ellipsis": ellipsis,
     }
+    # Add custom loss function if provided
+    if loss_function is not None:
+        general_dict["loss_function"] = loss_function
 
     # Initialize estimation parameters if needed
     if model_do == "estimate":
