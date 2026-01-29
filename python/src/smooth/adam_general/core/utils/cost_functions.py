@@ -522,54 +522,7 @@ def CF(B,
 
         # Calculate loss based on type
         loss = general['loss']
-        denominator = obs_in_sample - h
-
-        if loss == "MSEh":
-            # MSE at horizon h only
-            CFValue = np.sum(adam_errors[:, h-1]**2) / denominator
-        elif loss == "TMSE":
-            # Trace MSE (sum over all horizons)
-            CFValue = np.sum(np.sum(adam_errors**2, axis=0) / denominator)
-        elif loss == "GTMSE":
-            # Geometric Trace MSE (log of column sums)
-            col_mse = np.sum(adam_errors**2, axis=0) / denominator
-            CFValue = np.sum(np.log(col_mse))
-        elif loss == "MSCE":
-            # Mean Squared Cumulative Error
-            CFValue = np.sum(np.sum(adam_errors, axis=1)**2) / denominator
-        elif loss == "MAEh":
-            # MAE at horizon h only
-            CFValue = np.sum(np.abs(adam_errors[:, h-1])) / denominator
-        elif loss == "TMAE":
-            # Trace MAE
-            CFValue = np.sum(np.sum(np.abs(adam_errors), axis=0) / denominator)
-        elif loss == "GTMAE":
-            # Geometric Trace MAE
-            col_mae = np.sum(np.abs(adam_errors), axis=0) / denominator
-            CFValue = np.sum(np.log(col_mae))
-        elif loss == "MACE":
-            # Mean Absolute Cumulative Error
-            CFValue = np.sum(np.abs(np.sum(adam_errors, axis=1))) / denominator
-        elif loss == "HAMh":
-            # HAM at horizon h only
-            CFValue = np.sum(np.sqrt(np.abs(adam_errors[:, h-1]))) / denominator
-        elif loss == "THAM":
-            # Trace HAM
-            CFValue = np.sum(np.sum(np.sqrt(np.abs(adam_errors)), axis=0) / denominator)
-        elif loss == "GTHAM":
-            # Geometric Trace HAM
-            col_ham = np.sum(np.sqrt(np.abs(adam_errors)), axis=0) / denominator
-            CFValue = np.sum(np.log(col_ham))
-        elif loss == "CHAM":
-            # Cumulative HAM
-            CFValue = np.sum(np.sqrt(np.abs(np.sum(adam_errors, axis=1)))) / denominator
-        elif loss == "GPL":
-            # Generalized Pseudo-Likelihood (log determinant)
-            cov_matrix = adam_errors.T @ adam_errors / denominator
-            CFValue = np.log(np.linalg.det(cov_matrix))
-        else:
-            # Fallback - should not happen
-            CFValue = 1e300
+        CFValue = calculate_multistep_loss(loss, adam_errors, obs_in_sample, h)
 
     if np.isnan(CFValue) or np.isinf(CFValue):
         #print("CFValue is NaN")
