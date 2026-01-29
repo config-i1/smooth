@@ -65,3 +65,18 @@ endif()
 
 # Install to match module name
 install(TARGETS _adamCore DESTINATION smooth/adam_general)
+
+# LOWESS smoother module
+pybind11_add_module(_lowess ../src/python/lowess.cpp)
+target_compile_definitions(_lowess PRIVATE PYTHON_BUILD)
+target_include_directories(_lowess PRIVATE ../src)
+target_link_libraries(_lowess PRIVATE carma::carma)
+target_link_libraries(_lowess PRIVATE ${lapackblas_libraries})
+if(Armadillo_FOUND)
+  if(TARGET Armadillo::armadillo)
+    target_link_libraries(_lowess PRIVATE Armadillo::armadillo)
+  else()
+    target_link_libraries(_lowess PRIVATE ${ARMADILLO_LIBRARIES})
+  endif()
+endif()
+install(TARGETS _lowess DESTINATION smooth/adam_general)

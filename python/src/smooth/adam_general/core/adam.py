@@ -1,15 +1,20 @@
 import time
 import warnings
-from typing import Union, List, Optional, Literal, Dict, Any, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
 from smooth.adam_general.core.checker import parameters_checker
-from smooth.adam_general.core.estimator import estimator, selector, _process_initial_values
-from smooth.adam_general.core.creator import creator, initialiser, architector, filler
+from smooth.adam_general.core.creator import architector, creator
+from smooth.adam_general.core.estimator import (
+    estimator,
+    selector,
+)
+from smooth.adam_general.core.forecaster import forecaster, preparator
 from smooth.adam_general.core.utils.ic import ic_function
-from smooth.adam_general.core.forecaster import preparator, forecaster
+
 # Note: adam_cpp instance is stored in self and passed to forecasting functions
 
 
@@ -146,7 +151,7 @@ class ADAM:
 
     .. code-block:: python
 
-        from smooth.adam_general.core.adam import ADAM
+        from smooth import ADAM
         import numpy as np
 
         # Generate sample data
@@ -154,7 +159,8 @@ class ADAM:
 
         # Automatic model selection
         model = ADAM(model="ZZZ", lags=[12], ic="AICc")
-        model.fit(y)
+        ADAM_fit = model.fit(y)
+        print(ADAM_fit)
 
         # Generate 12-step ahead forecasts with intervals
         forecasts = model.predict(h=12, calculate_intervals=True, level=0.95)
@@ -223,12 +229,13 @@ class ADAM:
     selector : Automatic model selection function
     estimator : Parameter estimation function
     forecaster : Forecasting function
+    print : Print the outputs of the ADAM class
 
     Examples
     --------
     Simple exponential smoothing::
 
-        >>> from smooth.adam_general.core.adam import ADAM
+        >>> from smooth import ADAM
         >>> import numpy as np
         >>> y = np.array([112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118])
         >>> model = ADAM(model="ANN", lags=[1])
@@ -334,6 +341,7 @@ class ADAM:
         # specific to losses or distributions
         reg_lambda: Optional[float] = None,
         gnorm_shape: Optional[float] = None,
+        smoother: Literal["lowess", "ma", "global"] = "lowess",
     ) -> None:
         """
         Initialize the ADAM model with specified parameters.
@@ -414,11 +422,43 @@ class ADAM:
         nlopt_lower : Optional[Dict[str, Any]], default=None
             Lower bounds for optimization parameters for NLopt solver.
         nlopt_kargs : Optional[Dict[str, Any]], default=None
-            Additional keyword arguments for the NLopt optimizer.
+            Additional keyword arguments for optimization. Supported keys:
+
+            - ``print_level`` (int): Verbosity level for optimization progress (default=0).
+              When >0, prints parameter vector B and cost function value on every iteration.
+              Output format: ``Iter N: B=[val1, val2, ...] -> CF=value``
+            - ``xtol_rel`` (float): Relative tolerance on optimization parameters (default=1e-6).
+              Optimization stops when parameter changes are smaller than xtol_rel * |params|.
+            - ``xtol_abs`` (float): Absolute tolerance on optimization parameters (default=1e-8).
+              Optimization stops when parameter changes are smaller than xtol_abs.
+            - ``ftol_rel`` (float): Relative tolerance on function value (default=1e-8).
+              Optimization stops when CF changes are smaller than ftol_rel * |CF|.
+            - ``ftol_abs`` (float): Absolute tolerance on function value (default=0).
+              Optimization stops when CF changes are smaller than ftol_abs.
+            - ``algorithm`` (str): NLopt algorithm name (default="NLOPT_LN_NELDERMEAD").
+              Common alternatives: "NLOPT_LN_SBPLX" (Subplex), "NLOPT_LN_COBYLA" (COBYLA),
+              "NLOPT_LN_BOBYQA" (BOBYQA). Use "LN_" prefix for derivative-free algorithms.
+
+            Example::
+
+                model = ADAM(model="AAN", nlopt_kargs={
+                    "print_level": 1,
+                    "xtol_rel": 1e-8,
+                    "algorithm": "NLOPT_LN_SBPLX"
+                })
         reg_lambda : Optional[float], default=None
             Regularization parameter specifically for LASSO/RIDGE losses.
         gnorm_shape : Optional[float], default=None
             Shape parameter 's' for the generalized normal distribution.
+        smoother : Literal["lowess", "ma", "global"], default="lowess"
+            Smoother type for time series decomposition in initial state estimation.
+
+            - "lowess": Uses LOWESS (Locally Weighted Scatterplot Smoothing) for both
+              trend and seasonal pattern extraction. This is the default.
+            - "ma": Uses simple moving average for both trend and seasonality.
+            - "global": Uses lowess for trend and "ma" (moving average) for seasonality.
+              Provides robust trend estimation while avoiding lowess instability for
+              small seasonal samples.
         """
         # Start measuring the time of calculations
         self.start_time = time.time()
@@ -452,6 +492,7 @@ class ADAM:
         self.nlopt_kargs = nlopt_kargs
         self.reg_lambda = reg_lambda
         self.gnorm_shape = gnorm_shape
+        self.smoother = smoother
 
         # Store parameters that were moved from fit
         self.h = h
@@ -643,7 +684,7 @@ class ADAM:
         --------
         Basic fitting::
 
-            >>> from smooth.adam_general.core.adam import ADAM
+            >>> from smooth import ADAM
             >>> import numpy as np
             >>> y = np.array([112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118])
             >>> model = ADAM(model="ANN", lags=[1])
@@ -699,8 +740,10 @@ class ADAM:
         elif self.model_type_dict["model_do"] == "select":
             # get the best model
             self._execute_selection()
-            # Execute estimation for the selected model with calling the estimator
-            self._execute_estimation(estimation=False)
+            # Execute estimation for the selected model
+            # Note: estimator() handles two-stage initialization internally,
+            # so all models in the pool use consistent initialization
+            self._execute_estimation(estimation=True)
 
         elif self.model_type_dict["model_do"] == "combine":
             ... # I need to implement this
@@ -737,9 +780,14 @@ class ADAM:
             if "persistence_xreg" in self.persistence_results:
                 self.persistence_xreg_ = self.persistence_results["persistence_xreg"]
 
-        # Set phi parameter
-        if hasattr(self, "phi_dict") and self.phi_dict and "phi" in self.phi_dict:
-            self.phi_ = self.phi_dict["phi"]
+        # Set phi parameter - only if model is damped and phi was estimated or provided
+        if hasattr(self, "phi_dict") and self.phi_dict:
+            if self.phi_dict.get("phi_estimate", False) or self.model_type_dict.get("damped", False):
+                self.phi_ = self.phi_dict.get("phi")
+            else:
+                self.phi_ = None
+        else:
+            self.phi_ = None
 
         # Set ARIMA parameters
         if hasattr(self, "arima_results") and self.arima_results:
@@ -750,6 +798,48 @@ class ADAM:
         if hasattr(self, "initials_results") and self.initials_results:
             if "initial_states" in self.initials_results:
                 self.initial_states_ = self.initials_results["initial_states"]
+
+        # Update self.model with the selected/estimated model name
+        if hasattr(self, "model_type_dict") and self.model_type_dict:
+            # Use best_model if available (from model selection), otherwise construct from components
+            if hasattr(self, "best_model") and self.best_model:
+                ets_str = self.best_model
+            else:
+                # Construct from components (for fixed model specification)
+                e = self.model_type_dict.get("error_type", "")
+                t = self.model_type_dict.get("trend_type", "")
+                s = self.model_type_dict.get("season_type", "")
+                damped = self.model_type_dict.get("damped", False)
+                if damped and t not in ["N", ""]:
+                    t = t + "d"
+                ets_str = e + t + s if (e or t or s) else self.model
+
+            # Build the model name
+            model_parts = []
+
+            # Add ETS part if present
+            is_ets = self.model_type_dict.get("ets_model", False)
+            if is_ets:
+                model_parts.append(f"ETS({ets_str})")
+
+            # Add ARIMA part if present
+            is_arima = self.model_type_dict.get("arima_model", False)
+            if is_arima and hasattr(self, "arima_results") and self.arima_results:
+                ar_orders = self.arima_results.get("ar_orders", [0])
+                i_orders = self.arima_results.get("i_orders", [0])
+                ma_orders = self.arima_results.get("ma_orders", [0])
+
+                # Format ARIMA orders - sum across lags for simple display
+                ar = sum(ar_orders) if ar_orders else 0
+                i = sum(i_orders) if i_orders else 0
+                ma = sum(ma_orders) if ma_orders else 0
+                model_parts.append(f"ARIMA({ar},{i},{ma})")
+
+            # Combine parts
+            if model_parts:
+                self.model = "+".join(model_parts)
+            else:
+                self.model = ets_str
 
     def predict(
         self,
@@ -1008,247 +1098,6 @@ class ADAM:
                 arma_parameters.extend([0] * self.arima_results["ma_orders"][i])
         self.arima_results["arma_parameters"] = arma_parameters
 
-    def _run_two_stage_initialization(self):
-        """
-        Run two-stage initialization matching R's behavior exactly.
-
-        R's approach (adam.R lines 2558-2695):
-        1. BValues$B is created ONCE with initialType="two-stage" (includes initials in B)
-        2. Stage 1: Run with initial='complete' to get backcasted parameters
-        3. Reuse SAME BValues$B structure, populate with Stage 1 results
-        4. Pass ORIGINAL initialType="two-stage" to optimizer
-
-        Key insight: R does NOT change initialType between stages. It keeps "two-stage"
-        throughout, which ensures filler() reads initial states from B vector.
-        """
-        import os
-        from smooth.adam_general.core.creator import architector, creator, initialiser
-
-        # Store original settings (should be "two-stage")
-        original_initial_type = self.initials_results["initial_type"]
-        original_n_iterations = self.initials_results.get("n_iterations", 2)
-
-        # =========================================================================
-        # STEP 1: Get B vector structure with initial_type="two-stage"
-        # R: BValues <- initialiser(..., initialType, ...) on line 2559
-        # This creates B WITH initial states because "two-stage" != "complete"/"backcasting"
-        # =========================================================================
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage: Getting B structure with initial_type='{self.initials_results['initial_type']}'")
-
-        # First, build the model structure (architector and creator)
-        # These are needed for initialiser to work
-        model_type_dict, components_dict, lags_dict, observations_dict, profile_dict, _ = (
-            architector(
-                self.model_type_dict,
-                self.lags_dict,
-                self.observations_dict,
-                self.arima_results,
-                self.constant_dict,
-                self.explanatory_dict,
-                self.profiles_recent_table,
-                self.profiles_recent_provided,
-            )
-        )
-
-        adam_created = creator(
-            model_type_dict,
-            lags_dict,
-            profile_dict,
-            observations_dict,
-            self.persistence_results,
-            self.initials_results,  # Uses original "two-stage"
-            self.arima_results,
-            self.constant_dict,
-            self.phi_dict,
-            components_dict,
-            self.explanatory_dict,
-        )
-
-        # Call initialiser with ORIGINAL initials_results (initial_type="two-stage")
-        # This creates B vector that includes initial states
-        b_values = initialiser(
-            model_type_dict=model_type_dict,
-            components_dict=components_dict,
-            lags_dict=lags_dict,
-            adam_created=adam_created,
-            persistence_checked=self.persistence_results,
-            initials_checked=self.initials_results,  # Uses original "two-stage"
-            arima_checked=self.arima_results,
-            constants_checked=self.constant_dict,
-            explanatory_checked=self.explanatory_dict,
-            observations_dict=observations_dict,
-            bounds=self.general["bounds"],
-            phi_dict=self.phi_dict,
-            profile_dict=profile_dict,
-        )
-
-        # B vector with two-stage structure (includes initials)
-        B = b_values["B"].copy()
-        Bl = b_values["Bl"].copy()
-        Bu = b_values["Bu"].copy()
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage: Initial B structure = {B}")
-            print(f"DEBUG Two-Stage: B length = {len(B)}")
-
-        # =========================================================================
-        # STEP 2: Run Stage 1 with initial='complete' to get backcasted parameters
-        # R: clNew$initial <- "complete"; adamBack <- eval(clNew)
-        # =========================================================================
-
-        # Create Stage 1 initials dict with complete backcasting
-        stage1_initials = self.initials_results.copy()
-        stage1_initials["initial_type"] = "complete"
-        stage1_initials["n_iterations"] = 2
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage S1: Running Stage 1 with initial='complete'")
-
-        # Call estimator for Stage 1 with return_matrices=True to get mat_vt
-        adam_estimated_s1 = estimator(
-            general_dict=self.general,
-            model_type_dict=self.model_type_dict,
-            lags_dict=self.lags_dict,
-            observations_dict=self.observations_dict,
-            arima_dict=self.arima_results,
-            constant_dict=self.constant_dict,
-            explanatory_dict=self.explanatory_dict,
-            profiles_recent_table=self.profiles_recent_table,
-            profiles_recent_provided=self.profiles_recent_provided,
-            persistence_dict=self.persistence_results,
-            initials_dict=stage1_initials,  # Stage 1 uses "complete"
-            occurrence_dict=self.occurrence_dict,
-            phi_dict=self.phi_dict,
-            components_dict=self.components_dict,
-            return_matrices=True,  # Get access to mat_vt
-        )
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage S1: Stage 1 B = {adam_estimated_s1['B']}")
-
-        # =========================================================================
-        # STEP 3: Extract results from Stage 1 and populate B
-        # R: B[1:nParametersBack] <- adamBack$B[1:nParametersBack]
-        # R: B[nParametersBack + c(1:length(initialsUnlisted))] <- initialsUnlisted
-        # =========================================================================
-
-        B_stage1 = adam_estimated_s1["B"]
-        n_params_stage1 = len(B_stage1)  # Number of persistence/phi/ARMA params from Stage 1
-
-        # Copy persistence/phi/ARMA from Stage 1 to B
-        # R: B[1:nParametersBack] <- adamBack$B[1:nParametersBack]
-        B[:n_params_stage1] = B_stage1[:n_params_stage1]
-
-        # Extract initial states from Stage 1's fitted mat_vt
-        mat_vt_s1 = adam_estimated_s1["matrices"]["mat_vt"]
-        lags_dict_s1 = adam_estimated_s1["lags_dict"]
-        lags_model_s1 = lags_dict_s1["lags_model"]
-        lags_model_max_s1 = lags_dict_s1["lags_model_max"]
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage: mat_vt shape = {mat_vt_s1.shape}")
-            print(f"DEBUG Two-Stage: mat_vt[:, 0] = {mat_vt_s1[:, 0]}")
-
-        # Extract initial states from mat_vt (matching R's adamBack$initial extraction)
-        initial_states = []
-        current_row = 0
-
-        # Level
-        if self.initials_results.get("initial_level_estimate", False):
-            initial_states.append(mat_vt_s1[current_row, 0])
-            current_row += 1
-        elif self.model_type_dict.get("ets_model", False):
-            current_row += 1
-
-        # Trend
-        if self.model_type_dict.get("model_is_trendy", False):
-            if self.initials_results.get("initial_trend_estimate", False):
-                initial_states.append(mat_vt_s1[current_row, 0])
-            current_row += 1
-
-        # Seasonal
-        if self.model_type_dict.get("model_is_seasonal", False):
-            n_seasonal = self.components_dict.get("components_number_ets_seasonal", 0)
-            seasonal_estimate = self.initials_results.get("initial_seasonal_estimate", [False] * n_seasonal)
-            if not isinstance(seasonal_estimate, list):
-                seasonal_estimate = [seasonal_estimate] * n_seasonal
-
-            for i in range(n_seasonal):
-                lag = lags_model_s1[current_row]
-                if seasonal_estimate[i] if i < len(seasonal_estimate) else False:
-                    start_idx = lags_model_max_s1 - lag
-                    full_seasonal = mat_vt_s1[current_row, start_idx:lags_model_max_s1].copy()
-
-                    # Renormalize per R's lines 2647-2655
-                    if self.model_type_dict.get("season_type", "N") == "A":
-                        full_seasonal = full_seasonal - np.mean(full_seasonal)
-                    elif self.model_type_dict.get("season_type", "N") == "M":
-                        if np.all(full_seasonal > 0):
-                            geo_mean = np.exp(np.mean(np.log(full_seasonal)))
-                            full_seasonal = full_seasonal / geo_mean
-
-                    # Truncate to m-1 (R's line 2653/2644)
-                    initial_states.extend(full_seasonal[:-1].tolist())
-                current_row += 1
-
-        # ARIMA initials
-        if self.arima_results.get("arima_model", False):
-            n_arima = self.arima_results.get("initial_arima_number", 0)
-            if self.initials_results.get("initial_arima_estimate", False) and n_arima > 0:
-                for i in range(n_arima):
-                    initial_states.append(mat_vt_s1[current_row + i, lags_model_max_s1 - 1])
-
-        # Put extracted initials into B
-        # R: B[nParametersBack + c(1:length(initialsUnlisted))] <- initialsUnlisted
-        if len(initial_states) > 0:
-            B[n_params_stage1:n_params_stage1 + len(initial_states)] = initial_states
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage: initial_states = {initial_states}")
-            print(f"DEBUG Two-Stage: B after populating = {B}")
-
-        # =========================================================================
-        # STEP 4: Adjust bounds per R's lines 2683-2694
-        # =========================================================================
-        Bl[np.isnan(Bl)] = -np.inf
-        Bu[np.isnan(Bu)] = np.inf
-        Bl[Bl > B] = -np.inf
-        Bu[Bu < B] = np.inf
-
-        # =========================================================================
-        # STEP 5: Run Stage 2 with ORIGINAL initials_results (initial_type="two-stage")
-        # R passes originalType to optimizer - this ensures filler reads initials from B
-        # =========================================================================
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage S2: Running Stage 2 with initial_type='{self.initials_results['initial_type']}'")
-            print(f"DEBUG Two-Stage S2: B_initial = {B}")
-
-        self.adam_estimated = estimator(
-            general_dict=self.general,
-            model_type_dict=self.model_type_dict,
-            lags_dict=self.lags_dict,
-            observations_dict=self.observations_dict,
-            arima_dict=self.arima_results,
-            constant_dict=self.constant_dict,
-            explanatory_dict=self.explanatory_dict,
-            profiles_recent_table=self.profiles_recent_table,
-            profiles_recent_provided=self.profiles_recent_provided,
-            persistence_dict=self.persistence_results,
-            initials_dict=self.initials_results,  # KEY FIX: Use ORIGINAL "two-stage"
-            occurrence_dict=self.occurrence_dict,
-            phi_dict=self.phi_dict,
-            components_dict=self.components_dict,
-            B_initial=B,
-            lb=Bl,
-            ub=Bu,
-        )
-
-        if os.environ.get('DEBUG_TWOSTAGE') == '1':
-            print(f"DEBUG Two-Stage: Final B = {self.adam_estimated['B']}")
-
     def _execute_estimation(self, estimation = True):
         """
         Execute model estimation when model_do is 'estimate'.
@@ -1259,26 +1108,27 @@ class ADAM:
         self._handle_lasso_ridge_special_case()
 
         # Estimate the model
+        # Note: estimator() handles two-stage initialization internally
         if estimation:
-            if self.initials_results["initial_type"] == "two-stage":
-                self._run_two_stage_initialization()
-            else:
-                self.adam_estimated = estimator(
-                    general_dict=self.general,
-                    model_type_dict=self.model_type_dict,
-                    lags_dict=self.lags_dict,
-                    observations_dict=self.observations_dict,
-                    arima_dict=self.arima_results,
-                    constant_dict=self.constant_dict,
-                    explanatory_dict=self.explanatory_dict,
-                    profiles_recent_table=self.profiles_recent_table,
-                    profiles_recent_provided=self.profiles_recent_provided,
-                    persistence_dict=self.persistence_results,
-                    initials_dict=self.initials_results,
-                    occurrence_dict=self.occurrence_dict,
-                    phi_dict=self.phi_dict,
-                    components_dict=self.components_dict,
-                )
+            nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
+            self.adam_estimated = estimator(
+                general_dict=self.general,
+                model_type_dict=self.model_type_dict,
+                lags_dict=self.lags_dict,
+                observations_dict=self.observations_dict,
+                arima_dict=self.arima_results,
+                constant_dict=self.constant_dict,
+                explanatory_dict=self.explanatory_dict,
+                profiles_recent_table=self.profiles_recent_table,
+                profiles_recent_provided=self.profiles_recent_provided,
+                persistence_dict=self.persistence_results,
+                initials_dict=self.initials_results,
+                occurrence_dict=self.occurrence_dict,
+                phi_dict=self.phi_dict,
+                components_dict=self.components_dict,
+                smoother=self.smoother,
+                **nlopt_params,
+            )
             # Extract adam_cpp from estimation results
             self.adam_cpp = self.adam_estimated["adam_cpp"]
 
@@ -1315,6 +1165,7 @@ class ADAM:
             phi_dict=self.phi_dict,
             components_dict=self.components_dict,
             explanatory_checked=self.explanatory_dict,
+            smoother=self.smoother,
         )
 
         # Calculate information criterion
@@ -1333,24 +1184,45 @@ class ADAM:
         Parameters
         ----------
         n_param_estimated : int
-            Number of estimated parameters
+            Number of estimated parameters from optimization
         """
         # Store number of estimated parameters
         self.n_param_estimated = n_param_estimated
 
-        # Initialize parameters_number if not present
-        if "parameters_number" not in self.general:
-            self.general["parameters_number"] = self.params_info["parameters_number"]
-        self.general["parameters_number"][0][0] = self.n_param_estimated
+        # Update the n_param table
+        if "n_param" in self.general:
+            n_param = self.general["n_param"]
+            # The n_param_estimated from optimizer is the total internal params
+            # We need to update it based on what was actually estimated
+            n_param.estimated['internal'] = n_param_estimated
 
-        # Handle likelihood loss case
+            # Handle likelihood loss case - scale parameter is estimated
+            if self.general["loss"] == "likelihood":
+                n_param.estimated['scale'] = 1
+            else:
+                n_param.estimated['scale'] = 0
+
+            # Update totals
+            n_param.update_totals()
+
+            # Store reference for easy access
+            self.n_param = n_param
+
+        # Legacy format for backward compatibility
+        if "parameters_number" not in self.general:
+            self.general["parameters_number"] = self.params_info.get(
+                "parameters_number", [[0], [0]]
+            )
+        self.general["parameters_number"][0][0] = n_param_estimated
+
+        # Handle likelihood loss case in legacy format
         if self.general["loss"] == "likelihood":
             if len(self.general["parameters_number"][0]) <= 3:
                 self.general["parameters_number"][0].append(1)
             else:
                 self.general["parameters_number"][0][3] = 1
 
-        # Calculate row sums
+        # Calculate row sums in legacy format
         if len(self.general["parameters_number"][0]) <= 4:
             self.general["parameters_number"][0].append(
                 sum(self.general["parameters_number"][0][0:4])
@@ -1372,6 +1244,8 @@ class ADAM:
 
         This handles model selection and creation of the selected model.
         """
+        # Get nlopt parameters from nlopt_kargs if provided
+        nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
         # Run model selection
         self.adam_selected = selector(
             model_type_dict=self.model_type_dict,
@@ -1390,6 +1264,8 @@ class ADAM:
             initials_results=self.initials_results,
             criterion=self.general["ic"],
             silent=self.verbose == 0,
+            smoother=self.smoother,
+            **nlopt_params,
         )
         #print(self.adam_selected)
         #print(self.adam_selected["ic_selection"])
@@ -1491,6 +1367,7 @@ class ADAM:
             phi_dict=self.phi_dict,
             components_dict=self.components_dict,
             explanatory_checked=self.explanatory_dict,
+            smoother=self.smoother,
         )
 
         # Store created matrices
@@ -1510,7 +1387,24 @@ class ADAM:
         """
         # Update parameters number
         n_param_estimated = result["adam_estimated"]["n_param_estimated"]
-        self.general["parameters_number"] = self.params_info["parameters_number"]
+
+        # Update n_param table if available
+        if "n_param" in self.general and self.general["n_param"] is not None:
+            n_param = self.general["n_param"]
+            n_param.estimated['internal'] = n_param_estimated
+
+            if self.general["loss"] == "likelihood":
+                n_param.estimated['scale'] = 1
+            else:
+                n_param.estimated['scale'] = 0
+
+            n_param.update_totals()
+            self.n_param = n_param
+
+        # Legacy format
+        self.general["parameters_number"] = self.params_info.get(
+            "parameters_number", [[0], [0]]
+        )
         self.general["parameters_number"][0][0] = n_param_estimated
 
         # Handle likelihood loss case
@@ -1741,3 +1635,66 @@ class ADAM:
         self.forecast_results["elapsed_time"] = time.time() - self.start_time
 
         return self.forecast_results
+
+    def __str__(self) -> str:
+        """
+        Return a formatted string representation of the fitted model.
+
+        Returns a comprehensive summary including model type, parameters,
+        information criteria, and forecast errors (if holdout was used).
+
+        Returns
+        -------
+        str
+            Formatted model summary
+        """
+        from smooth.adam_general.core.utils.printing import model_summary
+
+        # Check if model has been fitted
+        if not hasattr(self, 'model_type_dict'):
+            return f"ADAM(model={self.model}) - not fitted"
+
+        return model_summary(self)
+
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the ADAM model.
+
+        Returns
+        -------
+        str
+            Brief model representation
+        """
+        if hasattr(self, 'model_type_dict') and self.model_type_dict:
+            model_str = self.model_type_dict.get('model', self.model)
+            if self.model_type_dict.get('ets_model', False):
+                return f"ADAM(ETS({model_str}), fitted=True)"
+            return f"ADAM({model_str}, fitted=True)"
+        return f"ADAM(model={self.model}, fitted=False)"
+
+    def summary(self, digits: int = 4) -> str:
+        """
+        Generate a formatted summary of the fitted model.
+
+        Parameters
+        ----------
+        digits : int, default=4
+            Number of decimal places for numeric output
+
+        Returns
+        -------
+        str
+            Formatted model summary
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> print(model.summary())
+        """
+        from smooth.adam_general.core.utils.printing import model_summary
+
+        if not hasattr(self, 'model_type_dict'):
+            return "Model has not been fitted yet. Call fit() first."
+
+        return model_summary(self, digits=digits)

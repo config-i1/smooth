@@ -1,0 +1,324 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smooth.msdecompose &mdash; smooth  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="msdecompose" href="../msdecompose.html" />
+    <link rel="prev" title="API reference" href="../api.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            smooth
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.html">smooth.ADAM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.html">smooth.ES</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.fit.html">smooth.ADAM.fit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.predict.html">smooth.ADAM.predict</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.predict_intervals.html">smooth.ADAM.predict_intervals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.select_best_model.html">smooth.ADAM.select_best_model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.summary.html">smooth.ADAM.summary</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.fit.html">smooth.ES.fit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.predict.html">smooth.ES.predict</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.predict_intervals.html">smooth.ES.predict_intervals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.select_best_model.html">smooth.ES.select_best_model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ES.summary.html">smooth.ES.summary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#classes">Classes</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#functions">Functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">smooth.msdecompose</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#smooth.msdecompose"><code class="docutils literal notranslate"><span class="pre">msdecompose()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../msdecompose.html">msdecompose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../lowess.html">lowess</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">smooth</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API reference</a></li>
+      <li class="breadcrumb-item active">smooth.msdecompose</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/smooth.msdecompose.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="smooth-msdecompose">
+<h1>smooth.msdecompose<a class="headerlink" href="#smooth-msdecompose" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="smooth.msdecompose">
+<span class="sig-prename descclassname"><span class="pre">smooth.</span></span><span class="sig-name descname"><span class="pre">msdecompose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[12]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'additive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smoother</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lowess'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#smooth.msdecompose" title="Link to this definition"></a></dt>
+<dd><p>Multiple seasonal decomposition of time series with multiple frequencies.</p>
+<p>This function performs <strong>classical seasonal decomposition</strong> for time series with multiple
+seasonal patterns (e.g., hourly data with daily and weekly seasonality, or daily data
+with weekly and yearly patterns). It extends the standard STL decomposition to handle
+multiple seasonal periods simultaneously.</p>
+<p>The decomposition separates the time series into:</p>
+<ul class="simple">
+<li><p><strong>Trend</strong>: Long-term movement (captured via smoothing)</p></li>
+<li><p><strong>Seasonal components</strong>: One for each seasonal period in <cite>lags</cite></p></li>
+<li><p><strong>Remainder</strong> (not explicitly returned but implied): y - trend - seasonals</p></li>
+</ul>
+<p><strong>Decomposition Method</strong>:</p>
+<p>For <strong>additive</strong> decomposition:</p>
+<div class="math notranslate nohighlight">
+\[y_t = \text{Trend}_t + \sum_i \text{Seasonal}_i(t) + \epsilon_t\]</div>
+<p>For <strong>multiplicative</strong> decomposition:</p>
+<div class="math notranslate nohighlight">
+\[y_t = \text{Trend}_t \times \prod_i \text{Seasonal}_i(t) \times \epsilon_t\]</div>
+<p><strong>Algorithm Steps</strong>:</p>
+<ol class="arabic simple">
+<li><p><strong>Log Transform</strong> (if multiplicative): Apply log to convert to additive form</p></li>
+<li><p><strong>Missing Value Imputation</strong>: Fill NaN values using polynomial + Fourier regression</p></li>
+<li><p><strong>Iterative Smoothing</strong>: For each lag period (sorted ascending), apply smoother
+with window = lag period, extract seasonal pattern as residual from next
+smoother level, and remove seasonal mean to center patterns</p></li>
+<li><p><strong>Trend Extraction</strong>: Final smoothed series is the trend</p></li>
+<li><p><strong>Initial States</strong>: Compute level and slope from trend for model initialization</p></li>
+</ol>
+<p><strong>Smoother Types</strong>:</p>
+<ul class="simple">
+<li><p><strong>“ma”</strong>: Moving average with window = lag period. Fast but less flexible.
+Automatically switches to LOWESS if sample size &lt; minimum lag.</p></li>
+<li><p><strong>“lowess”</strong> (default): Locally weighted scatterplot smoothing. Robust to outliers,
+adapts to local patterns. Equivalent to R’s <cite>lowess()</cite>.</p></li>
+<li><p><strong>“supsmu”</strong>: Friedman’s super smoother (uses LOWESS implementation in Python).
+Adaptive bandwidth selection.</p></li>
+<li><p><strong>“global”</strong>: Global linear regression with intercept and deterministic trend.
+Fits a straight line to the data.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<em>array-like</em>) – Time series data to decompose. Can contain NaN values (will be imputed).
+Shape: (T,) where T is the number of observations.</p></li>
+<li><p><strong>lags</strong> (<em>list</em><em> or </em><em>array</em><em>, </em><em>default=</em><em>[</em><em>12</em><em>]</em>) – <p>Seasonal periods to extract. Examples:</p>
+<ul>
+<li><p>[12]: Monthly data with yearly seasonality</p></li>
+<li><p>[24]: Hourly data with daily seasonality</p></li>
+<li><p>[7, 365.25]: Daily data with weekly and yearly seasonality</p></li>
+<li><p>[24, 168]: Hourly data with daily (24h) and weekly (7×24=168h) patterns</p></li>
+</ul>
+<p>Must contain positive integers. Lags are sorted automatically.</p>
+</p></li>
+<li><p><strong>type</strong> (<em>str</em><em>, </em><em>default=&quot;additive&quot;</em>) – <p>Decomposition type:</p>
+<ul>
+<li><p><strong>”additive”</strong>: Components are summed (for stable seasonality)</p></li>
+<li><p><strong>”multiplicative”</strong>: Components are multiplied (for proportional seasonality,
+requires y &gt; 0)</p></li>
+</ul>
+</p></li>
+<li><p><strong>smoother</strong> (<em>str</em><em>, </em><em>default=&quot;lowess&quot;</em>) – <p>Smoothing method for trend and seasonal extraction:</p>
+<ul>
+<li><p><strong>”lowess”</strong>: LOWESS with adaptive span (recommended, <strong>default</strong>)</p></li>
+<li><p><strong>”supsmu”</strong>: Super smoother (uses LOWESS in Python)</p></li>
+<li><p><strong>”ma”</strong>: Simple moving average (faster but less robust)</p></li>
+<li><p><strong>”global”</strong>: Global linear regression (straight line fit)</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>Dictionary containing decomposition results:</p>
+<ul class="simple">
+<li><p><strong>’states’</strong> (numpy.ndarray): Matrix of extracted states, shape (T, n_states).
+Columns are [Level, Trend, Seasonal_1, Seasonal_2, …, Seasonal_n].
+These states can be used as initial values for ADAM model estimation.</p></li>
+<li><p><strong>’initial’</strong> (dict): Dictionary with initial values. Contains
+‘nonseasonal’ (dict with ‘level’ and ‘trend’ keys) and ‘seasonal’
+(list of numpy.ndarray with initial seasonal values for each lag).</p></li>
+<li><p><strong>’trend’</strong> (numpy.ndarray): Extracted trend component, shape (T,).
+Long-term movement after removing seasonal patterns.</p></li>
+<li><p><strong>’seasonal’</strong> (list of numpy.ndarray): Seasonal patterns, one array per lag.
+Each seasonal[i] has shape (T,) and is centered (mean = 0).</p></li>
+<li><p><strong>’component’</strong> (list): Component type descriptions (for compatibility).</p></li>
+<li><p><strong>’lags’</strong> (numpy.ndarray): Sorted unique lag periods used.</p></li>
+<li><p><strong>’type’</strong> (str): Decomposition type (‘additive’ or ‘multiplicative’).</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If type not in [‘additive’, ‘multiplicative’]
+    If smoother not in [‘ma’, ‘lowess’, ‘supsmu’]</p></li>
+<li><p><strong>ImportError</strong> – If smoother=’lowess’ or ‘supsmu’ but statsmodels is not installed</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p><strong>Missing Values</strong>:</p>
+<p>NaN values are automatically imputed using a regression model:</p>
+<div class="math notranslate nohighlight">
+\[\hat{y}_t = \sum_{k=0}^d \beta_k t^k + \sum_{j=1}^m \alpha_j \sin(\pi t j / m)\]</div>
+<p>where d is polynomial degree (up to 5) and m is the maximum lag.
+This preserves trend and seasonal structure during imputation.</p>
+<p><strong>Multiplicative Decomposition</strong>:</p>
+<p>Requires strictly positive data. If y ≤ 0, those values are treated as missing.
+Internally works on log(y), then exponentiates results.</p>
+<p><strong>Smoother Span Selection</strong>:</p>
+<p>For LOWESS, span (bandwidth) is automatically selected based on lag period:</p>
+<ul class="simple">
+<li><p>For lag = 1: span = 2/3 (R’s default)</p></li>
+<li><p>For lag = T: span = 2/3</p></li>
+<li><p>Otherwise: span = 1 / lag</p></li>
+<li><p>Minimum span: 3 / T (ensures smoothness)</p></li>
+</ul>
+<p><strong>Seasonal Centering</strong>:</p>
+<p>Each seasonal pattern is centered to have mean zero. This ensures identifiability:
+trend captures the level, seasonals capture deviations.</p>
+<p><strong>Performance</strong>:</p>
+<ul class="simple">
+<li><p>Moving average: Very fast (~1ms for T=1000)</p></li>
+<li><p>LOWESS: Moderate (~10-50ms depending on T)</p></li>
+<li><p>Multiple lags: Time scales linearly with number of lags</p></li>
+</ul>
+<p><strong>Use in ADAM</strong>:</p>
+<p>The decomposition is used for initial state estimation when initial=”backcasting”
+or when the model includes seasonal components. The extracted states provide
+reasonable starting values for the level, trend, and seasonal components.</p>
+<p><strong>Comparison to STL</strong>:</p>
+<p>Unlike STL (Seasonal-Trend decomposition using Loess), which handles only one
+seasonal period, msdecompose handles <strong>multiple</strong> seasonal periods by iteratively
+removing each seasonal component.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">creator</span></code></dt><dd><p>Uses msdecompose results for initial state estimation</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialiser</span></code></dt><dd><p>May use decomposition results for parameter initialization</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Examples</p>
+<p>Decompose monthly data with yearly seasonality:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">112</span><span class="p">,</span> <span class="mi">118</span><span class="p">,</span> <span class="mi">132</span><span class="p">,</span> <span class="mi">129</span><span class="p">,</span> <span class="mi">121</span><span class="p">,</span> <span class="mi">135</span><span class="p">,</span> <span class="mi">148</span><span class="p">,</span> <span class="mi">148</span><span class="p">,</span> <span class="mi">136</span><span class="p">,</span> <span class="mi">119</span><span class="p">,</span> <span class="mi">104</span><span class="p">,</span> <span class="mi">118</span><span class="p">,</span>
+<span class="gp">... </span>              <span class="mi">115</span><span class="p">,</span> <span class="mi">126</span><span class="p">,</span> <span class="mi">141</span><span class="p">,</span> <span class="mi">135</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">149</span><span class="p">,</span> <span class="mi">170</span><span class="p">,</span> <span class="mi">170</span><span class="p">,</span> <span class="mi">158</span><span class="p">,</span> <span class="mi">133</span><span class="p">,</span> <span class="mi">114</span><span class="p">,</span> <span class="mi">140</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">msdecompose</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;additive&#39;</span><span class="p">,</span> <span class="n">smoother</span><span class="o">=</span><span class="s1">&#39;lowess&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;trend&#39;</span><span class="p">])</span>  <span class="c1"># Trend component</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;seasonal&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># Yearly seasonal pattern</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;initial&#39;</span><span class="p">][</span><span class="s1">&#39;nonseasonal&#39;</span><span class="p">][</span><span class="s1">&#39;level&#39;</span><span class="p">])</span>  <span class="c1"># Initial level</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;initial&#39;</span><span class="p">][</span><span class="s1">&#39;nonseasonal&#39;</span><span class="p">][</span><span class="s1">&#39;trend&#39;</span><span class="p">])</span>  <span class="c1"># Initial trend</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;initial&#39;</span><span class="p">][</span><span class="s1">&#39;seasonal&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># First 12 seasonal values</span>
+</pre></div>
+</div>
+<p>Decompose hourly data with daily and weekly seasonality:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hourly_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span>  <span class="c1"># 4 weeks of hourly data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">msdecompose</span><span class="p">(</span><span class="n">hourly_data</span><span class="p">,</span> <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">24</span><span class="p">,</span> <span class="mi">168</span><span class="p">],</span>  <span class="c1"># 24h and 7*24h</span>
+<span class="gp">... </span>                     <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;additive&#39;</span><span class="p">,</span> <span class="n">smoother</span><span class="o">=</span><span class="s1">&#39;lowess&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">daily_pattern</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;seasonal&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># 24-hour pattern</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">weekly_pattern</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;seasonal&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Weekly pattern</span>
+</pre></div>
+</div>
+<p>Multiplicative decomposition for positive data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sales</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">100</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">140</span><span class="p">,</span> <span class="mi">130</span><span class="p">,</span> <span class="mi">160</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">210</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span> <span class="mi">140</span><span class="p">,</span> <span class="mi">110</span><span class="p">,</span> <span class="mi">130</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">msdecompose</span><span class="p">(</span><span class="n">sales</span><span class="p">,</span> <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;multiplicative&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Seasonality proportional to level</span>
+</pre></div>
+</div>
+<p>Use decomposition for ADAM initialization:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">msdecompose</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;additive&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">initial_level</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;initial&#39;</span><span class="p">][</span><span class="s1">&#39;nonseasonal&#39;</span><span class="p">][</span><span class="s1">&#39;level&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">initial_trend</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;initial&#39;</span><span class="p">][</span><span class="s1">&#39;nonseasonal&#39;</span><span class="p">][</span><span class="s1">&#39;trend&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">initial_seasonal</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;initial&#39;</span><span class="p">][</span><span class="s1">&#39;seasonal&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># First 12 values</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Pass to ADAM&#39;s initials parameter</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../api.html" class="btn btn-neutral float-left" title="API reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../msdecompose.html" class="btn btn-neutral float-right" title="msdecompose" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Filotas Theodosiou, Ivan Svetunkov, Leonidas Tsaprounis, Claude AI.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

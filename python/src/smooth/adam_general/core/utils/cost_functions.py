@@ -1,8 +1,14 @@
 import numpy as np
 from numpy.linalg import eigvals
+
 from smooth.adam_general.core.creator import filler
-from smooth.adam_general.core.utils.utils import measurement_inverter, scaler, calculate_likelihood, calculate_entropy, calculate_multistep_loss
-import numpy as np
+from smooth.adam_general.core.utils.utils import (
+    calculate_entropy,
+    calculate_likelihood,
+    calculate_multistep_loss,
+    measurement_inverter,
+    scaler,
+)
 
 
 def CF(B,

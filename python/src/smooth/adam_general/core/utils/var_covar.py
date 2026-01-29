@@ -1,7 +1,6 @@
 import numpy as np
 
 
-
 def sigma(observations_dict, params_info, general, prepared_model):
     """
     Calculate error scale parameter (standard deviation) for ADAM model.
