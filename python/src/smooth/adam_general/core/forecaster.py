@@ -345,7 +345,7 @@ def _generate_point_forecasts(
     )
 
     # Prepare data for adam_forecaster
-    lags_model_all = np.asfortranarray(
+    _lags_model_all = np.asfortranarray(
         lags_dict["lags_model_all"], dtype=np.uint64
     ).reshape(-1, 1)
     profiles_recent_table = np.asfortranarray(
@@ -915,10 +915,10 @@ def forecaster(
     # 10. Apply occurrence probabilities to forecasts
     y_forecast_values = y_forecast_values * p_forecast
     # 11. Handle cumulative forecasts if specified
-    h_final = general_dict["h"]
+    _h_final = general_dict["h"]
     if general_dict.get("cumulative"):
         y_forecast_values = np.sum(y_forecast_values)
-        h_final = 1
+        _h_final = 1
         #  In case of occurrence model use simulations - the cumulative probability is
         # complex
         if occurrence_model:
@@ -2025,7 +2025,7 @@ def preparator(
     # refineHead should always be True (fixed backcasting issue)
     refine_head = True
     # Use conventional ETS for now (adamETS=False)
-    adam_ets = False
+    _adam_ets = False
 
     # Check if initial_type is a list or string and compute backcast correctly
     if isinstance(initials_checked["initial_type"], list):
@@ -2742,11 +2742,11 @@ def generate_simulation_interval(
     arr_f_f = np.asfortranarray(arr_f, dtype=np.float64)
     mat_wt_f = np.asfortranarray(mat_wt, dtype=np.float64)
     mat_g_f = np.asfortranarray(mat_g, dtype=np.float64)
-    lags_f = np.asfortranarray(lags_model_all, dtype=np.uint64).reshape(-1, 1)
+    _lags_f = np.asfortranarray(lags_model_all, dtype=np.uint64).reshape(-1, 1)
     lookup_f = np.asfortranarray(lookup, dtype=np.uint64)
 
     # Determine adamETS setting (False for conventional ETS)
-    adam_ets = False
+    _adam_ets2 = False
 
     # 8. Call adam_cpp.simulate() with the prepared inputs
     #  Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set during

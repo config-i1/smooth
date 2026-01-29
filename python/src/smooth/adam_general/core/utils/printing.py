@@ -174,7 +174,6 @@ def _extract_persistence_from_vec_g(model: Any, vec_g: np.ndarray) -> Dict[str, 
     components = model.components_dict if hasattr(model, "components_dict") else {}
 
     n_ets = components.get("components_number_ets", 0)
-    n_ets_non_seasonal = components.get("components_number_ets_non_seasonal", 0)
     n_ets_seasonal = components.get("components_number_ets_seasonal", 0)
 
     # Alpha (level)
@@ -377,7 +376,6 @@ def _compute_forecast_errors(
         Dictionary of error metrics
     """
     errors = y_holdout - y_fitted_holdout
-    n = len(y_holdout)
 
     # Basic errors
     me = np.mean(errors)

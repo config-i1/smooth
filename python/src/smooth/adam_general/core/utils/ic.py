@@ -22,8 +22,6 @@ def AIC(loglik, nobs=None, df=None):  # noqa: N802
     # Extract loglik value if object is passed
     if hasattr(loglik, "loglik"):
         loglik = loglik.loglik
-    if hasattr(loglik, "nobs"):
-        nobs = loglik.nobs
     if hasattr(loglik, "df"):
         df = loglik.df
 

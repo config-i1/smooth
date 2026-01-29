@@ -1941,7 +1941,6 @@ def _run_branch_and_bound(
     baseline_idx = estimate_and_store(baseline_model, results, results_dict)
     models_tested.append(baseline_model)
     best_ic = results[baseline_idx]["IC"]
-    best_model = baseline_model
 
     # Step 2: Check seasonality (if check_seasonal is True)
     if check_seasonal and len(pool_seasonals) > 1:
@@ -1963,7 +1962,6 @@ def _run_branch_and_bound(
                 # Seasonality helps - remove "N" from pool, check multiplicative
                 pool_seasonals = [s for s in pool_seasonals if s != "N"]
                 best_ic = ic_a
-                best_model = model_a
 
                 # Check multiplicative seasonality if available
                 if "M" in pool_seasonals:
@@ -1983,7 +1981,6 @@ def _run_branch_and_bound(
                             # Multiplicative is better
                             pool_seasonals = ["M"]
                             best_ic = ic_m
-                            best_model = model_m
                         else:
                             # Additive is better
                             pool_seasonals = ["A"]
@@ -2029,7 +2026,6 @@ def _run_branch_and_bound(
                             # Trend helps - keep all trend options
                             pool_trends = [t for t in pool_trends if t != "N"]
                             best_ic = ic_t
-                            best_model = model_t
                         else:
                             # No trend helps - only check MNN for error type
                             pool_trends = ["N"]
@@ -2045,7 +2041,7 @@ def _run_branch_and_bound(
                                 )
                                 if error_model is not None:
                                     model_e = pool_small[error_model - 1]
-                                    idx_e = estimate_and_store(
+                                    estimate_and_store(
                                         model_e, results, results_dict
                                     )
                                     models_tested.append(model_e)

@@ -579,7 +579,6 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
     y_na_values = np.isnan(y)
     if type == "multiplicative":
-        shifted_data = False
         if np.any(y[~y_na_values] <= 0):
             y_na_values = y_na_values | (y <= 0)
         y_insample = np.log(y)

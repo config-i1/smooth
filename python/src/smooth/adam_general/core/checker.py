@@ -2320,7 +2320,7 @@ def _restrict_models_pool_for_sample_size(
         if damped:
             model += "d"
         model += season_type
-        original_model = model
+        _original_model = model
 
         # 1. Remove damped from seasonal models if not enough obs (R lines 2780-2790)
         if obs_nonzero <= (6 + lags_model_max + 1 + n_param_exo):
