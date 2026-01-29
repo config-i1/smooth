@@ -129,8 +129,9 @@ def _check_fitted_values(model_prepared, occurrence_dict):
         pd.isna(model_prepared["y_fitted"])
     ):
         warnings.warn(
-            "Something went wrong in the estimation of the model and NaNs were produced. "
-            "If this is a mixed model, consider using the pure ones instead."
+            "Something went wrong in the estimation of the model "
+            "and NaNs were produced. If this is a mixed model, "
+            "consider using the pure ones instead."
         )
 
     # Apply occurrence model to fitted values if present
@@ -345,9 +346,6 @@ def _generate_point_forecasts(
     )
 
     # Prepare data for adam_forecaster
-    _lags_model_all = np.asfortranarray(
-        lags_dict["lags_model_all"], dtype=np.uint64
-    ).reshape(-1, 1)
     profiles_recent_table = np.asfortranarray(
         model_prepared["profiles_recent_table"], dtype=np.float64
     )
@@ -915,10 +913,8 @@ def forecaster(
     # 10. Apply occurrence probabilities to forecasts
     y_forecast_values = y_forecast_values * p_forecast
     # 11. Handle cumulative forecasts if specified
-    _h_final = general_dict["h"]
     if general_dict.get("cumulative"):
         y_forecast_values = np.sum(y_forecast_values)
-        _h_final = 1
         #  In case of occurrence model use simulations - the cumulative probability is
         # complex
         if occurrence_model:
@@ -2024,8 +2020,6 @@ def preparator(
     # 4. Run adam_fitter to get fitted values and states
     # refineHead should always be True (fixed backcasting issue)
     refine_head = True
-    # Use conventional ETS for now (adamETS=False)
-    _adam_ets = False
 
     # Check if initial_type is a list or string and compute backcast correctly
     if isinstance(initials_checked["initial_type"], list):
@@ -2261,7 +2255,8 @@ def generate_prediction_interval(
                 y_upper[:] = stats.s_dist.ppf(level_up, loc=loc, scale=scale)
             else:
                 print(
-                    "Warning: stats.s_dist not found. Cannot calculate intervals for 'ds'."
+                    "Warning: stats.s_dist not found. "
+                    "Cannot calculate intervals for 'ds'."
                 )
                 y_lower[:], y_upper[:] = np.nan, np.nan
         except Exception as e:
@@ -2287,7 +2282,8 @@ def generate_prediction_interval(
                 )
             except (ValueError, ZeroDivisionError) as e:
                 print(
-                    f"Warning: Could not calculate scale for dgnorm (shape={shape_beta}). Error: {e}"
+                    f"Warning: Could not calculate scale for dgnorm "
+                    f"(shape={shape_beta}). Error: {e}"
                 )
                 y_lower[:], y_upper[:] = np.nan, np.nan
         else:
@@ -2306,7 +2302,8 @@ def generate_prediction_interval(
         df = observations_dict["obs_in_sample"] - params_info["n_param"]
         if df <= 0:
             print(
-                f"Warning: Degrees of freedom ({df}) non-positive for dt distribution. Setting intervals to NaN."
+                f"Warning: Degrees of freedom ({df}) non-positive "
+                "for dt distribution. Setting intervals to NaN."
             )
             y_lower[:], y_upper[:] = np.nan, np.nan
         else:
@@ -2351,17 +2348,20 @@ def generate_prediction_interval(
                         )
                 else:
                     print(
-                        "Warning: stats.alaplace not found. Cannot calculate intervals for 'dalaplace'."
+                        "Warning: stats.alaplace not found. "
+                        "Cannot calculate intervals for 'dalaplace'."
                     )
                     y_lower[:], y_upper[:] = np.nan, np.nan
             except (ValueError, ZeroDivisionError) as e:
                 print(
-                    f"Warning: Could not calculate scale for dalaplace (alpha={alpha}). Error: {e}"
+                    f"Warning: Could not calculate scale for dalaplace "
+                    f"(alpha={alpha}). Error: {e}"
                 )
                 y_lower[:], y_upper[:] = np.nan, np.nan
         else:
             print(
-                f"Warning: Alpha parameter ({alpha}) invalid or not found for dalaplace."
+                f"Warning: Alpha parameter ({alpha}) invalid "
+                "or not found for dalaplace."
             )
             y_lower[:], y_upper[:] = np.nan, np.nan
 
@@ -2405,7 +2405,8 @@ def generate_prediction_interval(
                 )
             else:
                 print(
-                    "Warning: stats.s_dist not found. Cannot calculate intervals for 'dls'."
+                    "Warning: stats.s_dist not found. "
+                    "Cannot calculate intervals for 'dls'."
                 )
                 y_lower_mult, y_upper_mult = np.nan, np.nan
         except Exception as e:
@@ -2432,7 +2433,8 @@ def generate_prediction_interval(
                 )
             except (ValueError, ZeroDivisionError) as e:
                 print(
-                    f"Warning: Could not calculate scale for dlgnorm (shape={shape_beta}). Error: {e}"
+                    f"Warning: Could not calculate scale for dlgnorm "
+                    f"(shape={shape_beta}). Error: {e}"
                 )
                 y_lower_mult, y_upper_mult = np.nan, np.nan
         else:
@@ -2450,7 +2452,8 @@ def generate_prediction_interval(
         # Let's try mu = 1 / vcovMulti as the shape parameter `mu` for scipy
         if np.any(v_voc_multi <= 0):
             print(
-                "Warning: Non-positive variance for dinvgauss. Setting intervals to NaN."
+                "Warning: Non-positive variance for dinvgauss. "
+                "Setting intervals to NaN."
             )
             y_lower[:], y_upper[:] = np.nan, np.nan
         else:
@@ -2485,7 +2488,8 @@ def generate_prediction_interval(
 
     else:
         print(
-            f"Warning: Distribution '{distribution}' not recognized for interval calculation."
+            f"Warning: Distribution '{distribution}' not recognized "
+            "for interval calculation."
         )
         y_lower[:], y_upper[:] = np.nan, np.nan
 
@@ -2621,7 +2625,6 @@ def generate_simulation_interval(
     """
     h = general_dict["h"]
     lags_model_max = lags_dict["lags_model_max"]
-    lags_model_all = lags_dict["lags_model_all"]
 
     # Get number of components
     n_components = (
@@ -2674,7 +2677,8 @@ def generate_simulation_interval(
         mat_errors = external_errors
         if mat_errors.shape != (h, nsim):
             raise ValueError(
-                f"external_errors shape {mat_errors.shape} does not match (h={h}, nsim={nsim})"
+                f"external_errors shape {mat_errors.shape} "
+                f"does not match (h={h}, nsim={nsim})"
             )
     else:
         distribution = general_dict["distribution"]
@@ -2742,11 +2746,7 @@ def generate_simulation_interval(
     arr_f_f = np.asfortranarray(arr_f, dtype=np.float64)
     mat_wt_f = np.asfortranarray(mat_wt, dtype=np.float64)
     mat_g_f = np.asfortranarray(mat_g, dtype=np.float64)
-    _lags_f = np.asfortranarray(lags_model_all, dtype=np.uint64).reshape(-1, 1)
     lookup_f = np.asfortranarray(lookup, dtype=np.uint64)
-
-    # Determine adamETS setting (False for conventional ETS)
-    _adam_ets2 = False
 
     # 8. Call adam_cpp.simulate() with the prepared inputs
     #  Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set during

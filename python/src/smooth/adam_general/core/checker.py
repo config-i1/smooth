@@ -123,7 +123,8 @@ def _check_lags(lags, obs_in_sample, silent=False):
     # Must be positive
     if any(lg <= 0 for lg in lags):
         raise ValueError(
-            "Right! Why don't you try complex lags then, mister smart guy? (Lag <= 0 given)"
+            "Right! Why don't you try complex lags then, "
+            "mister smart guy? (Lag <= 0 given)"
         )
 
     # Create lagsModel (matrix in R, list here)
@@ -135,7 +136,8 @@ def _check_lags(lags, obs_in_sample, silent=False):
 
     if max_lag >= obs_in_sample:
         msg = (
-            f"The maximum lags value is {max_lag}, while sample size is {obs_in_sample}. "
+            f"The maximum lags value is {max_lag}, "
+            f"while sample size is {obs_in_sample}. "
             f"I cannot guarantee that I'll be able to fit the model."
         )
         _warn(msg, silent)
@@ -324,8 +326,9 @@ def _build_models_pool_from_components(
                 import warnings
 
                 warnings.warn(
-                    "Multiplicative seasonal models cannot be used on non-positive data. "
-                    "Switching to additive seasonal selection (X).",
+                    "Multiplicative seasonal models cannot be used on "
+                    "non-positive data. Switching to additive seasonal "
+                    "selection (X).",
                     UserWarning,
                 )
                 season_type_char = "X"
@@ -405,7 +408,8 @@ def _check_model_composition(
     if not isinstance(model_str, str):
         if not silent:
             _warn(
-                f"Invalid model type: {model_str}. Should be a string. Switching to 'ZZZ'."
+                f"Invalid model type: {model_str}. "
+                "Should be a string. Switching to 'ZZZ'."
             )
         model_str = "ZZZ"
 
@@ -690,7 +694,8 @@ def _check_ets_model(model, distribution, data, silent=False, max_lag=1):
                 model_info["trend_type"] = "A"
             if model_info["season_type"] == "M":
                 _warn(
-                    "Switching to additive seasonal because data has non-positive values.",
+                    "Switching to additive seasonal because data has "
+                    "non-positive values.",
                     silent,
                 )
                 model_info["season_type"] = "A"
@@ -1226,7 +1231,8 @@ def _check_persistence(
 
         if len(persistence) > expected_length:
             _warn(
-                f"Too many persistence values provided ({len(persistence)}). Expected at most {expected_length}.",
+                f"Too many persistence values provided ({len(persistence)}). "
+                f"Expected at most {expected_length}.",
                 silent,
             )
 
@@ -1409,7 +1415,8 @@ def _check_initial(
 
         if len(initial) > expected_components:
             _warn(
-                f"Too many initial values provided ({len(initial)}). Expected at most {expected_components}.",
+                f"Too many initial values provided ({len(initial)}). "
+                f"Expected at most {expected_components}.",
                 silent,
             )
 
@@ -2278,7 +2285,8 @@ def _restrict_models_pool_for_sample_size(
 
         if not silent:
             _warn(
-                f"Not enough observations for full model pool. Fitting restricted pool: {new_pool}"
+                f"Not enough observations for full model pool. "
+                f"Fitting restricted pool: {new_pool}"
             )
 
     # If pool is provided, filter it based on available observations
@@ -2320,14 +2328,14 @@ def _restrict_models_pool_for_sample_size(
         if damped:
             model += "d"
         model += season_type
-        _original_model = model
 
         # 1. Remove damped from seasonal models if not enough obs (R lines 2780-2790)
         if obs_nonzero <= (6 + lags_model_max + 1 + n_param_exo):
             if len(model) == 4:  # Damped model with seasonal
                 if not silent:
                     _warn(
-                        f"Not enough non-zero observations for ETS({model})! Fitting what I can..."
+                        f"Not enough non-zero observations for ETS({model})! "
+                        "Fitting what I can..."
                     )
                 model = model[:2] + model[3]  # Remove 'd': AAdA -> AAA
 
@@ -2336,7 +2344,8 @@ def _restrict_models_pool_for_sample_size(
             if model[1] != "N":  # Has trend
                 if not silent:
                     _warn(
-                        f"Not enough non-zero observations for ETS({model})! Fitting what I can..."
+                        f"Not enough non-zero observations for ETS({model})! "
+                        "Fitting what I can..."
                     )
                 model = model[0] + "N" + model[2]  # Remove trend: AAA -> ANA
 
@@ -2345,7 +2354,8 @@ def _restrict_models_pool_for_sample_size(
             if model[-1] != "N":  # Has seasonal
                 if not silent:
                     _warn(
-                        f"Not enough non-zero observations for ETS({model})! Fitting what I can..."
+                        f"Not enough non-zero observations for ETS({model})! "
+                        "Fitting what I can..."
                     )
                 model = model[:2] + "N"  # Remove seasonal: ANA -> ANN
 
@@ -2355,7 +2365,8 @@ def _restrict_models_pool_for_sample_size(
             if len(model) == 4:  # Damped model (non-seasonal at this point)
                 if not silent:
                     _warn(
-                        f"Not enough non-zero observations for ETS({model})! Fitting what I can..."
+                        f"Not enough non-zero observations for ETS({model})! "
+                        "Fitting what I can..."
                     )
                 model = model[:2] + model[3]  # Remove 'd': AAdN -> AAN
 
@@ -2364,7 +2375,8 @@ def _restrict_models_pool_for_sample_size(
             if model[1] != "N":  # Has trend
                 if not silent:
                     _warn(
-                        f"Not enough non-zero observations for ETS({model})! Fitting what I can..."
+                        f"Not enough non-zero observations for ETS({model})! "
+                        "Fitting what I can..."
                     )
                 model = model[0] + "N" + model[2]  # Remove trend: AAN -> ANN
 
@@ -2533,8 +2545,8 @@ def _adjust_model_for_sample_size(
     if effective_sample <= n_params:
         # Not enough observations, simplify the model
         _warn(
-            f"Not enough non-zero observations ({obs_nonzero}) for the model with {n_params} parameters. "
-            f"Switching to a simpler model.",
+            f"Not enough non-zero observations ({obs_nonzero}) for the model "
+            f"with {n_params} parameters. Switching to a simpler model.",
             silent,
         )
 
@@ -3198,7 +3210,8 @@ def parameters_checker(
     #####################
     if holdout and h <= 0:
         _warn(
-            "holdout=TRUE but horizon 'h' is not positive. No real holdout can be made.",
+            "holdout=TRUE but horizon 'h' is not positive. "
+            "No real holdout can be made.",
             silent,
         )
 

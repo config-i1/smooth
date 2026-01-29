@@ -359,23 +359,8 @@ def CF(  # noqa: N802
             ):
                 return 1e100
 
-        # Not supporting regression model now
-        # if explanatory_checked['xreg_model'] and regressors == "adapt":
-        #     if any(adam_elements['vec_g'][components_dict['components_number_ets'] +
-        #                               components_dict['components_number_arima']:
-        #                               components_dict['components_number_ets'] +
-        #                               components_dict['components_number_arima'] +
-        #                               explanatory_checked['xreg_number']] > 1) or \
-        #        any(adam_elements['vec_g'][components_dict['components_number_ets'] +
-        #                               components_dict['components_number_arima']:
-        #                               components_dict['components_number_ets'] +
-        #                               components_dict['components_number_arima'] +
-        #                               explanatory_checked['xreg_number']] < 0):
-        #         return 1e100 * np.max(np.abs(adam_elements['vec_g'][components_dict['components_number_ets'] +
-        #                                                          components_dict['components_number_arima']:
-        #                                                          components_dict['components_number_ets'] +
-        #                                                          components_dict['components_number_arima'] +
-        #                                                          explanatory_checked['xreg_number']] - 0.5))
+        # NOTE: Regression model constraints not yet implemented.
+        # Original R code checked xreg persistence bounds here.
 
     elif bounds == "admissible":
         if arima_checked["arima_model"]:
@@ -455,7 +440,8 @@ def CF(  # noqa: N802
     y_in_sample = np.asarray(observations_dict["y_in_sample"], dtype=np.float64)
     ot = np.asarray(observations_dict["ot"], dtype=np.float64)
     # CRITICAL FIX: C++ adamFitter takes matrixVt by reference and modifies it!
-    # We must pass a COPY to avoid polluting adam_elements across optimization iterations
+    # We must pass a COPY to avoid polluting adam_elements across
+    # optimization iterations
     mat_vt = np.asfortranarray(adam_elements["mat_vt"], dtype=np.float64)
     mat_wt = np.asfortranarray(adam_elements["mat_wt"], dtype=np.float64)
     mat_f = np.asfortranarray(

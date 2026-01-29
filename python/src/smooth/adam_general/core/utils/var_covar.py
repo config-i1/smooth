@@ -245,17 +245,20 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
     # Validate measurement matrix dimensions more robustly
     if measurement_matrix.ndim != 2 or measurement_matrix.shape[1] != n_components:
         raise ValueError(
-            f"Measurement matrix shape {measurement_matrix.shape} incompatible with n_components {n_components}. Expecting (>=1, {n_components})."
+            f"Measurement matrix shape {measurement_matrix.shape} incompatible "
+            f"with n_components {n_components}. Expecting (>=1, {n_components})."
         )
     if lags_model.shape[0] != k_states:
         raise ValueError(
-            f"lags_model length {lags_model.shape[0]} must match persistence length {k_states}."
+            f"lags_model length {lags_model.shape[0]} "
+            f"must match persistence length {k_states}."
         )
     if (
         k_states > n_components
     ):  # Allow k_states <= n_components (e.g. ARIMA components)
         raise ValueError(
-            f"Number of states ({k_states}) from persistence vector cannot exceed transition matrix dimension ({n_components})."
+            f"Number of states ({k_states}) from persistence vector "
+            f"cannot exceed transition matrix dimension ({n_components})."
         )
     if measurement_matrix.shape[0] < 1:
         raise ValueError("Measurement matrix must have at least one row.")
@@ -389,7 +392,8 @@ def covar_anal(lags_model, h, measurement, transition, persistence, s2):
                 if meas_slice.shape != (1, n_components):
                     # This case shouldn't happen with current logic, but good practice
                     raise ValueError(
-                        f"Unexpected shape for array_measurement slice: {meas_slice.shape}"
+                        f"Unexpected shape for array_measurement slice: "
+                        f"{meas_slice.shape}"
                     )
 
                 c_values[i] = (
@@ -520,19 +524,24 @@ def var_anal(lags_model, h, measurement, transition, persistence, s2):
             measurement = measurement.flatten()
         else:
             raise ValueError(
-                f"Measurement shape {measurement.shape} cannot be flattened to match n_components {n_components}."
+                f"Measurement shape {measurement.shape} cannot be flattened "
+                f"to match n_components {n_components}."
             )
     if measurement.ndim != 1 or measurement.shape[0] != n_components:
         raise ValueError(
-            f"Measurement shape {measurement.shape} incompatible with n_components {n_components}. Expecting ({n_components},)."
+            f"Measurement shape {measurement.shape} incompatible with "
+            f"n_components {n_components}. Expecting ({n_components},)."
         )
     if lags_model.shape[0] != k_states:
         raise ValueError(
-            f"lags_model length {lags_model.shape[0]} must match persistence length {k_states}."
+            f"lags_model length {lags_model.shape[0]} "
+            f"must match persistence length {k_states}."
         )
     if k_states != n_components:
         raise ValueError(
-            f"Number of states ({k_states}) from persistence vector does not match transition matrix dimension ({n_components}). Check model definition."
+            f"Number of states ({k_states}) from persistence vector does not "
+            f"match transition matrix dimension ({n_components}). "
+            "Check model definition."
         )
     # --- End Validation ---
 
@@ -594,7 +603,8 @@ def var_anal(lags_model, h, measurement, transition, persistence, s2):
                     iq[0] += np.sum(np.diag(term3))  # Accumulate sum of diagonal
                 except Exception as e:
                     print(
-                        f"Error in var_anal calculation for h={i + 1}, k_idx={k_idx}, lag={current_lag}, power={power_val}: {e}"
+                        f"Error in var_anal calculation for h={i + 1}, "
+                        f"k_idx={k_idx}, lag={current_lag}, power={power_val}: {e}"
                     )
                     iq[0] = np.nan  # Propagate error as NaN
                     break  # Exit inner loop for this step i

@@ -39,11 +39,11 @@ dev = [
 build-dir = "build"
 logging.level = "INFO"
 ninja.make-fallback = true
+ninja.version = ">=1.5.0"
 # Update these version specifications with proper format
 cmake.version = ">=3.25.0"
-ninja.version = ">=1.5.0"
-build.verbose = true
 cmake.build-type = "Release"
+build.verbose = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -150,3 +150,8 @@ skip-magic-trailing-comma = false
 
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=7.0.0",
+]

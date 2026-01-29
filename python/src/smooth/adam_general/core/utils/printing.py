@@ -290,7 +290,8 @@ def _format_arma_parameters(model: Any, digits: int = 4) -> str:
                 for j in range(order):
                     if param_idx < len(ar_params):
                         lines.append(
-                            f"  AR({j + 1}) Lag {lag}: {ar_params[param_idx]:.{digits}f}"
+                            f"  AR({j + 1}) Lag {lag}: "
+                            f"{ar_params[param_idx]:.{digits}f}"
                         )
                         param_idx += 1
 
@@ -308,7 +309,8 @@ def _format_arma_parameters(model: Any, digits: int = 4) -> str:
                 for j in range(order):
                     if param_idx < len(ma_params):
                         lines.append(
-                            f"  MA({j + 1}) Lag {lag}: {ma_params[param_idx]:.{digits}f}"
+                            f"  MA({j + 1}) Lag {lag}: "
+                            f"{ma_params[param_idx]:.{digits}f}"
                         )
                         param_idx += 1
 
@@ -345,7 +347,12 @@ def _format_information_criteria(
     # Format with alignment
     width = max(digits + 5, 8)
     header = f"{'AIC':>{width}} {'AICc':>{width}} {'BIC':>{width}} {'BICc':>{width}}"
-    values = f"{aic:{width}.{digits}f} {aicc:{width}.{digits}f} {bic:{width}.{digits}f} {bicc:{width}.{digits}f}"
+    values = (
+        f"{aic:{width}.{digits}f} "
+        f"{aicc:{width}.{digits}f} "
+        f"{bic:{width}.{digits}f} "
+        f"{bicc:{width}.{digits}f}"
+    )
 
     return f"{header}\n{values}"
 

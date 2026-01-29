@@ -1139,7 +1139,6 @@ class ADAM:
         Sets appropriate parameter values. This is a special case where we use
         MSE to estimate initials only and disable other parameter estimation.
         """
-        lambda_original = self.general["lambda"]
         if self.general["loss"] in ["LASSO", "RIDGE"] and self.general["lambda"] == 1:
             if self.model_type_dict["ets_model"]:
                 # Pre-set ETS parameters

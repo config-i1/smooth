@@ -587,7 +587,6 @@ def _setup_persistence_vector(
     ets_model = model_params["ets_model"]
     model_is_trendy = model_params["model_is_trendy"]
     model_is_seasonal = model_params["model_is_seasonal"]
-    components_number_ets = model_params["components_number_ets"]
     components_number_arima = model_params["components_number_arima"]
 
     j = 0
@@ -741,8 +740,6 @@ def _initialize_states(
     # Get parameters
     profiles_recent_provided = model_params["profiles_recent_provided"]
     ets_model = model_params["ets_model"]
-    model_is_seasonal = model_params["model_is_seasonal"]
-    e_type = model_params["e_type"]
     lags_model_max = model_params["lags_model_max"]
     profiles_recent_table = model_params["profiles_recent_table"]
     # If recent profiles are not provided, initialize states
@@ -810,18 +807,13 @@ def _initialize_ets_states(
         np.ndarray: Updated state matrix
     """
     # Get parameters
-    ets_model = model_params["ets_model"]
     model_is_seasonal = model_params["model_is_seasonal"]
     model_is_trendy = model_params["model_is_trendy"]
     e_type = model_params["e_type"]
-    t_type = model_params["t_type"]
-    s_type = model_params["s_type"]
-    lags = model_params["lags"]
     lags_model = model_params["lags_model"]
     lags_model_max = model_params["lags_model_max"]
     components_number_ets_seasonal = model_params["components_number_ets_seasonal"]
     y_in_sample = model_params["y_in_sample"]
-    ot_logical = model_params["ot_logical"]
     obs_nonzero = observations_dict["obs_nonzero"]
 
     # If initials need to be estimated
@@ -1074,7 +1066,6 @@ def _initialize_ets_seasonal_states_small_sample(
     e_type = model_params["e_type"]
     t_type = model_params["t_type"]
     s_type = model_params["s_type"]
-    lags = model_params["lags"]
     lags_model = model_params["lags_model"]
     lags_model_max = model_params["lags_model_max"]
     model_is_trendy = model_params["model_is_trendy"]
@@ -2375,13 +2366,6 @@ def _calculate_initial_parameters_and_bounds(
     season_type = model_params["season_type"]
     components_number_ets = model_params["components_number_ets"]
     components_number_ets_seasonal = model_params["components_number_ets_seasonal"]
-    lags_dict = {
-        "lags": model_params["lags"],
-        "lags_model": model_params["lags_model"],
-        "lags_model_max": model_params["lags_model_max"],
-        #  'lags_model_seasonal': model_params.get('lags_model_seasonal') # Needs to be
-        # passed correctly
-    }
     mat_vt = adam_created["mat_vt"]  # Used for initial state estimates
     y_in_sample = observations_dict["y_in_sample"]
     ot_logical = observations_dict["ot_logical"]
@@ -2460,8 +2444,6 @@ def _calculate_initial_parameters_and_bounds(
             )  # Number of true flags
         else:  # Fallback if not defined, assume one per xreg if main flag is true
             num_xreg_persistence_params = explanatory_checked.get("xreg_number", 0)
-
-    num_persistence_params = num_ets_persistence_params  # This will be expanded
 
     # --- Calculate ARIMA params ---
     est_ar = arima_checked.get("ar_estimate", False)
@@ -2911,7 +2893,6 @@ def _calculate_initial_parameters_and_bounds(
             try:
                 # Calculate expected shape and slice
                 num_arima_components = model_params["components_number_arima"]
-                expected_len = num_arima_components * num_init_arima_params
                 if mat_vt.shape[1] >= num_init_arima_params:
                     initial_arima_flat = mat_vt[
                         arima_state_start_idx : arima_state_start_idx
