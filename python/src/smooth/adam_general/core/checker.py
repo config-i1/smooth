@@ -3072,7 +3072,7 @@ def parameters_checker(
     else:
         # Validate user-provided n_iterations
         if not isinstance(n_iterations, int) or n_iterations < 1:
-            _warn(f"n_iterations must be a positive integer. Using default value.", silent)
+            _warn("n_iterations must be a positive integer. Using default value.", silent)
             n_iterations_provided = False
             if init_info["initial_type"] in ["backcasting", "complete"]:
                 n_iterations = 2
