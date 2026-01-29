@@ -371,7 +371,8 @@ def CF(  # noqa: N802
         #                               components_dict['components_number_ets'] +
         #                               components_dict['components_number_arima'] +
         #                               explanatory_checked['xreg_number']] < 0):
-        #         return 1e100 * np.max(np.abs(adam_elements['vec_g'][components_dict['components_number_ets'] +
+        #         return 1e100 * np.max(np.abs(adam_elements['vec_g']
+        #             [components_dict['components_number_ets'] +
         #             components_dict['components_number_arima']:
         #             components_dict['components_number_ets'] +
         #             components_dict['components_number_arima'] +
