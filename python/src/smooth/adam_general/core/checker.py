@@ -972,6 +972,7 @@ def _check_distribution_loss(distribution, loss, silent=False):
     # Valid loss functions
     valid_losses = [
         "likelihood",
+        "GPL",
         "MSE",
         "MAE",
         "HAM",
@@ -982,7 +983,11 @@ def _check_distribution_loss(distribution, loss, silent=False):
         "MACE",
         "CHAM",
         "TMSE",
+        "TMAE",
+        "THAM",
         "GTMSE",
+        "GTAME",
+        "GTHAM",
         "LASSO",
         "RIDGE",
     ]

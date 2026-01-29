@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from numpy.typing import NDArray
 
-from smooth.adam_general.core.adam import ADAM
+from smooth.adam_general.core.adam import ADAM, LOSS_OPTIONS
 
 
 class ES(ADAM):
@@ -81,7 +81,7 @@ class ES(ADAM):
     ic : Literal["AIC", "AICc", "BIC", "BICc"], default="AICc"
         Information criterion for model selection.
 
-    loss : Literal["likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"], default="likelihood"
+    loss : LOSS_OPTIONS, default="likelihood"
         Loss function for parameter estimation.
 
     h : Optional[int], default=None
@@ -156,7 +156,8 @@ class ES(ADAM):
 
     References
     ----------
-    - Svetunkov, I. (2023). "Smooth forecasting in R". https://openforecast.org/adam/
+    - Svetunkov, I. (2023). Forecasting and Analytics with the Augmented Dynamic
+    Adaptive Model. https://openforecast.org/adam/
     - Hyndman, R.J., et al. (2008). "Forecasting with Exponential Smoothing"
 
     See Also
@@ -175,9 +176,7 @@ class ES(ADAM):
         ] = "backcasting",
         initial_season: Optional[NDArray] = None,
         ic: Literal["AIC", "AICc", "BIC", "BICc"] = "AICc",
-        loss: Literal[
-            "likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"
-        ] = "likelihood",
+        loss: LOSS_OPTIONS = "likelihood",
         h: Optional[int] = None,
         holdout: bool = False,
         bounds: Literal["usual", "admissible", "none"] = "usual",

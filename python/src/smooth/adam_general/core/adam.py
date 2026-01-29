@@ -25,15 +25,24 @@ DISTRIBUTION_OPTIONS = Literal[
 
 LOSS_OPTIONS = Literal[
     "likelihood",
+    "GPL",
     "MSE",
     "MAE",
     "HAM",
+    "MSEh",
+    "MAEh",
+    "HAMh",
+    "MSCE",
+    "MACE",
+    "CHAM",
+    "TMSE",
+    "TMAE",
+    "THAM",
+    "GTMSE",
+    "GTAME",
+    "GTHAM",
     "LASSO",
     "RIDGE",
-    "MSEh",
-    "TMSE",
-    "GTMSE",
-    "MSCE",
 ]
 
 OCCURRENCE_OPTIONS = Literal[
@@ -227,7 +236,8 @@ class ADAM:
 
     **References**:
 
-    - Svetunkov, I. (2023). "Smooth forecasting in R". https://openforecast.org/adam/
+    - Svetunkov, I. (2023). Forecasting and Analytics with the Augmented Dynamic
+    Adaptive Model. https://openforecast.org/adam/
     - Hyndman, R.J., et al. (2008). "Forecasting with Exponential Smoothing"
     - Svetunkov, I. & Boylan, J.E. (2017). "State-space ARIMA for supply-chain
     forecasting"
