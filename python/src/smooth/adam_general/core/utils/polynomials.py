@@ -15,7 +15,8 @@ def adam_polynomialiser(adam_cpp, B, ar_orders, i_orders, ma_orders,
 
     This function wraps the C++ polynomialise method exposed via pybind11.
     It mirrors R's call: adamCpp$polynomialise(B, arOrders, iOrders, maOrders,
-                                               arEstimate, maEstimate, armaParameters, lags)
+                                               arEstimate, maEstimate, armaParameters,
+                                               lags)
 
     Parameters
     ----------
@@ -36,7 +37,8 @@ def adam_polynomialiser(adam_cpp, B, ar_orders, i_orders, ma_orders,
     arma_parameters : array-like or None
         Fixed AR/MA parameters if not estimating, empty if estimating
     lags : array-like
-        Lag values corresponding to each order (e.g., [1] for non-seasonal, [1, 12] for monthly)
+        Lag values corresponding to each order (e.g., [1] for non-seasonal, [1, 12] for
+        monthly)
 
     Returns
     -------
