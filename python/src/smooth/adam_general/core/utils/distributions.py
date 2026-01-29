@@ -269,7 +269,8 @@ def generate_errors(distribution, n, scale, obs_in_sample=None, n_param=None,
 
 def normalize_errors(errors, error_type):
     """
-    Normalize errors to have zero mean (additive) or unit mean multiplier (multiplicative).
+    Normalize errors to have zero mean (additive) or unit mean multiplier
+    (multiplicative).
 
     This matches R's normalization for nsim <= 500.
 
