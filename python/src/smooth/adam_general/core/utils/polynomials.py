@@ -8,8 +8,17 @@ ARIMA polynomial coefficients used in state-space representation.
 import numpy as np
 
 
-def adam_polynomialiser(adam_cpp, B, ar_orders, i_orders, ma_orders,
-                        ar_estimate, ma_estimate, arma_parameters, lags):
+def adam_polynomialiser(
+    adam_cpp,
+    B,
+    ar_orders,
+    i_orders,
+    ma_orders,
+    ar_estimate,
+    ma_estimate,
+    arma_parameters,
+    lags,
+):
     """
     Compute ARIMA polynomials using the C++ adamCore.polynomialise method.
 
@@ -71,13 +80,13 @@ def adam_polynomialiser(adam_cpp, B, ar_orders, i_orders, ma_orders,
         ar_estimate,
         ma_estimate,
         arma_params_arr,
-        lags_arr
+        lags_arr,
     )
 
     # Convert C++ PolyResult struct to Python dict with numpy arrays
     return {
-        'ar_polynomial': np.array(result.arPolynomial),
-        'i_polynomial': np.array(result.iPolynomial),
-        'ari_polynomial': np.array(result.ariPolynomial),
-        'ma_polynomial': np.array(result.maPolynomial)
+        "ar_polynomial": np.array(result.arPolynomial),
+        "i_polynomial": np.array(result.iPolynomial),
+        "ari_polynomial": np.array(result.ariPolynomial),
+        "ma_polynomial": np.array(result.maPolynomial),
     }

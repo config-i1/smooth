@@ -47,7 +47,9 @@ def _check_occurrence(
     obs_in_sample = len(data_list)
     obs_all = obs_in_sample + (h if holdout else 0)
     # Identify non-zero observations
-    nonzero_indices = [i for i, val in enumerate(data_list) if val is not None and val != 0]
+    nonzero_indices = [
+        i for i, val in enumerate(data_list) if val is not None and val != 0
+    ]
     obs_nonzero = len(nonzero_indices)
 
     # If all zeroes, fallback
@@ -203,8 +205,12 @@ def _expand_component_code(comp_char, allow_multiplicative=True):
 
 
 def _build_models_pool_from_components(
-    error_type_char, trend_type_char, season_type_char, damped_original_model, allow_multiplicative,
-    max_lag=1
+    error_type_char,
+    trend_type_char,
+    season_type_char,
+    damped_original_model,
+    allow_multiplicative,
+    max_lag=1,
 ):
     """
     Build a models pool by fully enumerating expansions for E, T, S.
@@ -244,15 +250,43 @@ def _build_models_pool_from_components(
 
     # Handle full pool case ("F")
     if "F" in [error_type_char, trend_type_char, season_type_char]:
-        candidate_models = ["ANN", "AAN", "AAdN", "AMN", "AMdN",
-                            "ANA", "AAA", "AAdA", "AMA", "AMdA",
-                            "ANM", "AAM", "AAdM", "AMM", "AMdM"]
+        candidate_models = [
+            "ANN",
+            "AAN",
+            "AAdN",
+            "AMN",
+            "AMdN",
+            "ANA",
+            "AAA",
+            "AAdA",
+            "AMA",
+            "AMdA",
+            "ANM",
+            "AAM",
+            "AAdM",
+            "AMM",
+            "AMdM",
+        ]
         if allow_multiplicative:
-            candidate_models.extend([
-                "MNN", "MAN", "MAdN", "MMN", "MMdN",
-                "MNA", "MAA", "MAdA", "MMA", "MMdA",
-                "MNM", "MAM", "MAdM", "MMM", "MMdM"
-            ])
+            candidate_models.extend(
+                [
+                    "MNN",
+                    "MAN",
+                    "MAdN",
+                    "MMN",
+                    "MMdN",
+                    "MNA",
+                    "MAA",
+                    "MAdA",
+                    "MMA",
+                    "MMdA",
+                    "MNM",
+                    "MAM",
+                    "MAdM",
+                    "MMM",
+                    "MMdM",
+                ]
+            )
         # Filter out seasonal models if max_lag <= 1
         if max_lag <= 1:
             candidate_models = [m for m in candidate_models if m[-1] == "N"]
@@ -268,46 +302,49 @@ def _build_models_pool_from_components(
     else:
         # Check for multiplicative requests on non-positive data
         if not allow_multiplicative:
-            if error_type_char in ['Y', 'Z']:
+            if error_type_char in ["Y", "Z"]:
                 import warnings
+
                 warnings.warn(
                     "Multiplicative error models cannot be used on non-positive data. "
                     "Switching to additive error (A).",
-                    UserWarning
+                    UserWarning,
                 )
-                error_type_char = 'A'
-            if trend_type_char in ['Y', 'Z']:
+                error_type_char = "A"
+            if trend_type_char in ["Y", "Z"]:
                 import warnings
+
                 warnings.warn(
                     "Multiplicative trend models cannot be used on non-positive data. "
                     "Switching to additive trend selection (X).",
-                    UserWarning
+                    UserWarning,
                 )
-                trend_type_char = 'X'
-            if season_type_char in ['Y', 'Z']:
+                trend_type_char = "X"
+            if season_type_char in ["Y", "Z"]:
                 import warnings
+
                 warnings.warn(
                     "Multiplicative seasonal models cannot be used on non-positive data. "
                     "Switching to additive seasonal selection (X).",
-                    UserWarning
+                    UserWarning,
                 )
-                season_type_char = 'X'
+                season_type_char = "X"
 
         # Determine Error Options
-        if error_type_char in ['A', 'M']:
+        if error_type_char in ["A", "M"]:
             actual_error_options = [error_type_char]
-        else: # For 'Z', 'N', 'X', 'Y' etc.
+        else:  # For 'Z', 'N', 'X', 'Y' etc.
             actual_error_options = ["A", "M"] if allow_multiplicative else ["A"]
 
         # Determine Trend Options
         # Note: trend_type_char would already be 'A' or 'Ad' if originally 'M' or 'Md'
         #  and allow_multiplicative was false, due to pre-processing in
         # _check_model_composition.
-        if trend_type_char in ['N', 'A', 'M', 'Ad', 'Md']:
+        if trend_type_char in ["N", "A", "M", "Ad", "Md"]:
             actual_trend_options_with_damping = [trend_type_char]
-        elif trend_type_char == 'Z':
+        elif trend_type_char == "Z":
             actual_trend_options_with_damping = ["N", "A", "M", "Ad", "Md"]
-        elif trend_type_char == 'Y':
+        elif trend_type_char == "Y":
             actual_trend_options_with_damping = ["N", "M", "Md"]
         else:  # 'X' or any other
             actual_trend_options_with_damping = ["N", "A", "Ad"]
@@ -315,15 +352,15 @@ def _build_models_pool_from_components(
         # Determine Season Options
         # Note: season_type_char would already be 'A' if originally 'M'
         # and allow_multiplicative was false.
-        if season_type_char in ['N', 'A', 'M']:
+        if season_type_char in ["N", "A", "M"]:
             actual_season_options = [season_type_char]
-        elif season_type_char == 'Z':
+        elif season_type_char == "Z":
             actual_season_options = ["N", "A", "M"]
-        elif season_type_char == 'Y':
+        elif season_type_char == "Y":
             actual_season_options = ["N", "M"]
         else:  # 'X' or any other
             actual_season_options = ["N", "A"]
-        
+
         for e_opt in actual_error_options:
             for t_opt in actual_trend_options_with_damping:
                 # t_opt already includes 'd' if it's a damped trend (e.g., "Ad")
@@ -336,7 +373,9 @@ def _build_models_pool_from_components(
     return candidate_models, False
 
 
-def _check_model_composition(model_str, allow_multiplicative=True, silent=False, max_lag=1):
+def _check_model_composition(
+    model_str, allow_multiplicative=True, silent=False, max_lag=1
+):
     """
     Parse and validate model composition string.
 
@@ -631,7 +670,9 @@ def _check_ets_model(model, distribution, data, silent=False, max_lag=1):
     # Check if this is an ETS model
     if isinstance(model, str) and len(model) in [3, 4]:
         # Parse model configuration
-        model_info = _check_model_composition(model, allow_multiplicative, silent, max_lag)
+        model_info = _check_model_composition(
+            model, allow_multiplicative, silent, max_lag
+        )
 
         # Check for multiplicative compatibility with data
         if not allow_multiplicative:
@@ -901,15 +942,23 @@ def _check_arima(orders, validated_lags, silent=False):
         non_zero_ma.append([poly_idx, state_idx])
 
     # Convert to numpy arrays
-    non_zero_ari = np.array(non_zero_ari, dtype=int) if non_zero_ari else np.zeros((0, 2), dtype=int)
-    non_zero_ma = np.array(non_zero_ma, dtype=int) if non_zero_ma else np.zeros((0, 2), dtype=int)
+    non_zero_ari = (
+        np.array(non_zero_ari, dtype=int)
+        if non_zero_ari
+        else np.zeros((0, 2), dtype=int)
+    )
+    non_zero_ma = (
+        np.array(non_zero_ma, dtype=int) if non_zero_ma else np.zeros((0, 2), dtype=int)
+    )
 
     # Number of components - R line 628
     components_number_arima = len(lags_model_arima)
 
     # Component names - R lines 629-630
     if components_number_arima > 1:
-        components_names_arima = [f"ARIMAState{i+1}" for i in range(components_number_arima)]
+        components_names_arima = [
+            f"ARIMAState{i + 1}" for i in range(components_number_arima)
+        ]
     else:
         components_names_arima = ["ARIMAState1"] if components_number_arima > 0 else []
 
@@ -1141,7 +1190,7 @@ def _check_persistence(
         "persistence_seasonal_estimate": [True] * n_seasonal,
         "persistence_xreg": None,
         "persistence_xreg_estimate": True,
-        "persistence_xreg_provided": False
+        "persistence_xreg_provided": False,
     }
 
     # Handle None case
@@ -1154,13 +1203,17 @@ def _check_persistence(
         result["persistence"] = persistence
         result["persistence_level"] = persistence
         result["persistence_trend"] = persistence
-        result["persistence_seasonal"] = [persistence] * n_seasonal if n_seasonal > 0 else None
+        result["persistence_seasonal"] = (
+            [persistence] * n_seasonal if n_seasonal > 0 else None
+        )
 
         # Mark all as not estimated
         result["persistence_estimate"] = False
         result["persistence_level_estimate"] = False
         result["persistence_trend_estimate"] = False
-        result["persistence_seasonal_estimate"] = [False] * n_seasonal if n_seasonal > 0 else []
+        result["persistence_seasonal_estimate"] = (
+            [False] * n_seasonal if n_seasonal > 0 else []
+        )
 
         return result
 
@@ -1561,7 +1614,9 @@ def _organize_model_type_info(ets_info, arima_info, xreg_model=False):
         "damped": ets_info["damped"],
         "allow_multiplicative": ets_info["allow_multiplicative"],
         "model_do": ets_info.get("model_do", "estimate"),  # Use model_do from ets_info
-        "models_pool": ets_info.get("models_pool", None),  # Use models_pool from ets_info
+        "models_pool": ets_info.get(
+            "models_pool", None
+        ),  # Use models_pool from ets_info
         "model_is_trendy": ets_info["trend_type"] != "N",
         "model_is_seasonal": ets_info["season_type"] != "N",
     }
@@ -1589,9 +1644,15 @@ def _organize_components_info(ets_info, arima_info, lags_model_seasonal):
     """
     # Calculate number of ETS components
     if ets_info["ets_model"]:
-        components_number_ets = 1 + (ets_info["trend_type"] != "N") + (ets_info["season_type"] != "N")
-        components_number_ets_seasonal = len(lags_model_seasonal) if ets_info["season_type"] != "N" else 0
-        components_number_ets_non_seasonal = components_number_ets - components_number_ets_seasonal
+        components_number_ets = (
+            1 + (ets_info["trend_type"] != "N") + (ets_info["season_type"] != "N")
+        )
+        components_number_ets_seasonal = (
+            len(lags_model_seasonal) if ets_info["season_type"] != "N" else 0
+        )
+        components_number_ets_non_seasonal = (
+            components_number_ets - components_number_ets_seasonal
+        )
     else:
         components_number_ets = 0
         components_number_ets_seasonal = 0
@@ -1810,14 +1871,14 @@ def _calculate_ot_logical(
                     y_forecast_start = last_idx + freq_delta
                 else:
                     # For numeric index
-                    if hasattr(data.index, 'freq') and data.index.freq is not None:
+                    if hasattr(data.index, "freq") and data.index.freq is not None:
                         y_forecast_start = data.index[-1] + data.index.freq
                     else:
                         # Fallback for numeric index without freq - use integer
                         y_forecast_start = int(data.index[-1]) + 1
             except (ImportError, AttributeError, ValueError):
                 # Fallback: use the last index + freq
-                if hasattr(data.index, 'freq') and data.index.freq is not None:
+                if hasattr(data.index, "freq") and data.index.freq is not None:
                     y_forecast_start = data.index[-1] + data.index.freq
                 else:
                     # Ultimate fallback for numeric index - use integer
@@ -1858,16 +1919,18 @@ def _calculate_ot_logical(
     return result
 
 
-def _calculate_parameters_number(ets_info, arima_info, xreg_info=None, constant_required=False):
+def _calculate_parameters_number(
+    ets_info, arima_info, xreg_info=None, constant_required=False
+):
     """Calculate number of parameters for different model components.
-    
+
     Returns a 2x1 array-like structure similar to R's parametersNumber matrix:
     - Row 1: Number of states/components
     - Row 2: Number of parameters to estimate
     """
     # Initialize parameters number matrix (2x1)
     parameters_number = [[0], [0]]  # Mimics R's matrix(0,2,1)
-    
+
     # Count states (first row)
     if ets_info["ets_model"]:
         # Add level component
@@ -1878,7 +1941,7 @@ def _calculate_parameters_number(ets_info, arima_info, xreg_info=None, constant_
         # Add seasonal if present
         if ets_info["season_type"] != "N":
             parameters_number[0][0] += 1
-    
+
     # Count parameters to estimate (second row)
     if ets_info["ets_model"]:
         # Level persistence
@@ -1892,27 +1955,27 @@ def _calculate_parameters_number(ets_info, arima_info, xreg_info=None, constant_
         # Seasonal persistence if present
         if ets_info["season_type"] != "N":
             parameters_number[1][0] += 1
-    
+
     # Add ARIMA parameters if present
     if arima_info["arima_model"]:
         # Add number of ARMA parameters
         parameters_number[1][0] += len(arima_info.get("arma_parameters", []))
-    
+
     # Add constant if required
     if constant_required:
         parameters_number[1][0] += 1
-    
+
     # Handle pure constant model case (no ETS, no ARIMA, no xreg)
     if not ets_info["ets_model"] and not arima_info["arima_model"] and not xreg_info:
         parameters_number[0][0] = 0
         parameters_number[1][0] = 2  # Matches R code line 3047
-    
+
     return parameters_number
-    #return {
+    # return {
     #    "parameters_number": parameters_number,
     #    "n_states": parameters_number[0][0],
     #    "n_params": parameters_number[1][0]
-    #}
+    # }
 
 
 def _calculate_n_param_max(
@@ -2006,7 +2069,9 @@ def _calculate_n_param_max(
     if isinstance(persistence_seasonal_estimate, (list, np.ndarray)):
         sum_persistence_seasonal = sum(persistence_seasonal_estimate)
     else:
-        sum_persistence_seasonal = int(persistence_seasonal_estimate) if persistence_seasonal_estimate else 0
+        sum_persistence_seasonal = (
+            int(persistence_seasonal_estimate) if persistence_seasonal_estimate else 0
+        )
 
     # Handle list/bool for initial_seasonal_estimate - multiply by lags as in R
     # R: sum(initialSeasonalEstimate*lagsModelSeasonal)
@@ -2017,13 +2082,17 @@ def _calculate_n_param_max(
             lags_arr = np.array(lags_model_seasonal)
             # Broadcast if lengths differ (repeat estimates if shorter)
             if len(init_seasonal_arr) < len(lags_arr):
-                init_seasonal_arr = np.tile(init_seasonal_arr, len(lags_arr))[:len(lags_arr)]
+                init_seasonal_arr = np.tile(init_seasonal_arr, len(lags_arr))[
+                    : len(lags_arr)
+                ]
             elif len(init_seasonal_arr) > len(lags_arr):
-                init_seasonal_arr = init_seasonal_arr[:len(lags_arr)]
+                init_seasonal_arr = init_seasonal_arr[: len(lags_arr)]
             sum_initial_seasonal_lags = int(np.sum(init_seasonal_arr * lags_arr))
         else:
             # Single boolean - multiply by sum of lags
-            sum_initial_seasonal_lags = int(initial_seasonal_estimate) * sum(lags_model_seasonal)
+            sum_initial_seasonal_lags = int(initial_seasonal_estimate) * sum(
+                lags_model_seasonal
+            )
     else:
         sum_initial_seasonal_lags = 0
 
@@ -2035,14 +2104,15 @@ def _calculate_n_param_max(
     ets_params = 0
     if ets_model:
         ets_params = (
-            int(persistence_level_estimate) +
-            int(model_is_trendy) * int(persistence_trend_estimate) +
-            int(model_is_seasonal) * sum_persistence_seasonal +
-            int(phi_estimate) +
-            int(initial_needs_estimation) * (
-                int(initial_level_estimate) +
-                int(initial_trend_estimate) +
-                sum_initial_seasonal_lags
+            int(persistence_level_estimate)
+            + int(model_is_trendy) * int(persistence_trend_estimate)
+            + int(model_is_seasonal) * sum_persistence_seasonal
+            + int(phi_estimate)
+            + int(initial_needs_estimation)
+            * (
+                int(initial_level_estimate)
+                + int(initial_trend_estimate)
+                + sum_initial_seasonal_lags
             )
         )
 
@@ -2052,17 +2122,17 @@ def _calculate_n_param_max(
         ar_orders_sum = sum(ar_orders) if ar_orders else 0
         ma_orders_sum = sum(ma_orders) if ma_orders else 0
         arima_params = (
-            int(initial_needs_estimation) * initial_arima_number +
-            int(ar_required) * int(ar_estimate) * ar_orders_sum +
-            int(ma_required) * int(ma_estimate) * ma_orders_sum
+            int(initial_needs_estimation) * initial_arima_number
+            + int(ar_required) * int(ar_estimate) * ar_orders_sum
+            + int(ma_required) * int(ma_estimate) * ma_orders_sum
         )
 
     # Xreg component
     xreg_params = 0
     if xreg_model:
         xreg_params = xreg_number * (
-            int(initial_needs_xreg) * int(initial_xreg_estimate) +
-            int(persistence_xreg_estimate)
+            int(initial_needs_xreg) * int(initial_xreg_estimate)
+            + int(persistence_xreg_estimate)
         )
 
     # Total: 1 (scale) + ETS + ARIMA + xreg
@@ -2145,12 +2215,18 @@ def _restrict_models_pool_for_sample_size(
 
     # Print message when restrictions are being applied (R lines 2657-2661)
     if n_param_max is not None and not silent:
-        print(f"Number of non-zero observations is {obs_nonzero}, "
-              f"while the maximum number of parameters to estimate is {n_param_max}.\n"
-              "Updating pool of models.")
+        print(
+            f"Number of non-zero observations is {obs_nonzero}, "
+            f"while the maximum number of parameters to estimate is {n_param_max}.\n"
+            "Updating pool of models."
+        )
 
     # If pool not specified and select/combine mode, build restricted pool
-    if obs_nonzero > (3 + n_param_exo) and models_pool is None and model_do in ["select", "combine"]:
+    if (
+        obs_nonzero > (3 + n_param_exo)
+        and models_pool is None
+        and model_do in ["select", "combine"]
+    ):
         new_pool = ["ANN"]
         if allow_multiplicative:
             new_pool.append("MNN")
@@ -2177,8 +2253,11 @@ def _restrict_models_pool_for_sample_size(
                 new_pool.extend(["ANM", "MNA", "MNM"])
 
         # Enough for seasonal model with trend
-        if (obs_nonzero > (6 + lags_model_max + n_param_exo) and
-            obs_nonzero > 2 * lags_model_max and lags_model_max != 1):
+        if (
+            obs_nonzero > (6 + lags_model_max + n_param_exo)
+            and obs_nonzero > 2 * lags_model_max
+            and lags_model_max != 1
+        ):
             if trend_type in ["Z", "X", "A"] and season_type in ["Z", "X", "A"]:
                 new_pool.append("AAA")
             if allow_multiplicative:
@@ -2198,7 +2277,9 @@ def _restrict_models_pool_for_sample_size(
             result["model_do"] = "select"
 
         if not silent:
-            _warn(f"Not enough observations for full model pool. Fitting restricted pool: {new_pool}")
+            _warn(
+                f"Not enough observations for full model pool. Fitting restricted pool: {new_pool}"
+            )
 
     # If pool is provided, filter it based on available observations
     elif obs_nonzero > (3 + n_param_exo) and models_pool is not None:
@@ -2206,11 +2287,15 @@ def _restrict_models_pool_for_sample_size(
 
         # Remove damped seasonal models if not enough obs
         if obs_nonzero <= (6 + lags_model_max + 1 + n_param_exo):
-            filtered_pool = [m for m in filtered_pool if not (len(m) == 4 and m[-1] in ["A", "M"])]
+            filtered_pool = [
+                m for m in filtered_pool if not (len(m) == 4 and m[-1] in ["A", "M"])
+            ]
 
         # Remove seasonal + trend models if not enough obs
         if obs_nonzero <= (5 + lags_model_max + 1 + n_param_exo):
-            filtered_pool = [m for m in filtered_pool if not (m[1] != "N" and m[-1] != "N")]
+            filtered_pool = [
+                m for m in filtered_pool if not (m[1] != "N" and m[-1] != "N")
+            ]
 
         # Remove seasonal models if not enough obs
         if obs_nonzero <= lags_model_max:
@@ -2241,21 +2326,27 @@ def _restrict_models_pool_for_sample_size(
         if obs_nonzero <= (6 + lags_model_max + 1 + n_param_exo):
             if len(model) == 4:  # Damped model with seasonal
                 if not silent:
-                    _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
+                    _warn(
+                        f"Not enough non-zero observations for ETS({model})! Fitting what I can..."
+                    )
                 model = model[:2] + model[3]  # Remove 'd': AAdA -> AAA
 
         # 2. Remove trend from seasonal models if not enough obs (R lines 2791-2798)
         if obs_nonzero <= (5 + lags_model_max + 1 + n_param_exo):
             if model[1] != "N":  # Has trend
                 if not silent:
-                    _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
+                    _warn(
+                        f"Not enough non-zero observations for ETS({model})! Fitting what I can..."
+                    )
                 model = model[0] + "N" + model[2]  # Remove trend: AAA -> ANA
 
         # 3. Remove seasonal if not enough obs (R lines 2799-2805)
         if obs_nonzero <= lags_model_max:
             if model[-1] != "N":  # Has seasonal
                 if not silent:
-                    _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
+                    _warn(
+                        f"Not enough non-zero observations for ETS({model})! Fitting what I can..."
+                    )
                 model = model[:2] + "N"  # Remove seasonal: ANA -> ANN
 
         #  4. Remove damped from non-seasonal models if not enough obs (R lines
@@ -2263,14 +2354,18 @@ def _restrict_models_pool_for_sample_size(
         if obs_nonzero <= (6 + n_param_exo):
             if len(model) == 4:  # Damped model (non-seasonal at this point)
                 if not silent:
-                    _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
+                    _warn(
+                        f"Not enough non-zero observations for ETS({model})! Fitting what I can..."
+                    )
                 model = model[:2] + model[3]  # Remove 'd': AAdN -> AAN
 
         # 5. Remove any trend if not enough obs (R lines 2815-2821)
         if obs_nonzero <= (5 + n_param_exo):
             if model[1] != "N":  # Has trend
                 if not silent:
-                    _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
+                    _warn(
+                        f"Not enough non-zero observations for ETS({model})! Fitting what I can..."
+                    )
                 model = model[0] + "N" + model[2]  # Remove trend: AAN -> ANN
 
         # Update result based on simplified model (R lines 2822-2832)
@@ -2364,7 +2459,9 @@ def _restrict_models_pool_for_sample_size(
             _warn("No non-zero observations. Forecast will be zero.")
 
     elif obs_nonzero <= 3 + n_param_exo:
-        raise ValueError(f"Not enough observations ({obs_nonzero}) for model estimation.")
+        raise ValueError(
+            f"Not enough observations ({obs_nonzero}) for model estimation."
+        )
 
     return result
 
@@ -2969,20 +3066,19 @@ def parameters_checker(
     #####################
     # 1) Check Occurrence
     #####################
-     # Extract values if DataFrame/Series and ensure numeric
-    if hasattr(data, 'values'):
+    # Extract values if DataFrame/Series and ensure numeric
+    if hasattr(data, "values"):
         data_values = data.values
         if isinstance(data_values, np.ndarray):
             data_values = data_values.flatten()
         # Convert to numeric if needed
-        data_values = pd.to_numeric(data_values, errors='coerce')
+        data_values = pd.to_numeric(data_values, errors="coerce")
     else:
         # Convert to numeric if needed
         try:
-            data_values = pd.to_numeric(data, errors='coerce')
+            data_values = pd.to_numeric(data, errors="coerce")
         except:
             raise ValueError("Data must be numeric or convertible to numeric values")
-
 
     occ_info = _check_occurrence(data_values, occurrence, frequency, silent, holdout, h)
     obs_in_sample = occ_info["obs_in_sample"]
@@ -3072,7 +3168,9 @@ def parameters_checker(
     else:
         # Validate user-provided n_iterations
         if not isinstance(n_iterations, int) or n_iterations < 1:
-            _warn("n_iterations must be a positive integer. Using default value.", silent)
+            _warn(
+                "n_iterations must be a positive integer. Using default value.", silent
+            )
             n_iterations_provided = False
             if init_info["initial_type"] in ["backcasting", "complete"]:
                 n_iterations = 2
@@ -3123,7 +3221,9 @@ def parameters_checker(
     #  Calculate n_param_max to determine if pool restriction is needed (R lines
     # 2641-2651)
     model_is_trendy = ets_info["trend_type"] not in ["N", None]
-    model_is_seasonal = ets_info["season_type"] not in ["N", None] and len(lags_model_seasonal) > 0
+    model_is_seasonal = (
+        ets_info["season_type"] not in ["N", None] and len(lags_model_seasonal) > 0
+    )
 
     n_param_max = _calculate_n_param_max(
         ets_model=ets_model,
@@ -3131,12 +3231,16 @@ def parameters_checker(
         model_is_trendy=model_is_trendy,
         persistence_trend_estimate=persist_info.get("persistence_trend_estimate", True),
         model_is_seasonal=model_is_seasonal,
-        persistence_seasonal_estimate=persist_info.get("persistence_seasonal_estimate", [True] * len(lags_model_seasonal)),
+        persistence_seasonal_estimate=persist_info.get(
+            "persistence_seasonal_estimate", [True] * len(lags_model_seasonal)
+        ),
         phi_estimate=phi_estimate,
         initial_type=init_info.get("initial_type", "optimal"),
         initial_level_estimate=init_info.get("initial_level_estimate", True),
         initial_trend_estimate=init_info.get("initial_trend_estimate", True),
-        initial_seasonal_estimate=init_info.get("initial_seasonal_estimate", [True] * len(lags_model_seasonal)),
+        initial_seasonal_estimate=init_info.get(
+            "initial_seasonal_estimate", [True] * len(lags_model_seasonal)
+        ),
         lags_model_seasonal=lags_model_seasonal,
         arima_model=arima_model,
         initial_arima_number=arima_info.get("initial_arima_number", 0),
@@ -3161,7 +3265,9 @@ def parameters_checker(
         error_type=ets_info["error_type"],
         trend_type=ets_info["trend_type"],
         season_type=ets_info["season_type"],
-        models_pool=models_pool if models_pool is not None else ets_info.get("models_pool"),
+        models_pool=models_pool
+        if models_pool is not None
+        else ets_info.get("models_pool"),
         allow_multiplicative=allow_multiplicative,
         xreg_number=0,  # Will be updated when xreg is implemented
         silent=silent,
@@ -3274,12 +3380,16 @@ def parameters_checker(
     # Create observations dictionary
     # Use actual y_in_sample length to account for holdout split
     actual_y_in_sample = ot_info.get("y_in_sample", data)
-    actual_obs_in_sample = len(actual_y_in_sample) if hasattr(actual_y_in_sample, '__len__') else obs_in_sample
+    actual_obs_in_sample = (
+        len(actual_y_in_sample)
+        if hasattr(actual_y_in_sample, "__len__")
+        else obs_in_sample
+    )
     observations_dict = {
         "obs_in_sample": actual_obs_in_sample,
         "obs_nonzero": obs_nonzero,
         "obs_all": occ_info["obs_all"],
-        #"obs_states": obs_states,
+        # "obs_states": obs_states,
         "ot_logical": ot_info["ot_logical"],
         "ot": ot_info["ot"],
         "y_in_sample": ot_info.get("y_in_sample", data),
@@ -3288,16 +3398,29 @@ def parameters_checker(
         "y_start": ot_info["y_start"],
         "y_in_sample_index": ot_info.get("y_in_sample_index", None),
         "y_forecast_start": ot_info["y_forecast_start"],
-        "y_forecast_index": ot_info.get("y_forecast_index", None)
+        "y_forecast_index": ot_info.get("y_forecast_index", None),
     }
 
     # Determine if multistep loss is used
     multistep_losses = [
-        "MSEh", "TMSE", "GTMSE", "MSCE",
-        "MAEh", "TMAE", "GTMAE", "MACE",
-        "HAMh", "THAM", "GTHAM", "CHAM",
+        "MSEh",
+        "TMSE",
+        "GTMSE",
+        "MSCE",
+        "MAEh",
+        "TMAE",
+        "GTMAE",
+        "MACE",
+        "HAMh",
+        "THAM",
+        "GTHAM",
+        "CHAM",
         "GPL",
-        "aMSEh", "aTMSE", "aGTMSE", "aMSCE", "aGPL"
+        "aMSEh",
+        "aTMSE",
+        "aGTMSE",
+        "aMSCE",
+        "aGPL",
     ]
     multisteps = loss in multistep_losses
 

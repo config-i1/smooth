@@ -10,7 +10,7 @@ import numpy as np
 from smooth.adam_general import lowess_cpp as _lowess_cpp
 
 
-def lowess(x, y=None, f=2/3, iter=3, delta=None):
+def lowess(x, y=None, f=2 / 3, iter=3, delta=None):
     """
     LOWESS smoother that exactly matches R's stats::lowess function.
 
@@ -107,7 +107,9 @@ def lowess(x, y=None, f=2/3, iter=3, delta=None):
         y = np.asarray(y, dtype=np.float64).ravel()
 
     if len(x) != len(y):
-        raise ValueError(f"x and y must have the same length, got {len(x)} and {len(y)}")
+        raise ValueError(
+            f"x and y must have the same length, got {len(x)} and {len(y)}"
+        )
 
     n = len(x)
     if n < 2:

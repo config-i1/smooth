@@ -10,25 +10,29 @@ from smooth.adam_general.core.utils.utils import (
 )
 
 
-def CF(B,
-       model_type_dict,
-       components_dict,
-       lags_dict,
-       matrices_dict,
-       persistence_checked,
-       initials_checked,
-       arima_checked,
-       explanatory_checked,
-       phi_dict,
-       constants_checked,
-       observations_dict,
-       profile_dict,
-       general,
-       adam_cpp,
-       bounds = "usual",
-       other=None, otherParameterEstimate=False,
-       arPolynomialMatrix=None, maPolynomialMatrix=None,
-       regressors=None):
+def CF(
+    B,
+    model_type_dict,
+    components_dict,
+    lags_dict,
+    matrices_dict,
+    persistence_checked,
+    initials_checked,
+    arima_checked,
+    explanatory_checked,
+    phi_dict,
+    constants_checked,
+    observations_dict,
+    profile_dict,
+    general,
+    adam_cpp,
+    bounds="usual",
+    other=None,
+    otherParameterEstimate=False,
+    arPolynomialMatrix=None,
+    maPolynomialMatrix=None,
+    regressors=None,
+):
     """
     Cost Function for ADAM model parameter estimation.
 
@@ -261,122 +265,181 @@ def CF(B,
     """
 
     # Fill in the matrices
-    adam_elements = filler(B,
-                        model_type_dict,
-                        components_dict,
-                        lags_dict,
-                        matrices_dict,
-                        persistence_checked,
-                        initials_checked,
-                        arima_checked,
-                        explanatory_checked,
-                        phi_dict,
-                        constants_checked)
+    adam_elements = filler(
+        B,
+        model_type_dict,
+        components_dict,
+        lags_dict,
+        matrices_dict,
+        persistence_checked,
+        initials_checked,
+        arima_checked,
+        explanatory_checked,
+        phi_dict,
+        constants_checked,
+    )
     # If we estimate parameters of distribution, take it from the B vector
     if otherParameterEstimate:
-        
         other = abs(B[-1])
-        if general['distribution_new'] in ["dgnorm", "dlgnorm"] and other < 0.25:
+        if general["distribution_new"] in ["dgnorm", "dlgnorm"] and other < 0.25:
             # MODIFIED: reduced penalty value
             return 1e5 / other
     # Check the bounds, classical restrictions
-    #print(components_dict['components_number_ets_non_seasonal'])
-    
+    # print(components_dict['components_number_ets_non_seasonal'])
+
     if bounds == "usual":
-        
-        if arima_checked['arima_model'] and any([arima_checked['ar_estimate'], arima_checked['ma_estimate']]):
-            if arima_checked['ar_estimate'] and sum(-adam_elements['arimaPolynomials']['arPolynomial'][1:]) >= 1:
-                arPolynomialMatrix[:, 0] = -adam_elements['arimaPolynomials']['arPolynomial'][1:]
+        if arima_checked["arima_model"] and any(
+            [arima_checked["ar_estimate"], arima_checked["ma_estimate"]]
+        ):
+            if (
+                arima_checked["ar_estimate"]
+                and sum(-adam_elements["arimaPolynomials"]["arPolynomial"][1:]) >= 1
+            ):
+                arPolynomialMatrix[:, 0] = -adam_elements["arimaPolynomials"][
+                    "arPolynomial"
+                ][1:]
                 arPolyroots = np.abs(eigvals(arPolynomialMatrix))
                 # Strict constraint enforcement like in R
                 if any(arPolyroots > 1):
                     # Return a large penalty value
                     return 1e100
-            
-            if arima_checked['ma_estimate'] and sum(adam_elements['arimaPolynomials']['maPolynomial'][1:]) >= 1:
-                maPolynomialMatrix[:, 0] = adam_elements['arimaPolynomials']['maPolynomial'][1:]
+
+            if (
+                arima_checked["ma_estimate"]
+                and sum(adam_elements["arimaPolynomials"]["maPolynomial"][1:]) >= 1
+            ):
+                maPolynomialMatrix[:, 0] = adam_elements["arimaPolynomials"][
+                    "maPolynomial"
+                ][1:]
                 maPolyroots = np.abs(eigvals(maPolynomialMatrix))
                 # Strict constraint enforcement like in R
                 if any(maPolyroots > 1):
                     # Return a large penalty value
                     return 1e100
-        
-        if model_type_dict['ets_model']:
+
+        if model_type_dict["ets_model"]:
             # Strict constraint enforcement like in R
             # Check if any smoothing parameters are outside the [0,1] bounds
-            if any(adam_elements['vec_g'][:components_dict['components_number_ets']] > 1) or any(adam_elements['vec_g'][:components_dict['components_number_ets']] < 0):
-                
+            if any(
+                adam_elements["vec_g"][: components_dict["components_number_ets"]] > 1
+            ) or any(
+                adam_elements["vec_g"][: components_dict["components_number_ets"]] < 0
+            ):
                 return 1e100
-            if model_type_dict['model_is_trendy']:
+            if model_type_dict["model_is_trendy"]:
                 # Strict constraint enforcement like in R
-                if adam_elements['vec_g'][1] > adam_elements['vec_g'][0]:
+                if adam_elements["vec_g"][1] > adam_elements["vec_g"][0]:
                     return 1e100
-                if model_type_dict['model_is_seasonal'] and \
-                    any(adam_elements['vec_g'][components_dict['components_number_ets_non_seasonal']:
-                                    components_dict['components_number_ets_non_seasonal'] + 
-                                    components_dict['components_number_ets_seasonal']] > (1 - adam_elements['vec_g'][0])):
-                    
-                    return 1e100
-            
-            elif model_type_dict['model_is_seasonal'] and \
-                    any(adam_elements['vec_g'][components_dict['components_number_ets_non_seasonal']:
-                                components_dict['components_number_ets_non_seasonal'] + 
-                                components_dict['components_number_ets_seasonal']] > (1 - adam_elements['vec_g'][0])):
-                    
+                if model_type_dict["model_is_seasonal"] and any(
+                    adam_elements["vec_g"][
+                        components_dict[
+                            "components_number_ets_non_seasonal"
+                        ] : components_dict["components_number_ets_non_seasonal"]
+                        + components_dict["components_number_ets_seasonal"]
+                    ]
+                    > (1 - adam_elements["vec_g"][0])
+                ):
                     return 1e100
 
-            # Strict constraint enforcement like in R
-            if phi_dict['phi_estimate'] and (adam_elements['mat_f'][1, 1] > 1 or adam_elements['mat_f'][1, 1] < 0):
+            elif model_type_dict["model_is_seasonal"] and any(
+                adam_elements["vec_g"][
+                    components_dict[
+                        "components_number_ets_non_seasonal"
+                    ] : components_dict["components_number_ets_non_seasonal"]
+                    + components_dict["components_number_ets_seasonal"]
+                ]
+                > (1 - adam_elements["vec_g"][0])
+            ):
                 return 1e100
-        
+
+            # Strict constraint enforcement like in R
+            if phi_dict["phi_estimate"] and (
+                adam_elements["mat_f"][1, 1] > 1 or adam_elements["mat_f"][1, 1] < 0
+            ):
+                return 1e100
+
         # Not supporting regression model now
         # if explanatory_checked['xreg_model'] and regressors == "adapt":
-        #     if any(adam_elements['vec_g'][components_dict['components_number_ets'] + 
+        #     if any(adam_elements['vec_g'][components_dict['components_number_ets'] +
         #                               components_dict['components_number_arima']:
-        #                               components_dict['components_number_ets'] + 
-        #                               components_dict['components_number_arima'] + 
+        #                               components_dict['components_number_ets'] +
+        #                               components_dict['components_number_arima'] +
         #                               explanatory_checked['xreg_number']] > 1) or \
-        #        any(adam_elements['vec_g'][components_dict['components_number_ets'] + 
+        #        any(adam_elements['vec_g'][components_dict['components_number_ets'] +
         #                               components_dict['components_number_arima']:
-        #                               components_dict['components_number_ets'] + 
-        #                               components_dict['components_number_arima'] + 
+        #                               components_dict['components_number_ets'] +
+        #                               components_dict['components_number_arima'] +
         #                               explanatory_checked['xreg_number']] < 0):
-        #         return 1e100 * np.max(np.abs(adam_elements['vec_g'][components_dict['components_number_ets'] + 
+        #         return 1e100 * np.max(np.abs(adam_elements['vec_g'][components_dict['components_number_ets'] +
         #                                                          components_dict['components_number_arima']:
-        #                                                          components_dict['components_number_ets'] + 
-        #                                                          components_dict['components_number_arima'] + 
+        #                                                          components_dict['components_number_ets'] +
+        #                                                          components_dict['components_number_arima'] +
         #                                                          explanatory_checked['xreg_number']] - 0.5))
 
     elif bounds == "admissible":
-        if arima_checked['arima_model']:
-            if arima_checked['ar_estimate'] and (sum(-adam_elements['arimaPolynomials']['arPolynomial'][1:]) >= 1 or sum(-adam_elements['arimaPolynomials']['arPolynomial'][1:]) < 0):
-                arPolynomialMatrix[:, 0] = -adam_elements['arimaPolynomials']['arPolynomial'][1:]
+        if arima_checked["arima_model"]:
+            if arima_checked["ar_estimate"] and (
+                sum(-adam_elements["arimaPolynomials"]["arPolynomial"][1:]) >= 1
+                or sum(-adam_elements["arimaPolynomials"]["arPolynomial"][1:]) < 0
+            ):
+                arPolynomialMatrix[:, 0] = -adam_elements["arimaPolynomials"][
+                    "arPolynomial"
+                ][1:]
                 eigenValues = np.abs(eigvals(arPolynomialMatrix))
                 if any(eigenValues > 1):
                     return 1e100 * np.max(eigenValues)
 
-        if model_type_dict['ets_model'] or arima_checked['arima_model']:
-            if explanatory_checked['xreg_model']:
+        if model_type_dict["ets_model"] or arima_checked["arima_model"]:
+            if explanatory_checked["xreg_model"]:
                 if regressors == "adapt":
-                    eigenValues = np.abs(eigvals(
-                        adam_elements['mat_f'] -
-                        np.diag(adam_elements['vec_g'].flatten()) @
-                        measurement_inverter(adam_elements['mat_wt'][:observations_dict['obs_in_sample']]).T @
-                        adam_elements['mat_wt'][:observations_dict['obs_in_sample']] / observations_dict['obs_in_sample']
-                    ))
+                    eigenValues = np.abs(
+                        eigvals(
+                            adam_elements["mat_f"]
+                            - np.diag(adam_elements["vec_g"].flatten())
+                            @ measurement_inverter(
+                                adam_elements["mat_wt"][
+                                    : observations_dict["obs_in_sample"]
+                                ]
+                            ).T
+                            @ adam_elements["mat_wt"][
+                                : observations_dict["obs_in_sample"]
+                            ]
+                            / observations_dict["obs_in_sample"]
+                        )
+                    )
                 else:
-                    indices = np.arange(components_dict['components_number_ets'] + components_dict['components_number_arima'])
-                    eigenValues = np.abs(eigvals(
-                        adam_elements['mat_f'][np.ix_(indices, indices)] -
-                        adam_elements['vec_g'][indices] @
-                        adam_elements['mat_wt'][observations_dict['obs_in_sample']-1, indices]
-                    ))
+                    indices = np.arange(
+                        components_dict["components_number_ets"]
+                        + components_dict["components_number_arima"]
+                    )
+                    eigenValues = np.abs(
+                        eigvals(
+                            adam_elements["mat_f"][np.ix_(indices, indices)]
+                            - adam_elements["vec_g"][indices]
+                            @ adam_elements["mat_wt"][
+                                observations_dict["obs_in_sample"] - 1, indices
+                            ]
+                        )
+                    )
             else:
-                if model_type_dict['ets_model'] or (arima_checked['arima_model'] and arima_checked['ma_estimate'] and (sum(adam_elements['arimaPolynomials']['maPolynomial'][1:]) >= 1 or sum(adam_elements['arimaPolynomials']['maPolynomial'][1:]) < 0)):
-                    eigenValues = np.abs(eigvals(
-                        adam_elements['mat_f'] -
-                        adam_elements['vec_g'] @ adam_elements['mat_wt'][observations_dict['obs_in_sample']-1]
-                    ))
+                if model_type_dict["ets_model"] or (
+                    arima_checked["arima_model"]
+                    and arima_checked["ma_estimate"]
+                    and (
+                        sum(adam_elements["arimaPolynomials"]["maPolynomial"][1:]) >= 1
+                        or sum(adam_elements["arimaPolynomials"]["maPolynomial"][1:])
+                        < 0
+                    )
+                ):
+                    eigenValues = np.abs(
+                        eigvals(
+                            adam_elements["mat_f"]
+                            - adam_elements["vec_g"]
+                            @ adam_elements["mat_wt"][
+                                observations_dict["obs_in_sample"] - 1
+                            ]
+                        )
+                    )
                 else:
                     eigenValues = np.array([0])
 
@@ -384,27 +447,42 @@ def CF(B,
                 return 1e100 * np.max(eigenValues)
 
     # Write down the initials in the recent profile
-    profile_dict['profiles_recent_table'][:] = adam_elements['mat_vt'][:, :lags_dict['lags_model_max']]
+    profile_dict["profiles_recent_table"][:] = adam_elements["mat_vt"][
+        :, : lags_dict["lags_model_max"]
+    ]
     # Convert pandas Series/DataFrames to numpy arrays
-    y_in_sample = np.asarray(observations_dict['y_in_sample'], dtype=np.float64)
-    ot = np.asarray(observations_dict['ot'], dtype=np.float64)
+    y_in_sample = np.asarray(observations_dict["y_in_sample"], dtype=np.float64)
+    ot = np.asarray(observations_dict["ot"], dtype=np.float64)
     # CRITICAL FIX: C++ adamFitter takes matrixVt by reference and modifies it!
     # We must pass a COPY to avoid polluting adam_elements across optimization iterations
-    mat_vt = np.asfortranarray(adam_elements['mat_vt'], dtype=np.float64)
-    mat_wt = np.asfortranarray(adam_elements['mat_wt'], dtype=np.float64)
-    mat_f = np.asfortranarray(adam_elements['mat_f'], dtype=np.float64)  # Also copy mat_f since it's passed by reference
-    vec_g = np.asfortranarray(adam_elements['vec_g'], dtype=np.float64) # Make sure it's a 1D array
-    index_lookup_table = np.asfortranarray(profile_dict['index_lookup_table'], dtype=np.uint64)
-    profiles_recent_table = np.asfortranarray(profile_dict['profiles_recent_table'], dtype=np.float64)
+    mat_vt = np.asfortranarray(adam_elements["mat_vt"], dtype=np.float64)
+    mat_wt = np.asfortranarray(adam_elements["mat_wt"], dtype=np.float64)
+    mat_f = np.asfortranarray(
+        adam_elements["mat_f"], dtype=np.float64
+    )  # Also copy mat_f since it's passed by reference
+    vec_g = np.asfortranarray(
+        adam_elements["vec_g"], dtype=np.float64
+    )  # Make sure it's a 1D array
+    index_lookup_table = np.asfortranarray(
+        profile_dict["index_lookup_table"], dtype=np.uint64
+    )
+    profiles_recent_table = np.asfortranarray(
+        profile_dict["profiles_recent_table"], dtype=np.float64
+    )
 
     # refineHead should always be True (fixed backcasting issue)
     refine_head = True
 
     # Check if initial_type is a list or string and compute backcast correctly
-    if isinstance(initials_checked['initial_type'], list):
-        backcast_value = any([t == "complete" or t == "backcasting" for t in initials_checked['initial_type']])
+    if isinstance(initials_checked["initial_type"], list):
+        backcast_value = any(
+            [
+                t == "complete" or t == "backcasting"
+                for t in initials_checked["initial_type"]
+            ]
+        )
     else:
-        backcast_value = initials_checked['initial_type'] in ["complete", "backcasting"]
+        backcast_value = initials_checked["initial_type"] in ["complete", "backcasting"]
 
     # Call adam_cpp.fit() using the new class-based interface
     #  Parameters that were passed to adam_fitter are now stored in adam_cpp (E, T, S,
@@ -419,106 +497,150 @@ def CF(B,
         vectorYt=y_in_sample,
         vectorOt=ot,
         backcast=backcast_value,
-        nIterations=initials_checked['n_iterations'],
-        refineHead=refine_head
+        nIterations=initials_checked["n_iterations"],
+        refineHead=refine_head,
     )
 
+    # adam_fitted.errors = np.repeat()
 
-    #adam_fitted.errors = np.repeat()
-
-    #print('adam_fitted')
-    #print(adam_fitted)
-    if not general['multisteps']:
-        if general['loss'] == "likelihood":
-            
-            scale = scaler(general['distribution_new'], 
-                            model_type_dict['error_type'], 
-                            adam_fitted.errors[observations_dict['ot_logical']],
-                            adam_fitted.fitted[observations_dict['ot_logical']], 
-                            observations_dict['obs_in_sample'], 
-                            other)
-            #print(adam_fitted.errors)
+    # print('adam_fitted')
+    # print(adam_fitted)
+    if not general["multisteps"]:
+        if general["loss"] == "likelihood":
+            scale = scaler(
+                general["distribution_new"],
+                model_type_dict["error_type"],
+                adam_fitted.errors[observations_dict["ot_logical"]],
+                adam_fitted.fitted[observations_dict["ot_logical"]],
+                observations_dict["obs_in_sample"],
+                other,
+            )
+            # print(adam_fitted.errors)
             # Calculate the likelihood
-            CFValue = -np.sum(calculate_likelihood(general['distribution_new'], 
-                                                    model_type_dict['error_type'], 
-                                                    observations_dict['y_in_sample'][observations_dict['ot_logical']],
-                                                    adam_fitted.fitted[observations_dict['ot_logical']], 
-                                                    scale, 
-                                                    other))
-            #print(CFValue)
+            CFValue = -np.sum(
+                calculate_likelihood(
+                    general["distribution_new"],
+                    model_type_dict["error_type"],
+                    observations_dict["y_in_sample"][observations_dict["ot_logical"]],
+                    adam_fitted.fitted[observations_dict["ot_logical"]],
+                    scale,
+                    other,
+                )
+            )
+            # print(CFValue)
             # Differential entropy for the logLik of occurrence model
-            if observations_dict.get('occurrence_model', False) or any(~observations_dict['ot_logical']):
-                CFValueEntropy = calculate_entropy(general['distribution_new'], 
-                                                scale, 
-                                                other, 
-                                                observations_dict['obs_zero'],
-                                                adam_fitted.fitted[~observations_dict['ot_logical']])
+            if observations_dict.get("occurrence_model", False) or any(
+                ~observations_dict["ot_logical"]
+            ):
+                CFValueEntropy = calculate_entropy(
+                    general["distribution_new"],
+                    scale,
+                    other,
+                    observations_dict["obs_zero"],
+                    adam_fitted.fitted[~observations_dict["ot_logical"]],
+                )
                 if np.isnan(CFValueEntropy) or CFValueEntropy < 0:
                     CFValueEntropy = np.inf
                 CFValue += CFValueEntropy
 
-        elif general['loss'] == "MSE":
-            CFValue = np.sum(adam_fitted.errors**2) / observations_dict['obs_in_sample']
-        elif general['loss'] == "MAE":
-            CFValue = np.sum(np.abs(adam_fitted.errors)) / observations_dict['obs_in_sample']
-        elif general['loss'] == "HAM":
-            CFValue = np.sum(np.sqrt(np.abs(adam_fitted.errors))) / observations_dict['obs_in_sample']
-        elif general['loss'] in ["LASSO", "RIDGE"]:
-            persistenceToSkip = (components_dict['components_number_ets'] + 
-                                persistence_checked['persistence_xreg_estimate'] * explanatory_checked['xreg_number'] + 
-                                phi_dict['phi_estimate'] + 
-                                sum(arima_checked['ar_orders']) + 
-                                sum(arima_checked['ma_orders']))
+        elif general["loss"] == "MSE":
+            CFValue = np.sum(adam_fitted.errors**2) / observations_dict["obs_in_sample"]
+        elif general["loss"] == "MAE":
+            CFValue = (
+                np.sum(np.abs(adam_fitted.errors)) / observations_dict["obs_in_sample"]
+            )
+        elif general["loss"] == "HAM":
+            CFValue = (
+                np.sum(np.sqrt(np.abs(adam_fitted.errors)))
+                / observations_dict["obs_in_sample"]
+            )
+        elif general["loss"] in ["LASSO", "RIDGE"]:
+            persistenceToSkip = (
+                components_dict["components_number_ets"]
+                + persistence_checked["persistence_xreg_estimate"]
+                * explanatory_checked["xreg_number"]
+                + phi_dict["phi_estimate"]
+                + sum(arima_checked["ar_orders"])
+                + sum(arima_checked["ma_orders"])
+            )
 
-            if phi_dict['phi_estimate']:
-                B[components_dict['components_number_ets'] + 
-                    persistence_checked['persistence_xreg_estimate'] * explanatory_checked['xreg_number']] = \
-                    1 - B[components_dict['components_number_ets'] + 
-                            persistence_checked['persistence_xreg_estimate'] * explanatory_checked['xreg_number']]
+            if phi_dict["phi_estimate"]:
+                B[
+                    components_dict["components_number_ets"]
+                    + persistence_checked["persistence_xreg_estimate"]
+                    * explanatory_checked["xreg_number"]
+                ] = (
+                    1
+                    - B[
+                        components_dict["components_number_ets"]
+                        + persistence_checked["persistence_xreg_estimate"]
+                        * explanatory_checked["xreg_number"]
+                    ]
+                )
 
-            j = (components_dict['components_number_ets'] + 
-                    persistence_checked['persistence_xreg_estimate'] * explanatory_checked['xreg_number'] + 
-                    phi_dict['phi_estimate'])
+            j = (
+                components_dict["components_number_ets"]
+                + persistence_checked["persistence_xreg_estimate"]
+                * explanatory_checked["xreg_number"]
+                + phi_dict["phi_estimate"]
+            )
 
-            if arima_checked['arima_model'] and (sum(arima_checked['ma_orders']) > 0 or sum(arima_checked['ar_orders']) > 0):
-                for i in range(len(lags_dict['lags'])):
-                    B[j:j+arima_checked['ar_orders'][i]] = 1 - B[j:j+arima_checked['ar_orders'][i]]
-                    j += arima_checked['ar_orders'][i] + arima_checked['ma_orders'][i]
+            if arima_checked["arima_model"] and (
+                sum(arima_checked["ma_orders"]) > 0
+                or sum(arima_checked["ar_orders"]) > 0
+            ):
+                for i in range(len(lags_dict["lags"])):
+                    B[j : j + arima_checked["ar_orders"][i]] = (
+                        1 - B[j : j + arima_checked["ar_orders"][i]]
+                    )
+                    j += arima_checked["ar_orders"][i] + arima_checked["ma_orders"][i]
 
-            if any([t == "optimal" or t == "backcasting" for t in initials_checked['initial_type']]):
-                if explanatory_checked['xreg_number'] > 0:
-                    B = np.concatenate([B[:persistenceToSkip],
-                                        B[-explanatory_checked['xreg_number']:] / general['denominator'] 
-                                        if model_type_dict['error_type'] == "A" 
-                                        else B[-explanatory_checked['xreg_number']:]])
+            if any(
+                [
+                    t == "optimal" or t == "backcasting"
+                    for t in initials_checked["initial_type"]
+                ]
+            ):
+                if explanatory_checked["xreg_number"] > 0:
+                    B = np.concatenate(
+                        [
+                            B[:persistenceToSkip],
+                            B[-explanatory_checked["xreg_number"] :]
+                            / general["denominator"]
+                            if model_type_dict["error_type"] == "A"
+                            else B[-explanatory_checked["xreg_number"] :],
+                        ]
+                    )
                 else:
                     B = B[:persistenceToSkip]
 
-            if model_type_dict['error_type'] == "A":
-                CFValue = ((1 - general['lambda']) * 
-                            np.sqrt(np.sum((adam_fitted.errors / general['y_denominator'])**2) / 
-                                observations_dict['obs_in_sample']))
+            if model_type_dict["error_type"] == "A":
+                CFValue = (1 - general["lambda"]) * np.sqrt(
+                    np.sum((adam_fitted.errors / general["y_denominator"]) ** 2)
+                    / observations_dict["obs_in_sample"]
+                )
             else:  # "M"
-                CFValue = ((1 - general['lambda']) * 
-                            np.sqrt(np.sum(np.log(1 + adam_fitted.errors)**2) / 
-                                observations_dict['obs_in_sample']))
+                CFValue = (1 - general["lambda"]) * np.sqrt(
+                    np.sum(np.log(1 + adam_fitted.errors) ** 2)
+                    / observations_dict["obs_in_sample"]
+                )
 
-            if general['loss'] == "LASSO":
-                CFValue += general['lambda'] * np.sum(np.abs(B))
+            if general["loss"] == "LASSO":
+                CFValue += general["lambda"] * np.sum(np.abs(B))
             else:  # "RIDGE"
-                CFValue += general['lambda'] * np.sqrt(np.sum(B**2))
+                CFValue += general["lambda"] * np.sqrt(np.sum(B**2))
 
-        elif general['loss'] == "custom":
+        elif general["loss"] == "custom":
             # Ensure arrays are 1D to avoid broadcasting issues
             # (armadillo vectors are column vectors that may become (n,1) shaped arrays)
             fitted_1d = np.asarray(adam_fitted.fitted).ravel()
-            CFValue = general['loss_function'](actual=y_in_sample,
-                                                fitted=fitted_1d,
-                                                B=B)
+            CFValue = general["loss_function"](
+                actual=y_in_sample, fitted=fitted_1d, B=B
+            )
     else:
         # Multistep loss functions (MSEh, TMSE, GTMSE, MSCE, etc.)
-        h = general['h']
-        obs_in_sample = observations_dict['obs_in_sample']
+        h = general["h"]
+        obs_in_sample = observations_dict["obs_in_sample"]
 
         # Get multistep forecast errors using ferrors method
         error_result = adam_cpp.ferrors(
@@ -528,39 +650,38 @@ def CF(B,
             indexLookupTable=index_lookup_table,
             profilesRecent=profiles_recent_table,
             horizon=h,
-            vectorYt=y_in_sample
+            vectorYt=y_in_sample,
         )
         adam_errors = error_result.errors  # Matrix: (obs_in_sample - h) x h
 
         # Calculate loss based on type
-        loss = general['loss']
+        loss = general["loss"]
         CFValue = calculate_multistep_loss(loss, adam_errors, obs_in_sample, h)
 
     if np.isnan(CFValue) or np.isinf(CFValue):
-        #print("CFValue is NaN")
+        # print("CFValue is NaN")
         CFValue = 1e300
     return CFValue
 
 
-
 def log_Lik_ADAM(
-        B,
-        model_type_dict,
-        components_dict,
-        lags_dict,
-        adam_created,
-        persistence_dict,
-        initials_dict,
-        arima_dict,
-        explanatory_dict,
-        phi_dict,
-        constant_dict,
-        observations_dict,
-        occurrence_dict,
-        general_dict,
-        profile_dict,
-        adam_cpp,
-        multisteps = False
+    B,
+    model_type_dict,
+    components_dict,
+    lags_dict,
+    adam_created,
+    persistence_dict,
+    initials_dict,
+    arima_dict,
+    explanatory_dict,
+    phi_dict,
+    constant_dict,
+    observations_dict,
+    occurrence_dict,
+    general_dict,
+    profile_dict,
+    adam_cpp,
+    multisteps=False,
 ):
     """
     Calculate log-likelihood for the ADAM model.
@@ -791,125 +912,210 @@ def log_Lik_ADAM(
     """
 
     if not multisteps:
-        #print(profile_dict)
-        if general_dict['loss'] in ["LASSO", "RIDGE"]:
+        # print(profile_dict)
+        if general_dict["loss"] in ["LASSO", "RIDGE"]:
             return 0
         else:
-            general_dict['distribution_new'] = {
+            general_dict["distribution_new"] = {
                 "MSE": "dnorm",
                 "MAE": "dlaplace",
-                "HAM": "ds"
-            }.get(general_dict['loss'], general_dict['distribution_new'])
+                "HAM": "ds",
+            }.get(general_dict["loss"], general_dict["distribution_new"])
 
-            general_dict['loss_new'] = "likelihood" if general_dict['loss'] in ["MSE", "MAE", "HAM"] else general_dict['loss']
+            general_dict["loss_new"] = (
+                "likelihood"
+                if general_dict["loss"] in ["MSE", "MAE", "HAM"]
+                else general_dict["loss"]
+            )
 
             # Call CF function with bounds="none"
-            logLikReturn = -CF(B,  model_type_dict,
-                                components_dict,
-                                lags_dict,
-                                adam_created,
-                                persistence_dict,
-                                initials_dict,
-                                arima_dict,
-                                explanatory_dict,
-                                phi_dict,
-                                constant_dict,
-                                observations_dict,
-                                profile_dict,
-                                general_dict,
-                                adam_cpp,
-                                bounds = None)
+            logLikReturn = -CF(
+                B,
+                model_type_dict,
+                components_dict,
+                lags_dict,
+                adam_created,
+                persistence_dict,
+                initials_dict,
+                arima_dict,
+                explanatory_dict,
+                phi_dict,
+                constant_dict,
+                observations_dict,
+                profile_dict,
+                general_dict,
+                adam_cpp,
+                bounds=None,
+            )
 
             # Handle occurrence model
-            if occurrence_dict['occurrence_model']:
+            if occurrence_dict["occurrence_model"]:
                 if np.isinf(logLikReturn):
                     logLikReturn = 0
-                if any(1 - occurrence_dict['p_fitted'][~observations_dict['ot_logical']] == 0) or any(occurrence_dict['p_fitted'][observations_dict['ot_logical']] == 0):
-                    pt_new = occurrence_dict['p_fitted'][(occurrence_dict['p_fitted'] != 0) & (occurrence_dict['p_fitted'] != 1)]
-                    ot_new = observations_dict['ot'][(occurrence_dict['p_fitted'] != 0) & (occurrence_dict['p_fitted'] != 1)]
+                if any(
+                    1 - occurrence_dict["p_fitted"][~observations_dict["ot_logical"]]
+                    == 0
+                ) or any(
+                    occurrence_dict["p_fitted"][observations_dict["ot_logical"]] == 0
+                ):
+                    pt_new = occurrence_dict["p_fitted"][
+                        (occurrence_dict["p_fitted"] != 0)
+                        & (occurrence_dict["p_fitted"] != 1)
+                    ]
+                    ot_new = observations_dict["ot"][
+                        (occurrence_dict["p_fitted"] != 0)
+                        & (occurrence_dict["p_fitted"] != 1)
+                    ]
                     if len(pt_new) == 0:
                         return logLikReturn
                     else:
-                        return logLikReturn + np.sum(np.log(pt_new[ot_new == 1])) + np.sum(np.log(1 - pt_new[ot_new == 0]))
+                        return (
+                            logLikReturn
+                            + np.sum(np.log(pt_new[ot_new == 1]))
+                            + np.sum(np.log(1 - pt_new[ot_new == 0]))
+                        )
                 else:
-                    return logLikReturn + np.sum(np.log(occurrence_dict['p_fitted'][observations_dict['ot_logical']])) + np.sum(np.log(1 - occurrence_dict['p_fitted'][~observations_dict['ot_logical']]))
+                    return (
+                        logLikReturn
+                        + np.sum(
+                            np.log(
+                                occurrence_dict["p_fitted"][
+                                    observations_dict["ot_logical"]
+                                ]
+                            )
+                        )
+                        + np.sum(
+                            np.log(
+                                1
+                                - occurrence_dict["p_fitted"][
+                                    ~observations_dict["ot_logical"]
+                                ]
+                            )
+                        )
+                    )
             else:
                 return logLikReturn
-            
+
     else:
         # Call CF function with bounds="none"
-        logLikReturn = CF(B,
-                        model_type_dict,
-                        components_dict,
-                        lags_dict,
-                        adam_created,
-                        persistence_dict,
-                        initials_dict,
-                        arima_dict,
-                        explanatory_dict,
-                        phi_dict,
-                        constant_dict,
-                        observations_dict,
-                        profile_dict,
-                        general_dict,
-                        adam_cpp,
-                        bounds = None
-                                )
+        logLikReturn = CF(
+            B,
+            model_type_dict,
+            components_dict,
+            lags_dict,
+            adam_created,
+            persistence_dict,
+            initials_dict,
+            arima_dict,
+            explanatory_dict,
+            phi_dict,
+            constant_dict,
+            observations_dict,
+            profile_dict,
+            general_dict,
+            adam_cpp,
+            bounds=None,
+        )
 
         # Concentrated log-likelihoods for the multistep losses
-        if general_dict['loss'] in ["MSEh", "aMSEh", "TMSE", "aTMSE", "MSCE", "aMSCE"]:
+        if general_dict["loss"] in ["MSEh", "aMSEh", "TMSE", "aTMSE", "MSCE", "aMSCE"]:
             # is horizon different than h?
-            logLikReturn = -(observations_dict['obs_in_sample'] - general_dict['h']) / 2 * (np.log(2 * np.pi) + 1 + np.log(logLikReturn))
-        elif general_dict['loss'] in ["GTMSE", "aGTMSE"]:
-            logLikReturn = -(observations_dict['obs_in_sample'] - general_dict['h']) / 2 * (np.log(2 * np.pi) + 1 + logLikReturn)
-        elif general_dict['loss'] in ["MAEh", "TMAE", "GTMAE", "MACE"]:
-            logLikReturn = -(observations_dict['obs_in_sample'] - general_dict['h']) * (np.log(2) + 1 + np.log(logLikReturn))
-        elif general_dict['loss'] in ["HAMh", "THAM", "GTHAM", "CHAM"]:
-            logLikReturn = -(observations_dict['obs_in_sample'] - general_dict['h']) * (np.log(4) + 2 + 2 * np.log(logLikReturn))
-        elif general_dict['loss'] in ["GPL", "aGPL"]:
-            logLikReturn = -(observations_dict['obs_in_sample'] - general_dict['h']) / 2 * (general_dict['h'] * np.log(2 * np.pi) + general_dict['h'] + logLikReturn) / general_dict['h']
+            logLikReturn = (
+                -(observations_dict["obs_in_sample"] - general_dict["h"])
+                / 2
+                * (np.log(2 * np.pi) + 1 + np.log(logLikReturn))
+            )
+        elif general_dict["loss"] in ["GTMSE", "aGTMSE"]:
+            logLikReturn = (
+                -(observations_dict["obs_in_sample"] - general_dict["h"])
+                / 2
+                * (np.log(2 * np.pi) + 1 + logLikReturn)
+            )
+        elif general_dict["loss"] in ["MAEh", "TMAE", "GTMAE", "MACE"]:
+            logLikReturn = -(observations_dict["obs_in_sample"] - general_dict["h"]) * (
+                np.log(2) + 1 + np.log(logLikReturn)
+            )
+        elif general_dict["loss"] in ["HAMh", "THAM", "GTHAM", "CHAM"]:
+            logLikReturn = -(observations_dict["obs_in_sample"] - general_dict["h"]) * (
+                np.log(4) + 2 + 2 * np.log(logLikReturn)
+            )
+        elif general_dict["loss"] in ["GPL", "aGPL"]:
+            logLikReturn = (
+                -(observations_dict["obs_in_sample"] - general_dict["h"])
+                / 2
+                * (
+                    general_dict["h"] * np.log(2 * np.pi)
+                    + general_dict["h"]
+                    + logLikReturn
+                )
+                / general_dict["h"]
+            )
 
         # Make likelihood comparable
-        logLikReturn = logLikReturn / (observations_dict['obs_in_sample'] - general_dict['h']) * observations_dict['obs_in_sample']
+        logLikReturn = (
+            logLikReturn
+            / (observations_dict["obs_in_sample"] - general_dict["h"])
+            * observations_dict["obs_in_sample"]
+        )
 
         # Handle multiplicative model
-        if model_type_dict['ets_model'] and model_type_dict['error_type'] == "M":
+        if model_type_dict["ets_model"] and model_type_dict["error_type"] == "M":
             # Fill in the matrices
-            adam_elements = filler(B,
-                                    model_type_dict,
-                                    components_dict,
-                                    lags_dict,
-                                    adam_created,
-                                    persistence_dict,
-                                    initials_dict,
-                                    arima_dict,
-                                    explanatory_dict,
-                                    phi_dict,
-                                    constant_dict,
-                                    adam_cpp)
+            adam_elements = filler(
+                B,
+                model_type_dict,
+                components_dict,
+                lags_dict,
+                adam_created,
+                persistence_dict,
+                initials_dict,
+                arima_dict,
+                explanatory_dict,
+                phi_dict,
+                constant_dict,
+                adam_cpp,
+            )
 
             # Write down the initials in the recent profile
-            profile_dict['profiles_recent_table'][:] = adam_elements['mat_vt'][:, :lags_dict['lags_model_max']]
+            profile_dict["profiles_recent_table"][:] = adam_elements["mat_vt"][
+                :, : lags_dict["lags_model_max"]
+            ]
 
             # Fit the model again to extract the fitted values
             # refineHead should always be True (fixed backcasting issue)
             refine_head = True
 
             # Check if initial_type is a list or string and compute backcast correctly
-            if isinstance(initials_dict['initial_type'], list):
-                backcast_value_log = any([t == "complete" or t == "backcasting" for t in initials_dict['initial_type']])
+            if isinstance(initials_dict["initial_type"], list):
+                backcast_value_log = any(
+                    [
+                        t == "complete" or t == "backcasting"
+                        for t in initials_dict["initial_type"]
+                    ]
+                )
             else:
-                backcast_value_log = initials_dict['initial_type'] in ["complete", "backcasting"]
+                backcast_value_log = initials_dict["initial_type"] in [
+                    "complete",
+                    "backcasting",
+                ]
 
             # Convert stuff to numpy arrays with float64 - C++ requires that
-            y_in_sample = np.asarray(observations_dict['y_in_sample'], dtype=np.float64)
-            ot = np.asarray(observations_dict['ot'], dtype=np.float64)
-            mat_vt = np.asfortranarray(adam_elements['mat_vt'], dtype=np.float64)
-            mat_wt = np.asfortranarray(adam_elements['mat_wt'], dtype=np.float64)
-            mat_f = np.asfortranarray(adam_elements['mat_f'], dtype=np.float64)  # Also copy mat_f since it's passed by reference
-            vec_g = np.asfortranarray(adam_elements['vec_g'], dtype=np.float64) # Make sure it's a 1D array
-            index_lookup_table = np.asfortranarray(profile_dict['index_lookup_table'], dtype=np.uint64)
-            profiles_recent_table = np.asfortranarray(profile_dict['profiles_recent_table'], dtype=np.float64)
+            y_in_sample = np.asarray(observations_dict["y_in_sample"], dtype=np.float64)
+            ot = np.asarray(observations_dict["ot"], dtype=np.float64)
+            mat_vt = np.asfortranarray(adam_elements["mat_vt"], dtype=np.float64)
+            mat_wt = np.asfortranarray(adam_elements["mat_wt"], dtype=np.float64)
+            mat_f = np.asfortranarray(
+                adam_elements["mat_f"], dtype=np.float64
+            )  # Also copy mat_f since it's passed by reference
+            vec_g = np.asfortranarray(
+                adam_elements["vec_g"], dtype=np.float64
+            )  # Make sure it's a 1D array
+            index_lookup_table = np.asfortranarray(
+                profile_dict["index_lookup_table"], dtype=np.uint64
+            )
+            profiles_recent_table = np.asfortranarray(
+                profile_dict["profiles_recent_table"], dtype=np.float64
+            )
 
             adam_fitted = adam_cpp.fit(
                 matrixVt=mat_vt,
@@ -921,8 +1127,8 @@ def log_Lik_ADAM(
                 vectorYt=y_in_sample,
                 vectorOt=ot,
                 backcast=backcast_value_log,
-                nIterations=initials_dict['n_iterations'],
-                refineHead=refine_head
+                nIterations=initials_dict["n_iterations"],
+                refineHead=refine_head,
             )
 
             logLikReturn -= np.sum(np.log(np.abs(adam_fitted.fitted)))
