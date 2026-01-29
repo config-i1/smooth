@@ -816,8 +816,10 @@ class ADAM:
             ...  # I need to implement this
             raise NotImplementedError("Combine is not implemented yet")
         else:
+            model_do = self.model_type_dict['model_do']
             warnings.warn(
-                f"Unknown model_do value: {self.model_type_dict['model_do']}. Expected one of: 'estimate', 'select', 'combine'"
+                f"Unknown model_do value: {model_do}. "
+                "Expected one of: 'estimate', 'select', 'combine'"
             )
 
         # Prepare final results and format output data
@@ -1137,7 +1139,7 @@ class ADAM:
         Sets appropriate parameter values. This is a special case where we use
         MSE to estimate initials only and disable other parameter estimation.
         """
-        _lambda_original = self.general["lambda"]
+        lambda_original = self.general["lambda"]
         if self.general["loss"] in ["LASSO", "RIDGE"] and self.general["lambda"] == 1:
             if self.model_type_dict["ets_model"]:
                 # Pre-set ETS parameters
