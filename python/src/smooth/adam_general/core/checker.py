@@ -205,7 +205,8 @@ def _build_models_pool_from_components(
 ):
     """
     Build a models pool by fully enumerating expansions for E, T, S.
-    This version aims to replicate the pool generation of the older _generate_models_pool.
+    This version aims to replicate the pool generation of the older
+    _generate_models_pool.
 
     Parameters
     ----------
@@ -218,10 +219,12 @@ def _build_models_pool_from_components(
     season_type_char : str
         Seasonal component character, similarly processed.
     damped_original_model : bool
-        Damping flag from the original model string (largely ignored here for pool generation,
+        Damping flag from the original model string (largely ignored here for pool
+        generation,
         as damping is part of trend strings like "Ad").
     allow_multiplicative : bool
-        Whether multiplicative models are generally allowed for pool expansion (e.g. for Z).
+        Whether multiplicative models are generally allowed for pool expansion (e.g. for
+        Z).
     max_lag : int, default=1
         Maximum lag value. If <= 1, seasonality is not allowed.
 
@@ -295,7 +298,8 @@ def _build_models_pool_from_components(
 
         # Determine Trend Options
         # Note: trend_type_char would already be 'A' or 'Ad' if originally 'M' or 'Md'
-        # and allow_multiplicative was false, due to pre-processing in _check_model_composition.
+        #  and allow_multiplicative was false, due to pre-processing in
+        # _check_model_composition.
         if trend_type_char in ['N', 'A', 'M', 'Ad', 'Md']:
             actual_trend_options_with_damping = [trend_type_char]
         elif trend_type_char == 'Z':
@@ -486,7 +490,8 @@ def _generate_models_pool(
     Returns
     -------
     tuple
-        (pool_small, pool_errors, pool_trends, pool_seasonals, check_trend, check_seasonal)
+        (pool_small, pool_errors, pool_trends, pool_seasonals, check_trend,
+        check_seasonal)
     """
     # Print status if not silent
     if not silent:
@@ -724,7 +729,8 @@ def _check_arima(orders, validated_lags, silent=False):
     """
     Check and validate ARIMA model specification.
 
-    This function mirrors R's parametersChecker ARIMA handling in adamGeneral.R lines 519-666.
+    This function mirrors R's parametersChecker ARIMA handling in adamGeneral.R lines
+    519-666.
 
     Parameters
     ----------
@@ -739,7 +745,8 @@ def _check_arima(orders, validated_lags, silent=False):
     -------
     dict
         Dictionary with ARIMA model information including:
-        - non_zero_ari: Nx2 matrix [polynomial_index, state_index] (0-indexed for Python)
+        - non_zero_ari: Nx2 matrix [polynomial_index, state_index] (0-indexed for
+        Python)
         - non_zero_ma: Nx2 matrix [polynomial_index, state_index] (0-indexed for Python)
         - lags_model_arima: list of lag values for ARIMA states
         - components_number_arima: number of ARIMA state components
@@ -2235,7 +2242,8 @@ def _restrict_models_pool_for_sample_size(
                     _warn(f"Not enough non-zero observations for ETS({model})! Fitting what I can...")
                 model = model[:2] + "N"  # Remove seasonal: ANA -> ANN
 
-        # 4. Remove damped from non-seasonal models if not enough obs (R lines 2806-2814)
+        #  4. Remove damped from non-seasonal models if not enough obs (R lines
+        # 2806-2814)
         if obs_nonzero <= (6 + n_param_exo):
             if len(model) == 4:  # Damped model (non-seasonal at this point)
                 if not silent:
@@ -2484,7 +2492,8 @@ def parameters_checker(
     Validate and process all ADAM model parameters before estimation.
 
     This is the central parameter validation function that checks all user inputs for
-    consistency, converts them to standardized internal formats, and sets up the complete
+    consistency, converts them to standardized internal formats, and sets up the
+    complete
     model specification. It acts as a gatekeeper before model estimation, ensuring that:
 
     - Model specifications are valid (ETS components, ARIMA orders)
@@ -2493,7 +2502,8 @@ def parameters_checker(
     - Initial values and persistence parameters are properly formatted
     - Information criteria and occurrence models are correctly configured
 
-    The function performs comprehensive validation similar to R's adam() parameter checking,
+    The function performs comprehensive validation similar to R's adam() parameter
+    checking,
     transforming user-friendly inputs into the detailed dictionaries required by the
     estimation engine.
 
@@ -2503,11 +2513,14 @@ def parameters_checker(
     2. **Lags Validation**: Ensure lags are compatible with data length
     3. **ETS Model Parsing**: Decode model string (e.g., "AAA", "ZXZ") into components
     4. **ARIMA Validation**: Check orders and stationarity requirements
-    5. **Distribution & Loss**: Verify compatibility (e.g., multiplicative error requires positive data)
+    5. **Distribution & Loss**: Verify compatibility (e.g., multiplicative error
+    requires positive data)
     6. **Outliers**: Configure outlier detection if requested
     7. **Damping (φ)**: Validate damping parameter for damped trend models
-    8. **Persistence**: Process smoothing parameters (α, β, γ) - fixed or to be estimated
-    9. **Initial States**: Configure initialization method (optimal, backcasting, provided)
+    8. **Persistence**: Process smoothing parameters (α, β, γ) - fixed or to be
+    estimated
+    9. **Initial States**: Configure initialization method (optimal, backcasting,
+    provided)
     10. **Constants**: Set up intercept term if required
     11. **Model Pool**: Generate model pool for automatic selection ("ZZZ", "XXX", etc.)
     12. **Profiles**: Initialize time-varying parameter structures
@@ -2574,12 +2587,14 @@ def parameters_checker(
 
         2. **List/tuple format**: ``[p, d, q]`` for non-seasonal ARIMA(p,d,q)
 
-        If ``'select': True``, automatic order selection is performed (similar to auto.arima).
+        If ``'select': True``, automatic order selection is performed (similar to
+        auto.arima).
 
         Examples:
 
         - ``orders={'ar': [1, 0], 'i': [1, 0], 'ma': [1, 0]}``: ARIMA(1,1,1)
-        - ``orders={'ar': [0, 1], 'i': [0, 1], 'ma': [0, 1]}``: Seasonal ARIMA(0,0,0)(1,1,1)
+        - ``orders={'ar': [0, 1], 'i': [0, 1], 'ma': [0, 1]}``: Seasonal
+        ARIMA(0,0,0)(1,1,1)
         - ``orders=[1, 1, 1]``: Non-seasonal ARIMA(1,1,1)
 
     constant : bool or float, default=False
@@ -2622,9 +2637,11 @@ def parameters_checker(
             }
 
         3. **List format**: ``[α, β, γ]`` with None for parameters to estimate
-        4. **Float**: Single value used for all estimated smoothing parameters (starting value)
+        4. **Float**: Single value used for all estimated smoothing parameters (starting
+        value)
 
-        **Constraints**: During estimation, smoothing parameters are constrained to [0,1]
+        **Constraints**: During estimation, smoothing parameters are constrained to
+        [0,1]
         with additional restrictions: β ≤ α, γ ≤ 1-α (usual bounds).
 
     phi : float or None, default=None
@@ -2645,17 +2662,20 @@ def parameters_checker(
         - **"optimal"**: Optimize initial states along with other parameters (default)
         - **"backcasting"**: Use backcasting with 2 iterations and head refinement
         - **"complete"**: Full backcasting without subsequent optimization
-        - **"two-stage"**: First backcast, then optimize using backcasted values as starting point
+        - **"two-stage"**: First backcast, then optimize using backcasted values as
+        starting point
 
         **Fixed initial values**::
 
             initial = {
                 'level': 100,                    # Initial level
                 'trend': 5,                      # Initial trend (if trendy)
-                'seasonal': [0.9, 1.0, 1.1, ...] # Initial seasonal indices (if seasonal)
+                'seasonal': [0.9, 1.0, 1.1, ...] # Initial seasonal indices (if
+                seasonal)
             }
 
-        **Hybrid approach**: Dict with some values specified and others set to None for estimation.
+        **Hybrid approach**: Dict with some values specified and others set to None for
+        estimation.
 
     n_iterations : int or None, default=None
         Number of backcasting iterations when initial="backcasting" or "complete".
@@ -2732,7 +2752,8 @@ def parameters_checker(
         - **"direct"**: Direct probability model
         - **"provided"**: User-provided occurrence indicators
 
-        Occurrence models are essential for intermittent demand forecasting (e.g., spare parts).
+        Occurrence models are essential for intermittent demand forecasting (e.g., spare
+        parts).
 
     ic : str, default="AICc"
         Information criterion for model selection.
@@ -2749,7 +2770,8 @@ def parameters_checker(
         Parameter constraint type during optimization.
 
         - **"usual"**: Classical restrictions (α,β,γ ∈ [0,1], β ≤ α, γ ≤ 1-α, φ ∈ [0,1])
-        - **"admissible"**: Stability constraints based on eigenvalues of transition matrix
+        - **"admissible"**: Stability constraints based on eigenvalues of transition
+        matrix
         - **"none"**: No constraints (not recommended)
 
         "usual" bounds are recommended for most applications. "admissible" allows more
@@ -2836,7 +2858,8 @@ def parameters_checker(
     tuple of 13 dict
         Tuple containing validated and organized parameters:
 
-        1. **general_dict** : General configuration (loss, distribution, bounds, ic, h, holdout)
+        1. **general_dict** : General configuration (loss, distribution, bounds, ic, h,
+        holdout)
         2. **observations_dict** : Data and observation-related information
         3. **persistence_results** : Validated persistence parameters
         4. **initials_results** : Validated initial state specifications
@@ -2847,7 +2870,8 @@ def parameters_checker(
         9. **lags_dict** : Lag structure and related information
         10. **occurrence_dict** : Occurrence model configuration
         11. **phi_dict** : Damping parameter specification
-        12. **explanatory_dict** : External regressors configuration (not fully implemented)
+        12. **explanatory_dict** : External regressors configuration (not fully
+        implemented)
         13. **params_info** : Parameter count information
 
     Raises
@@ -2868,7 +2892,8 @@ def parameters_checker(
 
     This function aims to fail early with clear error messages rather than allowing
     invalid configurations to proceed to estimation. It provides helpful warnings when
-    suboptimal choices are detected (e.g., multiplicative seasonality with negative data).
+    suboptimal choices are detected (e.g., multiplicative seasonality with negative
+    data).
 
     **Relationship to R Implementation**:
 
@@ -3078,7 +3103,8 @@ def parameters_checker(
         or (occurrence_model and any(y < 0 for y in actual_values if not np.isnan(y)))
     )
 
-    # Calculate n_param_max to determine if pool restriction is needed (R lines 2641-2651)
+    #  Calculate n_param_max to determine if pool restriction is needed (R lines
+    # 2641-2651)
     model_is_trendy = ets_info["trend_type"] not in ["N", None]
     model_is_seasonal = ets_info["season_type"] not in ["N", None] and len(lags_model_seasonal) > 0
 
