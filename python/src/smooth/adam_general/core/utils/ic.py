@@ -154,8 +154,7 @@ def ic_function(ic_name, loglik):
     if ic_name not in ic_functions:
         valid_names = list(ic_functions.keys())
         raise ValueError(
-            f"Invalid information criterion: {ic_name}. "
-            f"Must be one of {valid_names}"
+            f"Invalid information criterion: {ic_name}. Must be one of {valid_names}"
         )
 
     return ic_functions[ic_name]

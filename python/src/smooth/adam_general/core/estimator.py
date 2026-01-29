@@ -2041,9 +2041,7 @@ def _run_branch_and_bound(
                                 )
                                 if error_model is not None:
                                     model_e = pool_small[error_model - 1]
-                                    estimate_and_store(
-                                        model_e, results, results_dict
-                                    )
+                                    estimate_and_store(model_e, results, results_dict)
                                     models_tested.append(model_e)
                                     #  IC comparison for error type will be done in full
                                     # pool estimation

@@ -816,7 +816,7 @@ class ADAM:
             ...  # I need to implement this
             raise NotImplementedError("Combine is not implemented yet")
         else:
-            model_do = self.model_type_dict['model_do']
+            model_do = self.model_type_dict["model_do"]
             warnings.warn(
                 f"Unknown model_do value: {model_do}. "
                 "Expected one of: 'estimate', 'select', 'combine'"
