@@ -328,7 +328,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                  occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                  distribution=c("default","dnorm","dlaplace","ds","dgnorm",
                                 "dlnorm","dinvgauss","dgamma"),
-                 loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
+                 loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE","GPL"),
                  outliers=c("ignore","use","select"), level=0.99,
                  h=0, holdout=FALSE,
                  persistence=NULL, phi=NULL, initial=c("backcasting","optimal","two-stage","complete"), arma=NULL,

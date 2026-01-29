@@ -60,7 +60,7 @@
 #'
 #' @export
 sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
-                   loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
+                   loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE","GPL"),
                    h=0, holdout=FALSE, arma=NULL,
                    initial=c("backcasting","optimal","two-stage","complete"),
                    bounds=c("none","usual","admissible"), silent=TRUE, ...) {
