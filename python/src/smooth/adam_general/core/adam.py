@@ -1127,6 +1127,7 @@ class ADAM:
                 occurrence_dict=self.occurrence_dict,
                 phi_dict=self.phi_dict,
                 components_dict=self.components_dict,
+                multisteps=self.general.get("multisteps", False),
                 smoother=self.smoother,
                 **nlopt_params,
             )
@@ -1506,11 +1507,18 @@ class ADAM:
                     self.general["distribution_new"] = "dnorm"
                 elif self.model_type_dict["error_type"] == "M":
                     self.general["distribution_new"] = "dgamma"
-            elif self.general["loss"] in ["MAEh", "MACE", "MAE"]:
+            elif self.general["loss"] in [
+                "MAE", "MAEh", "TMAE", "GTMAE", "MACE"
+            ]:
                 self.general["distribution_new"] = "dlaplace"
-            elif self.general["loss"] in ["HAMh", "CHAM", "HAM"]:
+            elif self.general["loss"] in [
+                "HAM", "HAMh", "THAM", "GTHAM", "CHAM"
+            ]:
                 self.general["distribution_new"] = "ds"
-            elif self.general["loss"] in ["MSEh", "MSCE", "MSE", "GPL"]:
+            elif self.general["loss"] in [
+                "MSE", "MSEh", "TMSE", "GTMSE", "MSCE",
+                "GPL", "aMSEh", "aTMSE", "aGTMSE", "aMSCE", "aGPL"
+            ]:
                 self.general["distribution_new"] = "dnorm"
         else:
             self.general["distribution_new"] = self.general["distribution"]

@@ -80,9 +80,13 @@ def _set_distribution(general_dict, model_type_dict):
             general_dict_updated["distribution_new"] = (
                 "dnorm" if model_type_dict["error_type"] == "A" else "dgamma"
             )
-        elif general_dict["loss"] in ["MAEh", "MACE", "MAE"]:
+        elif general_dict["loss"] in [
+            "MAE", "MAEh", "TMAE", "GTMAE", "MACE"
+        ]:
             general_dict_updated["distribution_new"] = "dlaplace"
-        elif general_dict["loss"] in ["HAMh", "CHAM", "HAM"]:
+        elif general_dict["loss"] in [
+            "HAM", "HAMh", "THAM", "GTHAM", "CHAM"
+        ]:
             general_dict_updated["distribution_new"] = "ds"
         else:
             general_dict_updated["distribution_new"] = "dnorm"

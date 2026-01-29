@@ -3251,10 +3251,21 @@ def parameters_checker(
         "y_forecast_index": ot_info.get("y_forecast_index", None)
     }
 
+    # Determine if multistep loss is used
+    multistep_losses = [
+        "MSEh", "TMSE", "GTMSE", "MSCE",
+        "MAEh", "TMAE", "GTMAE", "MACE",
+        "HAMh", "THAM", "GTHAM", "CHAM",
+        "GPL",
+        "aMSEh", "aTMSE", "aGTMSE", "aMSCE", "aGPL"
+    ]
+    multisteps = loss in multistep_losses
+
     # Create general dictionary with remaining parameters
     general_dict = {
         "distribution": distribution,
         "loss": loss,
+        "multisteps": multisteps,
         "outliers": outliers_mode,
         "h": h,
         "holdout": holdout,
