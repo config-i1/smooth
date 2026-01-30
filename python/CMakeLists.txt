@@ -26,8 +26,13 @@ find_package(LAPACK)
 if(LAPACK_FOUND AND BLAS_FOUND)
    set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 else()
-   # Fallback: explicitly specify the libraries
-   set(lapackblas_libraries "/usr/lib/x86_64-linux-gnu/libblas.so" "/usr/lib/x86_64-linux-gnu/liblapack.so")
+   # No fallback - will rely on carma's bundled armadillo or system libs
+   set(lapackblas_libraries "")
+   if(WIN32)
+     message(STATUS "BLAS/LAPACK not found on Windows - using header-only Armadillo via carma")
+   else()
+     message(WARNING "BLAS/LAPACK not found. Some functionality may be limited.")
+   endif()
 endif()
 
 # Armadillo (use correct CMake package name)
@@ -36,9 +41,8 @@ if(Armadillo_FOUND)
   message(STATUS "Found Armadillo")
   include_directories(${ARMADILLO_INCLUDE_DIRS})
 else()
-  message(WARNING "Armadillo not found. Install system package (e.g., libarmadillo-dev) or set Armadillo_DIR. Using fallback include path /usr/include.")
-  set(ARMADILLO_INCLUDE_DIRS "/usr/include")
-  include_directories(${ARMADILLO_INCLUDE_DIRS})
+  # carma will provide Armadillo headers via FetchContent
+  message(STATUS "Armadillo not found - using carma's bundled Armadillo headers")
 endif()
 
 # Adam Core - Updated to use new core implementation
@@ -52,8 +56,10 @@ target_include_directories(_adamCore PRIVATE ../src)
 
 target_link_libraries(_adamCore PRIVATE carma::carma)
 
-# Always link BLAS/LAPACK
-target_link_libraries(_adamCore PRIVATE ${lapackblas_libraries})
+# Link BLAS/LAPACK if found
+if(lapackblas_libraries)
+  target_link_libraries(_adamCore PRIVATE ${lapackblas_libraries})
+endif()
 
 if(Armadillo_FOUND)
   if(TARGET Armadillo::armadillo)
@@ -71,7 +77,9 @@ pybind11_add_module(_lowess ../src/python/lowess.cpp)
 target_compile_definitions(_lowess PRIVATE PYTHON_BUILD)
 target_include_directories(_lowess PRIVATE ../src)
 target_link_libraries(_lowess PRIVATE carma::carma)
-target_link_libraries(_lowess PRIVATE ${lapackblas_libraries})
+if(lapackblas_libraries)
+  target_link_libraries(_lowess PRIVATE ${lapackblas_libraries})
+endif()
 if(Armadillo_FOUND)
   if(TARGET Armadillo::armadillo)
     target_link_libraries(_lowess PRIVATE Armadillo::armadillo)
