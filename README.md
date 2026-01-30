@@ -35,7 +35,7 @@ remotes::install_github("config-i1/smooth")
 
 **Python (github):**
 ```bash
-pip install "smooth @ git+https://github.com/config-i1/smooth.git@master#subdirectory=python" 
+pip install "git+https://github.com/config-i1/smooth.git@master#subdirectory=python"
 ```
 
 For development versions and system requirements, see the [Installation wiki page](https://github.com/config-i1/smooth/wiki/Installation).
