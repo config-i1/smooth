@@ -224,7 +224,7 @@
 es <- function(y, model="ZXZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
                initial=c("backcasting","optimal","two-stage","complete"),initialSeason=NULL,
                ic=c("AICc","AIC","BIC","BICc"),
-               loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+               loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE","GPL"),
                h=0, holdout=FALSE,
                bounds=c("usual","admissible","none"),
                silent=TRUE,

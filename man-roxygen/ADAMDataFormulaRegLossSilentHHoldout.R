@@ -25,7 +25,8 @@
 #' \item \code{TMSE} - Trace Mean Squared Error,
 #' \item \code{GTMSE} - Geometric Trace Mean Squared Error,
 #' \item \code{MSEh} - optimisation using only h-steps ahead error,
-#' \item \code{MSCE} - Mean Squared Cumulative Error.
+#' \item \code{MSCE} - Mean Squared Cumulative Error,
+#' \item \code{GPL} - Generalised Predictive Likelihood.
 #' }
 #' In case of LASSO / RIDGE, the variables are not normalised prior to the estimation,
 #' but the parameters are divided by the mean values of explanatory variables.

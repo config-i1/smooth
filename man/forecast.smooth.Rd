@@ -65,8 +65,8 @@ confidence or complete intervals, this is set to 100.}
 simulations or not. Only works if \code{interval="simulated"}. If \code{TRUE}
 the object will contain \code{scenarios} variable.}
 
-\item{...}{Other arguments accepted by either \link[smooth]{es},
-\link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.}
+\item{...}{Other arguments passed to \code{reforecast()}, or \code{predict()}
+functions.}
 
 \item{model}{The type of ETS model to fit on the decomposed trend. Only applicable to
 "msdecompose" class. This is then returned in parameter "esmodel". If \code{NULL}, then

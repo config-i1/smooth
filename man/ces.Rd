@@ -8,7 +8,7 @@
 ces(y, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(y)), initial = c("backcasting", "optimal",
   "two-stage", "complete"), a = NULL, b = NULL, loss = c("likelihood",
-  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0,
+  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE", "GPL"), h = 0,
   holdout = FALSE, bounds = c("admissible", "none"), silent = TRUE,
   model = NULL, xreg = NULL, regressors = c("use", "select", "adapt"),
   initialX = NULL, ...)
@@ -17,9 +17,9 @@ auto.ces(y, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(y)), initial = c("backcasting", "optimal",
   "two-stage", "complete"), ic = c("AICc", "AIC", "BIC", "BICc"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
-  "MSCE"), h = 0, holdout = FALSE, bounds = c("admissible", "none"),
-  silent = TRUE, xreg = NULL, regressors = c("use", "select", "adapt"),
-  ...)
+  "MSCE", "GPL"), h = 0, holdout = FALSE, bounds = c("admissible",
+  "none"), silent = TRUE, xreg = NULL, regressors = c("use", "select",
+  "adapt"), ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}
@@ -135,9 +135,6 @@ equal to the approximation error.
 
 The \code{auto.ces()} function implements the automatic seasonal component
 selection based on information criteria.
-
-\code{ces_old()} is the old implementation of the model and will be discontinued
-starting from smooth v4.5.0.
 
 \code{ces()} uses two optimisers to get good estimates of parameters. By default
 these are BOBYQA and then Nelder-Mead. This can be regulated via \code{...} - see

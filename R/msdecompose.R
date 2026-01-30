@@ -52,7 +52,7 @@
 #' @importFrom stats filter poly .lm.fit supsmu
 #' @export msdecompose
 msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
-                        smoother=c("ma","lowess","supsmu","global"), ...){
+                        smoother=c("lowess","ma","supsmu","global"), ...){
     # Function decomposes time series, assuming multiple frequencies provided in lags
     type <- match.arg(type);
     smoother <- match.arg(smoother);

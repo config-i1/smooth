@@ -22,7 +22,7 @@
 auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(y)),
                          initial=c("backcasting","optimal","two-stage","complete"),
                          ic=c("AICc","AIC","BIC","BICc"),
-                         loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                         loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE","GPL"),
                          h=0, holdout=FALSE,
                          bounds=c("usual","admissible","none"),
                          silent=TRUE,
