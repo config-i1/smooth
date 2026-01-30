@@ -1184,6 +1184,31 @@ class ADAM:
         self._check_is_fitted()
         return self.model_type_dict.get('model', '')
 
+    @property
+    def lags_used(self) -> List[int]:
+        """
+        Return the vector of lags used in the model.
+
+        Returns
+        -------
+        List[int]
+            List of lag values (seasonal periods) used in the model.
+            For example, [1, 12] for monthly data with annual seasonality.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=[1, 12])
+        >>> model.fit(y)
+        >>> model.lags_used  # [1, 12]
+        """
+        self._check_is_fitted()
+        return list(self.lags_dict.get('lags', [1]))
+
     def predict(
         self,
         h: int,
