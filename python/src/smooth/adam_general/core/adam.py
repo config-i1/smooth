@@ -363,6 +363,7 @@ class ADAM:
         reg_lambda: Optional[float] = None,
         gnorm_shape: Optional[float] = None,
         smoother: Literal["lowess", "ma", "global"] = "lowess",
+        **kwargs,
     ) -> None:
         """
         Initialize the ADAM model with specified parameters.
@@ -522,7 +523,20 @@ class ADAM:
         self.model_do = model_do
         self.fast = fast
         self.models_pool = models_pool
-        self.lambda_param = lambda_param
+        # Handle 'lambda' from kwargs (since 'lambda' is a reserved word in Python)
+        # Users can pass either lambda_param=0.5 or **{'lambda': 0.5}
+        if 'lambda' in kwargs:
+            self.lambda_param = kwargs['lambda']
+        else:
+            self.lambda_param = lambda_param
+
+        # Handle 'print_level' from kwargs for convenience
+        # Users can pass print_level=1 directly or via nlopt_kargs={'print_level': 1}
+        if 'print_level' in kwargs:
+            if self.nlopt_kargs is None:
+                self.nlopt_kargs = {}
+            self.nlopt_kargs['print_level'] = kwargs['print_level']
+
         self.frequency = frequency
 
         # Store profile parameters

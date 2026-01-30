@@ -597,9 +597,13 @@ def _format_loss(model: Any, digits: int) -> str:
     """Format loss function information."""
     loss = 'likelihood'
     loss_value = None
+    lambda_val = None
 
     if hasattr(model, 'general') and model.general:
         loss = model.general.get('loss', 'likelihood')
+        # Get lambda for LASSO/RIDGE
+        if loss in ['LASSO', 'RIDGE']:
+            lambda_val = model.general.get('lambda')
 
     if hasattr(model, 'adam_estimated') and model.adam_estimated:
         if 'CF_value' in model.adam_estimated:
@@ -608,6 +612,8 @@ def _format_loss(model: Any, digits: int) -> str:
     result = f"Loss function type: {loss}"
     if loss_value is not None:
         result += f"; Loss function value: {loss_value:.{digits}f}"
+    if lambda_val is not None:
+        result += f"; lambda= {lambda_val}"
 
     return result
 
