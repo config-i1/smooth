@@ -8,7 +8,7 @@ R:
 
 Python:
 
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/smooth.svg)](https://pypi.org/project/smooth/)
+
 
 The **smooth** package implements Single Source of Error (SSOE) state-space models for forecasting and time series analysis, available for both R and Python.
 
@@ -21,9 +21,21 @@ The **smooth** package implements Single Source of Error (SSOE) state-space mode
 install.packages("smooth")
 ```
 
+**R (github):**
+```r
+if (!require("remotes")) install.packages("remotes")
+remotes::install_github("config-i1/smooth")
+```
+
+
 **Python (PyPI):**
 ```bash
-pip install smooth
+# Not yet available
+```
+
+**Python (github):**
+```bash
+pip install "git+https://github.com/config-i1/smooth.git@master#subdirectory=python"
 ```
 
 For development versions and system requirements, see the [Installation wiki page](https://github.com/config-i1/smooth/wiki/Installation).
