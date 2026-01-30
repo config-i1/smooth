@@ -124,6 +124,7 @@ Here is the list of the included functions:
 8. **modelName** - Returns the full descriptive name of the fitted model (e.g., "ARIMA(0,1,1)", "ETS(A,Ad,N)").
 9. **orders** - Extracts the orders of ARIMA components (ar, i, ma). Mainly useful for ssarima, msarima, adam with ARIMA, and GUM.
 10. **lags** - Extracts the lags of the model. Useful for ARIMA, GUM, and models with multiple seasonalities.
+11. **formula** - Returns the formula for the measurement equation. For `adam()` this is a proper formula object; for other functions it is decorative.
 
 ### Outliers and special handling
 
