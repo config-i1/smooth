@@ -67,16 +67,31 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           choco install cmake ninja
+          
+      - name: Install OpenBLAS via vcpkg (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          vcpkg install openblas:x64-windows
+        shell: pwsh
 
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-cov numpy
 
-      - name: Build and install package
+      - name: Build and install package (Unix)
+        if: runner.os != 'Windows'
         working-directory: python
         run: |
           pip install -e ".[dev]"
+
+      - name: Build and install package (Windows)
+        if: runner.os == 'Windows'
+        working-directory: python
+        run: |
+          pip install -e ".[dev]"
+        env:
+          CMAKE_ARGS: -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Run tests with pytest
         working-directory: python
