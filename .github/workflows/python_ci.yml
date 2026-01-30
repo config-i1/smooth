@@ -68,10 +68,10 @@ jobs:
         run: |
           choco install cmake ninja
           
-      - name: Install OpenBLAS via vcpkg (Windows)
+      - name: Install OpenBLAS and LAPACK via vcpkg (Windows)
         if: runner.os == 'Windows'
         run: |
-          vcpkg install openblas:x64-windows
+          vcpkg install openblas:x64-windows-release lapack:x64-windows-release
         shell: pwsh
 
       - name: Install Python dependencies
@@ -91,7 +91,7 @@ jobs:
         run: |
           pip install -e ".[dev]"
         env:
-          CMAKE_ARGS: -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+          CMAKE_ARGS: -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release
 
       - name: Run tests with pytest
         working-directory: python
