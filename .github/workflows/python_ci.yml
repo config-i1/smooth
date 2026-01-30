@@ -74,4 +74,4 @@ jobs:
           CIBW_ENVIRONMENT_WINDOWS: CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release"
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair -w {dest_dir} {wheel} --add-path C:/vcpkg/installed/x64-windows-release/bin
           CIBW_TEST_REQUIRES: pytest numpy
-          CIBW_TEST_COMMAND: pytest {project}/tests -v --tb=short
+          CIBW_TEST_COMMAND: pytest {project}/python/tests -v --tb=short
