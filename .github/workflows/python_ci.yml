@@ -93,6 +93,17 @@ jobs:
         env:
           CMAKE_ARGS: -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release
 
+      - name: Copy vcpkg DLLs to build directory (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          # Find where the .pyd files are and copy DLLs there
+          $pydDir = Get-ChildItem -Path python/build -Filter "*.pyd" -Recurse | Select-Object -First 1 | Split-Path -Parent
+          Write-Host "Found .pyd files in: $pydDir"
+          Write-Host "Copying DLLs from vcpkg..."
+          Copy-Item -Path "C:\vcpkg\installed\x64-windows-release\bin\*.dll" -Destination $pydDir -Force -ErrorAction SilentlyContinue
+          Get-ChildItem $pydDir
+        shell: pwsh
+
       - name: Run tests with pytest (Unix)
         if: runner.os != 'Windows'
         working-directory: python
@@ -103,7 +114,6 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: python
         run: |
-          $env:PATH = "C:\vcpkg\installed\x64-windows-release\bin;$env:PATH"
           pytest tests/ -v --tb=short -ra
         shell: pwsh
 
