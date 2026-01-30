@@ -877,6 +877,313 @@ class ADAM:
             else:
                 self.model = ets_str
 
+    # =========================================================================
+    # Extraction Properties - R-style accessors implemented as Python properties
+    # =========================================================================
+
+    def _check_is_fitted(self):
+        """Check if model has been fitted."""
+        if not hasattr(self, 'prepared_model') or self.prepared_model is None:
+            raise ValueError("Model has not been fitted. Call fit() first.")
+
+    @property
+    def fitted(self) -> NDArray:
+        """
+        Return in-sample fitted values.
+
+        Returns
+        -------
+        NDArray
+            Array of fitted values for the in-sample period.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> fitted_values = model.fitted
+        """
+        self._check_is_fitted()
+        return self.prepared_model['y_fitted']
+
+    @property
+    def actuals(self) -> NDArray:
+        """
+        Return original in-sample data.
+
+        Returns
+        -------
+        NDArray
+            Array of original observations used for fitting.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> original_data = model.actuals
+        """
+        self._check_is_fitted()
+        return np.array(self.observations_dict['y_in_sample'])
+
+    @property
+    def coef(self) -> NDArray:
+        """
+        Return estimated coefficients (parameter vector B).
+
+        The parameter vector B contains all optimized parameters in order:
+        1. ETS persistence parameters (α, β, γ)
+        2. Damping parameter (φ)
+        3. Initial states
+        4. ARIMA parameters (AR, MA coefficients)
+        5. Regression coefficients
+        6. Constant term
+        7. Distribution parameters
+
+        Returns
+        -------
+        NDArray
+            Parameter vector B with all estimated coefficients.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> coefficients = model.coef
+        """
+        self._check_is_fitted()
+        return self.adam_estimated['B']
+
+    @property
+    def residuals(self) -> NDArray:
+        """
+        Return model residuals (errors from fitting).
+
+        For additive error models, residuals are y_t - fitted_t.
+        For multiplicative error models, residuals are y_t / fitted_t - 1.
+
+        Returns
+        -------
+        NDArray
+            Array of residuals from the fitted model.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> errors = model.residuals
+        >>> rmse = np.sqrt(np.mean(errors**2))
+        """
+        self._check_is_fitted()
+        return self.prepared_model['residuals']
+
+    @property
+    def nobs(self) -> int:
+        """
+        Return number of observations used for fitting.
+
+        Returns
+        -------
+        int
+            Number of in-sample observations.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> n = model.nobs
+        """
+        self._check_is_fitted()
+        return len(self.observations_dict['y_in_sample'])
+
+    @property
+    def nparam(self) -> int:
+        """
+        Return number of estimated parameters.
+
+        Returns
+        -------
+        int
+            Number of parameters estimated during optimization.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> k = model.nparam
+        """
+        self._check_is_fitted()
+        return self.adam_estimated['n_param_estimated']
+
+    @property
+    def sigma(self) -> float:
+        """
+        Return scale/standard error estimate.
+
+        This is the estimated scale parameter of the error distribution,
+        which equals the standard deviation for normal errors.
+
+        Returns
+        -------
+        float
+            Scale parameter estimate.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> std_error = model.sigma
+        """
+        self._check_is_fitted()
+        return self.prepared_model['scale']
+
+    @property
+    def error_type(self) -> str:
+        """
+        Return error type: 'A' (additive) or 'M' (multiplicative).
+
+        Returns
+        -------
+        str
+            'A' for additive errors, 'M' for multiplicative errors.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> err_type = model.error_type  # Returns 'A'
+        """
+        self._check_is_fitted()
+        return self.model_type_dict['error_type']
+
+    @property
+    def model_type(self) -> str:
+        """
+        Return ETS model type (e.g., 'AAN', 'AAA', 'MAdM').
+
+        Returns
+        -------
+        str
+            Three-letter ETS model code where:
+            - First letter: Error type (A/M)
+            - Second letter: Trend type (N/A/Ad/M/Md)
+            - Third letter: Seasonal type (N/A/M)
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="ZZZ")  # Auto-selection
+        >>> model.fit(y)
+        >>> selected_type = model.model_type  # e.g., 'AAN'
+        """
+        self._check_is_fitted()
+        model = self.model_type_dict.get('model', '')
+        if '(' in model and ')' in model:
+            return model[model.index('(')+1:model.index(')')]
+        return model
+
+    @property
+    def orders(self) -> Dict[str, List[int]]:
+        """
+        Return ARIMA orders as dict with 'ar', 'i', 'ma' keys.
+
+        Returns
+        -------
+        Dict[str, List[int]]
+            Dictionary with keys 'ar', 'i', 'ma' containing lists of orders
+            for each lag. For pure ETS models, returns [0] for each.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="NNN", ar_order=1, i_order=1, ma_order=1)
+        >>> model.fit(y)
+        >>> arima_orders = model.orders
+        >>> print(arima_orders)  # {'ar': [1], 'i': [1], 'ma': [1]}
+        """
+        self._check_is_fitted()
+        ar = self.arima_results.get('ar_orders')
+        i = self.arima_results.get('i_orders')
+        ma = self.arima_results.get('ma_orders')
+        return {
+            'ar': ar if ar is not None else [0],
+            'i': i if i is not None else [0],
+            'ma': ma if ma is not None else [0]
+        }
+
+    @property
+    def model_name(self) -> str:
+        """
+        Return full model name string.
+
+        Returns the complete model specification string, e.g.,
+        'ETS(AAN)' or 'ETS(AAA)+ARIMA(1,1,1)'.
+
+        Returns
+        -------
+        str
+            Full model name.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> name = model.model_name  # 'ETS(AAN)'
+        """
+        self._check_is_fitted()
+        return self.model_type_dict.get('model', '')
+
     def predict(
         self,
         h: int,
@@ -1484,6 +1791,9 @@ class ADAM:
         # Handle distribution selection
         self._select_distribution()
 
+        # Compute fitted values and residuals by calling preparator
+        self._compute_fitted_values()
+
     def _format_time_series_data(self):
         """
         Format time series data into pandas Series with appropriate indexes.
@@ -1535,29 +1845,77 @@ class ADAM:
     def _select_distribution(self):
         """
         Select appropriate distribution based on model and loss function.
+
+        Distribution mapping:
+        - likelihood: dnorm (additive) or dgamma (multiplicative)
+        - MAE-based losses: dlaplace
+        - HAM-based losses: ds
+        - MSE-based and other losses: dnorm
         """
         if self.general["distribution"] == "default":
-            if self.general["loss"] == "likelihood":
+            loss = self.general["loss"]
+            if loss == "likelihood":
                 if self.model_type_dict["error_type"] == "A":
                     self.general["distribution_new"] = "dnorm"
                 elif self.model_type_dict["error_type"] == "M":
                     self.general["distribution_new"] = "dgamma"
-            elif self.general["loss"] in [
-                "MAE", "MAEh", "TMAE", "GTMAE", "MACE"
+            elif loss in [
+                "MAE", "MAEh", "TMAE", "GTMAE", "MACE",
+                "aTMAE", "aGTMAE", "aMACE"
             ]:
                 self.general["distribution_new"] = "dlaplace"
-            elif self.general["loss"] in [
-                "HAM", "HAMh", "THAM", "GTHAM", "CHAM"
+            elif loss in [
+                "HAM", "HAMh", "THAM", "GTHAM", "CHAM",
+                "aTHAM", "aGTHAM", "aCHAM"
             ]:
                 self.general["distribution_new"] = "ds"
-            elif self.general["loss"] in [
-                "MSE", "MSEh", "TMSE", "GTMSE", "MSCE",
-                "GPL", "aMSEh", "aTMSE", "aGTMSE", "aMSCE", "aGPL",
-                "custom"
+            elif loss in [
+                "MSE", "MSEh", "TMSE", "GTMSE", "MSCE", "GPL",
+                "aMSEh", "aTMSE", "aGTMSE", "aMSCE", "aGPL",
+                "LASSO", "RIDGE", "custom"
             ]:
+                self.general["distribution_new"] = "dnorm"
+            else:
+                # Fallback to dnorm for any unrecognized loss
                 self.general["distribution_new"] = "dnorm"
         else:
             self.general["distribution_new"] = self.general["distribution"]
+
+    def _compute_fitted_values(self):
+        """
+        Compute fitted values and residuals after model estimation.
+
+        This calls preparator() to run the fitter with final parameters
+        and extract fitted values, residuals, and scale.
+        """
+        # Set a default h if not provided (needed for preparator)
+        if self.h is None:
+            if self.lags_dict and len(self.lags_dict["lags"]) > 0:
+                self.general["h"] = max(self.lags_dict["lags"])
+            else:
+                self.general["h"] = 10
+
+        # Call preparator to compute fitted values and residuals
+        self.prepared_model = preparator(
+            model_type_dict=self.model_type_dict,
+            components_dict=self.components_dict,
+            lags_dict=self.lags_dict,
+            matrices_dict=self.adam_created,
+            persistence_checked=self.persistence_results,
+            initials_checked=self.initials_results,
+            arima_checked=self.arima_results,
+            explanatory_checked=self.explanatory_dict,
+            phi_dict=self.phi_dict,
+            constants_checked=self.constant_dict,
+            observations_dict=self.observations_dict,
+            occurrence_dict=self.occurrence_dict,
+            general_dict=self.general,
+            profiles_dict=self.profile_dict,
+            adam_estimated=self.adam_estimated,
+            adam_cpp=self.adam_cpp,
+            bounds="usual",
+            other=None,
+        )
 
     def _validate_prediction_inputs(self):
         """
