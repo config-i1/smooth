@@ -93,10 +93,19 @@ jobs:
         env:
           CMAKE_ARGS: -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release
 
-      - name: Run tests with pytest
+      - name: Run tests with pytest (Unix)
+        if: runner.os != 'Windows'
         working-directory: python
         run: |
           pytest tests/ -v --tb=short -ra
+
+      - name: Run tests with pytest (Windows)
+        if: runner.os == 'Windows'
+        working-directory: python
+        run: |
+          $env:PATH = "C:\vcpkg\installed\x64-windows-release\bin;$env:PATH"
+          pytest tests/ -v --tb=short -ra
+        shell: pwsh
 
       - name: Run tests with coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
