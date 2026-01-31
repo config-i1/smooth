@@ -1,4 +1,4 @@
-smooth v4.4.0 (Release data: 2026-01-10)
+smooth v4.4.0 (Release data: 2026-01-29)
 =======
 
 Changes:
@@ -10,7 +10,8 @@ Changes:
 * msdecompose() now has smoother="global" which fits the global trend to the data.
 * msdecompose() now returns initial similar to how it's done by adam(). It also amends the level component to help ADAM.
 * adam() now uses initial list from msdecompose instead of separate variables.
-* adamCpp is now returned by adam() and other functions
+* adamCpp is now returned by adam() and other functions.
+* Documented loss="GPL" correctly.
 
 Bugfixes:
 * A fix in sparma to allow high orders.

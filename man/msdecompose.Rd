@@ -5,7 +5,7 @@
 \title{Multiple seasonal classical decomposition}
 \usage{
 msdecompose(y, lags = c(12), type = c("additive", "multiplicative"),
-  smoother = c("ma", "lowess", "supsmu", "global"), ...)
+  smoother = c("lowess", "ma", "supsmu", "global"), ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be smoothed.}

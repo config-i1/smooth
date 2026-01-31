@@ -12,7 +12,7 @@ sm.adam <- function(object, model="YYY", lags=NULL,
                     silent=TRUE, ...){
     # The function creates a scale model for the provided model
     # occurrence and distribution are extracted from the model.
-    # loss can only be likelihood (for now)
+    # loss can only be likelihood (for now). For future: allow MSE, MAE, HAM, GPL and other similar
     # outliers are not detected
     # Start measuring the time of calculations
     startTime <- Sys.time();

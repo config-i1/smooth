@@ -328,7 +328,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                  occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                  distribution=c("default","dnorm","dlaplace","ds","dgnorm",
                                 "dlnorm","dinvgauss","dgamma"),
-                 loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
+                 loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE","GPL"),
                  outliers=c("ignore","use","select"), level=0.99,
                  h=0, holdout=FALSE,
                  persistence=NULL, phi=NULL, initial=c("backcasting","optimal","two-stage","complete"), arma=NULL,
@@ -7590,8 +7590,8 @@ plot.adam.predict <- function(x, ...){
 #' @param level Confidence level. Defines width of prediction interval.
 #' @param side Defines, whether to provide \code{"both"} sides of prediction
 #' interval or only \code{"upper"}, or \code{"lower"}.
-#' @param ...  Other arguments accepted by either \link[smooth]{es},
-#' \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.
+#' @param ...  Other arguments passed to \code{reforecast()}, or \code{predict()}
+#' functions.
 #' @param newdata The new data needed in order to produce forecasts.
 #' @param nsim Number of iterations to do in cases of \code{interval="simulated"},
 #' \code{interval="prediction"} (for mixed and multiplicative model),

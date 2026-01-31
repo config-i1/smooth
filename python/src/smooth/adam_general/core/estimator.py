@@ -139,17 +139,20 @@ def _setup_optimization_parameters(
     if general_dict["loss"] in ["LASSO", "RIDGE"]:
         if explanatory_dict["xreg_number"] > 0:
             # Calculate standard deviation for each column of matWt
-            general_dict_updated["denominator"] = np.std(adam_created["mat_wt"], axis=0)
+            # Use ddof=1 to match R's sd() which uses sample std (n-1 denominator)
+            general_dict_updated["denominator"] = np.std(adam_created["mat_wt"], axis=0, ddof=1)
             # Replace infinite values with 1
             general_dict_updated["denominator"][
                 np.isinf(general_dict_updated["denominator"])
             ] = 1
         else:
             general_dict_updated["denominator"] = None
+
         # Calculate denominator for y values
-        general_dict_updated["y_denominator"] = max(
-            np.std(np.diff(observations_dict["y_in_sample"])), 1
-        )
+        # Use ddof=1 to match R's sd() which uses sample std (n-1 denominator)
+        y_diff = np.diff(observations_dict["y_in_sample"])
+        y_std = np.std(y_diff, ddof=1)
+        general_dict_updated["y_denominator"] = max(y_std, 1)
     else:
         general_dict_updated["denominator"] = None
         general_dict_updated["y_denominator"] = None
@@ -283,25 +286,28 @@ def _create_objective_function(
         """
         Wrapper for the objective function.
         """
-        # Calculate the cost function
-        cf_value = CF(
-            B=x,
-            model_type_dict=model_type_dict,
-            components_dict=components_dict,
-            lags_dict=lags_dict,
-            matrices_dict=adam_created,
-            persistence_checked=persistence_dict,
-            initials_checked=initials_dict,
-            arima_checked=arima_dict,
-            explanatory_checked=explanatory_dict,
-            phi_dict=phi_dict,
-            constants_checked=constant_dict,
-            observations_dict=observations_dict,
-            profile_dict=profile_dict,
-            general=general_dict,
-            adam_cpp=adam_cpp,
-            bounds="usual",
-        )
+        # Calculate the cost function with exception handling
+        try:
+            cf_value = CF(
+                B=x,
+                model_type_dict=model_type_dict,
+                components_dict=components_dict,
+                lags_dict=lags_dict,
+                matrices_dict=adam_created,
+                persistence_checked=persistence_dict,
+                initials_checked=initials_dict,
+                arima_checked=arima_dict,
+                explanatory_checked=explanatory_dict,
+                phi_dict=phi_dict,
+                constants_checked=constant_dict,
+                observations_dict=observations_dict,
+                profile_dict=profile_dict,
+                general=general_dict,
+                adam_cpp=adam_cpp,
+                bounds="usual",
+            )
+        except Exception:
+            cf_value = 1e100
 
         # Increment iteration counter
         iteration_count[0] += 1
@@ -1338,8 +1344,7 @@ def estimator(
     # Step 10: Extract the solution and the loss value
     CF_value = opt.last_optimum_value()
 
-    #  Step 10a: Retry optimization with zero smoothing parameters if initial
-    # optimization failed
+    # Step 10a: Retry optimization with zero smoothing parameters if initial optimization failed
     # This matches R's behavior (lines 2717-2768 in adam.R)
     # R checks for is.infinite(res$objective) || res$objective==1e+300
     # Python's objective wrapper caps at 1e10, so we check >= 1e10
@@ -1428,7 +1433,7 @@ def estimator(
     # A fix for the special case of LASSO/RIDGE with lambda==1
     if (
         any(general_dict["loss"] == loss_type for loss_type in ["LASSO", "RIDGE"])
-        and general_dict["lambda_"] == 1
+        and general_dict["lambda"] == 1
     ):
         CF_value = 0
 

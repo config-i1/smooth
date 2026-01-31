@@ -3457,6 +3457,7 @@ def parameters_checker(
         "nsim": nsim,
         "scenarios": scenarios,
         "ellipsis": ellipsis,
+        "lambda": lambda_param if lambda_param is not None else 1,
     }
     # Add custom loss function if provided
     if loss_function is not None:
@@ -3466,7 +3467,7 @@ def parameters_checker(
     if model_do == "estimate":
         est_params = _initialize_estimation_params(
             loss=loss,
-            lambda_param=lambda_param or 1,  # Default to 1 if not provided
+            lambda_param=lambda_param if lambda_param is not None else 1,
             ets_info=ets_info,
             arima_info=arima_info,
             silent=silent,
@@ -3475,6 +3476,7 @@ def parameters_checker(
         general_dict.update(
             {
                 "lambda": est_params.get("lambda", 1),
+                "lambda_": est_params.get("lambda_"),
                 "arma_params": est_params.get("arma_params", None),
             }
         )
