@@ -556,17 +556,17 @@ class ADAM:
         self.models_pool = models_pool
         # Handle 'lambda' from kwargs (since 'lambda' is a reserved word in Python)
         # Users can pass either lambda_param=0.5 or **{'lambda': 0.5}
-        if 'lambda' in kwargs:
-            self.lambda_param = kwargs['lambda']
+        if "lambda" in kwargs:
+            self.lambda_param = kwargs["lambda"]
         else:
             self.lambda_param = lambda_param
 
         # Handle 'print_level' from kwargs for convenience
         # Users can pass print_level=1 directly or via nlopt_kargs={'print_level': 1}
-        if 'print_level' in kwargs:
+        if "print_level" in kwargs:
             if self.nlopt_kargs is None:
                 self.nlopt_kargs = {}
-            self.nlopt_kargs['print_level'] = kwargs['print_level']
+            self.nlopt_kargs["print_level"] = kwargs["print_level"]
 
         self.frequency = frequency
 
@@ -933,7 +933,7 @@ class ADAM:
 
     def _check_is_fitted(self):
         """Check if model has been fitted."""
-        if not hasattr(self, 'prepared_model') or self.prepared_model is None:
+        if not hasattr(self, "prepared_model") or self.prepared_model is None:
             raise ValueError("Model has not been fitted. Call fit() first.")
 
     @property
@@ -958,7 +958,7 @@ class ADAM:
         >>> fitted_values = model.fitted
         """
         self._check_is_fitted()
-        return self.prepared_model['y_fitted']
+        return self.prepared_model["y_fitted"]
 
     @property
     def actuals(self) -> NDArray:
@@ -982,7 +982,7 @@ class ADAM:
         >>> original_data = model.actuals
         """
         self._check_is_fitted()
-        return np.array(self.observations_dict['y_in_sample'])
+        return np.array(self.observations_dict["y_in_sample"])
 
     @property
     def coef(self) -> NDArray:
@@ -1015,7 +1015,7 @@ class ADAM:
         >>> coefficients = model.coef
         """
         self._check_is_fitted()
-        return self.adam_estimated['B']
+        return self.adam_estimated["B"]
 
     @property
     def residuals(self) -> NDArray:
@@ -1043,7 +1043,7 @@ class ADAM:
         >>> rmse = np.sqrt(np.mean(errors**2))
         """
         self._check_is_fitted()
-        return self.prepared_model['residuals']
+        return self.prepared_model["residuals"]
 
     @property
     def nobs(self) -> int:
@@ -1067,7 +1067,7 @@ class ADAM:
         >>> n = model.nobs
         """
         self._check_is_fitted()
-        return len(self.observations_dict['y_in_sample'])
+        return len(self.observations_dict["y_in_sample"])
 
     @property
     def nparam(self) -> int:
@@ -1091,7 +1091,7 @@ class ADAM:
         >>> k = model.nparam
         """
         self._check_is_fitted()
-        return self.adam_estimated['n_param_estimated']
+        return self.adam_estimated["n_param_estimated"]
 
     @property
     def sigma(self) -> float:
@@ -1118,7 +1118,7 @@ class ADAM:
         >>> std_error = model.sigma
         """
         self._check_is_fitted()
-        return self.prepared_model['scale']
+        return self.prepared_model["scale"]
 
     @property
     def error_type(self) -> str:
@@ -1142,7 +1142,7 @@ class ADAM:
         >>> err_type = model.error_type  # Returns 'A'
         """
         self._check_is_fitted()
-        return self.model_type_dict['error_type']
+        return self.model_type_dict["error_type"]
 
     @property
     def model_type(self) -> str:
@@ -1169,9 +1169,9 @@ class ADAM:
         >>> selected_type = model.model_type  # e.g., 'AAN'
         """
         self._check_is_fitted()
-        model = self.model_type_dict.get('model', '')
-        if '(' in model and ')' in model:
-            return model[model.index('(')+1:model.index(')')]
+        model = self.model_type_dict.get("model", "")
+        if "(" in model and ")" in model:
+            return model[model.index("(") + 1 : model.index(")")]
         return model
 
     @property
@@ -1198,13 +1198,13 @@ class ADAM:
         >>> print(arima_orders)  # {'ar': [1], 'i': [1], 'ma': [1]}
         """
         self._check_is_fitted()
-        ar = self.arima_results.get('ar_orders')
-        i = self.arima_results.get('i_orders')
-        ma = self.arima_results.get('ma_orders')
+        ar = self.arima_results.get("ar_orders")
+        i = self.arima_results.get("i_orders")
+        ma = self.arima_results.get("ma_orders")
         return {
-            'ar': ar if ar is not None else [0],
-            'i': i if i is not None else [0],
-            'ma': ma if ma is not None else [0]
+            "ar": ar if ar is not None else [0],
+            "i": i if i is not None else [0],
+            "ma": ma if ma is not None else [0],
         }
 
     @property
@@ -1232,7 +1232,7 @@ class ADAM:
         >>> name = model.model_name  # 'ETS(AAN)'
         """
         self._check_is_fitted()
-        return self.model_type_dict.get('model', '')
+        return self.model_type_dict.get("model", "")
 
     @property
     def lags_used(self) -> List[int]:
@@ -1257,7 +1257,7 @@ class ADAM:
         >>> model.lags_used  # [1, 12]
         """
         self._check_is_fitted()
-        return list(self.lags_dict.get('lags', [1]))
+        return list(self.lags_dict.get("lags", [1]))
 
     def predict(
         self,
@@ -1952,19 +1952,42 @@ class ADAM:
                 elif self.model_type_dict["error_type"] == "M":
                     self.general["distribution_new"] = "dgamma"
             elif loss in [
-                "MAE", "MAEh", "TMAE", "GTMAE", "MACE",
-                "aTMAE", "aGTMAE", "aMACE"
+                "MAE",
+                "MAEh",
+                "TMAE",
+                "GTMAE",
+                "MACE",
+                "aTMAE",
+                "aGTMAE",
+                "aMACE",
             ]:
                 self.general["distribution_new"] = "dlaplace"
             elif loss in [
-                "HAM", "HAMh", "THAM", "GTHAM", "CHAM",
-                "aTHAM", "aGTHAM", "aCHAM"
+                "HAM",
+                "HAMh",
+                "THAM",
+                "GTHAM",
+                "CHAM",
+                "aTHAM",
+                "aGTHAM",
+                "aCHAM",
             ]:
                 self.general["distribution_new"] = "ds"
             elif loss in [
-                "MSE", "MSEh", "TMSE", "GTMSE", "MSCE", "GPL",
-                "aMSEh", "aTMSE", "aGTMSE", "aMSCE", "aGPL",
-                "LASSO", "RIDGE", "custom"
+                "MSE",
+                "MSEh",
+                "TMSE",
+                "GTMSE",
+                "MSCE",
+                "GPL",
+                "aMSEh",
+                "aTMSE",
+                "aGTMSE",
+                "aMSCE",
+                "aGPL",
+                "LASSO",
+                "RIDGE",
+                "custom",
             ]:
                 self.general["distribution_new"] = "dnorm"
             else:

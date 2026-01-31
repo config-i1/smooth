@@ -546,34 +546,49 @@ def CF(  # noqa: N802
                     CFValueEntropy = np.inf
                 CFValue += CFValueEntropy
 
-        elif general['loss'] == "MSE":
-            CFValue = np.sum(adam_fitted.errors**2) / observations_dict['obs_in_sample']
-        elif general['loss'] == "MAE":
-            CFValue = np.sum(np.abs(adam_fitted.errors)) / observations_dict['obs_in_sample']
-        elif general['loss'] == "HAM":
-            CFValue = np.sum(np.sqrt(np.abs(adam_fitted.errors))) / observations_dict['obs_in_sample']
-        elif general['loss'] in ["LASSO", "RIDGE"]:
+        elif general["loss"] == "MSE":
+            CFValue = np.sum(adam_fitted.errors**2) / observations_dict["obs_in_sample"]
+        elif general["loss"] == "MAE":
+            CFValue = (
+                np.sum(np.abs(adam_fitted.errors)) / observations_dict["obs_in_sample"]
+            )
+        elif general["loss"] == "HAM":
+            CFValue = (
+                np.sum(np.sqrt(np.abs(adam_fitted.errors)))
+                / observations_dict["obs_in_sample"]
+            )
+        elif general["loss"] in ["LASSO", "RIDGE"]:
             # Extract values with safe defaults (use consistent pattern throughout)
-            components_ets = int(components_dict.get('components_number_ets', 0) or 0)
-            persistence_xreg_est = int(persistence_checked.get('persistence_xreg_estimate', False) or 0)
-            xreg_num = int(explanatory_checked.get('xreg_number', 0) or 0)
-            phi_est = int(phi_dict.get('phi_estimate', False) or 0)
-            ar_orders = arima_checked.get('ar_orders') if arima_checked else None
-            ma_orders = arima_checked.get('ma_orders') if arima_checked else None
-            arima_model = arima_checked.get('arima_model', False) if arima_checked else False
+            components_ets = int(components_dict.get("components_number_ets", 0) or 0)
+            persistence_xreg_est = int(
+                persistence_checked.get("persistence_xreg_estimate", False) or 0
+            )
+            xreg_num = int(explanatory_checked.get("xreg_number", 0) or 0)
+            phi_est = int(phi_dict.get("phi_estimate", False) or 0)
+            ar_orders = arima_checked.get("ar_orders") if arima_checked else None
+            ma_orders = arima_checked.get("ma_orders") if arima_checked else None
+            arima_model = (
+                arima_checked.get("arima_model", False) if arima_checked else False
+            )
 
             # Ensure ar_orders and ma_orders are lists
-            if ar_orders is None or (hasattr(ar_orders, '__len__') and len(ar_orders) == 0):
+            if ar_orders is None or (
+                hasattr(ar_orders, "__len__") and len(ar_orders) == 0
+            ):
                 ar_orders = [0]
-            if ma_orders is None or (hasattr(ma_orders, '__len__') and len(ma_orders) == 0):
+            if ma_orders is None or (
+                hasattr(ma_orders, "__len__") and len(ma_orders) == 0
+            ):
                 ma_orders = [0]
 
             # Calculate persistenceToSkip (number of persistence parameters to keep)
-            persistenceToSkip = (components_ets +
-                                persistence_xreg_est * xreg_num +
-                                phi_est +
-                                sum(ar_orders) +
-                                sum(ma_orders))
+            persistenceToSkip = (
+                components_ets
+                + persistence_xreg_est * xreg_num
+                + phi_est
+                + sum(ar_orders)
+                + sum(ma_orders)
+            )
 
             # Make a copy of B to avoid modifying optimizer's state
             B_penalty = B.copy()
@@ -588,40 +603,53 @@ def CF(  # noqa: N802
 
             # Handle ARIMA parameters: shrink AR to 1, keep MA as-is
             if arima_model and (sum(ma_orders) > 0 or sum(ar_orders) > 0):
-                lags = lags_dict.get('lags', [1]) if lags_dict else [1]
-                if not hasattr(lags, '__len__'):
+                lags = lags_dict.get("lags", [1]) if lags_dict else [1]
+                if not hasattr(lags, "__len__"):
                     lags = [lags]
                 for i in range(len(lags)):
                     ar_order_i = ar_orders[i] if i < len(ar_orders) else 0
                     ma_order_i = ma_orders[i] if i < len(ma_orders) else 0
                     if ar_order_i > 0 and j + ar_order_i <= len(B_penalty):
-                        B_penalty[j:j+ar_order_i] = 1 - B_penalty[j:j+ar_order_i]
+                        B_penalty[j : j + ar_order_i] = (
+                            1 - B_penalty[j : j + ar_order_i]
+                        )
                     j += ar_order_i + ma_order_i
 
             # Handle initial_type to determine if we should trim B_penalty
-            initial_type = initials_checked.get('initial_type', 'optimal') if initials_checked else 'optimal'
+            initial_type = (
+                initials_checked.get("initial_type", "optimal")
+                if initials_checked
+                else "optimal"
+            )
             if isinstance(initial_type, list):
-                initial_type_matches = any([t in ["optimal", "backcasting", "two-stage"] for t in initial_type])
+                initial_type_matches = any(
+                    [t in ["optimal", "backcasting", "two-stage"] for t in initial_type]
+                )
             else:
-                initial_type_matches = initial_type in ["optimal", "backcasting", "two-stage"]
+                initial_type_matches = initial_type in [
+                    "optimal",
+                    "backcasting",
+                    "two-stage",
+                ]
 
             # Trim B_penalty based on initial_type and xreg
             if initial_type_matches:
                 if xreg_num > 0:
-                    denominator = general.get('denominator')
-                    error_type = model_type_dict.get('error_type', 'A')
+                    denominator = general.get("denominator")
+                    error_type = model_type_dict.get("error_type", "A")
                     if error_type == "A" and denominator is not None:
                         # Normalize xreg parameters for additive errors
-                        B_penalty = np.concatenate([
-                            B_penalty[:persistenceToSkip],
-                            B_penalty[-xreg_num:] / denominator
-                        ])
+                        B_penalty = np.concatenate(
+                            [
+                                B_penalty[:persistenceToSkip],
+                                B_penalty[-xreg_num:] / denominator,
+                            ]
+                        )
                     else:
                         # Keep xreg parameters as-is for multiplicative errors
-                        B_penalty = np.concatenate([
-                            B_penalty[:persistenceToSkip],
-                            B_penalty[-xreg_num:]
-                        ])
+                        B_penalty = np.concatenate(
+                            [B_penalty[:persistenceToSkip], B_penalty[-xreg_num:]]
+                        )
                 else:
                     # No xreg: just take persistence parameters
                     B_penalty = B_penalty[:persistenceToSkip]
@@ -630,16 +658,18 @@ def CF(  # noqa: N802
             errors_flat = np.asarray(adam_fitted.errors).ravel()
 
             # Calculate error term based on error type
-            error_type = model_type_dict.get('error_type', 'A')
-            obs_in_sample = observations_dict.get('obs_in_sample', len(errors_flat))
-            lambda_val = general.get('lambda', 0)
+            error_type = model_type_dict.get("error_type", "A")
+            obs_in_sample = observations_dict.get("obs_in_sample", len(errors_flat))
+            lambda_val = general.get("lambda", 0)
 
             if error_type == "A":
                 # Additive errors: normalize by y_denominator
-                y_denom = general.get('y_denominator', 1)
+                y_denom = general.get("y_denominator", 1)
                 if y_denom is None or y_denom <= 0:
                     y_denom = 1  # Fallback to 1
-                error_term = (1 - lambda_val) * np.sqrt(np.sum((errors_flat / y_denom)**2) / obs_in_sample)
+                error_term = (1 - lambda_val) * np.sqrt(
+                    np.sum((errors_flat / y_denom) ** 2) / obs_in_sample
+                )
                 CFValue = error_term
             else:  # "M"
                 # Multiplicative errors: use log(1 + errors)
@@ -647,11 +677,13 @@ def CF(  # noqa: N802
                 if np.any(log_arg <= 0):
                     CFValue = 1e100
                 else:
-                    error_term = (1 - lambda_val) * np.sqrt(np.sum(np.log(log_arg)**2) / obs_in_sample)
+                    error_term = (1 - lambda_val) * np.sqrt(
+                        np.sum(np.log(log_arg) ** 2) / obs_in_sample
+                    )
                     CFValue = error_term
 
             # Add penalty term (LASSO = L1, RIDGE = L2)
-            if general['loss'] == "LASSO":
+            if general["loss"] == "LASSO":
                 CFValue += lambda_val * np.sum(np.abs(B_penalty))
             else:  # "RIDGE"
                 CFValue += lambda_val * np.sqrt(np.sum(B_penalty**2))

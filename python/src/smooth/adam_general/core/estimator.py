@@ -140,7 +140,9 @@ def _setup_optimization_parameters(
         if explanatory_dict["xreg_number"] > 0:
             # Calculate standard deviation for each column of matWt
             # Use ddof=1 to match R's sd() which uses sample std (n-1 denominator)
-            general_dict_updated["denominator"] = np.std(adam_created["mat_wt"], axis=0, ddof=1)
+            general_dict_updated["denominator"] = np.std(
+                adam_created["mat_wt"], axis=0, ddof=1
+            )
             # Replace infinite values with 1
             general_dict_updated["denominator"][
                 np.isinf(general_dict_updated["denominator"])
@@ -1344,7 +1346,8 @@ def estimator(
     # Step 10: Extract the solution and the loss value
     CF_value = opt.last_optimum_value()
 
-    # Step 10a: Retry optimization with zero smoothing parameters if initial optimization failed
+    # Step 10a: Retry optimization with zero smoothing parameters if initial
+    # optimization failed
     # This matches R's behavior (lines 2717-2768 in adam.R)
     # R checks for is.infinite(res$objective) || res$objective==1e+300
     # Python's objective wrapper caps at 1e10, so we check >= 1e10

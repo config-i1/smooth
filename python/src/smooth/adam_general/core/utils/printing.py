@@ -638,11 +638,11 @@ def _format_loss(model: Any, digits: int) -> str:
     loss_value = None
     lambda_val = None
 
-    if hasattr(model, 'general') and model.general:
-        loss = model.general.get('loss', 'likelihood')
+    if hasattr(model, "general") and model.general:
+        loss = model.general.get("loss", "likelihood")
         # Get lambda for LASSO/RIDGE
-        if loss in ['LASSO', 'RIDGE']:
-            lambda_val = model.general.get('lambda')
+        if loss in ["LASSO", "RIDGE"]:
+            lambda_val = model.general.get("lambda")
 
     if hasattr(model, "adam_estimated") and model.adam_estimated:
         if "CF_value" in model.adam_estimated:
