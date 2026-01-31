@@ -1938,6 +1938,11 @@ def preparator(
     )
 
     # 14. Update parameters number
+    # Ensure parameters_number has enough elements before updating
+    while len(general_dict["parameters_number"][0]) < 3:
+        general_dict["parameters_number"][0].append(0)
+    while len(general_dict["parameters_number"][1]) < 3:
+        general_dict["parameters_number"][1].append(0)
     general_dict["parameters_number"][0][2] = np.sum(
         general_dict["parameters_number"][0][:2]
     )

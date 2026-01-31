@@ -3314,6 +3314,7 @@ def parameters_checker(
         general_dict.update(
             {
                 "lambda": est_params.get("lambda", 1),
+                "lambda_": est_params.get("lambda_"),
                 "arma_params": est_params.get("arma_params", None),
             }
         )
