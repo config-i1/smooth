@@ -129,7 +129,8 @@ def _check_fitted_values(model_prepared, occurrence_dict):
         pd.isna(model_prepared["y_fitted"])
     ):
         warnings.warn(
-            "Something went wrong in the estimation of the model and NaNs were produced. "
+            "Something went wrong in the estimation of the model and NaNs were "
+            "produced. "
             "If this is a mixed model, consider using the pure ones instead."
         )
 
@@ -345,9 +346,6 @@ def _generate_point_forecasts(
     )
 
     # Prepare data for adam_forecaster
-    lags_model_all = np.asfortranarray(
-        lags_dict["lags_model_all"], dtype=np.uint64
-    ).reshape(-1, 1)
     profiles_recent_table = np.asfortranarray(
         model_prepared["profiles_recent_table"], dtype=np.float64
     )
@@ -360,7 +358,8 @@ def _generate_point_forecasts(
     )
 
     # Call adam_cpp.forecast() with the prepared inputs
-    # Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set during adamCore construction
+    # Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set
+    # during adamCore construction
     forecast_result = adam_cpp.forecast(
         matrixWt=np.asfortranarray(mat_wt, dtype=np.float64),
         matrixF=np.asfortranarray(mat_f, dtype=np.float64),
@@ -545,7 +544,8 @@ def _format_forecast_output(
     y_forecast_out = pd.DataFrame(
         {
             "mean": y_forecast,
-            # Return NaN for intervals (would be calculated in a more complete implementation)
+            # Return NaN for intervals
+            # (would be calculated in a more complete implementation)
             f"lower_{level_low}": np.nan,
             f"upper_{level_up}": np.nan,
         },
@@ -596,8 +596,8 @@ def forecaster(
     4. **Safety Checks**: Ensure forecasts are valid (no NaN, appropriate bounds)
     5. **Occurrence Adjustment**: Apply occurrence probabilities for intermittent data
     6. **Cumulative Forecasts**: Sum forecasts if cumulative=True (for demand totals)
-    7. **Prediction Intervals**: Generate confidence bounds using parametric, simulation,
-       or bootstrap methods
+    7. **Prediction Intervals**: Generate confidence bounds using parametric,
+       simulation, or bootstrap methods
 
     **Prediction Interval Methods**:
 
@@ -611,7 +611,8 @@ def forecaster(
       * Intermittent demand
       * Non-normal distributions
 
-    - **Bootstrap**: Resampling residuals to generate intervals (not fully implemented yet)
+    - **Bootstrap**: Resampling residuals to generate intervals (not fully
+      implemented yet)
 
     Parameters
     ----------
@@ -630,7 +631,8 @@ def forecaster(
         - **'persistence_seasonal'**: Estimated γ (if seasonal)
         - **'phi'**: Damping parameter (if damped trend)
         - **'scale'**: Estimated error scale parameter
-        - **'initial_level'**, **'initial_trend'**, **'initial_seasonal'**: Initial states
+        - **'initial_level'**, **'initial_trend'**, **'initial_seasonal'**: Initial
+          states
         - **'arima_polynomials'**: AR/MA polynomials (if ARIMA)
 
     observations_dict : dict
@@ -870,8 +872,9 @@ def forecaster(
     if general_dict["h"] <= 0:
         return None
 
-    # 4. Initialize forecast series structure (but we'll use numpy arrays for calculations)
-    # We don't need to store this value since we're only using numpy arrays internally
+    # 4. Initialize forecast series structure (but we'll use numpy arrays for
+    # calculations). We don't need to store this value since we're only using
+    # numpy arrays internally
     _initialize_forecast_series(observations_dict, general_dict)
 
     # 5. Prepare lookup table for forecasting
@@ -909,11 +912,10 @@ def forecaster(
     # 10. Apply occurrence probabilities to forecasts
     y_forecast_values = y_forecast_values * p_forecast
     # 11. Handle cumulative forecasts if specified
-    h_final = general_dict["h"]
     if general_dict.get("cumulative"):
         y_forecast_values = np.sum(y_forecast_values)
-        h_final = 1
-        # In case of occurrence model use simulations - the cumulative probability is complex
+        # In case of occurrence model use simulations - the cumulative
+        # probability is complex
         if occurrence_model:
             general_dict["interval"] = "simulated"
 
@@ -1396,9 +1398,11 @@ def _process_initial_values(
                 initial_value_ets[i] = matrices_dict["mat_vt"][
                     i, : lags_dict["lags_model_max"]
                 ][0]
-            # In cases of seasonal components, they should be at the end of the pre-heat period
+            # In cases of seasonal components, they should be at the end of
+            # the pre-heat period
             else:
-                # print(lags_dict["lags_model"][i][0]) # here we might have an issue for taking the first element of the list
+                # print(lags_dict["lags_model"][i][0])
+                # here we might have an issue for taking the first element
                 start_idx = lags_dict["lags_model_max"] - lags_dict["lags_model"][i]
                 initial_value_ets[i] = matrices_dict["mat_vt"][
                     i, start_idx : lags_dict["lags_model_max"]
@@ -1421,7 +1425,8 @@ def _process_initial_values(
 
         # Write down the initial seasonals
         if model_type_dict["model_is_seasonal"]:
-            # Convert initial_seasonal_estimate to list if it's a boolean (for single seasonality)
+            # Convert initial_seasonal_estimate to list if it's a boolean
+            # (for single seasonality)
             if isinstance(initials_checked["initial_seasonal_estimate"], bool):
                 seasonal_estimate_list = [
                     initials_checked["initial_seasonal_estimate"]
@@ -1485,6 +1490,9 @@ def _process_arma_parameters(arima_checked, adam_estimated):
     dict or None
         Dictionary of AR and MA parameters or None if no ARIMA model
     """
+    # TODO: B here was not defined in the function namespace. Validate if it's indeed
+    # in that dictionary
+    B = adam_estimated["B"]
     if arima_checked["arima_model"]:
         arma_parameters_list = {}
         j = 0
@@ -1672,14 +1680,15 @@ def preparator(
 
     **Preparation Process**:
 
-    1. **Matrix Filling**: If parameters were estimated (not fixed), call ``filler()`` to
-       populate mat_vt, mat_wt, mat_f, vec_g with values from optimized parameter vector B
+    1. **Matrix Filling**: If parameters were estimated (not fixed), call
+       ``filler()`` to populate mat_vt, mat_wt, mat_f, vec_g with values from
+       optimized parameter vector B
 
-    2. **Profile Setup**: Prepare profile matrices for time-varying parameters (advanced
-       feature, typically zeros for standard models)
+    2. **Profile Setup**: Prepare profile matrices for time-varying parameters
+       (advanced feature, typically zeros for standard models)
 
-    3. **Array Preparation**: Convert all inputs to proper numpy arrays with correct shapes
-       and data types (Fortran-order for C++ compatibility)
+    3. **Array Preparation**: Convert all inputs to proper numpy arrays with
+       correct shapes and data types (Fortran-order for C++ compatibility)
 
     4. **Model Fitting**: Call C++ ``adam_fitter()`` to run the model forward through
        in-sample data, updating states and computing fitted values:
@@ -1839,8 +1848,9 @@ def preparator(
     dict
         Prepared model dictionary containing:
 
-        - **'states'** (numpy.ndarray): State vector matrix, shape (n_components, T+max_lag).
-          Final columns (at T) are starting point for forecasting.
+        - **'states'** (numpy.ndarray): State vector matrix, shape
+          (n_components, T+max_lag). Final columns (at T) are starting point
+          for forecasting.
 
         - **'y_fitted'** (numpy.ndarray): In-sample fitted values, shape (T,)
 
@@ -1914,8 +1924,8 @@ def preparator(
 
     **ARIMA Polynomials**:
 
-    For ARIMA models, the arima_polynomials dict contains companion matrix representations
-    of AR and MA polynomials, used for state-space forecasting.
+    For ARIMA models, the arima_polynomials dict contains companion matrix
+    representations of AR and MA polynomials, used for state-space forecasting.
 
     **Performance**:
 
@@ -1941,7 +1951,7 @@ def preparator(
         ...     persistence_checked={'persistence_estimate': True, ...},
         ...     initials_checked={'initial_type': 'optimal', ...},
         ...     observations_dict={'y_in_sample': data, 'obs_in_sample': 100, ...},
-        ...     adam_estimated={'B': optimized_params, 'log_lik_adam_value': {...}, ...},
+        ...     adam_estimated={'B': optimized_params, 'log_lik_adam_value': {...}, ...}
         ...     ...
         ... )
         >>> print(prepared['y_fitted'])  # In-sample fitted values
@@ -2007,8 +2017,6 @@ def preparator(
     # 4. Run adam_fitter to get fitted values and states
     # refineHead should always be True (fixed backcasting issue)
     refine_head = True
-    # Use conventional ETS for now (adamETS=False)
-    adam_ets = False
 
     # Check if initial_type is a list or string and compute backcast correctly
     if isinstance(initials_checked["initial_type"], list):
@@ -2025,7 +2033,8 @@ def preparator(
         ]
 
     # Call adam_cpp.fit() with the prepared inputs
-    # Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set during adamCore construction
+    # Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set
+    # during adamCore construction
     adam_fitted = adam_cpp.fit(
         matrixVt=mat_vt,
         matrixWt=mat_wt,
@@ -2248,7 +2257,8 @@ def generate_prediction_interval(
                 y_upper[:] = stats.s_dist.ppf(level_up, loc=loc, scale=scale)
             else:
                 print(
-                    "Warning: stats.s_dist not found. Cannot calculate intervals for 'ds'."
+                    "Warning: stats.s_dist not found. "
+                    "Cannot calculate intervals for 'ds'."
                 )
                 y_lower[:], y_upper[:] = np.nan, np.nan
         except Exception as e:
@@ -2259,7 +2269,8 @@ def generate_prediction_interval(
         # stats.gennorm.ppf(q, beta, loc=0, scale=1)
         shape_beta = other_params.get("shape")
         if shape_beta is not None:
-            # Handle potential division by zero or issues with gamma function if shape is invalid
+            # Handle potential division by zero or issues with gamma function
+            # if shape is invalid
             try:
                 scale = np.sqrt(
                     v_voc_multi * (gamma(1 / shape_beta) / gamma(3 / shape_beta))
@@ -2273,7 +2284,8 @@ def generate_prediction_interval(
                 )
             except (ValueError, ZeroDivisionError) as e:
                 print(
-                    f"Warning: Could not calculate scale for dgnorm (shape={shape_beta}). Error: {e}"
+                    f"Warning: Could not calculate scale for dgnorm "
+                    f"(shape={shape_beta}). Error: {e}"
                 )
                 y_lower[:], y_upper[:] = np.nan, np.nan
         else:
@@ -2292,7 +2304,8 @@ def generate_prediction_interval(
         df = observations_dict["obs_in_sample"] - params_info["n_param"]
         if df <= 0:
             print(
-                f"Warning: Degrees of freedom ({df}) non-positive for dt distribution. Setting intervals to NaN."
+                f"Warning: Degrees of freedom ({df}) non-positive for dt "
+                f"distribution. Setting intervals to NaN."
             )
             y_lower[:], y_upper[:] = np.nan, np.nan
         else:
@@ -2337,23 +2350,27 @@ def generate_prediction_interval(
                         )
                 else:
                     print(
-                        "Warning: stats.alaplace not found. Cannot calculate intervals for 'dalaplace'."
+                        "Warning: stats.alaplace not found. "
+                        "Cannot calculate intervals for 'dalaplace'."
                     )
                     y_lower[:], y_upper[:] = np.nan, np.nan
             except (ValueError, ZeroDivisionError) as e:
                 print(
-                    f"Warning: Could not calculate scale for dalaplace (alpha={alpha}). Error: {e}"
+                    f"Warning: Could not calculate scale for dalaplace "
+                    f"(alpha={alpha}). Error: {e}"
                 )
                 y_lower[:], y_upper[:] = np.nan, np.nan
         else:
             print(
-                f"Warning: Alpha parameter ({alpha}) invalid or not found for dalaplace."
+                f"Warning: Alpha parameter ({alpha}) invalid or not found "
+                f"for dalaplace."
             )
             y_lower[:], y_upper[:] = np.nan, np.nan
 
-    # Log-Distributions (handling depends on whether v_voc_multi is variance of log)
-    # Assuming v_voc_multi IS the variance of the log error based on R lines 8429-8433 if Etype=='M'
-    # For Etype=='A', R calculates these as if M and then adjusts. Python code does this too.
+    # Log-Distributions (handling depends on whether v_voc_multi is variance
+    # of log). Assuming v_voc_multi IS the variance of the log error based on
+    # R lines 8429-8433 if Etype=='M'. For Etype=='A', R calculates these as
+    # if M and then adjusts. Python code does this too.
 
     elif distribution == "dlnorm":
         # stats.lognorm.ppf(q, s, loc=0, scale=1). s=sdlog, scale=exp(meanlog)
@@ -2389,7 +2406,8 @@ def generate_prediction_interval(
                 )
             else:
                 print(
-                    "Warning: stats.s_dist not found. Cannot calculate intervals for 'dls'."
+                    "Warning: stats.s_dist not found. "
+                    "Cannot calculate intervals for 'dls'."
                 )
                 y_lower_mult, y_upper_mult = np.nan, np.nan
         except Exception as e:
@@ -2416,7 +2434,8 @@ def generate_prediction_interval(
                 )
             except (ValueError, ZeroDivisionError) as e:
                 print(
-                    f"Warning: Could not calculate scale for dlgnorm (shape={shape_beta}). Error: {e}"
+                    f"Warning: Could not calculate scale for dlgnorm "
+                    f"(shape={shape_beta}). Error: {e}"
                 )
                 y_lower_mult, y_upper_mult = np.nan, np.nan
         else:
@@ -2427,13 +2446,15 @@ def generate_prediction_interval(
     # Distributions naturally multiplicative (or treated as such for intervals)
     elif distribution == "dinvgauss":
         # stats.invgauss.ppf(q, mu, loc=0, scale=1). mu is shape parameter.
-        # R: qinvgauss(p, mean=1, dispersion=vcovMulti) -> implies lambda = 1/vcovMulti
-        # Map (mean=1, lambda=1/vcovMulti) to scipy's mu. Tentative: mu = 1/vcovMulti?
-        # Variance = mean^3 / lambda. If mean=1, Var = 1/lambda. If vcovMulti=Var -> lambda=1/vcovMulti
-        # Let's try mu = 1 / vcovMulti as the shape parameter `mu` for scipy
+        # R: qinvgauss(p, mean=1, dispersion=vcovMulti) -> lambda = 1/vcovMulti
+        # Map (mean=1, lambda=1/vcovMulti) to scipy's mu. Tentative:
+        # mu = 1/vcovMulti? Variance = mean^3 / lambda. If mean=1, Var =
+        # 1/lambda. If vcovMulti=Var -> lambda=1/vcovMulti. Let's try
+        # mu = 1 / vcovMulti as the shape parameter `mu` for scipy
         if np.any(v_voc_multi <= 0):
             print(
-                "Warning: Non-positive variance for dinvgauss. Setting intervals to NaN."
+                "Warning: Non-positive variance for dinvgauss. "
+                "Setting intervals to NaN."
             )
             y_lower[:], y_upper[:] = np.nan, np.nan
         else:
@@ -2443,11 +2464,13 @@ def generate_prediction_interval(
                 level_low, mu=mu_shape, loc=0, scale=1
             )  # loc=0, scale=1 for standard form around mu
             y_upper_mult = stats.invgauss.ppf(level_up, mu=mu_shape, loc=0, scale=1)
-            # Need to rescale ppf output? Let's assume R's mean=1 implies the output is already centered around 1. Needs verification.
+            # Need to rescale ppf output? Let's assume R's mean=1 implies the
+            # output is already centered around 1. Needs verification.
 
     elif distribution == "dgamma":
         # stats.gamma.ppf(q, a, loc=0, scale=1). a=shape.
-        # R: qgamma(p, shape=1/vcovMulti, scale=vcovMulti) -> Mean = shape*scale = 1. Variance = shape*scale^2 = vcovMulti.
+        # R: qgamma(p, shape=1/vcovMulti, scale=vcovMulti) -> Mean =
+        # shape*scale = 1. Variance = shape*scale^2 = vcovMulti.
         if np.any(v_voc_multi <= 0):
             print(
                 "Warning: Non-positive variance for dgamma. Setting intervals to NaN."
@@ -2466,7 +2489,8 @@ def generate_prediction_interval(
 
     else:
         print(
-            f"Warning: Distribution '{distribution}' not recognized for interval calculation."
+            f"Warning: Distribution '{distribution}' not recognized "
+            f"for interval calculation."
         )
         y_lower[:], y_upper[:] = np.nan, np.nan
 
@@ -2602,7 +2626,6 @@ def generate_simulation_interval(
     """
     h = general_dict["h"]
     lags_model_max = lags_dict["lags_model_max"]
-    lags_model_all = lags_dict["lags_model_all"]
 
     # Get number of components
     n_components = (
@@ -2655,7 +2678,8 @@ def generate_simulation_interval(
         mat_errors = external_errors
         if mat_errors.shape != (h, nsim):
             raise ValueError(
-                f"external_errors shape {mat_errors.shape} does not match (h={h}, nsim={nsim})"
+                f"external_errors shape {mat_errors.shape} "
+                f"does not match (h={h}, nsim={nsim})"
             )
     else:
         distribution = general_dict["distribution"]
@@ -2723,14 +2747,11 @@ def generate_simulation_interval(
     arr_f_f = np.asfortranarray(arr_f, dtype=np.float64)
     mat_wt_f = np.asfortranarray(mat_wt, dtype=np.float64)
     mat_g_f = np.asfortranarray(mat_g, dtype=np.float64)
-    lags_f = np.asfortranarray(lags_model_all, dtype=np.uint64).reshape(-1, 1)
     lookup_f = np.asfortranarray(lookup, dtype=np.uint64)
 
-    # Determine adamETS setting (False for conventional ETS)
-    adam_ets = False
-
     # 8. Call adam_cpp.simulate() with the prepared inputs
-    # Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set during adamCore construction
+    # Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set
+    # during adamCore construction
     sim_result = adam_cpp.simulate(
         matrixErrors=mat_errors_f,
         matrixOt=mat_ot_f,
