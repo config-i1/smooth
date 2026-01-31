@@ -1121,6 +1121,138 @@ class ADAM:
         return self.prepared_model["scale"]
 
     @property
+    def loglik(self) -> float:
+        """
+        Return log-likelihood of the fitted model.
+
+        Returns
+        -------
+        float
+            Log-likelihood value.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> ll = model.loglik
+        """
+        self._check_is_fitted()
+        return self.adam_estimated["log_lik_adam_value"]["value"]
+
+    @property
+    def aic(self) -> float:
+        """
+        Return Akaike Information Criterion.
+
+        Returns
+        -------
+        float
+            AIC value.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> aic_val = model.aic
+        """
+        self._check_is_fitted()
+        from smooth.adam_general.core.utils.ic import AIC
+
+        log_lik = self.adam_estimated["log_lik_adam_value"]
+        return AIC(log_lik["value"], log_lik["nobs"], log_lik["df"])
+
+    @property
+    def aicc(self) -> float:
+        """
+        Return corrected Akaike Information Criterion.
+
+        Returns
+        -------
+        float
+            AICc value.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> aicc_val = model.aicc
+        """
+        self._check_is_fitted()
+        from smooth.adam_general.core.utils.ic import AICc
+
+        log_lik = self.adam_estimated["log_lik_adam_value"]
+        return AICc(log_lik["value"], log_lik["nobs"], log_lik["df"])
+
+    @property
+    def bic(self) -> float:
+        """
+        Return Bayesian Information Criterion.
+
+        Returns
+        -------
+        float
+            BIC value.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> bic_val = model.bic
+        """
+        self._check_is_fitted()
+        from smooth.adam_general.core.utils.ic import BIC
+
+        log_lik = self.adam_estimated["log_lik_adam_value"]
+        return BIC(log_lik["value"], log_lik["nobs"], log_lik["df"])
+
+    @property
+    def bicc(self) -> float:
+        """
+        Return corrected Bayesian Information Criterion.
+
+        Returns
+        -------
+        float
+            BICc value.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> bicc_val = model.bicc
+        """
+        self._check_is_fitted()
+        from smooth.adam_general.core.utils.ic import BICc
+
+        log_lik = self.adam_estimated["log_lik_adam_value"]
+        return BICc(log_lik["value"], log_lik["nobs"], log_lik["df"])
+
+    @property
     def error_type(self) -> str:
         """
         Return error type: 'A' (additive) or 'M' (multiplicative).
