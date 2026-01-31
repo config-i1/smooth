@@ -438,9 +438,9 @@ def _check_model_composition(
         damped = True
 
     # Validate components
-    valid_error = ["Z", "X", "Y", "A", "M", "C", "N", "F", "P"]
-    valid_trend = ["Z", "X", "Y", "N", "A", "M", "C", "F", "P"]
-    valid_season = ["Z", "X", "Y", "N", "A", "M", "C", "F", "P"]
+    valid_error = ["Z", "X", "Y", "A", "M", "C", "N", "F", "P", "S"]
+    valid_trend = ["Z", "X", "Y", "N", "A", "M", "C", "F", "P", "S"]
+    valid_season = ["Z", "X", "Y", "N", "A", "M", "C", "F", "P", "S"]
 
     if error_type not in valid_error:
         if not silent:
@@ -470,6 +470,58 @@ def _check_model_composition(
             trend_type = "Z"
         if season_type == "C":
             season_type = "Z"
+
+    # Handle sensible pool case ("S") - matches R adamGeneral.R lines 393-430
+    if "S" in [error_type, trend_type, season_type]:
+        model_do = "select"
+        # Build sensible pool (19 models with finite variance)
+        sensible_pool = [
+            "ANN", "AAN", "AAdN", "ANA", "AAA", "AAdA",
+            "MNN", "MAN", "MAdN", "MNA", "MAA", "MAdA",
+            "MNM", "MAM", "MAdM", "MMN", "MMdN", "MMM", "MMdM"
+        ]
+
+        # Filter by error type if not S
+        if error_type != "S":
+            target = {"X": "A", "Y": "M"}.get(error_type, error_type)
+            sensible_pool = [m for m in sensible_pool if m[0] == target]
+        else:
+            error_type = "Z"
+
+        # Filter by trend type if not S
+        if trend_type != "S":
+            if trend_type == "X":
+                sensible_pool = [m for m in sensible_pool if m[1] in ["A", "N"]]
+            elif trend_type == "Y":
+                sensible_pool = [m for m in sensible_pool if m[1] in ["M", "N"]]
+            else:
+                sensible_pool = [m for m in sensible_pool if m[1] == trend_type]
+        else:
+            trend_type = "Z"
+
+        # Filter by season type if not S
+        if season_type != "S":
+            if season_type == "X":
+                sensible_pool = [m for m in sensible_pool if m[-1] in ["A", "N"]]
+            elif season_type == "Y":
+                sensible_pool = [m for m in sensible_pool if m[-1] in ["M", "N"]]
+            else:
+                sensible_pool = [m for m in sensible_pool if m[-1] == season_type]
+        else:
+            season_type = "Z"
+
+        # Filter for max_lag (no seasonality if <= 1)
+        if max_lag <= 1:
+            sensible_pool = [m for m in sensible_pool if m[-1] == "N"]
+
+        # Apply multiplicative restrictions if data has non-positive values
+        if not allow_multiplicative:
+            sensible_pool = [m for m in sensible_pool if m[0] == "A"]
+            sensible_pool = [m for m in sensible_pool if m[1] != "M"]
+            sensible_pool = [m for m in sensible_pool if m[-1] != "M"]
+
+        models_pool = sensible_pool
+
     elif any(
         c in ["Z", "X", "Y", "F", "P"] for c in [error_type, trend_type, season_type]
     ):
