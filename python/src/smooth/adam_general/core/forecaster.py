@@ -1491,7 +1491,7 @@ def _process_arma_parameters(arima_checked, adam_estimated):
         Dictionary of AR and MA parameters or None if no ARIMA model
     """
     # TODO: B here was not defined in the function namespace. Validate if it's indeed
-    # in that dictionary
+    # in that dictionary
     B = adam_estimated["B"]
     if arima_checked["arima_model"]:
         arma_parameters_list = {}
