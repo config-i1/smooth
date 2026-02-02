@@ -130,6 +130,7 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                             bounds=bounds, silent=TRUE, environment=env,
                             xreg=xreg, regressors=regressors, ...);
             ICs[i] <- IC(gumModel);
+            BValues[[i]] <- gumModel$B;
             if(!silent){
                 cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lags))),collapse=""));
                 cat(paste0(i," out of ",lags));
@@ -168,8 +169,8 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                                 h=h, holdout=holdout,
                                 bounds=bounds, silent=TRUE, environment=env,
                                 xreg=xreg, regressors=regressors, ...);
-                BValues[[i]] <- gumModel$B;
                 ICs[i] <- IC(gumModel);
+                BValues[[i]] <- gumModel$B;
             }
             iBest <- which.min(ICs)[1];
             if(!any(iBest==lagsBest)){
