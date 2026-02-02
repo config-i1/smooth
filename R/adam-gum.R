@@ -56,7 +56,8 @@
 #' estimated.
 #' @param bounds The type of bounds for the parameters to use in the model
 #' estimation. Can be either \code{admissible} - guaranteeing the stability of the
-#' model, or \code{none} - no restrictions (potentially dangerous).
+#' model, \code{"usual"} restrict all the parameters with the (0, 1) region,
+#' or \code{none} - no restrictions (potentially dangerous).
 #' @param model A previously estimated GUM model, if provided, the function
 #' will not estimate anything and will use all its parameters.
 #' @param ...  Other non-documented parameters. See \link[smooth]{adam} for
@@ -98,7 +99,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
                 initial=c("backcasting","optimal","two-stage","complete"),
                 persistence=NULL, transition=NULL, measurement=rep(1,sum(orders)),
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE","GPL"),
-                h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
+                h=0, holdout=FALSE, bounds=c("admissible","usual","none"), silent=TRUE,
                 model=NULL, xreg=NULL, regressors=c("use","select","adapt","integrate"), initialX=NULL, ...){
 # General Univariate Model function. Paper to follow... at some point... maybe.
 #
@@ -115,6 +116,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
     # Check seasonality and loss
     type <- match.arg(type);
     loss <- match.arg(loss);
+    boundsOriginal <- match.arg(bounds);
 
     # paste0() is needed in order to get rid of potential issues with names
     yName <- paste0(deparse(substitute(data)),collapse="");
@@ -266,6 +268,9 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
 
+    # Return to the original ones. The parametersChecker will force "admissible"
+    bounds <- boundsOriginal
+
     # Check whether the multiplicative model is applicable
     if(type=="multiplicative"){
         if(any(yInSample<=0)){
@@ -337,6 +342,11 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
                                             lagsModelAll, xregModel, obsInSample));
             if(any(eigenValues>1+1E-50)){
                 return(1E+100*max(eigenValues));
+            }
+        }
+        else if(bounds=="usual"){
+            if(any(B>1) || any(B<0)){
+                return(1E+100);
             }
         }
 
@@ -696,7 +706,8 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
         }
 
         # First run of BOBYQA to get better values of B
-        res <- nloptr(B, CF, opts=list(algorithm=algorithm0, xtol_rel=xtol_rel0, xtol_abs=xtol_abs0,
+        res <- nloptr(B, CF,
+                      opts=list(algorithm=algorithm0, xtol_rel=xtol_rel0, xtol_abs=xtol_abs0,
                                        ftol_rel=ftol_rel0, ftol_abs=ftol_abs0,
                                        maxeval=maxeval0, maxtime=maxtime0, print_level=print_level),
                       matVt=matVt, matF=matF, vecG=vecG, matWt=matWt);

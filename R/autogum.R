@@ -20,7 +20,7 @@
 auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multiplicative","select"),
                      initial=c("backcasting","optimal","two-stage","complete"), ic=c("AICc","AIC","BIC","BICc"),
                      loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE","GPL"),
-                     h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
+                     h=0, holdout=FALSE, bounds=c("admissible","usual","none"), silent=TRUE,
                      xreg=NULL, regressors=c("use","select","adapt","integrate"), ...){
 # Function estimates several GUM models and selects the best one using the selected information criterion.
 #
