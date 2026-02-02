@@ -99,7 +99,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
                 initial=c("backcasting","optimal","two-stage","complete"),
                 persistence=NULL, transition=NULL, measurement=rep(1,sum(orders)),
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE","GPL"),
-                h=0, holdout=FALSE, bounds=c("admissible","usual","none"), silent=TRUE,
+                h=0, holdout=FALSE, bounds=c("usual","admissible","none"), silent=TRUE,
                 model=NULL, xreg=NULL, regressors=c("use","select","adapt","integrate"), initialX=NULL, ...){
 # General Univariate Model function. Paper to follow... at some point... maybe.
 #

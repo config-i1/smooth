@@ -12,6 +12,7 @@ Changes:
 * adam() now uses initial list from msdecompose instead of separate variables.
 * adamCpp is now returned by adam() and other functions.
 * Documented loss="GPL" correctly.
+* Use bounds="usual" in gum() by default.
 
 Bugfixes:
 * A fix in sparma to allow high orders.
