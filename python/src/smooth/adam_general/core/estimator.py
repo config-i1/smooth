@@ -97,6 +97,7 @@ def _setup_optimization_parameters(
     adam_created,
     observations_dict,
     multisteps,
+    components_dict,
 ):
     """
     Set up parameters for optimization.
@@ -117,6 +118,8 @@ def _setup_optimization_parameters(
         Observations information
     multisteps : bool
         Whether to use multi-step estimation
+    components_dict : dict
+        Component counts (components_number_ets, components_number_arima)
 
     Returns
     -------
@@ -138,11 +141,19 @@ def _setup_optimization_parameters(
     # Handle LASSO/RIDGE denominator calculation
     if general_dict["loss"] in ["LASSO", "RIDGE"]:
         if explanatory_dict["xreg_number"] > 0:
-            # Calculate standard deviation for each column of matWt
+            # Get component counts for slicing xreg columns only
+            components_number_ets = components_dict["components_number_ets"]
+            components_number_arima = components_dict.get("components_number_arima", 0)
+            xreg_number = explanatory_dict["xreg_number"]
+
+            # Slice only xreg columns from mat_wt (after ETS and ARIMA components)
+            xreg_start = components_number_ets + components_number_arima
+            xreg_end = xreg_start + xreg_number
+            mat_wt_xreg = adam_created["mat_wt"][:, xreg_start:xreg_end]
+
+            # Calculate standard deviation for each xreg column
             # Use ddof=1 to match R's sd() which uses sample std (n-1 denominator)
-            general_dict_updated["denominator"] = np.std(
-                adam_created["mat_wt"], axis=0, ddof=1
-            )
+            general_dict_updated["denominator"] = np.std(mat_wt_xreg, axis=0, ddof=1)
             # Replace infinite values with 1
             general_dict_updated["denominator"][
                 np.isinf(general_dict_updated["denominator"])
@@ -1298,6 +1309,7 @@ def estimator(
         adam_created,
         observations_dict,
         multisteps,
+        components_dict,
     )
 
     # Step 7: Create and configure optimizer
