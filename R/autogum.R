@@ -236,7 +236,7 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                      initial=initial, loss=loss,
                      h=h, holdout=holdout,
                      bounds=bounds, silent=TRUE, environment=env,
-                     xreg=xreg, regressors=regressors, B=BFinal[[t]], ...);
+                     xreg=xreg, regressors=regressors, B=BFinal[[t]], maxeval=1, ...);
 
     bestModel$timeElapsed <- Sys.time()-startTime;
 
