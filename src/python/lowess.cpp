@@ -4,7 +4,9 @@
 
 #include <armadillo>
 
-#define PYTHON_BUILD
+#ifndef PYTHON_BUILD
+#define PYTHON_BUILD 1
+#endif
 #include <carma>
 
 #include "../headers/lowess.h"
@@ -31,7 +33,7 @@ py::array_t<double> lowess_wrapper(
     arma::vec result = lowess(x, y, f, nsteps, delta);
     // Convert to 1D numpy array
     size_t n = result.n_elem;
-    py::array_t<double> arr({n});
+    py::array_t<double> arr({static_cast<py::ssize_t>(n)});
     auto buf = arr.mutable_unchecked<1>();
     for (size_t i = 0; i < n; i++) {
         buf(i) = result(i);

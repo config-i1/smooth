@@ -13,7 +13,7 @@ dependencies = [
     "numpy>=1.14",
     "pandas>=2.0",
     "nlopt",
-    "scipy",
+    "scipy>=1.11.0,<1.16.0",
     "statsmodels"
 ]
 
@@ -23,18 +23,27 @@ include = ["smooth*"]
 exclude = ["tests*", "tests.*", "*.tests", "*.tests.*"]
 
 [project.optional-dependencies]
-dev = ["pytest", "ruff", "pre-commit", "ipykernel"]
+dev = [
+    "pytest",
+    "ruff",
+    "pre-commit",
+    "ipykernel",
+    "tqdm",
+    "matplotlib",  
+    "ipython>=8.0.0"
+]
+r = ["rpy2>=3.5.0"]
 
 [tool.scikit-build]
 # wheel.expand-macos-universal-tags = true
 build-dir = "build"
 logging.level = "INFO"
 ninja.make-fallback = true
+ninja.version = ">=1.5.0"
 # Update these version specifications with proper format
 cmake.version = ">=3.25.0"
-ninja.version = ">=1.5.0"
-build.verbose = true
 cmake.build-type = "Release"
+build.verbose = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -90,7 +99,9 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
-    "tools/cookiecutter_templates",
+    "*.ipynb",
+    # TODO: re-include tests after fixing all linting errors.
+    "tests/"
 ]
 
 # Same as Black.
@@ -139,3 +150,8 @@ skip-magic-trailing-comma = false
 
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=7.0.0",
+]
