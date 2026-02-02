@@ -2658,7 +2658,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # Prepare the denominator needed for the shrinkage of explanatory variables in LASSO / RIDGE
         if(any(loss==c("LASSO","RIDGE"))){
             if(xregNumber>0){
-                denominator <- apply(matWt, 2, sd);
+                denominator <- apply(adamCreated$matWt[,componentsNumberETS+componentsNumberARIMA+1:xregNumber,
+                                                       drop=FALSE], 2, sd);
                 denominator[is.infinite(denominator)] <- 1;
             }
             else{

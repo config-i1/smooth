@@ -1,4 +1,4 @@
-smooth v4.4.0 (Release data: 2026-01-29)
+smooth v4.4.0 (Release data: 2026-02-02)
 =======
 
 Changes:
@@ -12,12 +12,14 @@ Changes:
 * adam() now uses initial list from msdecompose instead of separate variables.
 * adamCpp is now returned by adam() and other functions.
 * Documented loss="GPL" correctly.
+* Use bounds="usual" in gum() by default.
 
 Bugfixes:
 * A fix in sparma to allow high orders.
 * ces() had wrong matrices in case of seasonality="simple".
 * reapply() now works with CES. reforecast() does as well in general.
 * Bugfixes in sparma() with zero orders etc.
+* RIDGE/LASSO would not work with X because of the wrong calculation of the denominator.
 
 
 smooth v4.3.2 (Release data: 2025-12-23)

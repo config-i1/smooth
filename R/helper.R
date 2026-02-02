@@ -286,28 +286,32 @@ sparmaChecker <- function(object){
 smoothEigens <- function(persistence, transition, measurement,
                          lagsModelAll, xregModel, obsInSample){
 
-    lagsUnique <- unique(lagsModelAll);
-    lagsUniqueLength <- length(lagsUnique);
-    eigenValues <- vector("numeric", lagsUniqueLength);
-    # Check eigen values per unique component (unique lag)
-    #### !!!! Eigen values checks do not work for xreg. So, check the average condition
-    if(xregModel && any(substr(names(persistence),1,5)=="delta")){
-        # We check the condition on average
-        return(eigen((transition -
-                          diag(as.vector(persistence)) %*%
-                          t(measurementInverter(measurement[1:obsInSample,,drop=FALSE])) %*%
-                          measurement[1:obsInSample,,drop=FALSE] / obsInSample),
-                     symmetric=FALSE, only.values=TRUE)$values);
-    }
-    else{
-        for(i in 1:lagsUniqueLength){
-            eigenValues[which(lagsModelAll==lagsUnique[i])] <-
-                eigen(transition[lagsModelAll==lagsUnique[i], lagsModelAll==lagsUnique[i], drop=FALSE] -
-                          persistence[lagsModelAll==lagsUnique[i],,drop=FALSE] %*%
-                          measurement[obsInSample,lagsModelAll==lagsUnique[i],drop=FALSE],
-                      symmetric=FALSE, only.values=TRUE)$values
-        }
-    }
-    return(eigenValues);
+    return(smoothEigensCpp(persistence, transition, measurement,
+                           lagsModelAll, xregModel, obsInSample,
+                           any(substr(names(persistence),1,5)=="delta")));
+
+    # lagsUnique <- unique(lagsModelAll);
+    # lagsUniqueLength <- length(lagsUnique);
+    # eigenValues <- vector("numeric", lagsUniqueLength);
+    # # Check eigen values per unique component (unique lag)
+    # #### !!!! Eigen values checks do not work for xreg. So, check the average condition
+    # if(xregModel && any(substr(names(persistence),1,5)=="delta")){
+    #     # We check the condition on average
+    #     return(eigen((transition -
+    #                       diag(as.vector(persistence)) %*%
+    #                       t(measurementInverter(measurement[1:obsInSample,,drop=FALSE])) %*%
+    #                       measurement[1:obsInSample,,drop=FALSE] / obsInSample),
+    #                  symmetric=FALSE, only.values=TRUE)$values);
+    # }
+    # else{
+    #     for(i in 1:lagsUniqueLength){
+    #         eigenValues[which(lagsModelAll==lagsUnique[i])] <-
+    #             eigen(transition[lagsModelAll==lagsUnique[i], lagsModelAll==lagsUnique[i], drop=FALSE] -
+    #                       persistence[lagsModelAll==lagsUnique[i],,drop=FALSE] %*%
+    #                       measurement[obsInSample,lagsModelAll==lagsUnique[i],drop=FALSE],
+    #                   symmetric=FALSE, only.values=TRUE)$values
+    #     }
+    # }
+    # return(eigenValues);
 }
 

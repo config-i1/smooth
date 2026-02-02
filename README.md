@@ -51,7 +51,10 @@ library(smooth)
 model <- adam(y, model="ZXZ", lags=12)
 forecast(model, h=12)
 
-# Automatic model selection
+# Exponential Smoothing
+model <- es(y, model="ZXZ", lags=12)
+
+# Automatic model selection for ETS+ARIMA and distributions
 model <- auto.adam(y, model="ZZZ",
                    orders=list(ar=2, i=2, ma=2, select=TRUE))
 ```
@@ -64,7 +67,7 @@ from smooth import ADAM, ES
 # ADAM model
 model = ADAM(model="ZXZ", lags=12)
 model.fit(y)
-forecasts = model.predict(h=12)
+model.predict(h=12)
 
 # Exponential Smoothing
 model = ES(model="ZXZ")
