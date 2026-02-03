@@ -4,6 +4,7 @@ Parameter counting utilities for ADAM models.
 This module provides the NParam class for tracking estimated and provided parameters
 across different model components (internal, xreg, occurrence, scale).
 """
+
 from typing import Dict
 
 
@@ -41,71 +42,68 @@ class NParam:
     def __init__(self):
         """Initialize empty parameter count table."""
         self.estimated = {
-            'internal': 0,
-            'xreg': 0,
-            'occurrence': 0,
-            'scale': 0,
-            'all': 0
+            "internal": 0,
+            "xreg": 0,
+            "occurrence": 0,
+            "scale": 0,
+            "all": 0,
         }
         self.provided = {
-            'internal': 0,
-            'xreg': 0,
-            'occurrence': 0,
-            'scale': 0,
-            'all': 0
+            "internal": 0,
+            "xreg": 0,
+            "occurrence": 0,
+            "scale": 0,
+            "all": 0,
         }
 
     def update_totals(self):
         """Update the 'all' column by summing other columns."""
-        self.estimated['all'] = (
-            self.estimated['internal'] +
-            self.estimated['xreg'] +
-            self.estimated['occurrence'] +
-            self.estimated['scale']
+        self.estimated["all"] = (
+            self.estimated["internal"]
+            + self.estimated["xreg"]
+            + self.estimated["occurrence"]
+            + self.estimated["scale"]
         )
-        self.provided['all'] = (
-            self.provided['internal'] +
-            self.provided['xreg'] +
-            self.provided['occurrence'] +
-            self.provided['scale']
+        self.provided["all"] = (
+            self.provided["internal"]
+            + self.provided["xreg"]
+            + self.provided["occurrence"]
+            + self.provided["scale"]
         )
 
     @property
     def n_param_estimated(self) -> int:
         """Total number of estimated parameters (for degrees of freedom)."""
-        return self.estimated['all']
+        return self.estimated["all"]
 
     @property
     def n_param_provided(self) -> int:
         """Total number of provided parameters."""
-        return self.provided['all']
+        return self.provided["all"]
 
     @property
     def n_param_for_variance(self) -> int:
         """Number of parameters for variance calculation (all - scale)."""
-        return self.estimated['all'] - self.estimated['scale']
+        return self.estimated["all"] - self.estimated["scale"]
 
     def to_dict(self) -> Dict:
         """Convert to dictionary representation."""
-        return {
-            'estimated': self.estimated.copy(),
-            'provided': self.provided.copy()
-        }
+        return {"estimated": self.estimated.copy(), "provided": self.provided.copy()}
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'NParam':
+    def from_dict(cls, data: Dict) -> "NParam":
         """Create NParam from dictionary representation."""
         n_param = cls()
-        if 'estimated' in data:
-            n_param.estimated.update(data['estimated'])
-        if 'provided' in data:
-            n_param.provided.update(data['provided'])
+        if "estimated" in data:
+            n_param.estimated.update(data["estimated"])
+        if "provided" in data:
+            n_param.provided.update(data["provided"])
         return n_param
 
     def __str__(self) -> str:
         """Return formatted string representation like R's output."""
         # Column headers
-        cols = ['internal', 'xreg', 'occurrence', 'scale', 'all']
+        cols = ["internal", "xreg", "occurrence", "scale", "all"]
         col_width = 10
 
         # Build header
@@ -136,7 +134,7 @@ def create_n_param(
     n_param_occurrence_estimated: int = 0,
     n_param_occurrence_provided: int = 0,
     n_param_scale_estimated: int = 0,
-    n_param_scale_provided: int = 0
+    n_param_scale_provided: int = 0,
 ) -> NParam:
     """
     Create an NParam table with specified values.
@@ -166,15 +164,15 @@ def create_n_param(
         Initialized parameter count table
     """
     n_param = NParam()
-    n_param.estimated['internal'] = n_param_internal_estimated
-    n_param.estimated['xreg'] = n_param_xreg_estimated
-    n_param.estimated['occurrence'] = n_param_occurrence_estimated
-    n_param.estimated['scale'] = n_param_scale_estimated
+    n_param.estimated["internal"] = n_param_internal_estimated
+    n_param.estimated["xreg"] = n_param_xreg_estimated
+    n_param.estimated["occurrence"] = n_param_occurrence_estimated
+    n_param.estimated["scale"] = n_param_scale_estimated
 
-    n_param.provided['internal'] = n_param_internal_provided
-    n_param.provided['xreg'] = n_param_xreg_provided
-    n_param.provided['occurrence'] = n_param_occurrence_provided
-    n_param.provided['scale'] = n_param_scale_provided
+    n_param.provided["internal"] = n_param_internal_provided
+    n_param.provided["xreg"] = n_param_xreg_provided
+    n_param.provided["occurrence"] = n_param_occurrence_provided
+    n_param.provided["scale"] = n_param_scale_provided
 
     n_param.update_totals()
     return n_param
@@ -186,7 +184,7 @@ def count_internal_params(
     initials_checked: Dict,
     arima_checked: Dict,
     phi_dict: Dict,
-    constants_checked: Dict
+    constants_checked: Dict,
 ) -> tuple:
     """
     Count internal parameters (ETS + ARIMA + constant).
@@ -215,84 +213,84 @@ def count_internal_params(
     n_provided = 0
 
     # ETS persistence parameters
-    if model_type_dict.get('ets_model', False):
+    if model_type_dict.get("ets_model", False):
         # Alpha (level)
-        if persistence_checked.get('persistence_level_estimate', True):
+        if persistence_checked.get("persistence_level_estimate", True):
             n_estimated += 1
         else:
             n_provided += 1
 
         # Beta (trend)
-        if model_type_dict.get('trend_type', 'N') != 'N':
-            if persistence_checked.get('persistence_trend_estimate', True):
+        if model_type_dict.get("trend_type", "N") != "N":
+            if persistence_checked.get("persistence_trend_estimate", True):
                 n_estimated += 1
             else:
                 n_provided += 1
 
         # Gamma (seasonal) - can be multiple
-        n_seasonal = persistence_checked.get('persistence_seasonal_number', 0)
+        n_seasonal = persistence_checked.get("persistence_seasonal_number", 0)
         if n_seasonal > 0:
-            if persistence_checked.get('persistence_seasonal_estimate', True):
+            if persistence_checked.get("persistence_seasonal_estimate", True):
                 n_estimated += n_seasonal
             else:
                 n_provided += n_seasonal
 
     # Phi (damping parameter)
-    if phi_dict.get('phi_estimate', False):
+    if phi_dict.get("phi_estimate", False):
         n_estimated += 1
-    elif phi_dict.get('phi_required', False):
+    elif phi_dict.get("phi_required", False):
         n_provided += 1
 
     # Initial states
-    if initials_checked.get('initial_estimate', True):
+    if initials_checked.get("initial_estimate", True):
         # Level initial
-        if initials_checked.get('initial_level_estimate', True):
+        if initials_checked.get("initial_level_estimate", True):
             n_estimated += 1
         else:
             n_provided += 1
 
         # Trend initial
-        if initials_checked.get('initial_trend_estimate', False):
+        if initials_checked.get("initial_trend_estimate", False):
             n_estimated += 1
-        elif model_type_dict.get('trend_type', 'N') != 'N':
+        elif model_type_dict.get("trend_type", "N") != "N":
             n_provided += 1
 
         # Seasonal initials
-        n_seasonal_init = initials_checked.get('initial_seasonal_number', 0)
+        n_seasonal_init = initials_checked.get("initial_seasonal_number", 0)
         if n_seasonal_init > 0:
-            if initials_checked.get('initial_seasonal_estimate', True):
+            if initials_checked.get("initial_seasonal_estimate", True):
                 n_estimated += n_seasonal_init
             else:
                 n_provided += n_seasonal_init
     else:
         # All initials provided
-        if model_type_dict.get('ets_model', False):
+        if model_type_dict.get("ets_model", False):
             n_provided += 1  # level
-            if model_type_dict.get('trend_type', 'N') != 'N':
+            if model_type_dict.get("trend_type", "N") != "N":
                 n_provided += 1
-            n_provided += initials_checked.get('initial_seasonal_number', 0)
+            n_provided += initials_checked.get("initial_seasonal_number", 0)
 
     # ARIMA parameters
-    if arima_checked.get('arima_model', False):
-        ar_orders = arima_checked.get('ar_orders', [0])
-        ma_orders = arima_checked.get('ma_orders', [0])
+    if arima_checked.get("arima_model", False):
+        ar_orders = arima_checked.get("ar_orders", [0])
+        ma_orders = arima_checked.get("ma_orders", [0])
         n_ar = sum(ar_orders) if ar_orders else 0
         n_ma = sum(ma_orders) if ma_orders else 0
 
-        if arima_checked.get('ar_estimate', True):
+        if arima_checked.get("ar_estimate", True):
             n_estimated += n_ar
         else:
             n_provided += n_ar
 
-        if arima_checked.get('ma_estimate', True):
+        if arima_checked.get("ma_estimate", True):
             n_estimated += n_ma
         else:
             n_provided += n_ma
 
     # Constant/drift
-    if constants_checked.get('constant_estimate', False):
+    if constants_checked.get("constant_estimate", False):
         n_estimated += 1
-    elif constants_checked.get('constant_required', False):
+    elif constants_checked.get("constant_required", False):
         n_provided += 1
 
     return n_estimated, n_provided
@@ -315,17 +313,17 @@ def count_xreg_params(explanatory_checked: Dict) -> tuple:
     n_estimated = 0
     n_provided = 0
 
-    if explanatory_checked.get('xreg_model', False):
-        n_xreg = explanatory_checked.get('xreg_number', 0)
-        if explanatory_checked.get('xreg_estimate', True):
+    if explanatory_checked.get("xreg_model", False):
+        n_xreg = explanatory_checked.get("xreg_number", 0)
+        if explanatory_checked.get("xreg_estimate", True):
             n_estimated += n_xreg
         else:
             n_provided += n_xreg
 
         # Xreg persistence (if dynamic regressors)
-        n_xreg_persistence = explanatory_checked.get('xreg_persistence_number', 0)
+        n_xreg_persistence = explanatory_checked.get("xreg_persistence_number", 0)
         if n_xreg_persistence > 0:
-            if explanatory_checked.get('xreg_persistence_estimate', True):
+            if explanatory_checked.get("xreg_persistence_estimate", True):
                 n_estimated += n_xreg_persistence
             else:
                 n_provided += n_xreg_persistence
@@ -341,7 +339,7 @@ def build_n_param_table(
     phi_dict: Dict,
     constants_checked: Dict,
     explanatory_checked: Dict,
-    general: Dict
+    general: Dict,
 ) -> NParam:
     """
     Build complete parameter count table.
@@ -374,27 +372,31 @@ def build_n_param_table(
 
     # Count internal parameters
     n_internal_est, n_internal_prov = count_internal_params(
-        model_type_dict, persistence_checked, initials_checked,
-        arima_checked, phi_dict, constants_checked
+        model_type_dict,
+        persistence_checked,
+        initials_checked,
+        arima_checked,
+        phi_dict,
+        constants_checked,
     )
-    n_param.estimated['internal'] = n_internal_est
-    n_param.provided['internal'] = n_internal_prov
+    n_param.estimated["internal"] = n_internal_est
+    n_param.provided["internal"] = n_internal_prov
 
     # Count xreg parameters
     n_xreg_est, n_xreg_prov = count_xreg_params(explanatory_checked)
-    n_param.estimated['xreg'] = n_xreg_est
-    n_param.provided['xreg'] = n_xreg_prov
+    n_param.estimated["xreg"] = n_xreg_est
+    n_param.provided["xreg"] = n_xreg_prov
 
     # Occurrence parameters (not yet implemented)
-    n_param.estimated['occurrence'] = 0
-    n_param.provided['occurrence'] = 0
+    n_param.estimated["occurrence"] = 0
+    n_param.provided["occurrence"] = 0
 
     # Scale parameter (1 if likelihood was used)
-    if general.get('loss', 'likelihood') == 'likelihood':
-        n_param.estimated['scale'] = 1
+    if general.get("loss", "likelihood") == "likelihood":
+        n_param.estimated["scale"] = 1
     else:
-        n_param.estimated['scale'] = 0
-    n_param.provided['scale'] = 0
+        n_param.estimated["scale"] = 0
+    n_param.provided["scale"] = 0
 
     # Update totals
     n_param.update_totals()

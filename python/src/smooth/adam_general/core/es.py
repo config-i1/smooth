@@ -4,6 +4,7 @@ Exponential Smoothing (ES) wrapper for ADAM.
 This module provides an ES class that wraps the ADAM model for pure
 Exponential Smoothing (ETS) forecasting without ARIMA components.
 """
+
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from numpy.typing import NDArray
@@ -156,7 +157,8 @@ class ES(ADAM):
 
     References
     ----------
-    - Svetunkov, I. (2023). Forecasting and Analytics with the Augmented Dynamic Adaptive Model. https://openforecast.org/adam/
+    - Svetunkov, I. (2023). Forecasting and Analytics with the
+      Augmented Dynamic Adaptive Model. https://openforecast.org/adam/
     - Hyndman, R.J., et al. (2008). "Forecasting with Exponential Smoothing"
 
     See Also
@@ -170,9 +172,7 @@ class ES(ADAM):
         lags: Optional[List[int]] = None,
         persistence: Optional[Dict[str, float]] = None,
         phi: Optional[float] = None,
-        initial: Union[
-            str, Dict[str, Any], None
-        ] = "backcasting",
+        initial: Union[str, Dict[str, Any], None] = "backcasting",
         initial_season: Optional[NDArray] = None,
         ic: Literal["AIC", "AICc", "BIC", "BICc"] = "AICc",
         loss: LOSS_OPTIONS = "likelihood",
@@ -264,5 +264,3 @@ class ES(ADAM):
 
         # None case - use default
         return "backcasting"
-
-

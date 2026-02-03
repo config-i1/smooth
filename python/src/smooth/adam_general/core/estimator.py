@@ -10,9 +10,6 @@ from smooth.adam_general.core.utils.ic import ic_function
 # Note: adam_cpp instance is passed to functions that need C++ integration
 
 
-
-
-
 def _setup_arima_polynomials(model_type_dict, arima_dict, lags_dict):
     """
     Set up companion matrices for ARIMA polynomials.
@@ -80,13 +77,9 @@ def _set_distribution(general_dict, model_type_dict):
             general_dict_updated["distribution_new"] = (
                 "dnorm" if model_type_dict["error_type"] == "A" else "dgamma"
             )
-        elif general_dict["loss"] in [
-            "MAE", "MAEh", "TMAE", "GTMAE", "MACE"
-        ]:
+        elif general_dict["loss"] in ["MAE", "MAEh", "TMAE", "GTMAE", "MACE"]:
             general_dict_updated["distribution_new"] = "dlaplace"
-        elif general_dict["loss"] in [
-            "HAM", "HAMh", "THAM", "GTHAM", "CHAM"
-        ]:
+        elif general_dict["loss"] in ["HAM", "HAMh", "THAM", "GTHAM", "CHAM"]:
             general_dict_updated["distribution_new"] = "ds"
         else:
             general_dict_updated["distribution_new"] = "dnorm"
@@ -104,6 +97,7 @@ def _setup_optimization_parameters(
     adam_created,
     observations_dict,
     multisteps,
+    components_dict,
 ):
     """
     Set up parameters for optimization.
@@ -124,6 +118,8 @@ def _setup_optimization_parameters(
         Observations information
     multisteps : bool
         Whether to use multi-step estimation
+    components_dict : dict
+        Component counts (components_number_ets, components_number_arima)
 
     Returns
     -------
@@ -145,9 +141,19 @@ def _setup_optimization_parameters(
     # Handle LASSO/RIDGE denominator calculation
     if general_dict["loss"] in ["LASSO", "RIDGE"]:
         if explanatory_dict["xreg_number"] > 0:
-            # Calculate standard deviation for each column of matWt
+            # Get component counts for slicing xreg columns only
+            components_number_ets = components_dict["components_number_ets"]
+            components_number_arima = components_dict.get("components_number_arima", 0)
+            xreg_number = explanatory_dict["xreg_number"]
+
+            # Slice only xreg columns from mat_wt (after ETS and ARIMA components)
+            xreg_start = components_number_ets + components_number_arima
+            xreg_end = xreg_start + xreg_number
+            mat_wt_xreg = adam_created["mat_wt"][:, xreg_start:xreg_end]
+
+            # Calculate standard deviation for each xreg column
             # Use ddof=1 to match R's sd() which uses sample std (n-1 denominator)
-            general_dict_updated["denominator"] = np.std(adam_created["mat_wt"], axis=0, ddof=1)
+            general_dict_updated["denominator"] = np.std(mat_wt_xreg, axis=0, ddof=1)
             # Replace infinite values with 1
             general_dict_updated["denominator"][
                 np.isinf(general_dict_updated["denominator"])
@@ -170,8 +176,16 @@ def _setup_optimization_parameters(
 
 
 def _configure_optimizer(
-    opt, lb, ub, maxeval_used, maxtime,
-    xtol_rel=1e-6, xtol_abs=1e-8, ftol_rel=1e-8, ftol_abs=0):
+    opt,
+    lb,
+    ub,
+    maxeval_used,
+    maxtime,
+    xtol_rel=1e-6,
+    xtol_abs=1e-8,
+    ftol_rel=1e-8,
+    ftol_abs=0,
+):
     """
     Configure NLopt optimizer with appropriate settings.
 
@@ -184,7 +198,8 @@ def _configure_optimizer(
     ub : array-like
         Upper bounds
     maxeval_used : int
-        Maximum number of evaluations (already computed by _setup_optimization_parameters)
+        Maximum number of evaluations (already computed by
+        _setup_optimization_parameters)
     maxtime : float or None
         Maximum time for optimization
     xtol_rel : float, default=1e-6
@@ -238,7 +253,7 @@ def _create_objective_function(
     profile_dict,
     general_dict,
     adam_cpp,
-    print_level
+    print_level,
 ):
     """
     Create objective function for optimization.
@@ -278,7 +293,7 @@ def _create_objective_function(
         Objective function for optimizer
     """
     iteration_count = [0]
-    best_cf = [float('inf')]
+    best_cf = [float("inf")]
 
     def objective_wrapper(x, grad):
         """
@@ -348,7 +363,7 @@ def _run_optimization(opt, B):
     # Any nlopt termination (including RoundoffLimited) still returns valid B
     try:
         x = opt.optimize(B)
-    except:
+    except Exception:
         # If any exception, B has still been updated in-place
         x = B.copy()
     return x
@@ -523,17 +538,22 @@ def _run_two_stage_estimator(
 
     # Get B vector structure with "two-stage" (includes initial states in B)
     # We need to call architector/creator/initialiser to get proper B structure
-    model_type_dict_s2, components_dict_s2, lags_dict_s2, observations_dict_s2, profile_dict_s2, _ = (
-        architector(
-            model_type_dict,
-            lags_dict,
-            observations_dict,
-            arima_dict,
-            constant_dict,
-            explanatory_dict,
-            profiles_recent_table,
-            profiles_recent_provided,
-        )
+    (
+        model_type_dict_s2,
+        components_dict_s2,
+        lags_dict_s2,
+        observations_dict_s2,
+        profile_dict_s2,
+        _,
+    ) = architector(
+        model_type_dict,
+        lags_dict,
+        observations_dict,
+        arima_dict,
+        constant_dict,
+        explanatory_dict,
+        profiles_recent_table,
+        profiles_recent_provided,
     )
 
     adam_created_s2 = creator(
@@ -576,17 +596,23 @@ def _run_two_stage_estimator(
 
     # Calculate nParametersBack: number of persistence, phi, and ARMA parameters
     # (excluding initials, constant, shape) - matching R's adam.R lines 2518-2522
-    # IMPORTANT: Use model_type_dict_s2 (from architector) which has correct model_is_trendy
-    # and model_is_seasonal flags, not the original model_type_dict which may have stale values
+    #  IMPORTANT: Use model_type_dict_s2 (from architector) which has correct
+    # model_is_trendy
+    #  and model_is_seasonal flags, not the original model_type_dict which may have
+    # stale values
     # from the parent "ZXZ" model during model selection.
     n_params_back = 0
     if model_type_dict_s2.get("ets_model", False):
         if persistence_dict.get("persistence_level_estimate", False):
             n_params_back += 1
-        if model_type_dict_s2.get("model_is_trendy", False) and persistence_dict.get("persistence_trend_estimate", False):
+        if model_type_dict_s2.get("model_is_trendy", False) and persistence_dict.get(
+            "persistence_trend_estimate", False
+        ):
             n_params_back += 1
         if model_type_dict_s2.get("model_is_seasonal", False):
-            persistence_seasonal_estimate = persistence_dict.get("persistence_seasonal_estimate", [])
+            persistence_seasonal_estimate = persistence_dict.get(
+                "persistence_seasonal_estimate", []
+            )
             if isinstance(persistence_seasonal_estimate, list):
                 n_params_back += sum(persistence_seasonal_estimate)
             elif persistence_seasonal_estimate:
@@ -594,9 +620,15 @@ def _run_two_stage_estimator(
         if phi_dict.get("phi_estimate", False):
             n_params_back += 1
 
-    if explanatory_dict.get("xreg_model", False) and persistence_dict.get("persistence_xreg_estimate", False):
-        xreg_parameters_persistence = explanatory_dict.get("xreg_parameters_persistence", [0])
-        n_params_back += max(xreg_parameters_persistence) if xreg_parameters_persistence else 0
+    if explanatory_dict.get("xreg_model", False) and persistence_dict.get(
+        "persistence_xreg_estimate", False
+    ):
+        xreg_parameters_persistence = explanatory_dict.get(
+            "xreg_parameters_persistence", [0]
+        )
+        n_params_back += (
+            max(xreg_parameters_persistence) if xreg_parameters_persistence else 0
+        )
 
     if arima_dict.get("arima_model", False):
         ar_orders = arima_dict.get("ar_orders", [])
@@ -636,7 +668,9 @@ def _run_two_stage_estimator(
     # Seasonal
     if model_type_dict.get("model_is_seasonal", False):
         n_seasonal = components_dict_s1.get("components_number_ets_seasonal", 0)
-        seasonal_estimate = initials_dict.get("initial_seasonal_estimate", [False] * n_seasonal)
+        seasonal_estimate = initials_dict.get(
+            "initial_seasonal_estimate", [False] * n_seasonal
+        )
         if not isinstance(seasonal_estimate, list):
             seasonal_estimate = [seasonal_estimate] * n_seasonal
 
@@ -644,7 +678,9 @@ def _run_two_stage_estimator(
             lag = lags_model_s1[current_row] if current_row < len(lags_model_s1) else 1
             if seasonal_estimate[i] if i < len(seasonal_estimate) else False:
                 start_idx = lags_model_max_s1 - lag
-                full_seasonal = mat_vt_s1[current_row, start_idx:lags_model_max_s1].copy()
+                full_seasonal = mat_vt_s1[
+                    current_row, start_idx:lags_model_max_s1
+                ].copy()
 
                 # Renormalize
                 season_type = model_type_dict.get("season_type", "N")
@@ -675,21 +711,29 @@ def _run_two_stage_estimator(
             n_ets = components_dict_s1.get("components_number_ets", 0)
             n_arima_components = components_dict_s1.get("components_number_arima", 0)
             xreg_start_row = n_ets + n_arima_components
-            xreg_initials_all = mat_vt_s1[xreg_start_row:xreg_start_row + xreg_number, lags_model_max_s1 - 1]
+            xreg_initials_all = mat_vt_s1[
+                xreg_start_row : xreg_start_row + xreg_number, lags_model_max_s1 - 1
+            ]
             if xreg_params_estimated is not None and len(xreg_params_estimated) > 0:
                 xreg_params_estimated_arr = np.array(xreg_params_estimated)
-                xreg_initials_filtered = xreg_initials_all[xreg_params_estimated_arr == 1]
+                xreg_initials_filtered = xreg_initials_all[
+                    xreg_params_estimated_arr == 1
+                ]
                 initial_states.extend(xreg_initials_filtered.tolist())
 
     # Put extracted initials into B
     if len(initial_states) > 0:
-        B[n_params_back:n_params_back + len(initial_states)] = initial_states
+        B[n_params_back : n_params_back + len(initial_states)] = initial_states
 
     # Handle constant
     if constant_dict.get("constant_estimate", False):
         n_ets = components_dict_s1.get("components_number_ets", 0)
         n_arima_components = components_dict_s1.get("components_number_arima", 0)
-        xreg_number = explanatory_dict.get("xreg_number", 0) if explanatory_dict.get("xreg_model", False) else 0
+        xreg_number = (
+            explanatory_dict.get("xreg_number", 0)
+            if explanatory_dict.get("xreg_model", False)
+            else 0
+        )
         constant_idx = n_params_back + len(initial_states)
         if constant_idx < len(B):
             constant_row = n_ets + n_arima_components + xreg_number
@@ -804,7 +848,8 @@ def estimator(
 
     **Estimation Algorithm**:
 
-    1. **Architecture Setup**: Call ``architector()`` to define model structure, determine
+    1. **Architecture Setup**: Call ``architector()`` to define model structure,
+    determine
        component counts, and set up lag structures
     2. **Matrix Creation**: Call ``creator()`` to build initial state-space matrices
        (measurement, transition, persistence)
@@ -812,11 +857,13 @@ def estimator(
        parameter vector B and bounds (lower/upper limits)
     4. **Distribution Selection**: Map loss function to appropriate error distribution
        (e.g., MSE → Normal, MAE → Laplace)
-    5. **Optimization Setup**: Configure NLopt with Nelder-Mead algorithm, set tolerances
+    5. **Optimization Setup**: Configure NLopt with Nelder-Mead algorithm, set
+    tolerances
        and iteration limits
     6. **Objective Function**: Create wrapper for ``CF()`` cost function
     7. **Optimization Execution**: Run NLopt to minimize cost function
-    8. **Log-likelihood Calculation**: Compute final log-likelihood using ``log_Lik_ADAM()``
+    8. **Log-likelihood Calculation**: Compute final log-likelihood using
+    ``log_Lik_ADAM()``
     9. **Results Assembly**: Package estimated parameters, matrices, and diagnostics
 
     **Optimization Method**:
@@ -836,7 +883,8 @@ def estimator(
     1. **ETS Persistence**: α (level), β (trend), γ (seasonal)
     2. **Damping**: φ (if damped trend is present)
     3. **Initial States**: l₀ (level), b₀ (trend), s₀ (seasonal), ARIMA initial states
-    4. **ARIMA Parameters**: AR coefficients (φ₁, φ₂, ...), MA coefficients (θ₁, θ₂, ...)
+    4. **ARIMA Parameters**: AR coefficients (φ₁, φ₂, ...), MA coefficients (θ₁, θ₂,
+    ...)
     5. **Regression Coefficients**: Weights for external regressors
     6. **Constant Term**: Intercept (if included)
     7. **Distribution Parameters**: Shape parameters for certain distributions
@@ -867,7 +915,8 @@ def estimator(
     lags_dict : dict
         Lag structure information containing:
 
-        - 'lags': Primary lag vector (e.g., [1, 12] for monthly data with annual seasonality)
+        - 'lags': Primary lag vector (e.g., [1, 12] for monthly data with annual
+        seasonality)
         - 'lags_model': Lags for each state component
         - 'lags_model_all': Complete lag specification for all components
         - 'lags_model_max': Maximum lag value (defines pre-sample period)
@@ -975,7 +1024,8 @@ def estimator(
         Upper bounds for parameters. If None, computed by ``initialiser()``.
         Shape must match B.
     maxtime : float, optional
-        Maximum optimization time in seconds. If None, defaults to 1800 seconds (30 min).
+        Maximum optimization time in seconds. If None, defaults to 1800 seconds (30
+        min).
     print_level : int, default=1
         Verbosity level:
 
@@ -1027,11 +1077,13 @@ def estimator(
           * 'nobs': Number of observations
           * 'df': Degrees of freedom (parameters + scale)
 
-        - **'arima_polynomials'** (dict): AR and MA polynomial coefficients (if ARIMA present)
+        - **'arima_polynomials'** (dict): AR and MA polynomial coefficients (if ARIMA
+        present)
 
         If `return_matrices=True`, additionally includes:
 
-        - **'matrices'** (dict): Updated state-space matrices (mat_vt, mat_wt, mat_f, vec_g)
+        - **'matrices'** (dict): Updated state-space matrices (mat_vt, mat_wt, mat_f,
+        vec_g)
         - **'lags_dict'** (dict): Lags information
         - **'profile_dict'** (dict): Profile matrices
         - **'components_dict'** (dict): Component counts
@@ -1045,9 +1097,11 @@ def estimator(
     -----
     **Special Cases**:
 
-    1. **LASSO/RIDGE with λ=1**: Parameters are preset to zero, only initials are estimated
+    1. **LASSO/RIDGE with λ=1**: Parameters are preset to zero, only initials are
+    estimated
        using MSE
-    2. **Two-stage initialization**: When initial_type='two-stage', the function is called
+    2. **Two-stage initialization**: When initial_type='two-stage', the function is
+    called
        twice:
 
        - Stage 1: initial_type='complete' (backcasting)
@@ -1091,10 +1145,13 @@ def estimator(
     Estimate parameters for an ETS(A,A,A) model::
 
         >>> adam_estimated = estimator(
-        ...     general_dict={'loss': 'likelihood', 'distribution': 'default', 'bounds': 'usual', ...},
-        ...     model_type_dict={'model': 'AAA', 'error_type': 'A', 'trend_type': 'A', 'season_type': 'A', ...},
+        ... general_dict={'loss': 'likelihood', 'distribution': 'default', 'bounds':
+        'usual', ...},
+        ... model_type_dict={'model': 'AAA', 'error_type': 'A', 'trend_type': 'A',
+        'season_type': 'A', ...},
         ...     lags_dict={'lags': np.array([1, 12]), ...},
-        ...     observations_dict={'y_in_sample': y_data, 'obs_in_sample': len(y_data), ...},
+        ... observations_dict={'y_in_sample': y_data, 'obs_in_sample': len(y_data),
+        ...},
         ...     arima_dict={'arima_model': False, ...},
         ...     constant_dict={'constant_required': False, ...},
         ...     explanatory_dict={'xreg_model': False, ...},
@@ -1153,19 +1210,23 @@ def estimator(
 
     # Step 1: Set up model structure
     # Simple call of the architector - also creates adam_cpp object
-    model_type_dict, components_dict, lags_dict, observations_dict, profile_dict, adam_cpp = (
-        architector(
-            model_type_dict,
-            lags_dict,
-            observations_dict,
-            arima_dict,
-            constant_dict,
-            explanatory_dict,
-            profiles_recent_table,
-            profiles_recent_provided,
-        )
+    (
+        model_type_dict,
+        components_dict,
+        lags_dict,
+        observations_dict,
+        profile_dict,
+        adam_cpp,
+    ) = architector(
+        model_type_dict,
+        lags_dict,
+        observations_dict,
+        arima_dict,
+        constant_dict,
+        explanatory_dict,
+        profiles_recent_table,
+        profiles_recent_provided,
     )
-
 
     # Step 2: Create model matrices
     # Simple call of the creator
@@ -1215,9 +1276,13 @@ def estimator(
         if len(lb) != len(B):
             # This shouldn't happen if B_initial has correct length, but safety first
             if len(lb) < len(B):
-                lb = np.pad(lb, (0, len(B) - len(lb)), 'constant', constant_values=-np.inf)
-                ub = np.pad(ub, (0, len(B) - len(ub)), 'constant', constant_values=np.inf)
-        
+                lb = np.pad(
+                    lb, (0, len(B) - len(lb)), "constant", constant_values=-np.inf
+                )
+                ub = np.pad(
+                    ub, (0, len(B) - len(ub)), "constant", constant_values=np.inf
+                )
+
         # Check compatibility
         if np.any(B < lb) or np.any(B > ub):
             # Adjust bounds to accommodate B
@@ -1235,7 +1300,6 @@ def estimator(
     # Step 5: Set appropriate distribution
     general_dict = _set_distribution(general_dict, model_type_dict)
 
-
     # Step 6: Configure optimization parameters
     maxeval_used, general_dict = _setup_optimization_parameters(
         general_dict,
@@ -1245,15 +1309,25 @@ def estimator(
         adam_created,
         observations_dict,
         multisteps,
+        components_dict,
     )
 
     # Step 7: Create and configure optimizer
     # Convert algorithm string to nlopt constant
-    nlopt_algorithm = getattr(nlopt, algorithm.replace("NLOPT_", ""), nlopt.LN_NELDERMEAD)
+    nlopt_algorithm = getattr(
+        nlopt, algorithm.replace("NLOPT_", ""), nlopt.LN_NELDERMEAD
+    )
     opt = nlopt.opt(nlopt_algorithm, len(B))
     opt = _configure_optimizer(
-        opt, lb, ub, maxeval_used, maxtime,
-        xtol_rel=xtol_rel, xtol_abs=xtol_abs, ftol_rel=ftol_rel, ftol_abs=ftol_abs
+        opt,
+        lb,
+        ub,
+        maxeval_used,
+        maxtime,
+        xtol_rel=xtol_rel,
+        xtol_abs=xtol_abs,
+        ftol_rel=ftol_rel,
+        ftol_abs=ftol_abs,
     )
 
     # Step 8: Create objective function
@@ -1272,7 +1346,7 @@ def estimator(
         profile_dict,
         general_dict,
         adam_cpp,
-        print_level
+        print_level,
     )
 
     # Set objective function
@@ -1284,7 +1358,8 @@ def estimator(
     # Step 10: Extract the solution and the loss value
     CF_value = opt.last_optimum_value()
 
-    # Step 10a: Retry optimization with zero smoothing parameters if initial optimization failed
+    # Step 10a: Retry optimization with zero smoothing parameters if initial
+    # optimization failed
     # This matches R's behavior (lines 2717-2768 in adam.R)
     # R checks for is.infinite(res$objective) || res$objective==1e+300
     # Python's objective wrapper caps at 1e10, so we check >= 1e10
@@ -1294,41 +1369,57 @@ def estimator(
         if model_type_dict["ets_model"]:
             # Build persistence estimate vector with proper seasonal expansion
             persistence_estimate_vector = [
-                persistence_dict['persistence_level_estimate'],
-                model_type_dict["model_is_trendy"] and persistence_dict['persistence_trend_estimate'],
+                persistence_dict["persistence_level_estimate"],
+                model_type_dict["model_is_trendy"]
+                and persistence_dict["persistence_trend_estimate"],
             ]
             if model_type_dict["model_is_seasonal"]:
-                persistence_estimate_vector.extend(persistence_dict['persistence_seasonal_estimate'])
+                persistence_estimate_vector.extend(
+                    persistence_dict["persistence_seasonal_estimate"]
+                )
             components_number_ets = sum(persistence_estimate_vector)
             if components_number_ets > 0:
                 B[:components_number_ets] = 0
-        
+
         if arima_dict["arima_model"]:
             # Calculate starting index for ARIMA parameters
-            # Match R's calculation exactly: componentsNumberETS + persistenceXregEstimate*xregNumber
+            #  Match R's calculation exactly: componentsNumberETS +
+            # persistenceXregEstimate*xregNumber
             # Note: R's retry code doesn't account for phi, so we match that behavior
             ar_ma_start = components_number_ets
-            if explanatory_dict['xreg_model'] and persistence_dict['persistence_xreg_estimate']:
-                ar_ma_start += max(explanatory_dict['xreg_parameters_persistence'] or [0])
-            
+            if (
+                explanatory_dict["xreg_model"]
+                and persistence_dict["persistence_xreg_estimate"]
+            ):
+                ar_ma_start += max(
+                    explanatory_dict["xreg_parameters_persistence"] or [0]
+                )
+
             # Calculate number of ARIMA parameters
-            ar_orders = arima_dict.get('ar_orders', [])
-            ma_orders = arima_dict.get('ma_orders', [])
-            ar_estimate = arima_dict.get('ar_estimate', False)
-            ma_estimate = arima_dict.get('ma_estimate', False)
-            
+            ar_orders = arima_dict.get("ar_orders", [])
+            ma_orders = arima_dict.get("ma_orders", [])
+            ar_estimate = arima_dict.get("ar_estimate", False)
+            ma_estimate = arima_dict.get("ma_estimate", False)
+
             ar_count = sum(ar_orders) if ar_estimate else 0
             ma_count = sum(ma_orders) if ma_estimate else 0
             ar_ma_count = ar_count + ma_count
-            
+
             if ar_ma_count > 0:
-                B[ar_ma_start:ar_ma_start + ar_ma_count] = 0.01
-        
+                B[ar_ma_start : ar_ma_start + ar_ma_count] = 0.01
+
         # Retry optimization with reset parameters
         opt2 = nlopt.opt(nlopt_algorithm, len(B))
         opt2 = _configure_optimizer(
-            opt2, lb, ub, maxeval_used, maxtime,
-            xtol_rel=xtol_rel, xtol_abs=xtol_abs, ftol_rel=ftol_rel, ftol_abs=ftol_abs
+            opt2,
+            lb,
+            ub,
+            maxeval_used,
+            maxtime,
+            xtol_rel=xtol_rel,
+            xtol_abs=xtol_abs,
+            ftol_rel=ftol_rel,
+            ftol_abs=ftol_abs,
         )
         opt2.set_min_objective(objective_wrapper)
         B[:] = _run_optimization(opt2, B)
@@ -1420,9 +1511,15 @@ def estimator(
             mat_wt = np.asfortranarray(adam_created["mat_wt"], dtype=np.float64)
             mat_f = np.asfortranarray(adam_created["mat_f"], dtype=np.float64)
             vec_g = np.asfortranarray(adam_created["vec_g"], dtype=np.float64)
-            index_lookup_table = np.asfortranarray(profile_dict["index_lookup_table"], dtype=np.uint64)
-            profiles_recent_table = np.asfortranarray(profile_dict["profiles_recent_table"], dtype=np.float64)
-            y_in_sample = np.asfortranarray(observations_dict["y_in_sample"], dtype=np.float64)
+            index_lookup_table = np.asfortranarray(
+                profile_dict["index_lookup_table"], dtype=np.uint64
+            )
+            profiles_recent_table = np.asfortranarray(
+                profile_dict["profiles_recent_table"], dtype=np.float64
+            )
+            y_in_sample = np.asfortranarray(
+                observations_dict["y_in_sample"], dtype=np.float64
+            )
             ot = np.asfortranarray(observations_dict["ot"], dtype=np.float64)
 
             adam_cpp.fit(
@@ -1467,7 +1564,8 @@ def _form_model_pool(model_type_dict, silent=False):
     Returns
     -------
     tuple
-        pool_small, pool_errors, pool_trends, pool_seasonals, check_trend, check_seasonal
+        pool_small, pool_errors, pool_trends, pool_seasonals, check_trend,
+        check_seasonal
     """
     # Check if the pool was provided
     if model_type_dict["models_pool"] is not None:
@@ -1548,7 +1646,8 @@ def _form_model_pool(model_type_dict, silent=False):
     # Align error and seasonality, if the error was not forced to be additive
     # For 3-character models, the seasonal is at index 2 (model[2])
     # For 4-character models, the seasonal is the last character (model[-1])
-    # Since pool_small only contains 3-character models at this stage, use model[-1] for safety
+    #  Since pool_small only contains 3-character models at this stage, use model[-1]
+    # for safety
     if any(model[-1] == "M" for model in pool_small) and model_type_dict[
         "error_type"
     ] not in ["A", "X"]:
@@ -1750,6 +1849,7 @@ def _run_branch_and_bound(
         - pool_seasonals: updated list of seasonal components to include in final pool
         - pool_trends: updated list of trend components to include in final pool
     """
+
     # Helper function to get seasonal type from model string (last character)
     def get_seasonal(model_str):
         return model_str[-1]
@@ -1861,13 +1961,15 @@ def _run_branch_and_bound(
     baseline_idx = estimate_and_store(baseline_model, results, results_dict)
     models_tested.append(baseline_model)
     best_ic = results[baseline_idx]["IC"]
-    best_model = baseline_model
 
     # Step 2: Check seasonality (if check_seasonal is True)
     if check_seasonal and len(pool_seasonals) > 1:
         # Find model with additive seasonality and same trend as baseline
         seasonal_model_a = find_model_index(
-            pool_small, seasonal="A", trend=get_trend(baseline_model), exclude=models_tested
+            pool_small,
+            seasonal="A",
+            trend=get_trend(baseline_model),
+            exclude=models_tested,
         )
 
         if seasonal_model_a is not None:
@@ -1880,12 +1982,14 @@ def _run_branch_and_bound(
                 # Seasonality helps - remove "N" from pool, check multiplicative
                 pool_seasonals = [s for s in pool_seasonals if s != "N"]
                 best_ic = ic_a
-                best_model = model_a
 
                 # Check multiplicative seasonality if available
                 if "M" in pool_seasonals:
                     seasonal_model_m = find_model_index(
-                        pool_small, seasonal="M", trend=get_trend(baseline_model), exclude=models_tested
+                        pool_small,
+                        seasonal="M",
+                        trend=get_trend(baseline_model),
+                        exclude=models_tested,
                     )
                     if seasonal_model_m is not None:
                         model_m = pool_small[seasonal_model_m - 1]
@@ -1897,7 +2001,6 @@ def _run_branch_and_bound(
                             # Multiplicative is better
                             pool_seasonals = ["M"]
                             best_ic = ic_m
-                            best_model = model_m
                         else:
                             # Additive is better
                             pool_seasonals = ["A"]
@@ -1907,7 +2010,10 @@ def _run_branch_and_bound(
                 # Now check trend with the selected seasonal
                 if check_trend and len(pool_trends) > 1:
                     trend_model = find_model_index(
-                        pool_small, seasonal=pool_seasonals[0], trend="A", exclude=models_tested
+                        pool_small,
+                        seasonal=pool_seasonals[0],
+                        trend="A",
+                        exclude=models_tested,
                     )
                     if trend_model is not None:
                         model_t = pool_small[trend_model - 1]
@@ -1940,7 +2046,6 @@ def _run_branch_and_bound(
                             # Trend helps - keep all trend options
                             pool_trends = [t for t in pool_trends if t != "N"]
                             best_ic = ic_t
-                            best_model = model_t
                         else:
                             # No trend helps - only check MNN for error type
                             pool_trends = ["N"]
@@ -1948,13 +2053,18 @@ def _run_branch_and_bound(
                             # Check MNN if multiplicative error is allowed
                             if model_type_dict.get("allow_multiplicative", True):
                                 error_model = find_model_index(
-                                    pool_small, seasonal="N", trend="N", error="M", exclude=models_tested
+                                    pool_small,
+                                    seasonal="N",
+                                    trend="N",
+                                    error="M",
+                                    exclude=models_tested,
                                 )
                                 if error_model is not None:
                                     model_e = pool_small[error_model - 1]
-                                    idx_e = estimate_and_store(model_e, results, results_dict)
+                                    estimate_and_store(model_e, results, results_dict)
                                     models_tested.append(model_e)
-                                    # IC comparison for error type will be done in full pool estimation
+                                    #  IC comparison for error type will be done in full
+                                    # pool estimation
         else:
             # No seasonal model to test, keep checking trend
             pool_seasonals = ["N"]
@@ -2074,7 +2184,7 @@ def _estimate_all_models(
             if j == 0:
                 print("\b", end="")
             print("\b" * (len(str(round((j) / models_number * 100))) + 1), end="")
-            print(f"{round((j+1)/models_number * 100)}%", end="")
+            print(f"{round((j + 1) / models_number * 100)}%", end="")
 
         model_current = models_pool[j]
 
@@ -2106,33 +2216,36 @@ def _estimate_all_models(
 
         # Estimate the model
         results[j] = {}
-        results[j]['adam_estimated'] = estimator(
-                general_dict=general_dict,
-                model_type_dict=model_type_dict_temp,
-                lags_dict=lags_dict,
-                observations_dict=observations_dict,
-                arima_dict=arima_dict,
-                constant_dict=constant_dict,
-                explanatory_dict=explanatory_dict,
-                profiles_recent_table=profiles_recent_table,
-                profiles_recent_provided=profiles_recent_provided,
-                persistence_dict=persistence_results,
-                initials_dict=initials_results,
-                occurrence_dict=occurrence_dict,
-                phi_dict=phi_dict_temp,
-                components_dict=components_dict,
-                print_level=print_level,
-                xtol_rel=xtol_rel,
-                xtol_abs=xtol_abs,
-                ftol_rel=ftol_rel,
-                ftol_abs=ftol_abs,
-                algorithm=algorithm,
-                smoother=smoother,
-            )
-        results[j]["IC"] = ic_function(general_dict['ic'], loglik=results[j]['adam_estimated']["log_lik_adam_value"])
-        results[j]['model_type_dict'] = model_type_dict_temp
-        results[j]['phi_dict'] = phi_dict_temp
-        results[j]['model'] = model_current
+        results[j]["adam_estimated"] = estimator(
+            general_dict=general_dict,
+            model_type_dict=model_type_dict_temp,
+            lags_dict=lags_dict,
+            observations_dict=observations_dict,
+            arima_dict=arima_dict,
+            constant_dict=constant_dict,
+            explanatory_dict=explanatory_dict,
+            profiles_recent_table=profiles_recent_table,
+            profiles_recent_provided=profiles_recent_provided,
+            persistence_dict=persistence_results,
+            initials_dict=initials_results,
+            occurrence_dict=occurrence_dict,
+            phi_dict=phi_dict_temp,
+            components_dict=components_dict,
+            print_level=print_level,
+            xtol_rel=xtol_rel,
+            xtol_abs=xtol_abs,
+            ftol_rel=ftol_rel,
+            ftol_abs=ftol_abs,
+            algorithm=algorithm,
+            smoother=smoother,
+        )
+        results[j]["IC"] = ic_function(
+            general_dict["ic"],
+            loglik=results[j]["adam_estimated"]["log_lik_adam_value"],
+        )
+        results[j]["model_type_dict"] = model_type_dict_temp
+        results[j]["phi_dict"] = phi_dict_temp
+        results[j]["model"] = model_current
     if not silent:
         print("... Done!")
 
@@ -2224,7 +2337,8 @@ def selector(
         - 'trend_type': Trend component ('Z', 'X', 'Y', or specific like 'A', 'Ad', 'N')
         - 'season_type': Seasonality component ('Z', 'X', 'Y', or 'N', 'A', 'M')
         - 'models_pool': List of model strings (if pre-specified pool)
-        - 'allow_multiplicative': Whether multiplicative models are allowed (data-dependent)
+        - 'allow_multiplicative': Whether multiplicative models are allowed
+        (data-dependent)
         - 'model_do': Action type ('select', 'combine', or 'estimate')
 
     phi_dict : dict
@@ -2398,7 +2512,8 @@ def selector(
         ...     ...
         ... )
         >>> best_model = min(results['ic_selection'], key=results['ic_selection'].get)
-        >>> print(f"Best model: {best_model}, AICc: {results['ic_selection'][best_model]}")
+        >>> print(f"Best model: {best_model}, AICc:
+        {results['ic_selection'][best_model]}")
 
     Select from additive models only::
 
@@ -2439,34 +2554,36 @@ def selector(
 
     if model_type_dict["models_pool"] is None:
         # Run branch and bound to select models
-        bb_results, bb_models_tested, pool_seasonals, pool_trends = _run_branch_and_bound(
-            pool_small,
-            model_type_dict,
-            phi_dict,
-            general_dict,
-            lags_dict,
-            observations_dict,
-            arima_dict,
-            constant_dict,
-            explanatory_dict,
-            profiles_recent_table,
-            profiles_recent_provided,
-            persistence_results,
-            initials_results,
-            occurrence_dict,
-            components_dict,
-            pool_seasonals,
-            pool_trends,
-            check_seasonal,
-            check_trend,
-            print_level=print_level,
-            xtol_rel=xtol_rel,
-            xtol_abs=xtol_abs,
-            ftol_rel=ftol_rel,
-            ftol_abs=ftol_abs,
-            algorithm=algorithm,
-            smoother=smoother,
-            silent=silent,
+        bb_results, bb_models_tested, pool_seasonals, pool_trends = (
+            _run_branch_and_bound(
+                pool_small,
+                model_type_dict,
+                phi_dict,
+                general_dict,
+                lags_dict,
+                observations_dict,
+                arima_dict,
+                constant_dict,
+                explanatory_dict,
+                profiles_recent_table,
+                profiles_recent_provided,
+                persistence_results,
+                initials_results,
+                occurrence_dict,
+                components_dict,
+                pool_seasonals,
+                pool_trends,
+                check_seasonal,
+                check_trend,
+                print_level=print_level,
+                xtol_rel=xtol_rel,
+                xtol_abs=xtol_abs,
+                ftol_rel=ftol_rel,
+                ftol_abs=ftol_abs,
+                algorithm=algorithm,
+                smoother=smoother,
+                silent=silent,
+            )
         )
 
         # Prepare a bigger pool based on the small one
@@ -2485,7 +2602,7 @@ def selector(
             e + t + s
             for e in pool_errors
             for s in pool_seasonals  # outer loop (slower varying)
-            for t in pool_trends     # inner loop (faster varying)
+            for t in pool_trends  # inner loop (faster varying)
         ]
 
         # Use dict.fromkeys() to preserve insertion order while removing duplicates
@@ -2521,7 +2638,7 @@ def selector(
         precomputed_models=bb_models_tested,
         smoother=smoother,
     )
-    #print(results)
+    # print(results)
 
     # Step 4: Extract ICs and find the best model
     models_number = len(model_type_dict["models_pool"])
@@ -2752,8 +2869,10 @@ def _process_initial_values(
                 initial_value_ets[i] = matrices_dict["mat_vt"][
                     i, : lags_dict["lags_model_max"]
                 ][0]
-            # In cases of seasonal components, they should be at the end of the pre-heat period
-            # Only extract lag-1 values (the last one is the normalized value computed from others)
+            #  In cases of seasonal components, they should be at the end of the
+            # pre-heat period
+            #  Only extract lag-1 values (the last one is the normalized value computed
+            # from others)
             else:
                 start_idx = lags_dict["lags_model_max"] - lags_dict["lags_model"][i]
                 seasonal_full = matrices_dict["mat_vt"][
@@ -2794,11 +2913,16 @@ def _process_initial_values(
 
             # Write down the initial seasonals
             if model_type_dict["model_is_seasonal"]:
-                # Convert initial_seasonal_estimate to list if it's a boolean (for single seasonality)
-                if isinstance(initials_checked['initial_seasonal_estimate'], bool):
-                    seasonal_estimate_list = [initials_checked['initial_seasonal_estimate']] * components_dict['components_number_ets_seasonal']
+                #  Convert initial_seasonal_estimate to list if it's a boolean (for
+                # single seasonality)
+                if isinstance(initials_checked["initial_seasonal_estimate"], bool):
+                    seasonal_estimate_list = [
+                        initials_checked["initial_seasonal_estimate"]
+                    ] * components_dict["components_number_ets_seasonal"]
                 else:
-                    seasonal_estimate_list = initials_checked['initial_seasonal_estimate']
+                    seasonal_estimate_list = initials_checked[
+                        "initial_seasonal_estimate"
+                    ]
 
                 initial_estimated[
                     j + 1 : j + 1 + components_dict["components_number_ets_seasonal"]
@@ -2810,7 +2934,7 @@ def _process_initial_values(
                     initial_value[j] = [x for x in initial_value_ets if x is not None]
                     initial_value_names[j] = "seasonal"
                     for k in range(components_dict["components_number_ets_seasonal"]):
-                        initial_estimated[j + k] = f"seasonal{k+1}"
+                        initial_estimated[j + k] = f"seasonal{k + 1}"
                 else:
                     initial_value[j] = next(
                         x for x in initial_value_ets if x is not None
@@ -2840,6 +2964,8 @@ def _process_initial_values(
     }
 
     return initial_value, initial_value_ets, initial_value_names, initial_estimated
+
+
 #
 #
 # def _process_arma_parameters(B, arima_checked):

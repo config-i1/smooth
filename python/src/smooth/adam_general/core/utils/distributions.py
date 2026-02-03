@@ -7,7 +7,6 @@ results between R and Python implementations.
 
 import numpy as np
 from scipy import stats
-from scipy.special import gamma
 
 
 def rlaplace(n, mu=0, b=1, random_state=None):
@@ -116,9 +115,9 @@ def rgnorm(n, mu=0, scale=1, shape=2, random_state=None):
     # Generate using the relationship with Gamma distribution
     # |X|^beta ~ Gamma(1/beta, 1)
     # X = sign * |X|
-    gamma_samples = rng.gamma(1/shape, 1, n)
+    gamma_samples = rng.gamma(1 / shape, 1, n)
     signs = rng.choice([-1, 1], n)
-    return mu + signs * scale * (gamma_samples ** (1/shape))
+    return mu + signs * scale * (gamma_samples ** (1 / shape))
 
 
 def ralaplace(n, mu=0, scale=1, alpha=0.5, random_state=None):
@@ -159,16 +158,20 @@ def ralaplace(n, mu=0, scale=1, alpha=0.5, random_state=None):
     e2 = rng.exponential(1, n)
 
     # Asymmetric Laplace as mixture
-    result = np.where(
-        u < alpha,
-        mu + scale * e1 / alpha,
-        mu - scale * e2 / (1 - alpha)
-    )
+    result = np.where(u < alpha, mu + scale * e1 / alpha, mu - scale * e2 / (1 - alpha))
     return result
 
 
-def generate_errors(distribution, n, scale, obs_in_sample=None, n_param=None,
-                   shape=None, alpha=None, random_state=None):
+def generate_errors(
+    distribution,
+    n,
+    scale,
+    obs_in_sample=None,
+    n_param=None,
+    shape=None,
+    alpha=None,
+    random_state=None,
+):
     """
     Generate random errors for simulation based on distribution type.
 
@@ -234,7 +237,7 @@ def generate_errors(distribution, n, scale, obs_in_sample=None, n_param=None,
 
     elif distribution == "dlnorm":
         # rlnorm(n, -scale^2/2, scale) - 1
-        meanlog = -scale**2 / 2
+        meanlog = -(scale**2) / 2
         return rng.lognormal(meanlog, scale, n) - 1
 
     elif distribution == "dinvgauss":
@@ -242,7 +245,9 @@ def generate_errors(distribution, n, scale, obs_in_sample=None, n_param=None,
         # Using scipy for inverse Gaussian
         mu = 1
         lambda_param = 1 / scale  # dispersion = 1/lambda
-        samples = stats.invgauss.rvs(mu/lambda_param, scale=lambda_param, size=n, random_state=rng)
+        samples = stats.invgauss.rvs(
+            mu / lambda_param, scale=lambda_param, size=n, random_state=rng
+        )
         return samples - 1
 
     elif distribution == "dgamma":
@@ -270,7 +275,8 @@ def generate_errors(distribution, n, scale, obs_in_sample=None, n_param=None,
 
 def normalize_errors(errors, error_type):
     """
-    Normalize errors to have zero mean (additive) or unit mean multiplier (multiplicative).
+    Normalize errors to have zero mean (additive) or unit mean multiplier
+    (multiplicative).
 
     This matches R's normalization for nsim <= 500.
 
