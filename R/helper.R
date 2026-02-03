@@ -286,9 +286,9 @@ sparmaChecker <- function(object){
 smoothEigens <- function(persistence, transition, measurement,
                          lagsModelAll, xregModel, obsInSample){
 
-    return(smoothEigensCpp(persistence, transition, measurement,
-                           lagsModelAll, xregModel, obsInSample,
-                           any(substr(names(persistence),1,5)=="delta")));
+    return(smoothEigensR(persistence, transition, measurement,
+                         lagsModelAll, xregModel, obsInSample,
+                         any(substr(names(persistence),1,5)=="delta")));
 
     # lagsUnique <- unique(lagsModelAll);
     # lagsUniqueLength <- length(lagsUnique);
