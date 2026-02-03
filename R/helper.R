@@ -285,10 +285,14 @@ sparmaChecker <- function(object){
 #### The function that returns the eigen values for specified parameters ADAM ####
 smoothEigens <- function(persistence, transition, measurement,
                          lagsModelAll, xregModel, obsInSample){
+    persistenceNames <- names(persistence);
+    hasDelta <- any(substr(persistenceNames,1,5)=="delta");
+    xregNumber <- sum(substr(persistenceNames,1,5)=="delta");
+    constantRequired <- any(persistenceNames %in% c("constant","drift"));
 
     return(smoothEigensR(persistence, transition, measurement,
                          lagsModelAll, xregModel, obsInSample,
-                         any(substr(names(persistence),1,5)=="delta")));
+                         hasDelta, xregNumber, constantRequired));
 
     # lagsUnique <- unique(lagsModelAll);
     # lagsUniqueLength <- length(lagsUnique);

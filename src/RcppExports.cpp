@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // smoothEigensR
-arma::vec smoothEigensR(const arma::mat& persistence, const arma::mat& transition, const arma::mat& measurement, const arma::ivec& lagsModelAll, bool xregModel, int obsInSample, bool hasDelta);
-RcppExport SEXP _smooth_smoothEigensR(SEXP persistenceSEXP, SEXP transitionSEXP, SEXP measurementSEXP, SEXP lagsModelAllSEXP, SEXP xregModelSEXP, SEXP obsInSampleSEXP, SEXP hasDeltaSEXP) {
+arma::vec smoothEigensR(const arma::mat& persistence, const arma::mat& transition, const arma::mat& measurement, const arma::ivec& lagsModelAll, bool xregModel, int obsInSample, bool hasDelta, int xregNumber, bool constantRequired);
+RcppExport SEXP _smooth_smoothEigensR(SEXP persistenceSEXP, SEXP transitionSEXP, SEXP measurementSEXP, SEXP lagsModelAllSEXP, SEXP xregModelSEXP, SEXP obsInSampleSEXP, SEXP hasDeltaSEXP, SEXP xregNumberSEXP, SEXP constantRequiredSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -24,7 +24,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type xregModel(xregModelSEXP);
     Rcpp::traits::input_parameter< int >::type obsInSample(obsInSampleSEXP);
     Rcpp::traits::input_parameter< bool >::type hasDelta(hasDeltaSEXP);
-    rcpp_result_gen = Rcpp::wrap(smoothEigensR(persistence, transition, measurement, lagsModelAll, xregModel, obsInSample, hasDelta));
+    Rcpp::traits::input_parameter< int >::type xregNumber(xregNumberSEXP);
+    Rcpp::traits::input_parameter< bool >::type constantRequired(constantRequiredSEXP);
+    rcpp_result_gen = Rcpp::wrap(smoothEigensR(persistence, transition, measurement, lagsModelAll, xregModel, obsInSample, hasDelta, xregNumber, constantRequired));
     return rcpp_result_gen;
 END_RCPP
 }
