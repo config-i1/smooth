@@ -275,6 +275,26 @@ class TestADAMAttributes:
         assert hasattr(model, 'phi_')
 
 
+class TestADAMBounds:
+    """Tests for parameter bounds."""
+
+    def test_admissible_bounds_linear_series(self):
+        """Test admissible bounds with linear series.
+
+        For a linear series (1 to 20), ETS(ANN) with admissible bounds
+        should produce a smoothing parameter (alpha) greater than 1,
+        which is outside the usual [0,1] bounds but still admissible.
+        """
+        y = np.arange(1, 21, dtype=float)
+        model = ADAM(model="ANN", bounds="admissible")
+        model.fit(y)
+
+        assert model.persistence_level_ > 1, (
+            f"Expected alpha > 1 for linear series with admissible bounds, "
+            f"got {model.persistence_level_}"
+        )
+
+
 class TestADAMReproducibility:
     """Tests for reproducibility."""
 
