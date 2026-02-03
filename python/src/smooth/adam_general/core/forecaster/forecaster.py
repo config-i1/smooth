@@ -1,0 +1,881 @@
+import warnings
+
+import numpy as np
+import pandas as pd
+
+# Note: adam_cpp instance is passed to functions that need C++ integration
+# The adamCore object is created in architector() and passed through the pipeline
+from ._helpers import (
+    _prepare_lookup_table,
+    _prepare_matrices_for_forecast,
+    _safe_create_index,
+)
+from .intervals import (
+    ensure_level_format,
+    generate_prediction_interval,
+    generate_simulation_interval,
+)
+
+
+def _prepare_forecast_index(observations_dict, general_dict):
+    """
+    Prepare the index for the forecast Series/DataFrame.
+
+    Parameters
+    ----------
+    observations_dict : dict
+        Dictionary with observation data and related information
+    general_dict : dict
+        Dictionary with general model parameters
+
+    Returns
+    -------
+    pandas.Index
+        Index for the forecast
+    """
+    y_forecast_start = observations_dict["y_forecast_start"]
+    h = general_dict["h"]
+    freq = observations_dict["frequency"]
+
+    # Check if y_forecast_start is a valid timestamp
+    try:
+        # Try to create a date_range with the start
+        if isinstance(y_forecast_start, (pd.Timestamp, np.datetime64)):
+            observations_dict["y_forecast_index"] = pd.date_range(
+                start=y_forecast_start, periods=h, freq=freq
+            )
+        elif isinstance(y_forecast_start, (int, np.integer)):
+            # Numeric index - use RangeIndex
+            observations_dict["y_forecast_index"] = pd.RangeIndex(
+                start=y_forecast_start, stop=y_forecast_start + h
+            )
+        else:
+            # Try date_range anyway, may work for some types
+            observations_dict["y_forecast_index"] = pd.date_range(
+                start=y_forecast_start, periods=h, freq=freq
+            )
+    except (TypeError, ValueError):
+        # Fallback to RangeIndex
+        n_obs = len(observations_dict.get("y_in_sample", []))
+        observations_dict["y_forecast_index"] = pd.RangeIndex(
+            start=n_obs, stop=n_obs + h
+        )
+
+    return observations_dict["y_forecast_index"]
+
+
+def _check_fitted_values(model_prepared, occurrence_dict):
+    """
+    Check fitted values for NaNs and adjust for occurrence if needed.
+
+    Parameters
+    ----------
+    model_prepared : dict
+        Dictionary with the prepared model including fitted values
+    occurrence_dict : dict
+        Dictionary with occurrence model parameters
+
+    Returns
+    -------
+    dict
+        Updated model_prepared dictionary
+    """
+    # Check for NaNs in fitted values
+    if np.any(np.isnan(model_prepared["y_fitted"])) or np.any(
+        pd.isna(model_prepared["y_fitted"])
+    ):
+        warnings.warn(
+            "Something went wrong in the estimation of the model and NaNs were "
+            "produced. "
+            "If this is a mixed model, consider using the pure ones instead."
+        )
+
+    # Apply occurrence model to fitted values if present
+    if occurrence_dict["occurrence_model"]:
+        model_prepared["y_fitted"][:] = (
+            model_prepared["y_fitted"] * occurrence_dict["p_fitted"]
+        )
+
+    # Fix cases when we have zeroes in the provided occurrence
+    if occurrence_dict["occurrence"] == "provided":
+        model_prepared["y_fitted"][~occurrence_dict["ot_logical"]] = (
+            model_prepared["y_fitted"][~occurrence_dict["ot_logical"]]
+            * occurrence_dict["p_fitted"][~occurrence_dict["ot_logical"]]
+        )
+
+    return model_prepared
+
+
+def _initialize_forecast_series(observations_dict, general_dict):
+    """
+    Initialize a pandas Series for forecasts with appropriate index.
+
+    Parameters
+    ----------
+    observations_dict : dict
+        Dictionary with observation data and related information
+    general_dict : dict
+        Dictionary with general model parameters
+
+    Returns
+    -------
+    pandas.Series
+        Initialized forecast series with NaN values
+    """
+    if general_dict["h"] <= 0:
+        return None
+
+    if not isinstance(observations_dict.get("y_in_sample"), pd.Series):
+        # Use safe index creation for non-Series input
+        index = _safe_create_index(
+            start=observations_dict["y_forecast_start"],
+            periods=general_dict["h"],
+            freq=observations_dict["frequency"],
+        )
+        forecast_series = pd.Series(np.full(general_dict["h"], np.nan), index=index)
+    else:
+        forecast_series = pd.Series(
+            np.full(general_dict["h"], np.nan),
+            index=observations_dict["y_forecast_index"],
+        )
+
+    return forecast_series
+
+
+def _determine_forecast_interval(
+    general_dict, model_type_dict, explanatory_checked, lags_dict
+):
+    """
+    Determine the appropriate interval type for forecasting.
+
+    Parameters
+    ----------
+    general_dict : dict
+        Dictionary with general model parameters
+    model_type_dict : dict
+        Dictionary with model type information
+    explanatory_checked : dict
+        Dictionary with external regressors information
+    lags_dict : dict
+        Dictionary with lag-related information
+
+    Returns
+    -------
+    dict
+        Updated general_dict with interval type
+    """
+    # If this is "prediction", do simulations for multiplicative components
+    if general_dict["interval"] == "prediction":
+        # Simulate stuff for the ETS only
+        if (
+            model_type_dict["ets_model"] or explanatory_checked["xreg_number"] > 0
+        ) and (
+            model_type_dict["trend_type"] == "M"
+            or (
+                model_type_dict["season_type"] == "M"
+                and general_dict["h"] > lags_dict["lags_model_min"]
+            )
+        ):
+            general_dict["interval"] = "simulated"
+        else:
+            general_dict["interval"] = "approximate"
+
+    return general_dict
+
+
+def _generate_point_forecasts(
+    observations_dict,
+    lags_dict,
+    model_prepared,
+    lookup,
+    model_type_dict,
+    components_dict,
+    explanatory_checked,
+    constants_checked,
+    general_dict,
+    adam_cpp,
+):
+    """
+    Generate point forecasts using adam_cpp.forecast().
+
+    Parameters
+    ----------
+    observations_dict : dict
+        Dictionary with observation data and related information
+    lags_dict : dict
+        Dictionary with lag-related information
+    model_prepared : dict
+        Dictionary with the prepared model
+    lookup : numpy.ndarray
+        Lookup table for forecasting
+    model_type_dict : dict
+        Dictionary with model type information
+    components_dict : dict
+        Dictionary with components information
+    explanatory_checked : dict
+        Dictionary with external regressors information
+    constants_checked : dict
+        Dictionary with information about constants
+    general_dict : dict
+        Dictionary with general model parameters
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of point forecasts
+    """
+    # Get all the necessary matrices for forecasting
+    mat_vt, mat_wt, vec_g, mat_f = _prepare_matrices_for_forecast(
+        model_prepared, observations_dict, lags_dict, general_dict
+    )
+
+    # Prepare data for adam_forecaster
+    profiles_recent_table = np.asfortranarray(
+        model_prepared["profiles_recent_table"], dtype=np.float64
+    )
+    index_lookup_table = np.asfortranarray(lookup, dtype=np.uint64)
+
+    # Fix a bug I cant trace
+    components_dict["components_number_ets_non_seasonal"] = (
+        components_dict["components_number_ets"]
+        - components_dict["components_number_ets_seasonal"]
+    )
+
+    # Call adam_cpp.forecast() with the prepared inputs
+    # Note: E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant are set
+    # during adamCore construction
+    forecast_result = adam_cpp.forecast(
+        matrixWt=np.asfortranarray(mat_wt, dtype=np.float64),
+        matrixF=np.asfortranarray(mat_f, dtype=np.float64),
+        indexLookupTable=index_lookup_table,
+        profilesRecent=profiles_recent_table,
+        horizon=general_dict["h"],
+    )
+    y_forecast = forecast_result.forecast.flatten()
+
+    return y_forecast
+
+
+def _handle_forecast_safety_checks(
+    y_forecast, model_type_dict, model_prepared, general_dict
+):
+    """
+    Perform safety checks on forecasts and issue warnings if needed.
+
+    Parameters
+    ----------
+    y_forecast : numpy.ndarray
+        Array of point forecasts
+    model_type_dict : dict
+        Dictionary with model type information
+    model_prepared : dict
+        Dictionary with the prepared model
+    general_dict : dict
+        Dictionary with general model parameters
+
+    Returns
+    -------
+    numpy.ndarray
+        Corrected forecast array
+    """
+    # Replace NaN values with zeros
+    if np.any(np.isnan(y_forecast)):
+        y_forecast[np.isnan(y_forecast)] = 0
+
+    # Issue warning about potentially explosive multiplicative trend
+    # Make safety checks
+    # If there are NaN values
+    if np.any(np.isnan(y_forecast)):
+        y_forecast[np.isnan(y_forecast)] = 0
+
+    # Make a warning about the potential explosive trend
+    if (
+        model_type_dict["trend_type"] == "M"
+        and not model_type_dict["damped"]
+        and model_prepared["profiles_recent_table"][1, 0] > 1
+        and general_dict["h"] > 10
+    ):
+        warnings.warn(
+            "Your model has a potentially explosive multiplicative trend. "
+            "I cannot do anything about it, so please just be careful."
+        )
+
+    return y_forecast
+
+
+def _process_occurrence_forecast(occurrence_dict, general_dict):
+    """
+    Process occurrence forecasts for forecast horizon.
+
+    Parameters
+    ----------
+    occurrence_dict : dict
+        Dictionary with occurrence model parameters
+    general_dict : dict
+        Dictionary with general model parameters
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of occurrence probabilities for forecast horizon
+    """
+    # Initialize occurrence model flag
+    occurrence_model = False
+    # If the occurrence values are provided for the holdout
+    if occurrence_dict.get("occurrence") is not None and isinstance(
+        occurrence_dict["occurrence"], bool
+    ):
+        p_forecast = occurrence_dict["occurrence"] * 1
+    elif occurrence_dict.get("occurrence") is not None and isinstance(
+        occurrence_dict["occurrence"], (int, float)
+    ):
+        p_forecast = occurrence_dict["occurrence"]
+    else:
+        # If this is a mixture model, produce forecasts for the occurrence
+        if occurrence_dict.get("occurrence_model"):
+            occurrence_model = True
+            if occurrence_dict["occurrence"] == "provided":
+                p_forecast = np.ones(general_dict["h"])
+            else:
+                # TODO: Implement forecast for occurrence model
+                pass
+        else:
+            occurrence_model = False
+            # If this was provided occurrence, then use provided values
+            if (
+                occurrence_dict.get("occurrence") is not None
+                and occurrence_dict.get("occurrence") == "provided"
+                and occurrence_dict.get("p_forecast") is not None
+            ):
+                p_forecast = occurrence_dict["p_forecast"]
+            else:
+                p_forecast = np.ones(general_dict["h"])
+
+    # Make sure that the values are of the correct length
+    if general_dict["h"] < len(p_forecast):
+        p_forecast = p_forecast[: general_dict["h"]]
+    elif general_dict["h"] > len(p_forecast):
+        p_forecast = np.concatenate(
+            [p_forecast, np.repeat(p_forecast[-1], general_dict["h"] - len(p_forecast))]
+        )
+
+    return p_forecast, occurrence_model
+
+
+def _prepare_forecast_intervals(general_dict):
+    """
+    Prepare parameters for forecast intervals.
+
+    Parameters
+    ----------
+    general_dict : dict
+        Dictionary with general model parameters
+
+    Returns
+    -------
+    tuple
+        Tuple containing level information and side-specific interval levels
+    """
+    # Fix just in case user used 95 instead of 0.95
+    level = general_dict["interval_level"]
+    level = [
+        level_value / 100 if level_value > 1 else level_value for level_value in level
+    ]
+
+    # Handle different interval sides
+    if general_dict.get("side") == "both":
+        level_low = round((1 - level[0]) / 2, 3)
+        level_up = round((1 + level[0]) / 2, 3)
+    elif general_dict.get("side") == "upper":
+        level_low = None  # Not used for upper-side intervals
+        level_up = level
+    else:
+        level_low = 1 - level
+        level_up = None  # Not used for lower-side intervals
+
+    return level, level_low, level_up
+
+
+def _format_forecast_output(
+    y_forecast, observations_dict, level_low, level_up, h_final=None
+):
+    """
+    Format the forecast data into a pandas DataFrame with intervals.
+
+    Parameters
+    ----------
+    y_forecast : numpy.ndarray
+        Array of point forecasts
+    observations_dict : dict
+        Dictionary with observation data and related information
+    level_low : float
+        Lower level for prediction interval
+    level_up : float
+        Upper level for prediction interval
+    h_final : int, optional
+        Final forecast horizon (may differ from original if cumulative)
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with forecasts and intervals
+    """
+    # Use the original horizon if h_final not provided
+    if h_final is None:
+        h_final = len(y_forecast) if hasattr(y_forecast, "__len__") else 1
+
+    # Convert to dataframe with level_low and level_up as column names
+    y_forecast_out = pd.DataFrame(
+        {
+            "mean": y_forecast,
+            # Return NaN for intervals
+            # (would be calculated in a more complete implementation)
+            f"lower_{level_low}": np.nan,
+            f"upper_{level_up}": np.nan,
+        },
+        index=observations_dict["y_forecast_index"][:h_final],
+    )
+
+    return y_forecast_out
+
+
+def forecaster(
+    model_prepared,
+    observations_dict,
+    general_dict,
+    occurrence_dict,
+    lags_dict,
+    model_type_dict,
+    explanatory_checked,
+    components_dict,
+    constants_checked,
+    params_info,
+    adam_cpp,
+    calculate_intervals,
+    interval_method,
+    level,
+    side,
+):
+    """
+    Generate point forecasts and prediction intervals from an estimated ADAM model.
+
+    This function takes a prepared (fitted) ADAM model and produces forecasts for a
+    specified horizon h. It can generate point forecasts, prediction intervals, or both.
+    The forecasting process uses the **recursive multi-step ahead** approach where each
+    forecast step updates the state vector for the next step.
+
+    **Forecasting Process**:
+
+    1. **Preparation**: Set up forecast index, check fitted values, validate horizon
+    2. **Lookup Table**: Create index mapping for accessing lagged states
+    3. **Point Forecasts**: Call C++ forecaster to generate h-step ahead predictions
+       using the state-space recursion:
+
+       .. math::
+
+           \\hat{y}_{T+h} = w_{T+h}' v_{T+h|T}
+
+           v_{T+h|T} = F v_{T+h-1|T}
+
+    4. **Safety Checks**: Ensure forecasts are valid (no NaN, appropriate bounds)
+    5. **Occurrence Adjustment**: Apply occurrence probabilities for intermittent data
+    6. **Cumulative Forecasts**: Sum forecasts if cumulative=True (for demand totals)
+    7. **Prediction Intervals**: Generate confidence bounds using parametric,
+       simulation, or bootstrap methods
+
+    **Prediction Interval Methods**:
+
+    - **Parametric** (default): Analytical intervals based on assumed error distribution
+      and state-space variance formulas. Fast and accurate for well-specified models.
+
+    - **Simulation**: Monte Carlo simulation of future paths using estimated model and
+      error distribution. More flexible but slower. Recommended for:
+
+      * Multiplicative error models
+      * Intermittent demand
+      * Non-normal distributions
+
+    - **Bootstrap**: Resampling residuals to generate intervals (not fully
+      implemented yet)
+
+    Parameters
+    ----------
+    model_prepared : dict
+        Prepared model from ``preparator()`` containing:
+
+        - **'states'**: State vector matrix (n_components × T), last columns are
+          used as starting point for forecasting
+        - **'y_fitted'**: Fitted values for in-sample period
+        - **'residuals'**: Model residuals
+        - **'mat_wt'**: Measurement matrix
+        - **'mat_f'**: Transition matrix
+        - **'vec_g'**: Persistence vector
+        - **'persistence_level'**: Estimated α (level smoothing)
+        - **'persistence_trend'**: Estimated β (if trendy)
+        - **'persistence_seasonal'**: Estimated γ (if seasonal)
+        - **'phi'**: Damping parameter (if damped trend)
+        - **'scale'**: Estimated error scale parameter
+        - **'initial_level'**, **'initial_trend'**, **'initial_seasonal'**: Initial
+          states
+        - **'arima_polynomials'**: AR/MA polynomials (if ARIMA)
+
+    observations_dict : dict
+        Observation information containing:
+
+        - 'y_in_sample': In-sample observed values
+        - 'obs_in_sample': Number of in-sample observations
+        - 'y_forecast_start': Starting time for forecasts
+        - 'y_forecast_index': Pandas index for forecast period
+        - 'frequency': Time series frequency (for date indexing)
+
+    general_dict : dict
+        General configuration containing:
+
+        - **'h'**: Forecast horizon (number of steps ahead)
+        - 'distribution': Error distribution ('dnorm', 'dgamma', etc.)
+        - 'cumulative': Whether to produce cumulative forecasts
+        - 'nsim': Number of simulations (for simulation method, default 10000)
+        - 'interval': Interval type ('parametric', 'simulation', 'bootstrap')
+
+    occurrence_dict : dict
+        Intermittent demand configuration containing:
+
+        - 'occurrence_model': Whether occurrence model is active
+        - 'p_fitted': Fitted occurrence probabilities (if occurrence model)
+        - 'ot_logical': Boolean mask for non-zero observations
+
+    lags_dict : dict
+        Lag structure containing:
+
+        - 'lags': Primary lag vector
+        - 'lags_model': Lags for each state component
+        - 'lags_model_all': Complete lag specification
+        - 'lags_model_max': Maximum lag (lookback period)
+
+    model_type_dict : dict
+        Model type specification containing:
+
+        - 'error_type': 'A' (additive) or 'M' (multiplicative)
+        - 'trend_type': 'N', 'A', 'Ad', 'M', 'Md'
+        - 'season_type': 'N', 'A', 'M'
+        - 'ets_model': Whether ETS components exist
+        - 'arima_model': Whether ARIMA components exist
+        - 'model_is_trendy': Trend presence flag
+        - 'model_is_seasonal': Seasonality presence flag
+
+    explanatory_checked : dict
+        External regressors specification containing:
+
+        - 'xreg_model': Whether regressors are present
+        - 'xreg_number': Number of regressors
+        - 'xreg_data': Regressor values for forecast period (if available)
+
+    components_dict : dict
+        Component counts containing:
+
+        - 'components_number_all': Total state dimension
+        - 'components_number_ets': ETS component count
+        - 'components_number_arima': ARIMA component count
+
+    constants_checked : dict
+        Constant term specification containing:
+
+        - 'constant_required': Whether constant is included
+
+    params_info : list or array
+        Parameter count information:
+
+        - params_info[0][0]: Number of states
+        - params_info[1][0]: Number of parameters estimated
+
+    calculate_intervals : bool
+        Whether to calculate prediction intervals. If False, only point forecasts
+        are returned (faster).
+
+    interval_method : str
+        Prediction interval method:
+
+        - **"parametric"**: Analytical intervals (fast, assumes correct distribution)
+        - **"simulation"**: Monte Carlo intervals (flexible, slower)
+        - **"bootstrap"**: Bootstrap intervals (not fully implemented yet)
+
+    level : float or list of float
+        Confidence level(s) for prediction intervals.
+
+        - Single value: e.g., 0.95 for 95% intervals
+        - List: e.g., [0.80, 0.95] for 80% and 95% intervals (currently only first used)
+
+        Standard values: 0.80 (80%), 0.90 (90%), 0.95 (95%), 0.99 (99%)
+
+    side : str
+        Which prediction interval bounds to compute:
+
+        - **"both"**: Lower and upper bounds (default)
+        - **"lower"**: Lower bound only
+        - **"upper"**: Upper bound only
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame containing forecast results with columns:
+
+        - **'mean'**: Point forecasts (always included)
+        - **'lower_{level}'**: Lower prediction interval (if calculate_intervals=True)
+        - **'upper_{level}'**: Upper prediction interval (if calculate_intervals=True)
+
+        Index is the forecast period (y_forecast_index from observations_dict).
+
+        Shape: (h, 1) or (h, 3) depending on calculate_intervals.
+
+        If cumulative=True, returns shape (1, ...) with sum of forecasts.
+
+    Notes
+    -----
+    **Recursive Forecasting**:
+
+    The forecaster uses a recursive approach where:
+
+    1. At h=1: Use final state vector from fitting
+    2. At h=2: Update states using h=1 forecast
+    3. Continue recursively through horizon h
+
+    This naturally propagates uncertainty as h increases.
+
+    **State Vector Evolution**:
+
+    For each forecast step, the state vector evolves as:
+
+    .. math::
+
+        v_{T+h|T} = F v_{T+h-1|T} + g \\cdot 0
+
+    The error term is zero for point forecasts (expected value).
+
+    **Interval Width Growth**:
+
+    Prediction intervals widen with forecast horizon due to:
+
+    - Accumulation of forecast errors (one-step → multi-step)
+    - Uncertainty in parameter estimates
+    - Uncertainty in state values
+
+    For multiplicative error models, intervals grow faster than additive models.
+
+    **Occurrence Probabilities**:
+
+    For intermittent demand, forecasts are adjusted by occurrence probability:
+
+    .. math::
+
+        E[y_{T+h}] = E[y_{T+h} | \\text{demand}] \\times P(\\text{demand})
+
+    Intervals account for both demand size and demand probability uncertainties.
+
+    **Cumulative Forecasts**:
+
+    When cumulative=True, useful for inventory management:
+
+    - Point forecast: Sum of individual forecasts
+    - Intervals: Account for correlation between forecast errors
+    - Occurrence: Uses simulation method automatically (complex distribution)
+
+    **Performance**:
+
+    - Point forecasts only: Very fast (~1ms for h=100)
+    - Parametric intervals: Fast (~5-10ms)
+    - Simulation intervals: Slower (100-500ms depending on nsim)
+
+    **Zero and Negative Forecasts**:
+
+    - Multiplicative models: Forecasts bounded below by small positive value
+    - Intermittent data: Zero forecasts occur when occurrence probability < threshold
+    - Negative forecasts: Possible with additive error if data trends strongly down
+
+    See Also
+    --------
+    preparator : Prepares model for forecasting (called before forecaster)
+    generate_prediction_interval : Parametric interval calculation
+    generate_simulation_interval : Simulation-based interval calculation
+    adam_forecaster : C++ backend for fast recursive forecasting
+
+    Examples
+    --------
+    Generate point forecasts only::
+
+        >>> forecast_df = forecaster(
+        ...     model_prepared=prepared_model,
+        ...     observations_dict={'y_in_sample': data, 'obs_in_sample': 100, ...},
+        ...     general_dict={'h': 12, 'distribution': 'dnorm', ...},
+        ...     calculate_intervals=False,
+        ...     ...
+        ... )
+        >>> print(forecast_df['mean'])  # 12 point forecasts
+
+    Generate 95% prediction intervals with parametric method::
+
+        >>> forecast_df = forecaster(
+        ...     model_prepared=prepared_model,
+        ...     general_dict={'h': 12, 'interval': 'parametric', ...},
+        ...     calculate_intervals=True,
+        ...     interval_method='parametric',
+        ...     level=0.95,
+        ...     side='both',
+        ...     ...
+        ... )
+        >>> print(forecast_df.columns)  # ['mean', 'lower_0.025', 'upper_0.975']
+
+    Generate intervals using simulation for complex model::
+
+        >>> forecast_df = forecaster(
+        ...     model_prepared=prepared_model,
+        ...     general_dict={'h': 24, 'interval': 'simulation', 'nsim': 10000, ...},
+        ...     calculate_intervals=True,
+        ...     interval_method='simulation',
+        ...     level=0.90,
+        ...     ...
+        ... )
+        >>> # More accurate for multiplicative/intermittent models
+
+    Cumulative forecast for inventory planning::
+
+        >>> forecast_df = forecaster(
+        ...     general_dict={'h': 12, 'cumulative': True, ...},
+        ...     calculate_intervals=True,
+        ...     level=0.95,
+        ...     ...
+        ... )
+        >>> total_demand = forecast_df.loc[0, 'mean']  # Sum of 12 periods
+        >>> upper_bound = forecast_df.loc[0, 'upper_0.975']  # For safety stock
+    """
+    # 1. Prepare forecast index
+    _prepare_forecast_index(observations_dict, general_dict)
+    # 2. Check fitted values for issues and adjust for occurrence
+    model_prepared = _check_fitted_values(model_prepared, occurrence_dict)
+
+    # 3. Return empty result if horizon is zero
+    if general_dict["h"] <= 0:
+        return None
+
+    # 4. Initialize forecast series structure (but we'll use numpy arrays for
+    # calculations). We don't need to store this value since we're only using
+    # numpy arrays internally
+    _initialize_forecast_series(observations_dict, general_dict)
+
+    # 5. Prepare lookup table for forecasting
+    lookup = _prepare_lookup_table(lags_dict, observations_dict, general_dict)
+
+    # 6. Determine the appropriate interval type
+    general_dict = _determine_forecast_interval(
+        general_dict, model_type_dict, explanatory_checked, lags_dict
+    )
+
+    # 7. Generate point forecasts using adam_cpp.forecast()
+    y_forecast_values = _generate_point_forecasts(
+        observations_dict,
+        lags_dict,
+        model_prepared,
+        lookup,
+        model_type_dict,
+        components_dict,
+        explanatory_checked,
+        constants_checked,
+        general_dict,
+        adam_cpp,
+    )
+
+    # 8. Perform safety checks on forecasts
+    y_forecast_values = _handle_forecast_safety_checks(
+        y_forecast_values, model_type_dict, model_prepared, general_dict
+    )
+
+    # 9. Process occurrence forecasts
+    p_forecast, occurrence_model = _process_occurrence_forecast(
+        occurrence_dict, general_dict
+    )
+
+    # 10. Apply occurrence probabilities to forecasts
+    y_forecast_values = y_forecast_values * p_forecast
+    # 11. Handle cumulative forecasts if specified
+    if general_dict.get("cumulative"):
+        y_forecast_values = np.sum(y_forecast_values)
+        # In case of occurrence model use simulations - the cumulative
+        # probability is complex
+        if occurrence_model:
+            general_dict["interval"] = "simulated"
+
+    # 12. Prepare interval parameters
+    if calculate_intervals:
+        # assert method is parametric, bootstrap or simulation
+        assert interval_method in ["parametric", "simulation", "bootstrap"], (
+            "Interval method must be either parametric, simulation, or bootstrap"
+        )
+
+        if level is None:
+            warnings.warn("No confidence level specified. Using default level of 0.95")
+            level = 0.95
+
+        # Ensure level is a scalar for now
+        if isinstance(level, list):
+            level = level[0]
+
+        level_low, level_up = ensure_level_format(level, side)
+
+        # Route to appropriate interval method
+        if interval_method == "simulation":
+            nsim = general_dict.get("nsim", 10000)
+            y_lower, y_upper = generate_simulation_interval(
+                y_forecast_values,
+                model_prepared,
+                general_dict,
+                observations_dict,
+                model_type_dict,
+                lags_dict,
+                components_dict,
+                explanatory_checked,
+                constants_checked,
+                params_info,
+                adam_cpp,
+                level,
+                nsim=nsim,
+            )
+        elif interval_method == "bootstrap":
+            warnings.warn("Bootstrap intervals not yet supported. Using parametric.")
+            y_lower, y_upper = generate_prediction_interval(
+                y_forecast_values,
+                model_prepared,
+                general_dict,
+                observations_dict,
+                model_type_dict,
+                lags_dict,
+                params_info,
+                level,
+            )
+        else:  # parametric (default)
+            y_lower, y_upper = generate_prediction_interval(
+                y_forecast_values,
+                model_prepared,
+                general_dict,
+                observations_dict,
+                model_type_dict,
+                lags_dict,
+                params_info,
+                level,
+            )
+
+        y_forecast_out = pd.DataFrame(
+            {
+                "mean": y_forecast_values,
+                f"lower_{level_low}": y_lower,  # Return 0 regardless of calculations
+                f"upper_{level_up}": y_upper,  # Return 0 regardless of calculations
+            },
+            index=observations_dict["y_forecast_index"],
+        )
+    else:
+        y_forecast_out = pd.DataFrame(
+            {
+                "mean": y_forecast_values,
+            },
+            index=observations_dict["y_forecast_index"],
+        )
+
+    return y_forecast_out
