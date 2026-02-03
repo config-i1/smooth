@@ -1957,8 +1957,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
 
             # Stability / invertibility condition for ETS/ARIMA/Dynamic regression.
-            eigenValues <- abs(smoothEigens(adamElements$vecG, adamElements$matF, adamElements$matWt,
-                                            lagsModelAll, xregModel, obsInSample));
+            eigenValues <- smoothEigens(adamElements$vecG, adamElements$matF, adamElements$matWt,
+                                        lagsModelAll, xregModel, obsInSample);
             if(any(eigenValues>1+1E-50)){
                 return(1E+100*max(eigenValues));
             }
@@ -6161,8 +6161,8 @@ eigenValues <- function(object, persistence=NULL){
     if(is.null(persistence)){
         persistence <- object$persistence;
     }
-    return(any(abs(smoothEigens(matrix(persistence), object$transition, object$measurement,
-                                modelLags(object), ncol(object$data)>1, nobs(object)))>1+1E-10));
+    return(any(smoothEigens(matrix(persistence), object$transition, object$measurement,
+                            modelLags(object), ncol(object$data)>1, nobs(object))>1+1E-10));
 }
 
 # The function that returns the bounds for persistence parameters, based on eigen values
