@@ -317,9 +317,14 @@ def _create_objective_function(
                 profile_dict=profile_dict,
                 general=general_dict,
                 adam_cpp=adam_cpp,
-                bounds="usual",
+                bounds=general_dict["bounds"],
             )
-        except Exception:
+        except Exception as e:
+            if iteration_count[0] == 0 and print_level > 0:
+                import traceback
+
+                print(f"CF exception: {e}")
+                traceback.print_exc()
             cf_value = 1e100
 
         # Increment iteration counter

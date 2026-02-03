@@ -1,12 +1,12 @@
 import numpy as np
 from numpy.linalg import eigvals
 
+from smooth.adam_general._eigenCalc import smooth_eigens
 from smooth.adam_general.core.creator import filler
 from smooth.adam_general.core.utils.utils import (
     calculate_entropy,
     calculate_likelihood,
     calculate_multistep_loss,
-    measurement_inverter,
     scaler,
 )
 
@@ -392,60 +392,25 @@ def CF(  # noqa: N802
                     return 1e100 * np.max(eigenValues)
 
         if model_type_dict["ets_model"] or arima_checked["arima_model"]:
-            if explanatory_checked["xreg_model"]:
-                if regressors == "adapt":
-                    eigenValues = np.abs(
-                        eigvals(
-                            adam_elements["mat_f"]
-                            - np.diag(adam_elements["vec_g"].flatten())
-                            @ measurement_inverter(
-                                adam_elements["mat_wt"][
-                                    : observations_dict["obs_in_sample"]
-                                ]
-                            ).T
-                            @ adam_elements["mat_wt"][
-                                : observations_dict["obs_in_sample"]
-                            ]
-                            / observations_dict["obs_in_sample"]
-                        )
-                    )
-                else:
-                    indices = np.arange(
-                        components_dict["components_number_ets"]
-                        + components_dict["components_number_arima"]
-                    )
-                    eigenValues = np.abs(
-                        eigvals(
-                            adam_elements["mat_f"][np.ix_(indices, indices)]
-                            - adam_elements["vec_g"][indices]
-                            @ adam_elements["mat_wt"][
-                                observations_dict["obs_in_sample"] - 1, indices
-                            ]
-                        )
-                    )
-            else:
-                if model_type_dict["ets_model"] or (
-                    arima_checked["arima_model"]
-                    and arima_checked["ma_estimate"]
-                    and (
-                        sum(adam_elements["arimaPolynomials"]["maPolynomial"][1:]) >= 1
-                        or sum(adam_elements["arimaPolynomials"]["maPolynomial"][1:])
-                        < 0
-                    )
-                ):
-                    eigenValues = np.abs(
-                        eigvals(
-                            adam_elements["mat_f"]
-                            - adam_elements["vec_g"]
-                            @ adam_elements["mat_wt"][
-                                observations_dict["obs_in_sample"] - 1
-                            ]
-                        )
-                    )
-                else:
-                    eigenValues = np.array([0])
-
-            if any(eigenValues > 1 + 1e-50):
+            has_delta = explanatory_checked["xreg_model"] and regressors == "adapt"
+            eigenValues = smooth_eigens(
+                persistence=np.asfortranarray(
+                    adam_elements["vec_g"].reshape(-1, 1), dtype=np.float64
+                ),
+                transition=np.asfortranarray(
+                    adam_elements["mat_f"], dtype=np.float64
+                ),
+                measurement=np.asfortranarray(
+                    adam_elements["mat_wt"], dtype=np.float64
+                ),
+                lags_model_all=np.asarray(lags_dict["lags_model_all"], dtype=np.int32),
+                xreg_model=explanatory_checked["xreg_model"],
+                obs_in_sample=observations_dict["obs_in_sample"],
+                has_delta=has_delta,
+                xreg_number=explanatory_checked["xreg_number"],
+                constant_required=constants_checked["constant_required"],
+            )
+            if np.any(eigenValues > 1 + 1e-50):
                 return 1e100 * np.max(eigenValues)
 
     # Write down the initials in the recent profile
