@@ -20,11 +20,14 @@ py::array_t<double> smooth_eigens_wrapper(
     const arma::ivec& lags_model_all,
     bool xreg_model,
     int obs_in_sample,
-    bool has_delta
+    bool has_delta,
+    int xreg_number,
+    bool constant_required
 ) {
     arma::vec result = smoothEigensCpp(persistence, transition, measurement,
                                         lags_model_all, xreg_model,
-                                        obs_in_sample, has_delta);
+                                        obs_in_sample, has_delta,
+                                        xreg_number, constant_required);
     size_t n = result.n_elem;
     py::array_t<double> arr({static_cast<py::ssize_t>(n)});
     auto buf = arr.mutable_unchecked<1>();
@@ -44,6 +47,8 @@ PYBIND11_MODULE(_eigenCalc, m) {
         py::arg("lags_model_all"),
         py::arg("xreg_model"),
         py::arg("obs_in_sample"),
-        py::arg("has_delta")
+        py::arg("has_delta"),
+        py::arg("xreg_number") = 0,
+        py::arg("constant_required") = false
     );
 }

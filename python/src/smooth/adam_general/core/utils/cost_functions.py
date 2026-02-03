@@ -408,6 +408,8 @@ def CF(  # noqa: N802
                     xreg_model=explanatory_checked["xreg_model"],
                     obs_in_sample=observations_dict["obs_in_sample"],
                     has_delta=has_delta,
+                    xreg_number=explanatory_checked["xreg_number"],
+                    constant_required=constants_checked["constant_required"],
                 )
             )
             if np.any(eigenValues > 1 + 1e-50):

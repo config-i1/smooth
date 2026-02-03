@@ -12,12 +12,16 @@ arma::vec smoothEigensR(const arma::mat& persistence,
                         const arma::ivec& lagsModelAll,
                         bool xregModel,
                         int obsInSample,
-                        bool hasDelta) {
+                        bool hasDelta,
+                        int xregNumber = 0,
+                        bool constantRequired = false) {
     return smoothEigensCpp(persistence,
                            transition,
                            measurement,
                            lagsModelAll,
                            xregModel,
                            obsInSample,
-                           hasDelta);
+                           hasDelta,
+                           xregNumber,
+                           constantRequired);
 }
