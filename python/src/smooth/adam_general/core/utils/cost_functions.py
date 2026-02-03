@@ -393,16 +393,22 @@ def CF(  # noqa: N802
 
         if model_type_dict["ets_model"] or arima_checked["arima_model"]:
             has_delta = explanatory_checked["xreg_model"] and regressors == "adapt"
-            eigenValues = smooth_eigens(
-                persistence=np.asfortranarray(
-                    adam_elements["vec_g"].reshape(-1, 1), dtype=np.float64
-                ),
-                transition=np.asfortranarray(adam_elements["mat_f"], dtype=np.float64),
-                measurement=np.asfortranarray(adam_elements["mat_wt"], dtype=np.float64),
-                lags_model_all=lags_dict["lags_model_all"].astype(np.int32),
-                xreg_model=explanatory_checked["xreg_model"],
-                obs_in_sample=observations_dict["obs_in_sample"],
-                has_delta=has_delta,
+            eigenValues = np.abs(
+                smooth_eigens(
+                    persistence=np.asfortranarray(
+                        adam_elements["vec_g"].reshape(-1, 1), dtype=np.float64
+                    ),
+                    transition=np.asfortranarray(
+                        adam_elements["mat_f"], dtype=np.float64
+                    ),
+                    measurement=np.asfortranarray(
+                        adam_elements["mat_wt"], dtype=np.float64
+                    ),
+                    lags_model_all=np.asarray(lags_dict["lags_model_all"], dtype=np.int32),
+                    xreg_model=explanatory_checked["xreg_model"],
+                    obs_in_sample=observations_dict["obs_in_sample"],
+                    has_delta=has_delta,
+                )
             )
             if np.any(eigenValues > 1 + 1e-50):
                 return 1e100 * np.max(eigenValues)
