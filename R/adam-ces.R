@@ -489,8 +489,8 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
 
         if(bounds=="admissible"){
             # Stability / invertibility condition
-            eigenValues <- abs(smoothEigens(elements$vecG, elements$matF, matWt,
-                                            lagsModelAll, xregModel, obsInSample));
+            eigenValues <- smoothEigens(elements$vecG, elements$matF, matWt,
+                                        lagsModelAll, xregModel, obsInSample);
             if(any(eigenValues>1+1E-50)){
                 return(1E+100*max(eigenValues));
             }

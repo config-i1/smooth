@@ -1807,14 +1807,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         ));
     }
 
-    #### The function inverts the measurement matrix, setting infinte values to zero
-    # This is needed for the stability check for xreg models with regressors="adapt"
-    measurementInverter <- function(measurement){
-        measurement[] <- 1/measurement;
-        measurement[is.infinite(measurement)] <- 0;
-        return(measurement);
-    }
-
     ##### Cost Function for ETS #####
     CF <- function(B,
                    etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal, yInSample,
@@ -1957,47 +1949,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
 
             # Stability / invertibility condition for ETS/ARIMA/Dynamic regression.
-            eigenValues <- abs(smoothEigens(adamElements$vecG, adamElements$matF, adamElements$matWt,
-                                            lagsModelAll, xregModel, obsInSample));
+            eigenValues <- smoothEigens(adamElements$vecG, adamElements$matF, adamElements$matWt,
+                                        lagsModelAll, xregModel, obsInSample);
             if(any(eigenValues>1+1E-50)){
                 return(1E+100*max(eigenValues));
             }
-
-            # if(etsModel || arimaModel){
-            #     if(xregModel){
-            #         if(regressors=="adapt"){
-            #             # We check the condition on average
-            #             eigenValues <- abs(eigen((adamElements$matF -
-            #                                           diag(as.vector(adamElements$vecG)) %*%
-            #                                           t(measurementInverter(adamElements$matWt[1:obsInSample,,drop=FALSE])) %*%
-            #                                           adamElements$matWt[1:obsInSample,,drop=FALSE] / obsInSample),
-            #                                      symmetric=FALSE, only.values=TRUE)$values);
-            #         }
-            #         else{
-            #             # We drop the X parts from matrices
-            #             indices <- c(1:(componentsNumberETS+componentsNumberARIMA))
-            #             eigenValues <- abs(eigen(adamElements$matF[indices,indices,drop=FALSE] -
-            #                                          adamElements$vecG[indices,,drop=FALSE] %*%
-            #                                          adamElements$matWt[obsInSample,indices,drop=FALSE],
-            #                                      symmetric=FALSE, only.values=TRUE)$values);
-            #         }
-            #     }
-            #     else{
-            #         # If this is ETS or ARIMA with polynomials outside standard bounds, do proper check
-            #         if(etsModel || (arimaModel && maEstimate && (sum(adamElements$arimaPolynomials$maPolynomial[-1])>=1 |
-            #                                                      sum(adamElements$arimaPolynomials$maPolynomial[-1])<0))){
-            #             eigenValues <- abs(eigen(adamElements$matF -
-            #                                          adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
-            #                                      symmetric=FALSE, only.values=TRUE)$values);
-            #         }
-            #         else{
-            #             eigenValues <- 0;
-            #         }
-            #     }
-            #     if(any(eigenValues>1+1E-50)){
-            #         return(1E+100*max(eigenValues));
-            #     }
-            # }
         }
 
         # Write down the initials in the recent profile
@@ -6148,21 +6104,13 @@ print.adamCombined <- function(x, digits=4, ...){
 #### Coefficients ####
 #### The functions needed for confint and reapply
 
-# The function inverts the measurement matrix, setting infinite values to zero
-# This is needed for the stability check for xreg models with regressors="adapt"
-measurementInverter <- function(measurement){
-    measurement[] <- 1/measurement;
-    measurement[is.infinite(measurement)] <- 0;
-    return(measurement);
-}
-
 # The function returns TRUE if the condition is violated
 eigenValues <- function(object, persistence=NULL){
     if(is.null(persistence)){
         persistence <- object$persistence;
     }
-    return(any(abs(smoothEigens(matrix(persistence), object$transition, object$measurement,
-                                modelLags(object), ncol(object$data)>1, nobs(object)))>1+1E-10));
+    return(any(smoothEigens(matrix(persistence), object$transition, object$measurement,
+                            modelLags(object), ncol(object$data)>1, nobs(object))>1+1E-10));
 }
 
 # The function that returns the bounds for persistence parameters, based on eigen values

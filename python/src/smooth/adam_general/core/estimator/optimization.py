@@ -312,7 +312,7 @@ def _create_objective_function(
                 profile_dict=profile_dict,
                 general=general_dict,
                 adam_cpp=adam_cpp,
-                bounds="usual",
+                bounds=general_dict["bounds"],
             )
         except Exception:
             cf_value = 1e100
