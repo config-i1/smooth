@@ -289,9 +289,10 @@ class TestADAMBounds:
         model = ADAM(model="ANN", bounds="admissible")
         model.fit(y)
 
-        assert model.persistence_level_ > 1, (
+        alpha = model.adam_estimated['B'][0]
+        assert alpha > 1, (
             f"Expected alpha > 1 for linear series with admissible bounds, "
-            f"got {model.persistence_level_}"
+            f"got {alpha}"
         )
 
 
