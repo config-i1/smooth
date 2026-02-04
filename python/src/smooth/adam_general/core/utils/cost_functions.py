@@ -397,9 +397,7 @@ def CF(  # noqa: N802
                 persistence=np.asfortranarray(
                     adam_elements["vec_g"].reshape(-1, 1), dtype=np.float64
                 ),
-                transition=np.asfortranarray(
-                    adam_elements["mat_f"], dtype=np.float64
-                ),
+                transition=np.asfortranarray(adam_elements["mat_f"], dtype=np.float64),
                 measurement=np.asfortranarray(
                     adam_elements["mat_wt"], dtype=np.float64
                 ),

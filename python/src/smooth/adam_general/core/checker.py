@@ -476,9 +476,25 @@ def _check_model_composition(
         model_do = "select"
         # Build sensible pool (19 models with finite variance)
         sensible_pool = [
-            "ANN", "AAN", "AAdN", "ANA", "AAA", "AAdA",
-            "MNN", "MAN", "MAdN", "MNA", "MAA", "MAdA",
-            "MNM", "MAM", "MAdM", "MMN", "MMdN", "MMM", "MMdM"
+            "ANN",
+            "AAN",
+            "AAdN",
+            "ANA",
+            "AAA",
+            "AAdA",
+            "MNN",
+            "MAN",
+            "MAdN",
+            "MNA",
+            "MAA",
+            "MAdA",
+            "MNM",
+            "MAM",
+            "MAdM",
+            "MMN",
+            "MMdN",
+            "MMM",
+            "MMdM",
         ]
 
         # Filter by error type if not S
