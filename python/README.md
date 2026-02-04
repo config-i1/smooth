@@ -10,6 +10,15 @@ Python version of smooth.
 3. The latest CARMA releases support numpy 2. We will need to update this at some point soon, for more info check
 the [CARMA requirements](https://github.com/RUrlus/carma#requirements)
 
+## System Requirements
+
+This package requires compilation of C++ extensions. Before installing, ensure you have:
+- **C++ compiler** (g++, clang++, or MSVC)
+- **CMake** >= 3.25
+- **Armadillo** linear algebra library
+
+See the [Installation Guide](https://github.com/config-i1/smooth/wiki/Installation) for platform-specific instructions.
+
 # TODOs:
 - [X] use scikit-build-core to compile the C++ modules
 - [X] (TBC) Refactor src code to use armadillo instead of rcpparmadillo in common Cpp code.
