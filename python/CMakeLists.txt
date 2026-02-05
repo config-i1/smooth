@@ -28,10 +28,10 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 if(WIN32)
   # Find Python interpreter (should already be available from pybind11)
   find_package(Python COMPONENTS Interpreter QUIET)
-  
+
   if(Python_EXECUTABLE)
     message(STATUS "Attempting to find NumPy's OpenBLAS on Windows...")
-    
+
     # Get NumPy's installation path
     execute_process(
       COMMAND ${Python_EXECUTABLE} -c "import numpy; print(numpy.__path__[0])"
@@ -39,36 +39,84 @@ if(WIN32)
       OUTPUT_STRIP_TRAILING_WHITESPACE
       ERROR_QUIET
     )
-    
+
     if(NUMPY_PATH)
       message(STATUS "NumPy found at: ${NUMPY_PATH}")
-      
-      # NumPy's library directory (contains openblas.lib or similar)
-      set(NUMPY_LIB_DIR "${NUMPY_PATH}/_core/lib")
-      
-      # Look for OpenBLAS library in NumPy's lib directory
+
+      # Try multiple possible locations for NumPy's OpenBLAS library
+      # NumPy 2.x: .libs directory in the root
+      # NumPy 1.x: _core/lib or core/lib
+      set(NUMPY_SEARCH_PATHS
+        "${NUMPY_PATH}/.libs"
+        "${NUMPY_PATH}/_core/lib"
+        "${NUMPY_PATH}/core/lib"
+        "${NUMPY_PATH}/linalg/.libs"
+        "${NUMPY_PATH}"
+      )
+
+      # Look for OpenBLAS library in all possible locations
       find_library(NUMPY_OPENBLAS_LIB
-        NAMES openblas libopenblas openblas64_ libopenblas64_
-        PATHS "${NUMPY_LIB_DIR}"
+        NAMES
+          openblas64_.dll.a openblas64_  # NumPy 2.x naming
+          openblas.dll.a openblas        # Alternative naming
+          libopenblas64_ libopenblas     # Standard naming
+        PATHS ${NUMPY_SEARCH_PATHS}
         NO_DEFAULT_PATH
       )
-      
+
+      # If .lib/.a not found, try to find the actual DLL and create import lib path
+      if(NOT NUMPY_OPENBLAS_LIB)
+        message(STATUS "Searching for OpenBLAS DLL in NumPy directories...")
+        foreach(SEARCH_PATH ${NUMPY_SEARCH_PATHS})
+          file(GLOB DLL_FILES "${SEARCH_PATH}/*openblas*.dll")
+          if(DLL_FILES)
+            list(GET DLL_FILES 0 OPENBLAS_DLL)
+            message(STATUS "Found OpenBLAS DLL: ${OPENBLAS_DLL}")
+
+            # Extract directory and create a link flag
+            get_filename_component(DLL_DIR ${OPENBLAS_DLL} DIRECTORY)
+            get_filename_component(DLL_NAME ${OPENBLAS_DLL} NAME_WE)
+
+            # Try to find corresponding .lib file
+            find_file(NUMPY_OPENBLAS_LIB
+              NAMES "${DLL_NAME}.lib" "${DLL_NAME}.dll.a"
+              PATHS ${DLL_DIR}
+              NO_DEFAULT_PATH
+            )
+
+            if(NUMPY_OPENBLAS_LIB)
+              break()
+            endif()
+          endif()
+        endforeach()
+      endif()
+
       if(NUMPY_OPENBLAS_LIB)
         message(STATUS "Found NumPy's OpenBLAS: ${NUMPY_OPENBLAS_LIB}")
-        
+
         # Set BLAS and LAPACK to NumPy's OpenBLAS (which includes both)
         set(BLAS_LIBRARIES ${NUMPY_OPENBLAS_LIB})
         set(LAPACK_LIBRARIES ${NUMPY_OPENBLAS_LIB})
         set(BLAS_FOUND TRUE)
         set(LAPACK_FOUND TRUE)
-        
-        # Add NumPy's include directory for any potential headers
+
+        # Add NumPy's include directory
         set(NUMPY_INCLUDE_DIR "${NUMPY_PATH}/_core/include")
+        if(NOT EXISTS "${NUMPY_INCLUDE_DIR}")
+          set(NUMPY_INCLUDE_DIR "${NUMPY_PATH}/core/include")
+        endif()
         if(EXISTS "${NUMPY_INCLUDE_DIR}")
           include_directories(${NUMPY_INCLUDE_DIR})
         endif()
+
+        # Add the DLL directory to runtime path
+        get_filename_component(OPENBLAS_DIR ${NUMPY_OPENBLAS_LIB} DIRECTORY)
+        link_directories(${OPENBLAS_DIR})
       else()
-        message(STATUS "NumPy's OpenBLAS library not found in ${NUMPY_LIB_DIR}")
+        message(STATUS "NumPy's OpenBLAS library not found in any of:")
+        foreach(SEARCH_PATH ${NUMPY_SEARCH_PATHS})
+          message(STATUS "  - ${SEARCH_PATH}")
+        endforeach()
       endif()
     else()
       message(STATUS "NumPy not found in Python environment")
