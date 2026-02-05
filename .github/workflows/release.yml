@@ -5,15 +5,67 @@ on:
     tags:
       - 'v*.*.*'  # Trigger on version tags like v1.0.0, v0.1.2, etc.
   workflow_dispatch:  # Allow manual triggering
+    inputs:
+      platforms:
+        description: 'Platforms to build for'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+          - ubuntu-windows
+          - ubuntu-macos
+          - windows-macos
 
 jobs:
+  setup:
+    name: Determine build matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            case "${{ github.event.inputs.platforms }}" in
+              "ubuntu-latest")
+                echo 'matrix=["ubuntu-latest"]' >> $GITHUB_OUTPUT
+                ;;
+              "windows-latest")
+                echo 'matrix=["windows-latest"]' >> $GITHUB_OUTPUT
+                ;;
+              "macos-latest")
+                echo 'matrix=["macos-latest"]' >> $GITHUB_OUTPUT
+                ;;
+              "ubuntu-windows")
+                echo 'matrix=["ubuntu-latest","windows-latest"]' >> $GITHUB_OUTPUT
+                ;;
+              "ubuntu-macos")
+                echo 'matrix=["ubuntu-latest","macos-latest"]' >> $GITHUB_OUTPUT
+                ;;
+              "windows-macos")
+                echo 'matrix=["windows-latest","macos-latest"]' >> $GITHUB_OUTPUT
+                ;;
+              *)
+                echo 'matrix=["ubuntu-latest","windows-latest","macos-latest"]' >> $GITHUB_OUTPUT
+                ;;
+            esac
+          else
+            # Default for automatic triggers (tags, branches)
+            echo 'matrix=["ubuntu-latest","windows-latest","macos-latest"]' >> $GITHUB_OUTPUT
+          fi
+
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
+    needs: setup
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -36,24 +88,24 @@ jobs:
           CIBW_BUILD: cp39-* cp310-* cp311-* cp312-*
           # Skip 32-bit builds and musllinux
           CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux*"
-
+          
           # Install system dependencies for BLAS/LAPACK
           # Linux: Install OpenBLAS and LAPACK
           CIBW_BEFORE_BUILD_LINUX: yum install -y openblas-devel lapack-devel
-
-          # macOS: Install OpenBLAS via brew (already available in GitHub runners)
+          
+          # macOS: Install OpenBLAS via brew
           CIBW_BEFORE_BUILD_MACOS: brew install openblas || true
-
-          # Windows: Use NumPy's OpenBLAS (no extra install needed, handled by vcpkg or conda-forge)
+          
+          # Windows: Install NumPy (which provides OpenBLAS via our CMake fix)
           CIBW_BEFORE_BUILD_WINDOWS: pip install numpy
-
+          
           # Run tests after building
           CIBW_TEST_REQUIRES: pytest numpy
           CIBW_TEST_COMMAND: "pytest {project}/python/tests"
-
+          
           # macOS: Build for both x86_64 and arm64
           CIBW_ARCHS_MACOS: "x86_64 arm64"
-
+          
           # Linux: Use manylinux2014 for broad compatibility
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014
@@ -62,7 +114,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
-          path: ./python/wheelhouse/*.whl
+          path: ./wheelhouse/*.whl
           retention-days: 5
 
   build_sdist:
@@ -71,6 +123,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          submodules: recursive  # Initialize and checkout all submodules
           fetch-depth: 0
 
       - name: Set up Python
@@ -82,9 +135,7 @@ jobs:
         run: python -m pip install build
 
       - name: Build sdist
-        run: |
-          cd python
-          python -m build --sdist
+        run: python -m build --sdist python
 
       - name: Upload sdist as artifact
         uses: actions/upload-artifact@v4
@@ -99,7 +150,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write  # Required to create releases
-    # Only create release on tag pushes, not on Python branch pushes
+    # Only create release on tag pushes, not on Python branch pushes or manual runs
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
@@ -122,17 +173,17 @@ jobs:
           generate_release_notes: true
           body: |
             ## Installation
-
+            
             Install from PyPI (once available):
             ```bash
             pip install smooth
             ```
-
+            
             Or install from this release:
             ```bash
             pip install <wheel-file-for-your-platform>
             ```
-
+            
             ## What's Changed
             See the release notes below.
         env:
