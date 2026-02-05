@@ -20,11 +20,76 @@ FetchContent_MakeAvailable(pybind11)
 # CARMA
 ADD_SUBDIRECTORY(../src/libs/carma carma)
 
-# BLAS and LAPACK. Needed by Armadillo
-find_package(BLAS)
-find_package(LAPACK)
+# ==============================================================================
+# BLAS/LAPACK Detection with NumPy fallback for Windows
+# ==============================================================================
+
+# On Windows, try to use NumPy's bundled OpenBLAS first
+if(WIN32)
+  # Find Python interpreter (should already be available from pybind11)
+  find_package(Python COMPONENTS Interpreter QUIET)
+  
+  if(Python_EXECUTABLE)
+    message(STATUS "Attempting to find NumPy's OpenBLAS on Windows...")
+    
+    # Get NumPy's installation path
+    execute_process(
+      COMMAND ${Python_EXECUTABLE} -c "import numpy; print(numpy.__path__[0])"
+      OUTPUT_VARIABLE NUMPY_PATH
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET
+    )
+    
+    if(NUMPY_PATH)
+      message(STATUS "NumPy found at: ${NUMPY_PATH}")
+      
+      # NumPy's library directory (contains openblas.lib or similar)
+      set(NUMPY_LIB_DIR "${NUMPY_PATH}/_core/lib")
+      
+      # Look for OpenBLAS library in NumPy's lib directory
+      find_library(NUMPY_OPENBLAS_LIB
+        NAMES openblas libopenblas openblas64_ libopenblas64_
+        PATHS "${NUMPY_LIB_DIR}"
+        NO_DEFAULT_PATH
+      )
+      
+      if(NUMPY_OPENBLAS_LIB)
+        message(STATUS "Found NumPy's OpenBLAS: ${NUMPY_OPENBLAS_LIB}")
+        
+        # Set BLAS and LAPACK to NumPy's OpenBLAS (which includes both)
+        set(BLAS_LIBRARIES ${NUMPY_OPENBLAS_LIB})
+        set(LAPACK_LIBRARIES ${NUMPY_OPENBLAS_LIB})
+        set(BLAS_FOUND TRUE)
+        set(LAPACK_FOUND TRUE)
+        
+        # Add NumPy's include directory for any potential headers
+        set(NUMPY_INCLUDE_DIR "${NUMPY_PATH}/_core/include")
+        if(EXISTS "${NUMPY_INCLUDE_DIR}")
+          include_directories(${NUMPY_INCLUDE_DIR})
+        endif()
+      else()
+        message(STATUS "NumPy's OpenBLAS library not found in ${NUMPY_LIB_DIR}")
+      endif()
+    else()
+      message(STATUS "NumPy not found in Python environment")
+    endif()
+  endif()
+endif()
+
+# Standard BLAS and LAPACK search (for Linux/macOS, or if NumPy method failed on Windows)
+if(NOT BLAS_FOUND)
+  find_package(BLAS)
+endif()
+
+if(NOT LAPACK_FOUND)
+  find_package(LAPACK)
+endif()
+
+# Configure lapackblas_libraries variable
 if(LAPACK_FOUND AND BLAS_FOUND)
    set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+   message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
+   message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
 elseif(BLAS_FOUND)
    # On Windows with vcpkg, OpenBLAS may not include LAPACK routines
    # Try to find lapack library explicitly
@@ -45,6 +110,10 @@ else()
    message(WARNING "BLAS/LAPACK not found. Build may fail for modules requiring BLAS.")
    set(lapackblas_libraries "")
 endif()
+
+# ==============================================================================
+# End BLAS/LAPACK Detection
+# ==============================================================================
 
 # Armadillo (use correct CMake package name)
 find_package(Armadillo QUIET)
