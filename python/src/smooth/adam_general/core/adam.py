@@ -876,9 +876,7 @@ class ADAM:
             if "persistence_trend" in self._persistence:
                 self.persistence_trend_ = self._persistence["persistence_trend"]
             if "persistence_seasonal" in self._persistence:
-                self.persistence_seasonal_ = self._persistence[
-                    "persistence_seasonal"
-                ]
+                self.persistence_seasonal_ = self._persistence["persistence_seasonal"]
             if "persistence_xreg" in self._persistence:
                 self.persistence_xreg_ = self._persistence["persistence_xreg"]
 
@@ -1029,9 +1027,7 @@ class ADAM:
     def distribution_(self) -> str:
         """Distribution used for fitting (R: $distribution)."""
         self._check_is_fitted()
-        return self._general.get(
-            "distribution_new", self._general.get("distribution")
-        )
+        return self._general.get("distribution_new", self._general.get("distribution"))
 
     @property
     def loss_(self) -> str:
@@ -1851,7 +1847,7 @@ class ADAM:
             n_param.update_totals()
 
             # Store reference for easy access
-            self._n_param= n_param
+            self._n_param = n_param
 
         # Legacy format for backward compatibility
         if "parameters_number" not in self._general:
@@ -1946,9 +1942,7 @@ class ADAM:
         # Find best model
         self._best_model = min(self._ic_selection.items(), key=lambda x: x[1])[0]
         best_id = next(
-            i
-            for i, result in enumerate(results)
-            if result["model"] == self._best_model
+            i for i, result in enumerate(results) if result["model"] == self._best_model
         )
         # Update dictionaries with best model results
         self._model_type = results[best_id]["model_type_dict"]
@@ -2049,7 +2043,7 @@ class ADAM:
                 n_param.estimated["scale"] = 0
 
             n_param.update_totals()
-            self._n_param= n_param
+            self._n_param = n_param
 
         # Legacy format
         self._general["parameters_number"] = self._params_info.get(

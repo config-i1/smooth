@@ -113,9 +113,7 @@ def _get_persistence_from_model(model: Any) -> Dict[str, Any]:
                     "mat_wt": model._adam_created["mat_wt"].copy(),
                     "mat_f": model._adam_created["mat_f"].copy(),
                     "vec_g": model._adam_created["vec_g"].copy(),
-                    "arima_polynomials": model._adam_created.get(
-                        "arima_polynomials"
-                    ),
+                    "arima_polynomials": model._adam_created.get("arima_polynomials"),
                 }
 
                 filled = filler(
