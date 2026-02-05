@@ -79,7 +79,7 @@ model.fit(y)
 Full documentation is available on the **[GitHub Wiki](https://github.com/config-i1/smooth/wiki)**, including:
 
 - [ADAM](https://github.com/config-i1/smooth/wiki/ADAM) - Main unified ETS/ARIMA framework
-- [Function reference](https://github.com/config-i1/smooth/wiki/Home) - All functions and methods
+- [Function reference](https://github.com/config-i1/smooth/wiki) - All functions and methods
 - [Installation guide](https://github.com/config-i1/smooth/wiki/Installation) - Dependencies and troubleshooting
 
 **Book:** Svetunkov, I. (2023). *Forecasting and Analytics with the Augmented Dynamic Adaptive Model (ADAM)*. Chapman and Hall/CRC. Online: https://openforecast.org/adam/
