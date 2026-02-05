@@ -18,8 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true  # If you have git submodules
-          fetch-depth: 0    # Fetch all history for proper versioning
+          submodules: true
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -30,13 +30,15 @@ jobs:
         run: python -m pip install cibuildwheel
 
       - name: Build wheels
-        run: python -m cibuildwheel --output-dir wheelhouse
+        run: |
+          cd python
+          python -m cibuildwheel --output-dir wheelhouse
         env:
           # Configure which Python versions to build for
           CIBW_BUILD: cp39-* cp310-* cp311-* cp312-*
-          # Skip 32-bit builds and musllinux (unless you need them)
+          # Skip 32-bit builds and musllinux
           CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux*"
-          # Run tests after building (optional but recommended)
+          # Run tests after building
           CIBW_TEST_REQUIRES: pytest numpy
           CIBW_TEST_COMMAND: "pytest {project}/tests"
           # macOS: Build for both x86_64 and arm64
@@ -49,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
-          path: ./wheelhouse/*.whl
+          path: ./python/wheelhouse/*.whl
           retention-days: 5
 
   build_sdist:
@@ -69,13 +71,15 @@ jobs:
         run: python -m pip install build
 
       - name: Build sdist
-        run: python -m build --sdist
+        run: |
+          cd python
+          python -m build --sdist
 
       - name: Upload sdist as artifact
         uses: actions/upload-artifact@v4
         with:
           name: sdist
-          path: dist/*.tar.gz
+          path: ./python/dist/*.tar.gz
           retention-days: 5
 
   create_release:
@@ -84,6 +88,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write  # Required to create releases
+    # Only create release on tag pushes, not on Python branch pushes
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
 
@@ -91,7 +97,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist
-          merge-multiple: true  # Flatten all artifacts into dist/
+          merge-multiple: true
 
       - name: Display structure of downloaded files
         run: ls -R dist/
@@ -106,7 +112,7 @@ jobs:
           body: |
             ## Installation
 
-            Install from PyPI:
+            Install from PyPI (once available):
             ```bash
             pip install smooth
             ```
@@ -127,6 +133,8 @@ jobs:
   #   name: Upload to PyPI
   #   needs: [build_wheels, build_sdist]
   #   runs-on: ubuntu-latest
+  #   # Only upload to PyPI on tag pushes
+  #   if: startsWith(github.ref, 'refs/tags/')
   #   environment:
   #     name: pypi
   #     url: https://pypi.org/p/smooth
@@ -141,6 +149,3 @@ jobs:
   #
   #     - name: Publish to PyPI
   #       uses: pypa/gh-action-pypi-publish@release/v1
-  #       # If using API token instead of trusted publishing:
-  #       # with:
-  #       #   password: ${{ secrets.PYPI_API_TOKEN }}
