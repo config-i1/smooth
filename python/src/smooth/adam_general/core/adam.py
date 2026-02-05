@@ -998,7 +998,7 @@ class ADAM:
         return None
 
     @property
-    def B(self) -> NDArray:
+    def b_value(self) -> NDArray:
         """Parameter vector (R: $B). Alias for coef."""
         return self.coef
 
