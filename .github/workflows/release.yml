@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Trigger on version tags like v1.0.0, v0.1.2, etc.
-    branches:
-      - Python  # Also run on Python branch for testing
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -20,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive  # Initialize and checkout all submodules including carma
           fetch-depth: 0
 
       - name: Set up Python
