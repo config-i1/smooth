@@ -5,7 +5,6 @@ This module provides functions to generate formatted summaries of fitted ADAM mo
 similar to R's print.adam() method.
 """
 
-import time
 from typing import Any, Dict, Optional
 
 import numpy as np
@@ -79,9 +78,6 @@ def _get_persistence_from_model(model: Any) -> Dict[str, Any]:
     """
     Extract persistence parameters from a fitted ADAM model.
 
-    This function extracts persistence values from the filled matrices
-    or calculates them from the B parameter vector if needed.
-
     Parameters
     ----------
     model : ADAM
@@ -94,46 +90,46 @@ def _get_persistence_from_model(model: Any) -> Dict[str, Any]:
     """
     result = {"alpha": None, "beta": None, "gamma": [], "xreg": None}
 
-    # Try to get from prepared_model first (if predict was called)
-    if hasattr(model, "prepared_model") and model.prepared_model:
-        vec_g = model.prepared_model.get("persistence")
+    # Try to get from _prepared first (if predict was called)
+    if hasattr(model, "_prepared") and model._prepared:
+        vec_g = model._prepared.get("persistence")
         if vec_g is not None and len(vec_g) > 0:
             return _extract_persistence_from_vec_g(model, vec_g)
 
     # Otherwise, fill matrices to get vec_g
     if (
-        hasattr(model, "adam_estimated")
-        and model.adam_estimated
-        and hasattr(model, "adam_created")
-        and model.adam_created
+        hasattr(model, "_adam_estimated")
+        and model._adam_estimated
+        and hasattr(model, "_adam_created")
+        and model._adam_created
     ):
-        B = model.adam_estimated.get("B")
+        B = model._adam_estimated.get("B")
         if B is not None and len(B) > 0:
-            # Import filler to fill matrices with estimated parameters
             try:
                 from smooth.adam_general.core.creator import filler
 
-                # Make a deep copy of matrices to avoid modifying originals
                 matrices_copy = {
-                    "mat_vt": model.adam_created["mat_vt"].copy(),
-                    "mat_wt": model.adam_created["mat_wt"].copy(),
-                    "mat_f": model.adam_created["mat_f"].copy(),
-                    "vec_g": model.adam_created["vec_g"].copy(),
-                    "arima_polynomials": model.adam_created.get("arima_polynomials"),
+                    "mat_vt": model._adam_created["mat_vt"].copy(),
+                    "mat_wt": model._adam_created["mat_wt"].copy(),
+                    "mat_f": model._adam_created["mat_f"].copy(),
+                    "vec_g": model._adam_created["vec_g"].copy(),
+                    "arima_polynomials": model._adam_created.get(
+                        "arima_polynomials"
+                    ),
                 }
 
                 filled = filler(
                     B=B,
-                    model_type_dict=model.model_type_dict,
-                    components_dict=model.components_dict,
-                    lags_dict=model.lags_dict,
+                    model_type_dict=model._model_type,
+                    components_dict=model._components,
+                    lags_dict=model._lags_model,
                     matrices_dict=matrices_copy,
-                    persistence_checked=model.persistence_results,
-                    initials_checked=model.initials_results,
-                    arima_checked=model.arima_results,
-                    explanatory_checked=model.explanatory_dict,
-                    phi_dict=model.phi_dict,
-                    constants_checked=model.constant_dict,
+                    persistence_checked=model._persistence,
+                    initials_checked=model._initials,
+                    arima_checked=model._arima,
+                    explanatory_checked=model._explanatory,
+                    phi_dict=model._phi_internal,
+                    constants_checked=model._constant,
                 )
 
                 vec_g = filled.get("vec_g")
@@ -169,9 +165,8 @@ def _extract_persistence_from_vec_g(model: Any, vec_g: np.ndarray) -> Dict[str, 
     vec_g = np.array(vec_g).flatten()
     idx = 0
 
-    # Check model type
-    model_type = model.model_type_dict if hasattr(model, "model_type_dict") else {}
-    components = model.components_dict if hasattr(model, "components_dict") else {}
+    model_type = model._model_type if hasattr(model, "_model_type") else {}
+    components = model._components if hasattr(model, "_components") else {}
 
     n_ets = components.get("components_number_ets", 0)
     n_ets_seasonal = components.get("components_number_ets_seasonal", 0)
@@ -267,10 +262,10 @@ def _format_arma_parameters(model: Any, digits: int = 4) -> str:
     str
         Formatted ARMA parameters string
     """
-    if not hasattr(model, "arima_results") or not model.arima_results:
+    if not hasattr(model, "_arima") or not model._arima:
         return ""
 
-    arima = model.arima_results
+    arima = model._arima
     if not arima.get("arima_model", False):
         return ""
 
@@ -280,7 +275,7 @@ def _format_arma_parameters(model: Any, digits: int = 4) -> str:
     ar_params = arima.get("ar_parameters", [])
     if ar_params and len(ar_params) > 0:
         ar_orders = arima.get("ar_orders", [])
-        lags = model.lags_dict.get("lags", [1])
+        lags = model._lags_model.get("lags", [1])
 
         lines.append("AR parameters:")
         param_idx = 0
@@ -299,7 +294,7 @@ def _format_arma_parameters(model: Any, digits: int = 4) -> str:
     ma_params = arima.get("ma_parameters", [])
     if ma_params and len(ma_params) > 0:
         ma_orders = arima.get("ma_orders", [])
-        lags = model.lags_dict.get("lags", [1])
+        lags = model._lags_model.get("lags", [1])
 
         lines.append("MA parameters:")
         param_idx = 0
@@ -522,9 +517,8 @@ def model_summary(model: Any, digits: int = 4) -> str:
     lines = []
 
     # Time elapsed
-    if hasattr(model, "start_time"):
-        elapsed = time.time() - model.start_time
-        lines.append(f"Time elapsed: {elapsed:.2f} seconds")
+    if hasattr(model, "time_elapsed_"):
+        lines.append(f"Time elapsed: {model.time_elapsed_:.2f} seconds")
 
     # Model type
     model_name = _get_model_name(model)
@@ -596,7 +590,6 @@ def model_summary(model: Any, digits: int = 4) -> str:
 
 def _get_model_name(model: Any) -> str:
     """Get the model name string (e.g., 'ETS(AAN)')."""
-    # Use the model attribute directly - it's updated in _set_fitted_attributes()
     if hasattr(model, "model") and model.model:
         return model.model
     return "Unknown"
@@ -604,7 +597,6 @@ def _get_model_name(model: Any) -> str:
 
 def _get_function_name(model: Any) -> str:
     """Get the function name used to estimate the model."""
-    # Check if it's an ES model (subclass)
     if model.__class__.__name__ == "ES":
         return "ES"
     return "ADAM"
@@ -612,23 +604,26 @@ def _get_function_name(model: Any) -> str:
 
 def _get_initialization_type(model: Any) -> str:
     """Get the initialization type string."""
-    if hasattr(model, "initials_results") and model.initials_results:
-        return model.initials_results.get("initial_type", "unknown")
-    if hasattr(model, "initial"):
-        if isinstance(model.initial, str):
-            return model.initial
+    if hasattr(model, "_initials") and model._initials:
+        return model._initials.get("initial_type", "unknown")
+    if hasattr(model, "_config"):
+        initial = model._config.get("initial")
+        if isinstance(initial, str):
+            return initial
         return "provided"
     return "unknown"
 
 
 def _get_distribution(model: Any) -> str:
     """Get the distribution code."""
-    if hasattr(model, "general") and model.general:
-        return model.general.get(
-            "distribution_new", model.general.get("distribution", "dnorm")
+    if hasattr(model, "_general") and model._general:
+        return model._general.get(
+            "distribution_new", model._general.get("distribution", "dnorm")
         )
-    if hasattr(model, "distribution") and model.distribution:
-        return model.distribution
+    if hasattr(model, "_config"):
+        dist = model._config.get("distribution")
+        if dist:
+            return dist
     return "dnorm"
 
 
@@ -638,15 +633,14 @@ def _format_loss(model: Any, digits: int) -> str:
     loss_value = None
     lambda_val = None
 
-    if hasattr(model, "general") and model.general:
-        loss = model.general.get("loss", "likelihood")
-        # Get lambda for LASSO/RIDGE
+    if hasattr(model, "_general") and model._general:
+        loss = model._general.get("loss", "likelihood")
         if loss in ["LASSO", "RIDGE"]:
-            lambda_val = model.general.get("lambda")
+            lambda_val = model._general.get("lambda")
 
-    if hasattr(model, "adam_estimated") and model.adam_estimated:
-        if "CF_value" in model.adam_estimated:
-            loss_value = model.adam_estimated["CF_value"]
+    if hasattr(model, "_adam_estimated") and model._adam_estimated:
+        if "CF_value" in model._adam_estimated:
+            loss_value = model._adam_estimated["CF_value"]
 
     result = f"Loss function type: {loss}"
     if loss_value is not None:
@@ -659,9 +653,9 @@ def _format_loss(model: Any, digits: int) -> str:
 
 def _format_constant(model: Any, digits: int) -> str:
     """Format constant/drift value if present."""
-    if hasattr(model, "constant_dict") and model.constant_dict:
-        if model.constant_dict.get("constant_estimate", False):
-            constant_val = model.constant_dict.get("constant_value")
+    if hasattr(model, "_constant") and model._constant:
+        if model._constant.get("constant_estimate", False):
+            constant_val = model._constant.get("constant_value")
             if constant_val is not None:
                 return f"Intercept/Drift value: {constant_val:.{digits}f}"
     return ""
@@ -669,27 +663,27 @@ def _format_constant(model: Any, digits: int) -> str:
 
 def _format_phi(model: Any, digits: int) -> str:
     """Format damping parameter if present."""
-    # First check if model has damped trend - don't print if not damped
-    if not hasattr(model, "model_type_dict") or not model.model_type_dict:
+    if not hasattr(model, "_model_type") or not model._model_type:
         return ""
 
-    if not model.model_type_dict.get("damped", False):
+    if not model._model_type.get("damped", False):
         return ""
 
-    # Model is damped, now get the phi value
     phi_val = None
 
-    # Try to get from phi_dict first
-    if hasattr(model, "phi_dict") and model.phi_dict:
-        phi_val = model.phi_dict.get("phi")
+    if hasattr(model, "_phi_internal") and model._phi_internal:
+        phi_val = model._phi_internal.get("phi")
 
-    # Fallback to phi_ attribute
-    if phi_val is None and hasattr(model, "phi_") and model.phi_ is not None:
-        phi_val = model.phi_
+    # Fallback to phi_ property
+    if phi_val is None:
+        try:
+            phi_val = model.phi_
+        except (ValueError, AttributeError):
+            pass
 
-    # Try prepared_model
-    if phi_val is None and hasattr(model, "prepared_model") and model.prepared_model:
-        phi_val = model.prepared_model.get("phi")
+    # Try _prepared
+    if phi_val is None and hasattr(model, "_prepared") and model._prepared:
+        phi_val = model._prepared.get("phi")
 
     if phi_val is not None:
         return f"Damping parameter: {phi_val:.{digits}f}"
@@ -699,42 +693,38 @@ def _format_phi(model: Any, digits: int) -> str:
 
 def _is_ets_model(model: Any) -> bool:
     """Check if model has ETS components."""
-    if hasattr(model, "model_type_dict") and model.model_type_dict:
-        return model.model_type_dict.get("ets_model", False)
+    if hasattr(model, "_model_type") and model._model_type:
+        return model._model_type.get("ets_model", False)
     return False
 
 
 def _get_nobs(model: Any) -> int:
     """Get number of observations."""
-    if hasattr(model, "observations_dict") and model.observations_dict:
-        return model.observations_dict.get("obs_in_sample", 0)
+    if hasattr(model, "_observations") and model._observations:
+        return model._observations.get("obs_in_sample", 0)
     return 0
 
 
 def _get_n_params(model: Any) -> int:
     """Get number of estimated parameters (for degrees of freedom calculation)."""
-    # Use n_param table if available (preferred)
-    if hasattr(model, "n_param") and model.n_param:
-        return model.n_param.n_param_estimated
-
-    # Fallback to n_param_estimated attribute
-    if hasattr(model, "n_param_estimated"):
-        return model.n_param_estimated
-
-    # Fallback to general dict n_param
-    if hasattr(model, "general") and model.general:
-        n_param = model.general.get("n_param")
+    # Use n_param property via _general
+    if hasattr(model, "_general") and model._general:
+        n_param = model._general.get("n_param")
         if n_param:
             return n_param.n_param_estimated
 
         # Legacy format fallback
-        params_number = model.general.get("parameters_number", [[0]])
+        params_number = model._general.get("parameters_number", [[0]])
         if params_number and len(params_number) > 0:
             return (
                 params_number[0][0]
                 if isinstance(params_number[0], list)
                 else params_number[0]
             )
+
+    # Fallback to _n_param_estimated
+    if hasattr(model, "_n_param_estimated"):
+        return model._n_param_estimated
 
     return 0
 
@@ -743,11 +733,8 @@ def _format_n_param_table(model: Any) -> str:
     """Format the n_param table for display."""
     n_param = None
 
-    # Try to get n_param from model
-    if hasattr(model, "n_param") and model.n_param:
-        n_param = model.n_param
-    elif hasattr(model, "general") and model.general:
-        n_param = model.general.get("n_param")
+    if hasattr(model, "_general") and model._general:
+        n_param = model._general.get("n_param")
 
     if n_param is None:
         return ""
@@ -760,10 +747,10 @@ def _can_compute_ic(model: Any) -> bool:
     loss = "likelihood"
     distribution = "dnorm"
 
-    if hasattr(model, "general") and model.general:
-        loss = model.general.get("loss", "likelihood")
-        distribution = model.general.get(
-            "distribution_new", model.general.get("distribution", "dnorm")
+    if hasattr(model, "_general") and model._general:
+        loss = model._general.get("loss", "likelihood")
+        distribution = model._general.get(
+            "distribution_new", model._general.get("distribution", "dnorm")
         )
 
     # IC available for likelihood or matching loss/distribution combos
@@ -781,8 +768,8 @@ def _can_compute_ic(model: Any) -> bool:
 
 def _get_log_likelihood(model: Any) -> Optional[float]:
     """Get log-likelihood value."""
-    if hasattr(model, "adam_estimated") and model.adam_estimated:
-        log_lik_dict = model.adam_estimated.get("log_lik_adam_value", {})
+    if hasattr(model, "_adam_estimated") and model._adam_estimated:
+        log_lik_dict = model._adam_estimated.get("log_lik_adam_value", {})
         if isinstance(log_lik_dict, dict):
             return log_lik_dict.get("value")
         return log_lik_dict
@@ -791,25 +778,24 @@ def _get_log_likelihood(model: Any) -> Optional[float]:
 
 def _format_holdout_errors(model: Any, digits: int) -> str:
     """Format holdout forecast errors if available."""
-    if not hasattr(model, "general") or not model.general:
+    if not hasattr(model, "_general") or not model._general:
         return ""
 
-    if not model.general.get("holdout", False):
+    if not model._general.get("holdout", False):
         return ""
 
-    # Get holdout data and forecasts
-    if not hasattr(model, "observations_dict") or not model.observations_dict:
+    if not hasattr(model, "_observations") or not model._observations:
         return ""
 
-    y_holdout = model.observations_dict.get("y_holdout")
-    y_in_sample = model.observations_dict.get("y_in_sample")
+    y_holdout = model._observations.get("y_holdout")
+    y_in_sample = model._observations.get("y_in_sample")
 
     if y_holdout is None or len(y_holdout) == 0:
         return ""
 
     # Get forecasts for holdout period
-    if hasattr(model, "forecast_results") and model.forecast_results:
-        y_forecast = model.forecast_results.get("forecast")
+    if hasattr(model, "_forecast_results") and model._forecast_results:
+        y_forecast = model._forecast_results.get("forecast")
         if y_forecast is not None and len(y_forecast) >= len(y_holdout):
             y_forecast = y_forecast[: len(y_holdout)]
         else:
@@ -819,10 +805,9 @@ def _format_holdout_errors(model: Any, digits: int) -> str:
 
     # Get period for MASE calculation
     period = 1
-    if hasattr(model, "lags_dict") and model.lags_dict:
-        lags = model.lags_dict.get("lags", [1])
+    if hasattr(model, "_lags_model") and model._lags_model:
+        lags = model._lags_model.get("lags", [1])
         period = max(lags) if lags else 1
 
-    # Compute errors
     errors = _compute_forecast_errors(y_holdout, y_forecast, y_in_sample, period)
     return _format_forecast_errors(errors, digits)

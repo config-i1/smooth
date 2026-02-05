@@ -193,9 +193,9 @@ class ADAM:
         print(forecasts)
 
         # Access fitted parameters
-        print(f"Model: {model.model_type_dict['model']}")
+        print(f"Model: {model.model_name}")
         print(f"Alpha: {model.persistence_level_:.3f}")
-        print(f"AICc: {model.ic_selection}")
+        print(f"AICc: {model.aicc}")
 
     **Attributes (After Fitting)**:
 
@@ -211,11 +211,11 @@ class ADAM:
 
     Additional fitted attributes:
 
-    - ``model_type_dict``: Complete model specification
-    - ``adam_estimated``: Full estimation results
-    - ``adam_created``: State-space matrices
-    - ``ic_selection``: Information criterion value
-    - ``prepared_model``: Model prepared for forecasting
+    - ``model_name``: Full model specification string
+    - ``coef``: Estimated parameter vector B
+    - ``states``: State matrix over time
+    - ``persistence_vector``: Named persistence parameters
+    - ``transition``: Transition matrix
 
     **Performance Considerations**:
 
@@ -290,7 +290,7 @@ class ADAM:
 
         >>> model = ADAM(model="ZZZ", lags=[12], ic="AICc")
         >>> model.fit(y)
-        >>> print(f"Selected model: {model.model_type_dict['model']}")
+        >>> print(f"Selected model: {model.model_name}")
 
     SARIMA(1,1,1)(1,1,1)₁₂::
 
@@ -514,8 +514,8 @@ class ADAM:
               Provides robust trend estimation while avoiding lowess instability for
               small seasonal samples.
         """
-        # Start measuring the time of calculations
-        self.start_time = time.time()
+        # Start time for measuring computation duration
+        self._start_time = time.time()
 
         # Store initialization parameters
         self.model = model
@@ -601,10 +601,10 @@ class ADAM:
         After fitting, the model stores all results as attributes:
 
         - Estimated parameters (``persistence_level_``, ``phi_``, etc.)
-        - State-space matrices (``adam_created``)
-        - Fitted values and residuals (``prepared_model``)
-        - Information criteria (``ic_selection``)
-        - Model specification (``model_type_dict``)
+        - State-space matrices (``states``, ``transition``, ``measurement``)
+        - Fitted values and residuals (``fitted``, ``residuals``)
+        - Information criteria (``aic``, ``aicc``, ``bic``, ``bicc``)
+        - Model specification (``model_name``, ``model_type``)
 
         Parameters
         ----------
@@ -649,20 +649,14 @@ class ADAM:
             - ``arma_parameters_``: AR/MA coefficients (if ARIMA)
             - ``initial_states_``: Initial state values
 
-            **Model Components**:
+            **Model Components** (via properties):
 
-            - ``model_type_dict``: Complete model specification
-            - ``adam_estimated``: Optimization results including parameter vector B
-            - ``adam_created``: State-space matrices (mat_vt, mat_wt, mat_f, vec_g)
-            - ``prepared_model``: Fitted values, residuals, final states
-            - ``ic_selection``: AIC, AICc, BIC, or BICc value
-
-            **Data and Configuration**:
-
-            - ``general``: General configuration dictionary
-            - ``observations_dict``: Observation information
-            - ``lags_dict``: Lag structure
-            - ``components_dict``: Component counts
+            - ``model_name``: Full model specification string
+            - ``coef`` / ``B``: Estimated parameter vector
+            - ``states``: State matrix over time
+            - ``transition``: Transition matrix
+            - ``measurement``: Measurement matrix
+            - ``aic``, ``aicc``, ``bic``, ``bicc``: Information criteria
 
         Raises
         ------
@@ -769,23 +763,20 @@ class ADAM:
             >>> X = np.random.randn(len(y), 2)
             >>> model = ADAM(model="AAN", regressors="use")
             >>> model.fit(y, X=X)
-            >>> print(
-            ...     "Regressor coefficients:"
-            ...     f" {model.explanatory_dict['xreg_parameters']}"
-            ... )
+            >>> print(f"Coefficients: {model.coef}")
 
         Automatic model selection::
 
             >>> model = ADAM(model="ZZZ", lags=[12], ic="AICc")
             >>> model.fit(y)
-            >>> print(f"Selected: {model.model_type_dict['model']}")
-            >>> print(f"AICc: {model.ic_selection}")
+            >>> print(f"Selected: {model.model_name}")
+            >>> print(f"AICc: {model.aicc}")
 
         Access fitted values and residuals::
 
             >>> model.fit(y)
-            >>> fitted = model.prepared_model['y_fitted']
-            >>> residuals = model.prepared_model['residuals']
+            >>> fitted = model.fitted
+            >>> residuals = model.residuals
             >>> print(f"RMSE: {np.sqrt(np.mean(residuals**2)):.3f}")
 
         Using pandas Series with datetime index::
@@ -802,23 +793,12 @@ class ADAM:
         # No need to call _setup_parameters as those parameters are now
         # instance attributes
 
-        # Store raw data for two-stage initialization
-        # (needed to create fresh ADAM instance)
-        self._y_data = y
-        self._X_data = X
-
-        # Use X if provided
-        if X is not None:
-            # Exogenous variables X are passed to _check_parameters
-            # and handled downstream.
-            pass
-
         # Check parameters and prepare data
         self._check_parameters(y)
         # Execute model estimation or selection based on model_do
-        if self.model_type_dict["model_do"] == "estimate":
+        if self._model_type["model_do"] == "estimate":
             self._execute_estimation()
-        elif self.model_type_dict["model_do"] == "select":
+        elif self._model_type["model_do"] == "select":
             # get the best model
             self._execute_selection()
             # Execute estimation for the selected model
@@ -826,11 +806,11 @@ class ADAM:
             # so all models in the pool use consistent initialization
             self._execute_estimation(estimation=True)
 
-        elif self.model_type_dict["model_do"] == "combine":
+        elif self._model_type["model_do"] == "combine":
             ...  # I need to implement this
             raise NotImplementedError("Combine is not implemented yet")
         else:
-            model_do = self.model_type_dict["model_do"]
+            model_do = self._model_type["model_do"]
             warnings.warn(
                 f"Unknown model_do value: {model_do}. "
                 "Expected one of: 'estimate', 'select', 'combine'"
@@ -842,6 +822,45 @@ class ADAM:
         # Store fitted parameters with trailing underscores
         self._set_fitted_attributes()
 
+        # Compute elapsed time
+        self.time_elapsed_ = time.time() - self._start_time
+
+        # Consolidate init params into _config and remove individual attributes
+        self._config = {
+            "lags": self.lags,
+            "ar_order": self.ar_order,
+            "i_order": self.i_order,
+            "ma_order": self.ma_order,
+            "arima_select": self.arima_select,
+            "constant": self.constant,
+            "regressors": self.regressors,
+            "distribution": self.distribution,
+            "loss": self.loss,
+            "loss_horizon": self.loss_horizon,
+            "outliers": self.outliers,
+            "outliers_level": self.outliers_level,
+            "ic": self.ic,
+            "bounds": self.bounds,
+            "occurrence": self.occurrence,
+            "persistence": self.persistence,
+            "phi": self.phi,
+            "initial": self.initial,
+            "n_iterations": self.n_iterations,
+            "arma": self.arma,
+            "reg_lambda": self.reg_lambda,
+            "gnorm_shape": self.gnorm_shape,
+            "lambda_param": self.lambda_param,
+            "frequency": self.frequency,
+            "fast": self.fast,
+            "models_pool": self.models_pool,
+            "holdout": self.holdout,
+        }
+        for key in self._config:
+            try:
+                delattr(self, key)
+            except AttributeError:
+                pass
+
         return self
 
     def _set_fitted_attributes(self):
@@ -850,78 +869,47 @@ class ADAM:
 
         This follows scikit-learn conventions for fitted attributes.
         """
-        # Set persistence parameters
-        if hasattr(self, "persistence_results") and self.persistence_results:
-            if "persistence_level" in self.persistence_results:
-                self.persistence_level_ = self.persistence_results["persistence_level"]
-            if "persistence_trend" in self.persistence_results:
-                self.persistence_trend_ = self.persistence_results["persistence_trend"]
-            if "persistence_seasonal" in self.persistence_results:
-                self.persistence_seasonal_ = self.persistence_results[
+        # Set persistence parameters (pre-estimation values for provided params)
+        if self._persistence:
+            if "persistence_level" in self._persistence:
+                self.persistence_level_ = self._persistence["persistence_level"]
+            if "persistence_trend" in self._persistence:
+                self.persistence_trend_ = self._persistence["persistence_trend"]
+            if "persistence_seasonal" in self._persistence:
+                self.persistence_seasonal_ = self._persistence[
                     "persistence_seasonal"
                 ]
-            if "persistence_xreg" in self.persistence_results:
-                self.persistence_xreg_ = self.persistence_results["persistence_xreg"]
-
-        # Set phi parameter - only if model is damped and phi was estimated or provided
-        if hasattr(self, "phi_dict") and self.phi_dict:
-            if self.phi_dict.get("phi_estimate", False) or self.model_type_dict.get(
-                "damped", False
-            ):
-                self.phi_ = self.phi_dict.get("phi")
-            else:
-                self.phi_ = None
-        else:
-            self.phi_ = None
-
-        # Set ARIMA parameters
-        if hasattr(self, "arima_results") and self.arima_results:
-            if "arma_parameters" in self.arima_results:
-                self.arma_parameters_ = self.arima_results["arma_parameters"]
-
-        # Set initial states
-        if hasattr(self, "initials_results") and self.initials_results:
-            if "initial_states" in self.initials_results:
-                self.initial_states_ = self.initials_results["initial_states"]
+            if "persistence_xreg" in self._persistence:
+                self.persistence_xreg_ = self._persistence["persistence_xreg"]
 
         # Update self.model with the selected/estimated model name
-        if hasattr(self, "model_type_dict") and self.model_type_dict:
-            # Use best_model if available (from model selection), otherwise
-            # construct from components
-            if hasattr(self, "best_model") and self.best_model:
-                ets_str = self.best_model
+        if self._model_type:
+            if hasattr(self, "_best_model") and self._best_model:
+                ets_str = self._best_model
             else:
-                # Construct from components (for fixed model specification)
-                e = self.model_type_dict.get("error_type", "")
-                t = self.model_type_dict.get("trend_type", "")
-                s = self.model_type_dict.get("season_type", "")
-                damped = self.model_type_dict.get("damped", False)
+                e = self._model_type.get("error_type", "")
+                t = self._model_type.get("trend_type", "")
+                s = self._model_type.get("season_type", "")
+                damped = self._model_type.get("damped", False)
                 if damped and t not in ["N", ""]:
                     t = t + "d"
                 ets_str = e + t + s if (e or t or s) else self.model
 
-            # Build the model name
             model_parts = []
-
-            # Add ETS part if present
-            is_ets = self.model_type_dict.get("ets_model", False)
+            is_ets = self._model_type.get("ets_model", False)
             if is_ets:
                 model_parts.append(f"ETS({ets_str})")
 
-            # Add ARIMA part if present
-            is_arima = self.model_type_dict.get("arima_model", False)
-            if is_arima and hasattr(self, "arima_results") and self.arima_results:
-                ar_orders = self.arima_results.get("ar_orders", [0])
-                i_orders = self.arima_results.get("i_orders", [0])
-                ma_orders = self.arima_results.get("ma_orders", [0])
-
-                # Format ARIMA orders - sum across lags for simple display
+            is_arima = self._model_type.get("arima_model", False)
+            if is_arima and self._arima:
+                ar_orders = self._arima.get("ar_orders", [0])
+                i_orders = self._arima.get("i_orders", [0])
+                ma_orders = self._arima.get("ma_orders", [0])
                 ar = sum(ar_orders) if ar_orders else 0
                 i = sum(i_orders) if i_orders else 0
                 ma = sum(ma_orders) if ma_orders else 0
                 model_parts.append(f"ARIMA({ar},{i},{ma})")
 
-            # Combine parts
             if model_parts:
                 self.model = "+".join(model_parts)
             else:
@@ -933,8 +921,127 @@ class ADAM:
 
     def _check_is_fitted(self):
         """Check if model has been fitted."""
-        if not hasattr(self, "prepared_model") or self.prepared_model is None:
+        if not hasattr(self, "_prepared") or self._prepared is None:
             raise ValueError("Model has not been fitted. Call fit() first.")
+
+    # =========================================================================
+    # R-Equivalent Properties
+    # =========================================================================
+
+    @property
+    def states(self) -> NDArray:
+        """State matrix over time (R: $states)."""
+        self._check_is_fitted()
+        return self._prepared["mat_vt"]
+
+    @property
+    def persistence_vector(self) -> Dict[str, Any]:
+        """Named persistence dict: {alpha, beta, gamma} (R: $persistence)."""
+        self._check_is_fitted()
+        return self._prepared.get("persistence", {})
+
+    @property
+    def phi_(self) -> Optional[float]:
+        """Damping parameter (R: $phi)."""
+        self._check_is_fitted()
+        if self._model_type.get("damped", False):
+            return self._prepared.get("phi", 1.0)
+        return None
+
+    @property
+    def transition(self) -> NDArray:
+        """Transition matrix matF (R: $transition)."""
+        self._check_is_fitted()
+        return self._prepared["mat_f"]
+
+    @property
+    def measurement(self) -> NDArray:
+        """Measurement matrix matWt (R: $measurement)."""
+        self._check_is_fitted()
+        return self._prepared["mat_wt"]
+
+    @property
+    def initial_value(self) -> Dict[str, Any]:
+        """Initial values dict (R: $initial)."""
+        self._check_is_fitted()
+        return self._prepared.get("initial_value", {})
+
+    @property
+    def initial_type(self) -> str:
+        """Initialization type used (R: $initialType)."""
+        self._check_is_fitted()
+        return self._initials.get("initial_type", "optimal")
+
+    @property
+    def loss_value(self) -> float:
+        """Optimized loss function value (R: $lossValue)."""
+        self._check_is_fitted()
+        return self._adam_estimated["CF_value"]
+
+    @property
+    def time_elapsed(self) -> float:
+        """Time elapsed for fitting (seconds)."""
+        self._check_is_fitted()
+        return self.time_elapsed_
+
+    @property
+    def data(self) -> NDArray:
+        """In-sample data (R: $data). Alias for actuals."""
+        return self.actuals
+
+    @property
+    def holdout_data(self) -> Optional[NDArray]:
+        """Holdout data (R: $holdout)."""
+        self._check_is_fitted()
+        if self._general.get("holdout"):
+            return np.array(self._observations.get("y_holdout", []))
+        return None
+
+    @property
+    def B(self) -> NDArray:
+        """Parameter vector (R: $B). Alias for coef."""
+        return self.coef
+
+    @property
+    def scale(self) -> float:
+        """Scale parameter (R: $scale). Alias for sigma."""
+        return self.sigma
+
+    @property
+    def profile(self) -> Optional[Any]:
+        """Recent profiles for forecasting (R: $profile)."""
+        self._check_is_fitted()
+        return self._prepared.get("profiles_recent_table")
+
+    @property
+    def n_param(self) -> Any:
+        """Parameter count object (R: $nParam)."""
+        self._check_is_fitted()
+        return self._general.get("n_param")
+
+    @property
+    def constant_value(self) -> Optional[float]:
+        """Constant term value (R: $constant)."""
+        self._check_is_fitted()
+        return self._prepared.get("constant_value")
+
+    @property
+    def distribution_(self) -> str:
+        """Distribution used for fitting (R: $distribution)."""
+        self._check_is_fitted()
+        return self._general.get(
+            "distribution_new", self._general.get("distribution")
+        )
+
+    @property
+    def loss_(self) -> str:
+        """Loss function used (R: $loss)."""
+        self._check_is_fitted()
+        return self._general.get("loss")
+
+    # =========================================================================
+    # Existing Properties
+    # =========================================================================
 
     @property
     def fitted(self) -> NDArray:
@@ -958,7 +1065,7 @@ class ADAM:
         >>> fitted_values = model.fitted
         """
         self._check_is_fitted()
-        return self.prepared_model["y_fitted"]
+        return self._prepared["y_fitted"]
 
     @property
     def actuals(self) -> NDArray:
@@ -982,7 +1089,7 @@ class ADAM:
         >>> original_data = model.actuals
         """
         self._check_is_fitted()
-        return np.array(self.observations_dict["y_in_sample"])
+        return np.array(self._observations["y_in_sample"])
 
     @property
     def coef(self) -> NDArray:
@@ -1015,7 +1122,7 @@ class ADAM:
         >>> coefficients = model.coef
         """
         self._check_is_fitted()
-        return self.adam_estimated["B"]
+        return self._adam_estimated["B"]
 
     @property
     def residuals(self) -> NDArray:
@@ -1043,7 +1150,7 @@ class ADAM:
         >>> rmse = np.sqrt(np.mean(errors**2))
         """
         self._check_is_fitted()
-        return self.prepared_model["residuals"]
+        return self._prepared["residuals"]
 
     @property
     def nobs(self) -> int:
@@ -1067,7 +1174,7 @@ class ADAM:
         >>> n = model.nobs
         """
         self._check_is_fitted()
-        return len(self.observations_dict["y_in_sample"])
+        return len(self._observations["y_in_sample"])
 
     @property
     def nparam(self) -> int:
@@ -1091,7 +1198,7 @@ class ADAM:
         >>> k = model.nparam
         """
         self._check_is_fitted()
-        return self.adam_estimated["n_param_estimated"]
+        return self._adam_estimated["n_param_estimated"]
 
     @property
     def sigma(self) -> float:
@@ -1118,7 +1225,7 @@ class ADAM:
         >>> std_error = model.sigma
         """
         self._check_is_fitted()
-        return self.prepared_model["scale"]
+        return self._prepared["scale"]
 
     @property
     def loglik(self) -> float:
@@ -1142,7 +1249,7 @@ class ADAM:
         >>> ll = model.loglik
         """
         self._check_is_fitted()
-        return self.adam_estimated["log_lik_adam_value"]["value"]
+        return self._adam_estimated["log_lik_adam_value"]["value"]
 
     @property
     def aic(self) -> float:
@@ -1168,7 +1275,7 @@ class ADAM:
         self._check_is_fitted()
         from smooth.adam_general.core.utils.ic import AIC
 
-        log_lik = self.adam_estimated["log_lik_adam_value"]
+        log_lik = self._adam_estimated["log_lik_adam_value"]
         return AIC(log_lik["value"], log_lik["nobs"], log_lik["df"])
 
     @property
@@ -1195,7 +1302,7 @@ class ADAM:
         self._check_is_fitted()
         from smooth.adam_general.core.utils.ic import AICc
 
-        log_lik = self.adam_estimated["log_lik_adam_value"]
+        log_lik = self._adam_estimated["log_lik_adam_value"]
         return AICc(log_lik["value"], log_lik["nobs"], log_lik["df"])
 
     @property
@@ -1222,7 +1329,7 @@ class ADAM:
         self._check_is_fitted()
         from smooth.adam_general.core.utils.ic import BIC
 
-        log_lik = self.adam_estimated["log_lik_adam_value"]
+        log_lik = self._adam_estimated["log_lik_adam_value"]
         return BIC(log_lik["value"], log_lik["nobs"], log_lik["df"])
 
     @property
@@ -1249,7 +1356,7 @@ class ADAM:
         self._check_is_fitted()
         from smooth.adam_general.core.utils.ic import BICc
 
-        log_lik = self.adam_estimated["log_lik_adam_value"]
+        log_lik = self._adam_estimated["log_lik_adam_value"]
         return BICc(log_lik["value"], log_lik["nobs"], log_lik["df"])
 
     @property
@@ -1274,7 +1381,7 @@ class ADAM:
         >>> err_type = model.error_type  # Returns 'A'
         """
         self._check_is_fitted()
-        return self.model_type_dict["error_type"]
+        return self._model_type["error_type"]
 
     @property
     def model_type(self) -> str:
@@ -1301,7 +1408,7 @@ class ADAM:
         >>> selected_type = model.model_type  # e.g., 'AAN'
         """
         self._check_is_fitted()
-        model = self.model_type_dict.get("model", "")
+        model = self._model_type.get("model", "")
         if "(" in model and ")" in model:
             return model[model.index("(") + 1 : model.index(")")]
         return model
@@ -1330,9 +1437,9 @@ class ADAM:
         >>> print(arima_orders)  # {'ar': [1], 'i': [1], 'ma': [1]}
         """
         self._check_is_fitted()
-        ar = self.arima_results.get("ar_orders")
-        i = self.arima_results.get("i_orders")
-        ma = self.arima_results.get("ma_orders")
+        ar = self._arima.get("ar_orders")
+        i = self._arima.get("i_orders")
+        ma = self._arima.get("ma_orders")
         return {
             "ar": ar if ar is not None else [0],
             "i": i if i is not None else [0],
@@ -1364,7 +1471,7 @@ class ADAM:
         >>> name = model.model_name  # 'ETS(AAN)'
         """
         self._check_is_fitted()
-        return self.model_type_dict.get("model", "")
+        return self._model_type.get("model", "")
 
     @property
     def lags_used(self) -> List[int]:
@@ -1389,7 +1496,7 @@ class ADAM:
         >>> model.lags_used  # [1, 12]
         """
         self._check_is_fitted()
-        return list(self.lags_dict.get("lags", [1]))
+        return list(self._lags_model.get("lags", [1]))
 
     def predict(
         self,
@@ -1407,7 +1514,7 @@ class ADAM:
         Generate point forecasts using the fitted ADAM model.
 
         If `calculate_intervals` is True, prediction intervals are also
-        computed and stored in `self.forecast_results` but only point
+        computed and stored in `self._forecast_results` but only point
         forecasts are returned by this method. Use `predict_intervals`
         to get the intervals directly.
 
@@ -1420,7 +1527,7 @@ class ADAM:
             Ensure that X covers the entire forecast horizon `h`.
         calculate_intervals : bool, default=True
             Whether to calculate prediction intervals along with point forecasts.
-            The intervals are stored in `self.forecast_results`.
+            The intervals are stored in `self._forecast_results`.
         interval_method : Optional[Literal['parametric', 'simulation', 'bootstrap']],
                 default='parametric'
             Method to calculate prediction intervals:
@@ -1455,33 +1562,24 @@ class ADAM:
         # Set forecast horizon
         if h is not None:
             self.h = h
-            self.general["h"] = self.h
+            self._general["h"] = self.h
         else:
-            if self.general["h"] is None:
+            if self._general["h"] is None:
                 raise ValueError("Forecast horizon is not set.")
 
-        # add interval methods
-        self.calculate_intervals = calculate_intervals
-        self.interval_method = interval_method
-        self.level = level
-        self.side = side
-        self.general["nsim"] = nsim
-
-        # Handle exogenous variables if provided
-        if X is not None:
-            # Exogenous variables X are handled by _prepare_prediction_data
-            # and forecaster.
-            pass
+        self._general["nsim"] = nsim
 
         # Validate prediction inputs and prepare data for forecasting
         self._validate_prediction_inputs()
-
-        # Prepare data for prediction
         self._prepare_prediction_data()
-        # Execute the prediction
-        predictions = self._execute_prediction()
 
-        # Return the point forecasts
+        # Execute the prediction
+        predictions = self._execute_prediction(
+            calculate_intervals=calculate_intervals,
+            interval_method=interval_method,
+            level=level,
+            side=side,
+        )
         return predictions
 
     def predict_intervals(
@@ -1519,34 +1617,24 @@ class ADAM:
         # Set forecast horizon
         self.h = h
 
-        # Set confidence levels and side
-        self.levels = levels
-        self.interval_side = side
-
-        # Handle exogenous variables if provided
-        if X is not None:
-            # Exogenous variables X are handled by _prepare_prediction_data
-            # and forecaster.
-            pass
-
         # Validate prediction inputs and prepare data for forecasting
         self._validate_prediction_inputs()
-
-        # Prepare data for prediction
         self._prepare_prediction_data()
 
         # Execute the prediction
-        self._execute_prediction()
+        self._execute_prediction(
+            calculate_intervals=True,
+            interval_method="parametric",
+            level=levels,
+            side=side,
+        )
 
         # Return the forecasts and intervals
-        result = {"forecast": self.forecast_results["forecast"]}
-
-        # Add intervals based on the requested side
+        result = {"forecast": self._forecast_results["forecast"]}
         if side in ["both", "lower"]:
-            result["lower"] = self.forecast_results["lower"]
+            result["lower"] = self._forecast_results["lower"]
         if side in ["both", "upper"]:
-            result["upper"] = self.forecast_results["upper"]
-
+            result["upper"] = self._forecast_results["upper"]
         return result
 
     def _check_parameters(self, ts):
@@ -1570,19 +1658,19 @@ class ADAM:
             }
 
         (
-            self.general,
-            self.observations_dict,
-            self.persistence_results,
-            self.initials_results,
-            self.arima_results,
-            self.constant_dict,
-            self.model_type_dict,
-            self.components_dict,
-            self.lags_dict,
-            self.occurrence_dict,
-            self.phi_dict,
-            self.explanatory_dict,
-            self.params_info,
+            self._general,
+            self._observations,
+            self._persistence,
+            self._initials,
+            self._arima,
+            self._constant,
+            self._model_type,
+            self._components,
+            self._lags_model,
+            self._occurrence,
+            self._phi_internal,
+            self._explanatory,
+            self._params_info,
         ) = parameters_checker(
             ts,
             model=self.model,
@@ -1617,42 +1705,42 @@ class ADAM:
         Sets appropriate parameter values. This is a special case where we use
         MSE to estimate initials only and disable other parameter estimation.
         """
-        if self.general["loss"] in ["LASSO", "RIDGE"] and self.general["lambda"] == 1:
-            if self.model_type_dict["ets_model"]:
+        if self._general["loss"] in ["LASSO", "RIDGE"] and self._general["lambda"] == 1:
+            if self._model_type["ets_model"]:
                 # Pre-set ETS parameters
-                self.persistence_results["persistence_estimate"] = False
-                self.persistence_results["persistence_level_estimate"] = False
-                self.persistence_results["persistence_trend_estimate"] = False
-                self.persistence_results["persistence_seasonal_estimate"] = [False]
-                self.persistence_results["persistence_level"] = 0
-                self.persistence_results["persistence_trend"] = 0
-                self.persistence_results["persistence_seasonal"] = [0]
+                self._persistence["persistence_estimate"] = False
+                self._persistence["persistence_level_estimate"] = False
+                self._persistence["persistence_trend_estimate"] = False
+                self._persistence["persistence_seasonal_estimate"] = [False]
+                self._persistence["persistence_level"] = 0
+                self._persistence["persistence_trend"] = 0
+                self._persistence["persistence_seasonal"] = [0]
                 # Phi
-                self.phi_dict["phi_estimate"] = False
-                self.phi_dict["phi"] = 1
+                self._phi_internal["phi_estimate"] = False
+                self._phi_internal["phi"] = 1
 
-            if self.model_type_dict["xreg_model"]:
+            if self._model_type["xreg_model"]:
                 # ETSX parameters
-                self.persistence_results["persistence_xreg_estimate"] = False
-                self.persistence_results["persistence_xreg"] = 0
+                self._persistence["persistence_xreg_estimate"] = False
+                self._persistence["persistence_xreg"] = 0
 
-            if self.model_type_dict["arima_model"]:
+            if self._model_type["arima_model"]:
                 # Pre-set ARMA parameters
-                self.arima_results["ar_estimate"] = [False]
-                self.arima_results["ma_estimate"] = [False]
+                self._arima["ar_estimate"] = [False]
+                self._arima["ma_estimate"] = [False]
                 self._preset_arima_parameters()
 
-            self.general["lambda"] = 0
+            self._general["lambda"] = 0
 
     def _preset_arima_parameters(self):
         """Set up ARIMA parameters for special cases where estimation is disabled."""
         arma_parameters = []
-        for i, lag in enumerate(self.lags_dict["lags"]):
-            if self.arima_results["ar_orders"][i] > 0:
-                arma_parameters.extend([1] * self.arima_results["ar_orders"][i])
-            if self.arima_results["ma_orders"][i] > 0:
-                arma_parameters.extend([0] * self.arima_results["ma_orders"][i])
-        self.arima_results["arma_parameters"] = arma_parameters
+        for i, lag in enumerate(self._lags_model["lags"]):
+            if self._arima["ar_orders"][i] > 0:
+                arma_parameters.extend([1] * self._arima["ar_orders"][i])
+            if self._arima["ma_orders"][i] > 0:
+                arma_parameters.extend([0] * self._arima["ma_orders"][i])
+        self._arima["arma_parameters"] = arma_parameters
 
     def _execute_estimation(self, estimation=True):
         """
@@ -1667,72 +1755,72 @@ class ADAM:
         # Note: estimator() handles two-stage initialization internally
         if estimation:
             nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
-            self.adam_estimated = estimator(
-                general_dict=self.general,
-                model_type_dict=self.model_type_dict,
-                lags_dict=self.lags_dict,
-                observations_dict=self.observations_dict,
-                arima_dict=self.arima_results,
-                constant_dict=self.constant_dict,
-                explanatory_dict=self.explanatory_dict,
+            self._adam_estimated = estimator(
+                general_dict=self._general,
+                model_type_dict=self._model_type,
+                lags_dict=self._lags_model,
+                observations_dict=self._observations,
+                arima_dict=self._arima,
+                constant_dict=self._constant,
+                explanatory_dict=self._explanatory,
                 profiles_recent_table=self.profiles_recent_table,
                 profiles_recent_provided=self.profiles_recent_provided,
-                persistence_dict=self.persistence_results,
-                initials_dict=self.initials_results,
-                occurrence_dict=self.occurrence_dict,
-                phi_dict=self.phi_dict,
-                components_dict=self.components_dict,
-                multisteps=self.general.get("multisteps", False),
+                persistence_dict=self._persistence,
+                initials_dict=self._initials,
+                occurrence_dict=self._occurrence,
+                phi_dict=self._phi_internal,
+                components_dict=self._components,
+                multisteps=self._general.get("multisteps", False),
                 smoother=self.smoother,
                 **nlopt_params,
             )
             # Extract adam_cpp from estimation results
-            self.adam_cpp = self.adam_estimated["adam_cpp"]
+            self._adam_cpp = self._adam_estimated["adam_cpp"]
 
         # Build the model structure - architector() returns 6 values including
         # adam_cpp, but we already have adam_cpp from estimation
         (
-            self.model_type_dict,
-            self.components_dict,
-            self.lags_dict,
-            self.observations_dict,
-            self.profile_dict,
+            self._model_type,
+            self._components,
+            self._lags_model,
+            self._observations,
+            self._profile,
             _,  # adam_cpp - already stored from estimation result
         ) = architector(
-            model_type_dict=self.model_type_dict,
-            lags_dict=self.lags_dict,
-            observations_dict=self.observations_dict,
-            arima_checked=self.arima_results,
-            constants_checked=self.constant_dict,
-            explanatory_checked=self.explanatory_dict,
+            model_type_dict=self._model_type,
+            lags_dict=self._lags_model,
+            observations_dict=self._observations,
+            arima_checked=self._arima,
+            constants_checked=self._constant,
+            explanatory_checked=self._explanatory,
             profiles_recent_table=self.profiles_recent_table,
             profiles_recent_provided=self.profiles_recent_provided,
         )
-        # print(self.components_dict)
+        # print(self._components)
         # Create the model matrices
-        self.adam_created = creator(
-            model_type_dict=self.model_type_dict,
-            lags_dict=self.lags_dict,
-            profiles_dict=self.profile_dict,
-            observations_dict=self.observations_dict,
-            persistence_checked=self.persistence_results,
-            initials_checked=self.initials_results,
-            arima_checked=self.arima_results,
-            constants_checked=self.constant_dict,
-            phi_dict=self.phi_dict,
-            components_dict=self.components_dict,
-            explanatory_checked=self.explanatory_dict,
+        self._adam_created = creator(
+            model_type_dict=self._model_type,
+            lags_dict=self._lags_model,
+            profiles_dict=self._profile,
+            observations_dict=self._observations,
+            persistence_checked=self._persistence,
+            initials_checked=self._initials,
+            arima_checked=self._arima,
+            constants_checked=self._constant,
+            phi_dict=self._phi_internal,
+            components_dict=self._components,
+            explanatory_checked=self._explanatory,
             smoother=self.smoother,
         )
 
         # Calculate information criterion
         if estimation:
-            self.ic_selection = ic_function(
-                self.general["ic"], self.adam_estimated["log_lik_adam_value"]
+            self._ic_selection = ic_function(
+                self._general["ic"], self._adam_estimated["log_lik_adam_value"]
             )
 
         # Update parameters number
-        self._update_parameters_number(self.adam_estimated["n_param_estimated"])
+        self._update_parameters_number(self._adam_estimated["n_param_estimated"])
 
     def _update_parameters_number(self, n_param_estimated):
         """
@@ -1744,17 +1832,17 @@ class ADAM:
             Number of estimated parameters from optimization
         """
         # Store number of estimated parameters
-        self.n_param_estimated = n_param_estimated
+        self._n_param_estimated = n_param_estimated
 
         # Update the n_param table
-        if "n_param" in self.general:
-            n_param = self.general["n_param"]
+        if "n_param" in self._general:
+            n_param = self._general["n_param"]
             # The n_param_estimated from optimizer is the total internal params
             # We need to update it based on what was actually estimated
             n_param.estimated["internal"] = n_param_estimated
 
             # Handle likelihood loss case - scale parameter is estimated
-            if self.general["loss"] == "likelihood":
+            if self._general["loss"] == "likelihood":
                 n_param.estimated["scale"] = 1
             else:
                 n_param.estimated["scale"] = 0
@@ -1763,36 +1851,36 @@ class ADAM:
             n_param.update_totals()
 
             # Store reference for easy access
-            self.n_param = n_param
+            self._n_param= n_param
 
         # Legacy format for backward compatibility
-        if "parameters_number" not in self.general:
-            self.general["parameters_number"] = self.params_info.get(
+        if "parameters_number" not in self._general:
+            self._general["parameters_number"] = self._params_info.get(
                 "parameters_number", [[0], [0]]
             )
-        self.general["parameters_number"][0][0] = n_param_estimated
+        self._general["parameters_number"][0][0] = n_param_estimated
 
         # Handle likelihood loss case in legacy format
-        if self.general["loss"] == "likelihood":
-            if len(self.general["parameters_number"][0]) <= 3:
-                self.general["parameters_number"][0].append(1)
+        if self._general["loss"] == "likelihood":
+            if len(self._general["parameters_number"][0]) <= 3:
+                self._general["parameters_number"][0].append(1)
             else:
-                self.general["parameters_number"][0][3] = 1
+                self._general["parameters_number"][0][3] = 1
 
         # Calculate row sums in legacy format
-        if len(self.general["parameters_number"][0]) <= 4:
-            self.general["parameters_number"][0].append(
-                sum(self.general["parameters_number"][0][0:4])
+        if len(self._general["parameters_number"][0]) <= 4:
+            self._general["parameters_number"][0].append(
+                sum(self._general["parameters_number"][0][0:4])
             )
-            self.general["parameters_number"][1].append(
-                sum(self.general["parameters_number"][1][0:4])
+            self._general["parameters_number"][1].append(
+                sum(self._general["parameters_number"][1][0:4])
             )
         else:
-            self.general["parameters_number"][0][4] = sum(
-                self.general["parameters_number"][0][0:4]
+            self._general["parameters_number"][0][4] = sum(
+                self._general["parameters_number"][0][0:4]
             )
-            self.general["parameters_number"][1][4] = sum(
-                self.general["parameters_number"][1][0:4]
+            self._general["parameters_number"][1][4] = sum(
+                self._general["parameters_number"][1][0:4]
             )
 
     def _execute_selection(self):
@@ -1804,33 +1892,33 @@ class ADAM:
         # Get nlopt parameters from nlopt_kargs if provided
         nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
         # Run model selection
-        self.adam_selected = selector(
-            model_type_dict=self.model_type_dict,
-            phi_dict=self.phi_dict,
-            general_dict=self.general,
-            lags_dict=self.lags_dict,
-            observations_dict=self.observations_dict,
-            arima_dict=self.arima_results,
-            constant_dict=self.constant_dict,
-            explanatory_dict=self.explanatory_dict,
-            occurrence_dict=self.occurrence_dict,
-            components_dict=self.components_dict,
+        self._adam_selected = selector(
+            model_type_dict=self._model_type,
+            phi_dict=self._phi_internal,
+            general_dict=self._general,
+            lags_dict=self._lags_model,
+            observations_dict=self._observations,
+            arima_dict=self._arima,
+            constant_dict=self._constant,
+            explanatory_dict=self._explanatory,
+            occurrence_dict=self._occurrence,
+            components_dict=self._components,
             profiles_recent_table=self.profiles_recent_table,
             profiles_recent_provided=self.profiles_recent_provided,
-            persistence_results=self.persistence_results,
-            initials_results=self.initials_results,
-            criterion=self.general["ic"],
+            persistence_results=self._persistence,
+            initials_results=self._initials,
+            criterion=self._general["ic"],
             silent=self.verbose == 0,
             smoother=self.smoother,
             **nlopt_params,
         )
-        # print(self.adam_selected)
-        # print(self.adam_selected["ic_selection"])
+        # print(self._adam_selected)
+        # print(self._adam_selected["ic_selection"])
 
         # Updates parametes with the selected model and updates adam_estimated
         self.select_best_model()
 
-        # print(self.adam_selected["ic_selection"])
+        # print(self._adam_selected["ic_selection"])
         # Process each selected model
         # The following commented-out loop and its associated helper method
         # calls (_update_model_from_selection, _create_matrices_for_selected_model,
@@ -1839,7 +1927,7 @@ class ADAM:
         # yet, as indicated by the NotImplementedError in the fit method for
         # model_do="combine". These will be kept for now as they might be
         # relevant for future development.
-        # for i, result in enumerate(self.adam_selected["results"]):
+        # for i, result in enumerate(self._adam_selected["results"]):
         #     # Update model parameters with the selected model
         #     self._update_model_from_selection(i, result)
         #
@@ -1853,20 +1941,20 @@ class ADAM:
         """
         Select the best model based on information criteria and update model parameters.
         """
-        self.ic_selection = self.adam_selected["ic_selection"]
-        self.results = self.adam_selected["results"]
+        self._ic_selection = self._adam_selected["ic_selection"]
+        results = self._adam_selected["results"]
         # Find best model
-        self.best_model = min(self.ic_selection.items(), key=lambda x: x[1])[0]
-        self.best_id = next(
+        self._best_model = min(self._ic_selection.items(), key=lambda x: x[1])[0]
+        best_id = next(
             i
-            for i, result in enumerate(self.results)
-            if result["model"] == self.best_model
+            for i, result in enumerate(results)
+            if result["model"] == self._best_model
         )
         # Update dictionaries with best model results
-        self.model_type_dict = self.results[self.best_id]["model_type_dict"]
-        self.phi_dict = self.results[self.best_id]["phi_dict"]
-        self.adam_estimated = self.results[self.best_id]["adam_estimated"]
-        self.adam_cpp = self.adam_estimated["adam_cpp"]
+        self._model_type = results[best_id]["model_type_dict"]
+        self._phi_internal = results[best_id]["phi_dict"]
+        self._adam_estimated = results[best_id]["adam_estimated"]
+        self._adam_cpp = self._adam_estimated["adam_cpp"]
 
     def _update_model_from_selection(self, index, result):
         """
@@ -1881,17 +1969,17 @@ class ADAM:
             for the selected model.
         """
         # Update global dictionaries with the selected model info
-        self.general.update(result["general"])
-        self.model_type_dict.update(result["model_type_dict"])
-        self.arima_results.update(result["arima_dict"])
-        self.constant_dict.update(result["constant_dict"])
-        self.persistence_results.update(result["persistence_dict"])
-        self.initials_results.update(result["initials_dict"])
-        self.phi_dict.update(result["phi_dict"])
-        self.components_dict.update(result["components_dict"])
-        self.lags_dict.update(result["lags_dict"])
-        self.observations_dict.update(result["observations_dict"])
-        self.profile_dict = result.get(
+        self._general.update(result["general"])
+        self._model_type.update(result["model_type_dict"])
+        self._arima.update(result["arima_dict"])
+        self._constant.update(result["constant_dict"])
+        self._persistence.update(result["persistence_dict"])
+        self._initials.update(result["initials_dict"])
+        self._phi_internal.update(result["phi_dict"])
+        self._components.update(result["components_dict"])
+        self._lags_model.update(result["lags_dict"])
+        self._observations.update(result["observations_dict"])
+        self._profile = result.get(
             "profile_dict",
             {
                 "profiles_recent_provided": self.profiles_recent_provided,
@@ -1900,8 +1988,8 @@ class ADAM:
         )
 
         # Store the estimated model and adam_cpp
-        self.adam_estimated = result["adam_estimated"]
-        self.adam_cpp = self.adam_estimated["adam_cpp"]
+        self._adam_estimated = result["adam_estimated"]
+        self._adam_cpp = self._adam_estimated["adam_cpp"]
 
     def _create_matrices_for_selected_model(self, index):
         """
@@ -1914,23 +2002,23 @@ class ADAM:
             Index of the selected model.
         """
         # Create matrices for this model
-        self.adam_created = creator(
-            model_type_dict=self.model_type_dict,
-            lags_dict=self.lags_dict,
-            profiles_dict=self.profile_dict,
-            observations_dict=self.observations_dict,
-            persistence_checked=self.persistence_results,
-            initials_checked=self.initials_results,
-            arima_checked=self.arima_results,
-            constants_checked=self.constant_dict,
-            phi_dict=self.phi_dict,
-            components_dict=self.components_dict,
-            explanatory_checked=self.explanatory_dict,
+        self._adam_created = creator(
+            model_type_dict=self._model_type,
+            lags_dict=self._lags_model,
+            profiles_dict=self._profile,
+            observations_dict=self._observations,
+            persistence_checked=self._persistence,
+            initials_checked=self._initials,
+            arima_checked=self._arima,
+            constants_checked=self._constant,
+            phi_dict=self._phi_internal,
+            components_dict=self._components,
+            explanatory_checked=self._explanatory,
             smoother=self.smoother,
         )
 
         # Store created matrices
-        self.adam_selected["results"][index]["adam_created"] = self.adam_created
+        self._adam_selected["results"][index]["adam_created"] = self._adam_created
 
     def _update_parameters_for_selected_model(self, index, result):
         """
@@ -1951,49 +2039,49 @@ class ADAM:
         n_param_estimated = result["adam_estimated"]["n_param_estimated"]
 
         # Update n_param table if available
-        if "n_param" in self.general and self.general["n_param"] is not None:
-            n_param = self.general["n_param"]
+        if "n_param" in self._general and self._general["n_param"] is not None:
+            n_param = self._general["n_param"]
             n_param.estimated["internal"] = n_param_estimated
 
-            if self.general["loss"] == "likelihood":
+            if self._general["loss"] == "likelihood":
                 n_param.estimated["scale"] = 1
             else:
                 n_param.estimated["scale"] = 0
 
             n_param.update_totals()
-            self.n_param = n_param
+            self._n_param= n_param
 
         # Legacy format
-        self.general["parameters_number"] = self.params_info.get(
+        self._general["parameters_number"] = self._params_info.get(
             "parameters_number", [[0], [0]]
         )
-        self.general["parameters_number"][0][0] = n_param_estimated
+        self._general["parameters_number"][0][0] = n_param_estimated
 
         # Handle likelihood loss case
-        if self.general["loss"] == "likelihood":
-            if len(self.general["parameters_number"][0]) <= 3:
-                self.general["parameters_number"][0].append(1)
+        if self._general["loss"] == "likelihood":
+            if len(self._general["parameters_number"][0]) <= 3:
+                self._general["parameters_number"][0].append(1)
             else:
-                self.general["parameters_number"][0][3] = 1
+                self._general["parameters_number"][0][3] = 1
 
         # Calculate row sums
-        if len(self.general["parameters_number"][0]) <= 4:
-            self.general["parameters_number"][0].append(
-                sum(self.general["parameters_number"][0][0:4])
+        if len(self._general["parameters_number"][0]) <= 4:
+            self._general["parameters_number"][0].append(
+                sum(self._general["parameters_number"][0][0:4])
             )
-            self.general["parameters_number"][1].append(
-                sum(self.general["parameters_number"][1][0:4])
+            self._general["parameters_number"][1].append(
+                sum(self._general["parameters_number"][1][0:4])
             )
         else:
-            self.general["parameters_number"][0][4] = sum(
-                self.general["parameters_number"][0][0:4]
+            self._general["parameters_number"][0][4] = sum(
+                self._general["parameters_number"][0][0:4]
             )
-            self.general["parameters_number"][1][4] = sum(
-                self.general["parameters_number"][1][0:4]
+            self._general["parameters_number"][1][4] = sum(
+                self._general["parameters_number"][1][0:4]
             )
 
         # Store parameters number
-        self.adam_selected["results"][index]["parameters_number"] = self.general[
+        self._adam_selected["results"][index]["parameters_number"] = self._general[
             "parameters_number"
         ]
 
@@ -2017,53 +2105,53 @@ class ADAM:
         """
         Format time series data into pandas Series with appropriate indexes.
         """
-        if isinstance(self.observations_dict["y_in_sample"], np.ndarray):
+        if isinstance(self._observations["y_in_sample"], np.ndarray):
             # Check if frequency is a valid pandas frequency (not just "1" string)
-            freq = self.observations_dict.get("frequency", "1")
+            freq = self._observations.get("frequency", "1")
             try:
                 # Try to use date_range if frequency looks valid
                 if freq != "1" and isinstance(
-                    self.observations_dict.get("y_start"), (pd.Timestamp, str)
+                    self._observations.get("y_start"), (pd.Timestamp, str)
                 ):
-                    self.y_in_sample = pd.Series(
-                        self.observations_dict["y_in_sample"],
+                    self._y_in_sample = pd.Series(
+                        self._observations["y_in_sample"],
                         index=pd.date_range(
-                            start=self.observations_dict["y_start"],
-                            periods=len(self.observations_dict["y_in_sample"]),
+                            start=self._observations["y_start"],
+                            periods=len(self._observations["y_in_sample"]),
                             freq=freq,
                         ),
                     )
                 else:
                     # Use simple range index for non-datetime data
-                    self.y_in_sample = pd.Series(self.observations_dict["y_in_sample"])
+                    self._y_in_sample = pd.Series(self._observations["y_in_sample"])
             except (ValueError, TypeError):
                 # Fallback to simple range index if date_range fails
-                self.y_in_sample = pd.Series(self.observations_dict["y_in_sample"])
+                self._y_in_sample = pd.Series(self._observations["y_in_sample"])
 
-            if self.general["holdout"]:
+            if self._general["holdout"]:
                 try:
                     if freq != "1" and isinstance(
-                        self.observations_dict.get("y_forecast_start"),
+                        self._observations.get("y_forecast_start"),
                         (pd.Timestamp, str),
                     ):
-                        self.y_holdout = pd.Series(
-                            self.observations_dict["y_holdout"],
+                        self._y_holdout = pd.Series(
+                            self._observations["y_holdout"],
                             index=pd.date_range(
-                                start=self.observations_dict["y_forecast_start"],
-                                periods=len(self.observations_dict["y_holdout"]),
+                                start=self._observations["y_forecast_start"],
+                                periods=len(self._observations["y_holdout"]),
                                 freq=freq,
                             ),
                         )
                     else:
-                        self.y_holdout = pd.Series(self.observations_dict["y_holdout"])
+                        self._y_holdout = pd.Series(self._observations["y_holdout"])
                 except (ValueError, TypeError):
-                    self.y_holdout = pd.Series(self.observations_dict["y_holdout"])
+                    self._y_holdout = pd.Series(self._observations["y_holdout"])
         else:
-            self.y_in_sample = self.observations_dict["y_in_sample"].copy()
-            if self.general["holdout"]:
-                self.y_holdout = pd.Series(
-                    self.observations_dict["y_holdout"],
-                    index=self.observations_dict["y_forecast_index"],
+            self._y_in_sample = self._observations["y_in_sample"].copy()
+            if self._general["holdout"]:
+                self._y_holdout = pd.Series(
+                    self._observations["y_holdout"],
+                    index=self._observations["y_forecast_index"],
                 )
 
     def _select_distribution(self):
@@ -2076,13 +2164,13 @@ class ADAM:
         - HAM-based losses: ds
         - MSE-based and other losses: dnorm
         """
-        if self.general["distribution"] == "default":
-            loss = self.general["loss"]
+        if self._general["distribution"] == "default":
+            loss = self._general["loss"]
             if loss == "likelihood":
-                if self.model_type_dict["error_type"] == "A":
-                    self.general["distribution_new"] = "dnorm"
-                elif self.model_type_dict["error_type"] == "M":
-                    self.general["distribution_new"] = "dgamma"
+                if self._model_type["error_type"] == "A":
+                    self._general["distribution_new"] = "dnorm"
+                elif self._model_type["error_type"] == "M":
+                    self._general["distribution_new"] = "dgamma"
             elif loss in [
                 "MAE",
                 "MAEh",
@@ -2093,7 +2181,7 @@ class ADAM:
                 "aGTMAE",
                 "aMACE",
             ]:
-                self.general["distribution_new"] = "dlaplace"
+                self._general["distribution_new"] = "dlaplace"
             elif loss in [
                 "HAM",
                 "HAMh",
@@ -2104,7 +2192,7 @@ class ADAM:
                 "aGTHAM",
                 "aCHAM",
             ]:
-                self.general["distribution_new"] = "ds"
+                self._general["distribution_new"] = "ds"
             elif loss in [
                 "MSE",
                 "MSEh",
@@ -2121,12 +2209,12 @@ class ADAM:
                 "RIDGE",
                 "custom",
             ]:
-                self.general["distribution_new"] = "dnorm"
+                self._general["distribution_new"] = "dnorm"
             else:
                 # Fallback to dnorm for any unrecognized loss
-                self.general["distribution_new"] = "dnorm"
+                self._general["distribution_new"] = "dnorm"
         else:
-            self.general["distribution_new"] = self.general["distribution"]
+            self._general["distribution_new"] = self._general["distribution"]
 
     def _compute_fitted_values(self):
         """
@@ -2137,29 +2225,29 @@ class ADAM:
         """
         # Set a default h if not provided (needed for preparator)
         if self.h is None:
-            if self.lags_dict and len(self.lags_dict["lags"]) > 0:
-                self.general["h"] = max(self.lags_dict["lags"])
+            if self._lags_model and len(self._lags_model["lags"]) > 0:
+                self._general["h"] = max(self._lags_model["lags"])
             else:
-                self.general["h"] = 10
+                self._general["h"] = 10
 
         # Call preparator to compute fitted values and residuals
-        self.prepared_model = preparator(
-            model_type_dict=self.model_type_dict,
-            components_dict=self.components_dict,
-            lags_dict=self.lags_dict,
-            matrices_dict=self.adam_created,
-            persistence_checked=self.persistence_results,
-            initials_checked=self.initials_results,
-            arima_checked=self.arima_results,
-            explanatory_checked=self.explanatory_dict,
-            phi_dict=self.phi_dict,
-            constants_checked=self.constant_dict,
-            observations_dict=self.observations_dict,
-            occurrence_dict=self.occurrence_dict,
-            general_dict=self.general,
-            profiles_dict=self.profile_dict,
-            adam_estimated=self.adam_estimated,
-            adam_cpp=self.adam_cpp,
+        self._prepared = preparator(
+            model_type_dict=self._model_type,
+            components_dict=self._components,
+            lags_dict=self._lags_model,
+            matrices_dict=self._adam_created,
+            persistence_checked=self._persistence,
+            initials_checked=self._initials,
+            arima_checked=self._arima,
+            explanatory_checked=self._explanatory,
+            phi_dict=self._phi_internal,
+            constants_checked=self._constant,
+            observations_dict=self._observations,
+            occurrence_dict=self._occurrence,
+            general_dict=self._general,
+            profiles_dict=self._profile,
+            adam_estimated=self._adam_estimated,
+            adam_cpp=self._adam_cpp,
             bounds="usual",
             other=None,
         )
@@ -2174,16 +2262,16 @@ class ADAM:
             If the model has not been fitted yet or is missing required components.
         """
         # Verify that the model has been fitted
-        if not hasattr(self, "model_type_dict"):
+        if not hasattr(self, "_model_type"):
             raise ValueError("Model must be fitted before prediction.")
 
         # Check if we have the necessary components based on the model type
-        if self.model_type_dict["model_do"] == "estimate" and not hasattr(
-            self, "adam_estimated"
+        if self._model_type["model_do"] == "estimate" and not hasattr(
+            self, "_adam_estimated"
         ):
             raise ValueError("Model estimation results not found.")
-        elif self.model_type_dict["model_do"] == "select" and not hasattr(
-            self, "adam_selected"
+        elif self._model_type["model_do"] == "select" and not hasattr(
+            self, "_adam_selected"
         ):
             raise ValueError("Model selection results not found.")
 
@@ -2193,78 +2281,77 @@ class ADAM:
         """
         # If h wasn't provided, use default h
         if self.h is None:
-            if self.lags_dict and len(self.lags_dict["lags"]) > 0:
-                self.h = max(self.lags_dict["lags"])
+            if self._lags_model and len(self._lags_model["lags"]) > 0:
+                self.h = max(self._lags_model["lags"])
 
             else:
                 self.h = 10
-                self.general["h"] = self.h
+                self._general["h"] = self.h
 
         # Prepare necessary data for forecasting
-        self.prepared_model = preparator(
+        self._prepared = preparator(
             # Model info
-            model_type_dict=self.model_type_dict,
+            model_type_dict=self._model_type,
             # Components info
-            components_dict=self.components_dict,
+            components_dict=self._components,
             # Lags info
-            lags_dict=self.lags_dict,
+            lags_dict=self._lags_model,
             # Matrices from creator
-            matrices_dict=self.adam_created,
+            matrices_dict=self._adam_created,
             # Parameter dictionaries
-            persistence_checked=self.persistence_results,
-            initials_checked=self.initials_results,
-            arima_checked=self.arima_results,
-            explanatory_checked=self.explanatory_dict,
-            phi_dict=self.phi_dict,
-            constants_checked=self.constant_dict,
+            persistence_checked=self._persistence,
+            initials_checked=self._initials,
+            arima_checked=self._arima,
+            explanatory_checked=self._explanatory,
+            phi_dict=self._phi_internal,
+            constants_checked=self._constant,
             # Other parameters
-            observations_dict=self.observations_dict,
-            occurrence_dict=self.occurrence_dict,
-            general_dict=self.general,
-            profiles_dict=self.profile_dict,
+            observations_dict=self._observations,
+            occurrence_dict=self._occurrence,
+            general_dict=self._general,
+            profiles_dict=self._profile,
             # The parameter vector
-            adam_estimated=self.adam_estimated,
+            adam_estimated=self._adam_estimated,
             # adamCore C++ object
-            adam_cpp=self.adam_cpp,
+            adam_cpp=self._adam_cpp,
             # Optional parameters
             bounds="usual",
             other=None,
         )
 
-    def _execute_prediction(self):
+    def _execute_prediction(
+        self,
+        calculate_intervals=True,
+        interval_method="parametric",
+        level=0.95,
+        side="both",
+    ):
         """
         Execute the forecasting process based on the prepared data.
-
-        This method calls the core `forecaster` function with all necessary
-        prepared data structures and parameters to generate point forecasts
-        and, if requested, prediction intervals.
 
         Returns
         -------
         dict
-            A dictionary containing the forecast results, including point forecasts
-            and potentially prediction intervals (e.g., 'forecast', 'lower', 'upper').
-            This dictionary is also stored in `self.forecast_results`.
+            Forecast results including point forecasts and prediction intervals.
         """
-        # Generate forecasts using the forecaster function
-        self.forecast_results = forecaster(
-            model_prepared=self.prepared_model,
-            observations_dict=self.observations_dict,
-            general_dict=self.general,
-            occurrence_dict=self.occurrence_dict,
-            lags_dict=self.lags_dict,
-            model_type_dict=self.model_type_dict,
-            explanatory_checked=self.explanatory_dict,
-            components_dict=self.components_dict,
-            constants_checked=self.constant_dict,
-            params_info=self.params_info,
-            adam_cpp=self.adam_cpp,
-            calculate_intervals=self.calculate_intervals,
-            interval_method=self.interval_method,
-            level=self.level,
-            side=self.side,
+        self._forecast_results = forecaster(
+            model_prepared=self._prepared,
+            observations_dict=self._observations,
+            general_dict=self._general,
+            occurrence_dict=self._occurrence,
+            lags_dict=self._lags_model,
+            model_type_dict=self._model_type,
+            explanatory_checked=self._explanatory,
+            components_dict=self._components,
+            constants_checked=self._constant,
+            params_info=self._params_info,
+            adam_cpp=self._adam_cpp,
+            calculate_intervals=calculate_intervals,
+            interval_method=interval_method,
+            level=level,
+            side=side,
         )
-        return self.forecast_results
+        return self._forecast_results
 
     def _format_prediction_results(self):
         """
@@ -2281,9 +2368,9 @@ class ADAM:
             Formatted prediction results including point forecasts and intervals.
         """
         # Calculate and include elapsed time before returning
-        self.forecast_results["elapsed_time"] = time.time() - self.start_time
+        self._forecast_results["elapsed_time"] = time.time() - self._start_time
 
-        return self.forecast_results
+        return self._forecast_results
 
     def __str__(self) -> str:
         """
@@ -2300,7 +2387,7 @@ class ADAM:
         from smooth.adam_general.core.utils.printing import model_summary
 
         # Check if model has been fitted
-        if not hasattr(self, "model_type_dict"):
+        if not hasattr(self, "_model_type"):
             return f"ADAM(model={self.model}) - not fitted"
 
         return model_summary(self)
@@ -2314,9 +2401,9 @@ class ADAM:
         str
             Brief model representation
         """
-        if hasattr(self, "model_type_dict") and self.model_type_dict:
-            model_str = self.model_type_dict.get("model", self.model)
-            if self.model_type_dict.get("ets_model", False):
+        if hasattr(self, "_model_type") and self._model_type:
+            model_str = self._model_type.get("model", self.model)
+            if self._model_type.get("ets_model", False):
                 return f"ADAM(ETS({model_str}), fitted=True)"
             return f"ADAM({model_str}, fitted=True)"
         return f"ADAM(model={self.model}, fitted=False)"
@@ -2343,7 +2430,7 @@ class ADAM:
         """
         from smooth.adam_general.core.utils.printing import model_summary
 
-        if not hasattr(self, "model_type_dict"):
+        if not hasattr(self, "_model_type"):
             return "Model has not been fitted yet. Call fit() first."
 
         return model_summary(self, digits=digits)
