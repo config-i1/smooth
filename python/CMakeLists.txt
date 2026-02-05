@@ -23,12 +23,10 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 # BLAS/LAPACK Detection
 # ==============================================================================
 
-# On Windows, Armadillo will use NumPy's OpenBLAS at runtime
-# We don't link against it - just let it be discovered at runtime
 if(WIN32)
-  message(STATUS "Windows build: Armadillo will use NumPy's OpenBLAS at runtime")
-  # Tell Armadillo not to require BLAS at link time
-  add_compile_definitions(ARMA_DONT_USE_WRAPPER)
+  message(STATUS "Windows build: disabling BLAS/LAPACK in Armadillo to avoid unresolved symbols")
+  # Disable use of BLAS/LAPACK in Armadillo on Windows
+  add_compile_definitions(ARMA_DONT_USE_BLAS ARMA_DONT_USE_LAPACK)
   set(BLAS_FOUND FALSE)
   set(LAPACK_FOUND FALSE)
   set(lapackblas_libraries "")
@@ -36,16 +34,16 @@ else()
   # Standard BLAS and LAPACK search for Linux/macOS
   find_package(BLAS)
   find_package(LAPACK)
-  
+
   if(LAPACK_FOUND AND BLAS_FOUND)
-     set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-     message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
-     message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
+    set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+    message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
+    message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
   elseif(BLAS_FOUND)
-     set(lapackblas_libraries ${BLAS_LIBRARIES})
+    set(lapackblas_libraries ${BLAS_LIBRARIES})
   else()
-     message(WARNING "BLAS/LAPACK not found. Build may fail for modules requiring BLAS.")
-     set(lapackblas_libraries "")
+    message(WARNING "BLAS/LAPACK not found. Build may fail for modules requiring BLAS.")
+    set(lapackblas_libraries "")
   endif()
 endif()
 
