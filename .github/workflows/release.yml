@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Trigger on version tags like v1.0.0, v0.1.2, etc.
+    branches:
+      - Python  # Also run on Python branch for testing
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -13,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]  # macos-13 is Intel, macos-14 is ARM
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -38,11 +40,24 @@ jobs:
           CIBW_BUILD: cp39-* cp310-* cp311-* cp312-*
           # Skip 32-bit builds and musllinux
           CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux*"
+
+          # Install system dependencies for BLAS/LAPACK
+          # Linux: Install OpenBLAS and LAPACK
+          CIBW_BEFORE_BUILD_LINUX: yum install -y openblas-devel lapack-devel || apt-get update && apt-get install -y libopenblas-dev liblapack-dev
+
+          # macOS: Install OpenBLAS via brew (already available in GitHub runners)
+          CIBW_BEFORE_BUILD_MACOS: brew install openblas || true
+
+          # Windows: Use NumPy's OpenBLAS (no extra install needed, handled by vcpkg or conda-forge)
+          CIBW_BEFORE_BUILD_WINDOWS: pip install numpy
+
           # Run tests after building
           CIBW_TEST_REQUIRES: pytest numpy
           CIBW_TEST_COMMAND: "pytest {project}/tests"
+
           # macOS: Build for both x86_64 and arm64
           CIBW_ARCHS_MACOS: "x86_64 arm64"
+
           # Linux: Use manylinux2014 for broad compatibility
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014
