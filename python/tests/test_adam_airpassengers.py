@@ -46,13 +46,13 @@ class TestADAMAirPassengersBasic:
         model.fit(AIRPASSENGERS)
 
         # Verify model was estimated
-        assert model.adam_estimated is not None
-        assert "CF_value" in model.adam_estimated
-        assert "B" in model.adam_estimated
+        assert model.coef is not None
+        assert model.loss_value is not None
+        assert model.coef is not None
 
         # Reference loss value (recorded from implementation)
         expected_loss = 710.389560
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-4), \
             f"ANN loss {actual_loss} differs from expected {expected_loss}"
 
@@ -63,7 +63,7 @@ class TestADAMAirPassengersBasic:
 
         # Reference loss value
         expected_loss = 755.937489
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-4), \
             f"AAN loss {actual_loss} differs from expected {expected_loss}"
 
@@ -74,7 +74,7 @@ class TestADAMAirPassengersBasic:
 
         # Reference loss value
         expected_loss = 586.036821
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-4), \
             f"ANA loss {actual_loss} differs from expected {expected_loss}"
 
@@ -87,7 +87,7 @@ class TestADAMAirPassengersPersistence:
         model = ADAM(model="ANN", lags=[1])
         model.fit(AIRPASSENGERS)
 
-        B = model.adam_estimated["B"]
+        B = model.coef
         alpha = B[0]
 
         # Alpha should be between 0 and 1
@@ -98,7 +98,7 @@ class TestADAMAirPassengersPersistence:
         model = ADAM(model="AAN", lags=[1])
         model.fit(AIRPASSENGERS)
 
-        B = model.adam_estimated["B"]
+        B = model.coef
         alpha = B[0]
         beta = B[1]
 
@@ -113,7 +113,7 @@ class TestADAMAirPassengersPersistence:
         model = ADAM(model="ANA", lags=[12])
         model.fit(AIRPASSENGERS)
 
-        B = model.adam_estimated["B"]
+        B = model.coef
         alpha = B[0]
         gamma = B[1]
 
@@ -126,7 +126,7 @@ class TestADAMAirPassengersPersistence:
         model = ADAM(model="ANA", lags=[12])
         model.fit(AIRPASSENGERS)
 
-        B = model.adam_estimated["B"]
+        B = model.coef
         # Reference values from implementation
         expected_alpha = 0.34142799
         expected_gamma = 0.65856849
@@ -146,13 +146,13 @@ class TestADAMAirPassengersPartialPersistence:
         model.fit(AIRPASSENGERS)
 
         # Model should fit with provided alpha
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         assert model.persistence_level_ == 0.4
 
         # Loss should be higher than optimal since alpha is fixed
         # Reference: optimal loss is ~586, with alpha=0.4 it's ~713
         expected_loss = 713.407063
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-3), \
             f"Loss with alpha=0.4: {actual_loss} differs from expected {expected_loss}"
 
@@ -161,12 +161,12 @@ class TestADAMAirPassengersPartialPersistence:
         # Fit without provided persistence
         model_free = ADAM(model="ANA", lags=[12])
         model_free.fit(AIRPASSENGERS)
-        loss_free = model_free.adam_estimated["CF_value"]
+        loss_free = model_free.loss_value
 
         # Fit with provided persistence (suboptimal)
         model_fixed = ADAM(model="ANA", lags=[12], persistence={"level": 0.4})
         model_fixed.fit(AIRPASSENGERS)
-        loss_fixed = model_fixed.adam_estimated["CF_value"]
+        loss_fixed = model_fixed.loss_value
 
         # Loss with fixed (suboptimal) persistence should be higher
         assert loss_fixed > loss_free, \
@@ -252,7 +252,7 @@ class TestADAMAirPassengersInitialTypes:
         model.fit(AIRPASSENGERS)
 
         expected_loss = 586.036821
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-4), \
             f"ANA backcasting loss {actual_loss} differs from expected {expected_loss}"
 
@@ -262,7 +262,7 @@ class TestADAMAirPassengersInitialTypes:
         model.fit(AIRPASSENGERS)
 
         expected_loss = 593.375675
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-4), \
             f"ANA optimal loss {actual_loss} differs from expected {expected_loss}"
 
@@ -272,7 +272,7 @@ class TestADAMAirPassengersInitialTypes:
         model.fit(AIRPASSENGERS)
 
         expected_loss = 586.073832
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-4), \
             f"ANA two-stage loss {actual_loss} differs from expected {expected_loss}"
 
@@ -282,7 +282,7 @@ class TestADAMAirPassengersInitialTypes:
         model.fit(AIRPASSENGERS)
 
         expected_loss = 565.381907
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-4), \
             f"AAA backcasting loss {actual_loss} differs from expected {expected_loss}"
 
@@ -292,7 +292,7 @@ class TestADAMAirPassengersInitialTypes:
         model.fit(AIRPASSENGERS)
 
         expected_loss = 565.815441
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-4), \
             f"AAA optimal loss {actual_loss} differs from expected {expected_loss}"
 
@@ -302,7 +302,7 @@ class TestADAMAirPassengersInitialTypes:
         model.fit(AIRPASSENGERS)
 
         expected_loss = 565.188104
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-4), \
             f"AAA two-stage loss {actual_loss} differs from expected {expected_loss}"
 
@@ -312,7 +312,7 @@ class TestADAMAirPassengersInitialTypes:
         for init_type in ["backcasting", "optimal", "two-stage"]:
             model = ADAM(model="ANA", lags=[12], initial=init_type)
             model.fit(AIRPASSENGERS)
-            losses[init_type] = model.adam_estimated["CF_value"]
+            losses[init_type] = model.loss_value
 
         # All losses should be different
         loss_values = list(losses.values())
@@ -328,8 +328,8 @@ class TestADAMAirPassengersInitialTypes:
         model_opt.fit(AIRPASSENGERS)
 
         # Optimal should have more parameters (includes initial states)
-        b_back = len(model_back.adam_estimated["B"])
-        b_opt = len(model_opt.adam_estimated["B"])
+        b_back = len(model_back.coef)
+        b_opt = len(model_opt.coef)
 
         assert b_opt > b_back, \
             f"Optimal B length {b_opt} should be > backcasting B length {b_back}"
@@ -344,12 +344,12 @@ class TestADAMAirPassengersAAAPersistence:
         model.fit(AIRPASSENGERS)
 
         expected_loss = 565.381907
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-4), \
             f"AAA loss {actual_loss} differs from expected {expected_loss}"
 
         # Check persistence values are estimated
-        B = model.adam_estimated["B"]
+        B = model.coef
         assert len(B) >= 3, "AAA should estimate at least 3 persistence parameters"
 
     def test_aaa_alpha_only(self):
@@ -362,7 +362,7 @@ class TestADAMAirPassengersAAAPersistence:
 
         # Reference loss with alpha=0.5
         expected_loss = 703.748569
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-3), \
             f"AAA alpha=0.5 loss {actual_loss} differs from expected {expected_loss}"
 
@@ -377,7 +377,7 @@ class TestADAMAirPassengersAAAPersistence:
 
         # Reference loss
         expected_loss = 722.992495
-        actual_loss = model.adam_estimated["CF_value"]
+        actual_loss = model.loss_value
         assert np.isclose(actual_loss, expected_loss, rtol=1e-3), \
             f"AAA alpha=0.5, beta=0.1 loss {actual_loss} differs from expected {expected_loss}"
 
@@ -386,7 +386,7 @@ class TestADAMAirPassengersAAAPersistence:
         model = ADAM(model="AAA", lags=[12])
         model.fit(AIRPASSENGERS)
 
-        B = model.adam_estimated["B"]
+        B = model.coef
         alpha, beta, gamma = B[0], B[1], B[2]
 
         # All persistence parameters should be in [0, 1]
@@ -399,7 +399,7 @@ class TestADAMAirPassengersAAAPersistence:
         model = ADAM(model="AAA", lags=[12])
         model.fit(AIRPASSENGERS)
 
-        B = model.adam_estimated["B"]
+        B = model.coef
         # Reference values
         expected_alpha = 0.23373680
         expected_beta = 0.00056139
@@ -417,12 +417,12 @@ class TestADAMAirPassengersAAAPersistence:
         # Optimal (free) estimation
         model_free = ADAM(model="AAA", lags=[12])
         model_free.fit(AIRPASSENGERS)
-        loss_free = model_free.adam_estimated["CF_value"]
+        loss_free = model_free.loss_value
 
         # Fixed alpha
         model_fixed = ADAM(model="AAA", lags=[12], persistence={"level": 0.5})
         model_fixed.fit(AIRPASSENGERS)
-        loss_fixed = model_fixed.adam_estimated["CF_value"]
+        loss_fixed = model_fixed.loss_value
 
         assert loss_fixed > loss_free, \
             f"Fixed persistence loss {loss_fixed} should be > free loss {loss_free}"
@@ -432,12 +432,12 @@ class TestADAMAirPassengersAAAPersistence:
         # Only alpha fixed
         model1 = ADAM(model="AAA", lags=[12], persistence={"level": 0.5})
         model1.fit(AIRPASSENGERS)
-        loss1 = model1.adam_estimated["CF_value"]
+        loss1 = model1.loss_value
 
         # Alpha and beta fixed
         model2 = ADAM(model="AAA", lags=[12], persistence={"level": 0.5, "trend": 0.1})
         model2.fit(AIRPASSENGERS)
-        loss2 = model2.adam_estimated["CF_value"]
+        loss2 = model2.loss_value
 
         # Fixing more parameters with suboptimal values should increase loss
         assert loss2 > loss1, \
@@ -451,11 +451,11 @@ class TestADAMAirPassengersModelComparison:
         """Test that seasonal model (ANA) fits better than non-seasonal (ANN)."""
         model_ann = ADAM(model="ANN", lags=[1])
         model_ann.fit(AIRPASSENGERS)
-        loss_ann = model_ann.adam_estimated["CF_value"]
+        loss_ann = model_ann.loss_value
 
         model_ana = ADAM(model="ANA", lags=[12])
         model_ana.fit(AIRPASSENGERS)
-        loss_ana = model_ana.adam_estimated["CF_value"]
+        loss_ana = model_ana.loss_value
 
         # Seasonal model should have lower loss for this seasonal data
         assert loss_ana < loss_ann, \
@@ -472,7 +472,7 @@ class TestADAMAirPassengersModelComparison:
         losses = {}
         for name, model in models.items():
             model.fit(AIRPASSENGERS)
-            losses[name] = model.adam_estimated["CF_value"]
+            losses[name] = model.loss_value
 
         # All losses should be different
         loss_values = list(losses.values())
@@ -493,7 +493,7 @@ class TestADAMMultipleSeasonalPersistence:
         )
         model.fit(AIRPASSENGERS)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         # Verify model runs without error with full seasonal specification
 
     def test_two_seasonal_partial_persistence_first_only(self):
@@ -506,9 +506,9 @@ class TestADAMMultipleSeasonalPersistence:
         )
         model.fit(AIRPASSENGERS)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         # B should contain estimated gamma_2
-        B = model.adam_estimated["B"]
+        B = model.coef
         assert len(B) >= 1, "Should have at least one estimated parameter (gamma_2)"
 
     def test_two_seasonal_no_persistence(self):
@@ -516,8 +516,8 @@ class TestADAMMultipleSeasonalPersistence:
         model = ADAM(model="ANA", lags=[3, 12])
         model.fit(AIRPASSENGERS)
 
-        assert model.adam_estimated is not None
-        B = model.adam_estimated["B"]
+        assert model.coef is not None
+        B = model.coef
         # Should estimate alpha + gamma = 2 persistence params (lags combined)
         assert len(B) >= 2
 
@@ -530,7 +530,7 @@ class TestADAMMultipleSeasonalPersistence:
             persistence={"seasonal": [0.4, 0.5]}
         )
         model_full.fit(AIRPASSENGERS)
-        loss_full = model_full.adam_estimated["CF_value"]
+        loss_full = model_full.loss_value
 
         # Partial specification (only first gamma, second estimated)
         model_partial = ADAM(
@@ -539,7 +539,7 @@ class TestADAMMultipleSeasonalPersistence:
             persistence={"seasonal": [0.4]}
         )
         model_partial.fit(AIRPASSENGERS)
-        loss_partial = model_partial.adam_estimated["CF_value"]
+        loss_partial = model_partial.loss_value
 
         # Losses should differ (partial has one free parameter)
         assert loss_full != loss_partial, \
@@ -554,7 +554,7 @@ class TestADAMMultipleSeasonalPersistence:
         )
         model.fit(AIRPASSENGERS)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         # With all persistence fixed, B should not contain persistence params
         # (only initial states, phi, etc.)
 
@@ -567,9 +567,9 @@ class TestADAMMultipleSeasonalPersistence:
         )
         model.fit(AIRPASSENGERS)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         # Should estimate gamma
-        B = model.adam_estimated["B"]
+        B = model.coef
         assert len(B) >= 1, "Should estimate at least gamma"
 
     def test_double_seasonal_estimates_three_params(self):
@@ -581,8 +581,8 @@ class TestADAMMultipleSeasonalPersistence:
         )
         model.fit(AIRPASSENGERS)
 
-        assert model.adam_estimated is not None
-        B = model.adam_estimated["B"]
+        assert model.coef is not None
+        B = model.coef
         # With backcasting, should estimate exactly 3 persistence params:
         # alpha, gamma1, gamma2
         assert len(B) == 3, f"Expected 3 parameters (alpha, gamma1, gamma2), got {len(B)}"
@@ -596,8 +596,8 @@ class TestADAMMultipleSeasonalPersistence:
         )
         model.fit(AIRPASSENGERS)
 
-        assert model.adam_estimated is not None
-        B = model.adam_estimated["B"]
+        assert model.coef is not None
+        B = model.coef
         # With backcasting, should estimate exactly 3 persistence params
         assert len(B) == 3, f"Expected 3 parameters (alpha, gamma1, gamma2), got {len(B)}"
 
@@ -611,7 +611,7 @@ class TestADAMMultipleSeasonalPersistence:
         )
         model.fit(AIRPASSENGERS)
 
-        assert model.adam_estimated is not None
-        B = model.adam_estimated["B"]
+        assert model.coef is not None
+        B = model.coef
         # Should estimate alpha and gamma2 (gamma1 is provided)
         assert len(B) == 2, f"Expected 2 parameters (alpha, gamma2), got {len(B)}"
