@@ -43,7 +43,7 @@ jobs:
 
           # Install system dependencies for BLAS/LAPACK
           # Linux: Install OpenBLAS and LAPACK
-          CIBW_BEFORE_BUILD_LINUX: yum install -y openblas-devel lapack-devel || apt-get update && apt-get install -y libopenblas-dev liblapack-dev
+          CIBW_BEFORE_BUILD_LINUX: yum install -y openblas-devel lapack-devel
 
           # macOS: Install OpenBLAS via brew (already available in GitHub runners)
           CIBW_BEFORE_BUILD_MACOS: brew install openblas || true
