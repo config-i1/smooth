@@ -13,150 +13,40 @@ include(FetchContent)
 FetchContent_Declare(
   pybind11
   GIT_REPOSITORY https://github.com/pybind/pybind11.git
-  GIT_TAG v2.12.0
-)
+  GIT_TAG v2.12.0)
 FetchContent_MakeAvailable(pybind11)
 
 # CARMA
 ADD_SUBDIRECTORY(../src/libs/carma carma)
 
 # ==============================================================================
-# BLAS/LAPACK Detection with NumPy fallback for Windows
+# BLAS/LAPACK Detection
 # ==============================================================================
 
-# On Windows, try to use NumPy's bundled OpenBLAS first
+# On Windows, Armadillo will use NumPy's OpenBLAS at runtime
+# We don't link against it - just let it be discovered at runtime
 if(WIN32)
-  # Find Python interpreter (should already be available from pybind11)
-  find_package(Python COMPONENTS Interpreter QUIET)
-
-  if(Python_EXECUTABLE)
-    message(STATUS "Attempting to find NumPy's OpenBLAS on Windows...")
-
-    # Get NumPy's installation path
-    execute_process(
-      COMMAND ${Python_EXECUTABLE} -c "import numpy; print(numpy.__path__[0])"
-      OUTPUT_VARIABLE NUMPY_PATH
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-      ERROR_QUIET
-    )
-
-    if(NUMPY_PATH)
-      message(STATUS "NumPy found at: ${NUMPY_PATH}")
-
-      # Try multiple possible locations for NumPy's OpenBLAS library
-      # NumPy 2.x: .libs directory in the root
-      # NumPy 1.x: _core/lib or core/lib
-      set(NUMPY_SEARCH_PATHS
-        "${NUMPY_PATH}/.libs"
-        "${NUMPY_PATH}/_core/lib"
-        "${NUMPY_PATH}/core/lib"
-        "${NUMPY_PATH}/linalg/.libs"
-        "${NUMPY_PATH}"
-      )
-
-      # Look for OpenBLAS library in all possible locations
-      find_library(NUMPY_OPENBLAS_LIB
-        NAMES
-          openblas64_.dll.a openblas64_  # NumPy 2.x naming
-          openblas.dll.a openblas        # Alternative naming
-          libopenblas64_ libopenblas     # Standard naming
-        PATHS ${NUMPY_SEARCH_PATHS}
-        NO_DEFAULT_PATH
-      )
-
-      # If .lib/.a not found, try to find the actual DLL and create import lib path
-      if(NOT NUMPY_OPENBLAS_LIB)
-        message(STATUS "Searching for OpenBLAS DLL in NumPy directories...")
-        foreach(SEARCH_PATH ${NUMPY_SEARCH_PATHS})
-          file(GLOB DLL_FILES "${SEARCH_PATH}/*openblas*.dll")
-          if(DLL_FILES)
-            list(GET DLL_FILES 0 OPENBLAS_DLL)
-            message(STATUS "Found OpenBLAS DLL: ${OPENBLAS_DLL}")
-
-            # Extract directory and create a link flag
-            get_filename_component(DLL_DIR ${OPENBLAS_DLL} DIRECTORY)
-            get_filename_component(DLL_NAME ${OPENBLAS_DLL} NAME_WE)
-
-            # Try to find corresponding .lib file
-            find_file(NUMPY_OPENBLAS_LIB
-              NAMES "${DLL_NAME}.lib" "${DLL_NAME}.dll.a"
-              PATHS ${DLL_DIR}
-              NO_DEFAULT_PATH
-            )
-
-            if(NUMPY_OPENBLAS_LIB)
-              break()
-            endif()
-          endif()
-        endforeach()
-      endif()
-
-      if(NUMPY_OPENBLAS_LIB)
-        message(STATUS "Found NumPy's OpenBLAS: ${NUMPY_OPENBLAS_LIB}")
-
-        # Set BLAS and LAPACK to NumPy's OpenBLAS (which includes both)
-        set(BLAS_LIBRARIES ${NUMPY_OPENBLAS_LIB})
-        set(LAPACK_LIBRARIES ${NUMPY_OPENBLAS_LIB})
-        set(BLAS_FOUND TRUE)
-        set(LAPACK_FOUND TRUE)
-
-        # Add NumPy's include directory
-        set(NUMPY_INCLUDE_DIR "${NUMPY_PATH}/_core/include")
-        if(NOT EXISTS "${NUMPY_INCLUDE_DIR}")
-          set(NUMPY_INCLUDE_DIR "${NUMPY_PATH}/core/include")
-        endif()
-        if(EXISTS "${NUMPY_INCLUDE_DIR}")
-          include_directories(${NUMPY_INCLUDE_DIR})
-        endif()
-
-        # Add the DLL directory to runtime path
-        get_filename_component(OPENBLAS_DIR ${NUMPY_OPENBLAS_LIB} DIRECTORY)
-        link_directories(${OPENBLAS_DIR})
-      else()
-        message(STATUS "NumPy's OpenBLAS library not found in any of:")
-        foreach(SEARCH_PATH ${NUMPY_SEARCH_PATHS})
-          message(STATUS "  - ${SEARCH_PATH}")
-        endforeach()
-      endif()
-    else()
-      message(STATUS "NumPy not found in Python environment")
-    endif()
-  endif()
-endif()
-
-# Standard BLAS and LAPACK search (for Linux/macOS, or if NumPy method failed on Windows)
-if(NOT BLAS_FOUND)
-  find_package(BLAS)
-endif()
-
-if(NOT LAPACK_FOUND)
-  find_package(LAPACK)
-endif()
-
-# Configure lapackblas_libraries variable
-if(LAPACK_FOUND AND BLAS_FOUND)
-   set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-   message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
-   message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
-elseif(BLAS_FOUND)
-   # On Windows with vcpkg, OpenBLAS may not include LAPACK routines
-   # Try to find lapack library explicitly
-   if(WIN32)
-      find_library(LAPACK_LIB NAMES lapack)
-      if(LAPACK_LIB)
-         set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIB})
-         message(STATUS "Found LAPACK library: ${LAPACK_LIB}")
-      else()
-         set(lapackblas_libraries ${BLAS_LIBRARIES})
-         message(WARNING "LAPACK not found on Windows. Build may fail for modules requiring LAPACK.")
-      endif()
-   else()
-      # Some Unix systems have OpenBLAS that includes LAPACK routines
-      set(lapackblas_libraries ${BLAS_LIBRARIES})
-   endif()
+  message(STATUS "Windows build: Armadillo will use NumPy's OpenBLAS at runtime")
+  # Tell Armadillo not to require BLAS at link time
+  add_compile_definitions(ARMA_DONT_USE_WRAPPER)
+  set(BLAS_FOUND FALSE)
+  set(LAPACK_FOUND FALSE)
+  set(lapackblas_libraries "")
 else()
-   message(WARNING "BLAS/LAPACK not found. Build may fail for modules requiring BLAS.")
-   set(lapackblas_libraries "")
+  # Standard BLAS and LAPACK search for Linux/macOS
+  find_package(BLAS)
+  find_package(LAPACK)
+  
+  if(LAPACK_FOUND AND BLAS_FOUND)
+     set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+     message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
+     message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
+  elseif(BLAS_FOUND)
+     set(lapackblas_libraries ${BLAS_LIBRARIES})
+  else()
+     message(WARNING "BLAS/LAPACK not found. Build may fail for modules requiring BLAS.")
+     set(lapackblas_libraries "")
+  endif()
 endif()
 
 # ==============================================================================
@@ -184,7 +74,7 @@ target_include_directories(_adamCore PRIVATE ../src)
 
 target_link_libraries(_adamCore PRIVATE carma::carma)
 
-# Link BLAS/LAPACK if found
+# Link BLAS/LAPACK if found (not on Windows)
 if(lapackblas_libraries)
   target_link_libraries(_adamCore PRIVATE ${lapackblas_libraries})
 endif()
