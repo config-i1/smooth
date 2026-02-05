@@ -40,9 +40,8 @@ class TestESFit:
         model = ES(model="ANN")
         model.fit(simple_series)
 
-        # Model should have been fitted (adam_estimated contains results dict)
-        assert model.adam_estimated is not None
-        assert isinstance(model.adam_estimated, dict)
+        # Model should have been fitted
+        assert model.coef is not None
 
     def test_fit_returns_self(self, simple_series):
         """Test that fit returns self."""
@@ -56,8 +55,7 @@ class TestESFit:
         model = ES(model="ANA", lags=[12])
         model.fit(seasonal_series)
 
-        assert model.adam_estimated is not None
-        assert isinstance(model.adam_estimated, dict)
+        assert model.coef is not None
 
 
 class TestESPredict:
@@ -119,7 +117,7 @@ class TestESModelSelection:
         model = ES(model="ZZZ", lags=[12])
         model.fit(seasonal_series)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         forecast = model.predict(h=12)
         assert forecast.shape[0] == 12
         assert not forecast['mean'].isna().any()
@@ -129,7 +127,7 @@ class TestESModelSelection:
         model = ES(model="ZXZ", lags=[12])
         model.fit(seasonal_series)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         forecast = model.predict(h=12)
         assert forecast.shape[0] == 12
         assert not forecast['mean'].isna().any()
@@ -139,7 +137,7 @@ class TestESModelSelection:
         model = ES(model="FFF", lags=[12])
         model.fit(seasonal_series)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         forecast = model.predict(h=12)
         assert forecast.shape[0] == 12
         assert not forecast['mean'].isna().any()
@@ -149,7 +147,7 @@ class TestESModelSelection:
         model = ES(model="PPP", lags=[12])
         model.fit(seasonal_series)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         forecast = model.predict(h=12)
         assert forecast.shape[0] == 12
         assert not forecast['mean'].isna().any()
@@ -159,7 +157,7 @@ class TestESModelSelection:
         model = ES(model="ZZZ", lags=[1])
         model.fit(simple_series)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         forecast = model.predict(h=5)
         assert forecast.shape[0] == 5
 

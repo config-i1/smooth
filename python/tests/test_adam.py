@@ -42,18 +42,16 @@ class TestADAMFit:
         model = ADAM(model="ANN")
         model.fit(simple_series)
 
-        # Model should have been fitted (adam_estimated contains results dict)
-        assert model.adam_estimated is not None
-        assert isinstance(model.adam_estimated, dict)
-        assert 'B' in model.adam_estimated
+        # Model should have been fitted
+        assert model.coef is not None
+        assert len(model.coef) > 0
 
     def test_fit_seasonal(self, seasonal_series):
         """Test fitting seasonal model."""
         model = ADAM(model="ANA", lags=[12])
         model.fit(seasonal_series)
 
-        assert model.adam_estimated is not None
-        assert isinstance(model.adam_estimated, dict)
+        assert model.coef is not None
 
     def test_fit_returns_self(self, simple_series):
         """Test that fit returns self for chaining."""
@@ -67,9 +65,9 @@ class TestADAMFit:
         model = ADAM(model="ANN")
         model.fit(simple_series)
 
-        # y_in_sample should contain the training data
-        assert hasattr(model, 'y_in_sample')
-        assert len(model.y_in_sample) == len(simple_series)
+        # data property should contain the training data
+        assert model.data is not None
+        assert len(model.data) == len(simple_series)
 
 
 class TestADAMPredict:
@@ -167,7 +165,7 @@ class TestADAMModelSelection:
         model = ADAM(model="ZZZ", lags=[12])
         model.fit(seasonal_series)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         forecast = model.predict(h=12)
         assert forecast.shape[0] == 12
         assert not forecast['mean'].isna().any()
@@ -177,7 +175,7 @@ class TestADAMModelSelection:
         model = ADAM(model="ZXZ", lags=[12])
         model.fit(seasonal_series)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         forecast = model.predict(h=12)
         assert forecast.shape[0] == 12
         assert not forecast['mean'].isna().any()
@@ -187,7 +185,7 @@ class TestADAMModelSelection:
         model = ADAM(model="FFF", lags=[12])
         model.fit(seasonal_series)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         forecast = model.predict(h=12)
         assert forecast.shape[0] == 12
         assert not forecast['mean'].isna().any()
@@ -197,7 +195,7 @@ class TestADAMModelSelection:
         model = ADAM(model="PPP", lags=[12])
         model.fit(seasonal_series)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         forecast = model.predict(h=12)
         assert forecast.shape[0] == 12
         assert not forecast['mean'].isna().any()
@@ -207,7 +205,7 @@ class TestADAMModelSelection:
         model = ADAM(model="ZZZ", lags=[1])
         model.fit(simple_series)
 
-        assert model.adam_estimated is not None
+        assert model.coef is not None
         forecast = model.predict(h=5)
         assert forecast.shape[0] == 5
 
@@ -289,7 +287,7 @@ class TestADAMBounds:
         model = ADAM(model="ANN", bounds="admissible")
         model.fit(y)
 
-        alpha = model.adam_estimated['B'][0]
+        alpha = model.coef[0]
         assert alpha > 1, (
             f"Expected alpha > 1 for linear series with admissible bounds, "
             f"got {alpha}"
