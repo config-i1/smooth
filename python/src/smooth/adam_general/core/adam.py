@@ -928,19 +928,104 @@ class ADAM:
 
     @property
     def states(self) -> NDArray:
-        """State matrix over time (R: $states)."""
+        """
+        State matrix containing component values over time (R: $states).
+
+        The state matrix stores the evolution of all model components including
+        level, trend (if present), seasonal components (if present), and ARIMA
+        states (if present). Each column represents a different state component,
+        and each row represents a time point.
+
+        Returns
+        -------
+        NDArray
+            2D array of shape (n_states, obs_in_sample + 1). Columns represent
+            level, trend (if model has trend), and seasonal components (if model
+            has seasonality, one column per lag).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=12)
+        >>> model.fit(y)
+        >>> states = model.states
+        >>> level = states[0, :]  # Level component over time
+        """
         self._check_is_fitted()
         return self._prepared["mat_vt"]
 
     @property
     def persistence_vector(self) -> Dict[str, Any]:
-        """Named persistence dict: {alpha, beta, gamma} (R: $persistence)."""
+        """
+        Estimated smoothing parameters (R: $persistence).
+
+        Returns a dictionary containing the smoothing/persistence parameters
+        that control how quickly the model adapts to new observations. Higher
+        values mean faster adaptation (more weight on recent observations).
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary with keys ``persistence_level`` (alpha, 0-1),
+            ``persistence_trend`` (beta, 0-alpha, only if model has trend),
+            and ``persistence_seasonal`` (gamma, 0 to 1-alpha, only if model
+            has seasonality).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        phi_ : Damping parameter for trend
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=12)
+        >>> model.fit(y)
+        >>> alpha = model.persistence_vector['persistence_level']
+        >>> gamma = model.persistence_vector['persistence_seasonal']
+        """
         self._check_is_fitted()
         return self._prepared.get("persistence", {})
 
     @property
     def phi_(self) -> Optional[float]:
-        """Damping parameter (R: $phi)."""
+        """
+        Damping parameter for trend component (R: $phi).
+
+        The damping parameter (phi) controls how quickly the trend dampens
+        toward zero over the forecast horizon. A value of 1.0 means no damping
+        (linear trend), while values less than 1.0 cause the trend to
+        gradually flatten.
+
+        Returns
+        -------
+        Optional[float]
+            Damping parameter value between 0 and 1, or None if the model
+            does not include a damped trend component.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Notes
+        -----
+        Uses trailing underscore following scikit-learn convention for fitted
+        parameters.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAdN")  # Damped trend model
+        >>> model.fit(y)
+        >>> print(f"Damping: {model.phi_:.3f}")
+        """
         self._check_is_fitted()
         if self._model_type.get("damped", False):
             return self._prepared.get("phi", 1.0)
@@ -948,48 +1033,239 @@ class ADAM:
 
     @property
     def transition(self) -> NDArray:
-        """Transition matrix matF (R: $transition)."""
+        """
+        State transition matrix F (R: $transition).
+
+        The transition matrix governs how states evolve from one time period
+        to the next in the state-space formulation: v_t = F @ v_{t-1} + g * e_t
+
+        Returns
+        -------
+        NDArray
+            Square matrix of shape (n_states, n_states) defining state
+            transitions. Structure depends on model components (ETS, ARIMA).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        measurement : Measurement matrix W
+        states : State values over time
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> F = model.transition
+        """
         self._check_is_fitted()
         return self._prepared["mat_f"]
 
     @property
     def measurement(self) -> NDArray:
-        """Measurement matrix matWt (R: $measurement)."""
+        """
+        Measurement matrix W (R: $measurement).
+
+        The measurement matrix maps the state vector to the observation
+        equation: y_t = W @ v_t + e_t (for additive errors).
+
+        Returns
+        -------
+        NDArray
+            Matrix of shape (obs_in_sample, n_states) that maps states to
+            observations. For time-invariant models, all rows are identical.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        transition : State transition matrix F
+        states : State values over time
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> W = model.measurement
+        """
         self._check_is_fitted()
         return self._prepared["mat_wt"]
 
     @property
     def initial_value(self) -> Dict[str, Any]:
-        """Initial values dict (R: $initial)."""
+        """
+        Initial state values used for model fitting (R: $initial).
+
+        Contains the starting values for each state component at time t=0,
+        which serve as the foundation for the state evolution.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary with keys ``level`` (initial level value), ``trend``
+            (initial trend value, only if model has trend), and ``seasonal``
+            (initial seasonal values as array, only if model has seasonality).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        initial_type : Method used for initialization
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=12)
+        >>> model.fit(y)
+        >>> init_level = model.initial_value['level']
+        """
         self._check_is_fitted()
         return self._prepared.get("initial_value", {})
 
     @property
     def initial_type(self) -> str:
-        """Initialization type used (R: $initialType)."""
+        """
+        Initialization method used for initial states (R: $initialType).
+
+        Returns
+        -------
+        str
+            One of:
+            - ``"optimal"``: Initial states optimized during fitting
+            - ``"backcasting"``: Initial states estimated via backcasting
+            - ``"two-stage"``: Backcast then optimize
+            - ``"complete"``: Pure backcasting without optimization
+            - ``"provided"``: User-supplied initial values
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        initial_value : The actual initial state values
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", initial="backcasting")
+        >>> model.fit(y)
+        >>> print(model.initial_type)
+        'backcasting'
+        """
         self._check_is_fitted()
         return self._initials.get("initial_type", "optimal")
 
     @property
     def loss_value(self) -> float:
-        """Optimized loss function value (R: $lossValue)."""
+        """
+        Optimized loss/cost function value (R: $lossValue).
+
+        The final value of the loss function after optimization. Lower values
+        indicate better fit (for most loss functions).
+
+        Returns
+        -------
+        float
+            The minimized loss function value from the optimization process.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        loss : The loss function type used
+        loglik : Log-likelihood value
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", loss="MSE")
+        >>> model.fit(y)
+        >>> print(f"MSE: {model.loss_value:.4f}")
+        """
         self._check_is_fitted()
         return self._adam_estimated["CF_value"]
 
     @property
     def time_elapsed(self) -> float:
-        """Time elapsed for fitting (seconds)."""
+        """
+        Time taken to fit the model in seconds.
+
+        Returns
+        -------
+        float
+            Elapsed time in seconds from start to end of the fit() call.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="ZXZ", lags=12)
+        >>> model.fit(y)
+        >>> print(f"Fitting took {model.time_elapsed:.2f} seconds")
+        """
         self._check_is_fitted()
         return self.time_elapsed_
 
     @property
     def data(self) -> NDArray:
-        """In-sample data (R: $data). Alias for actuals."""
+        """
+        In-sample training data (R: $data).
+
+        Alias for ``actuals`` property. Returns the original time series
+        data used for model fitting.
+
+        Returns
+        -------
+        NDArray
+            1D array of in-sample observations.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> training_data = model.data
+        """
         return self.actuals
 
     @property
     def holdout_data(self) -> Optional[NDArray]:
-        """Holdout data (R: $holdout)."""
+        """
+        Holdout validation data (R: $holdout).
+
+        If ``holdout=True`` was specified during fitting, returns the portion
+        of data withheld for validation. Otherwise returns None.
+
+        Returns
+        -------
+        Optional[NDArray]
+            1D array of holdout observations, or None if no holdout was used.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", holdout=True, h=12)
+        >>> model.fit(y)
+        >>> if model.holdout_data is not None:
+        ...     print(f"Holdout size: {len(model.holdout_data)}")
+        """
         self._check_is_fitted()
         if self._general.get("holdout"):
             return np.array(self._observations.get("y_holdout", []))
@@ -997,41 +1273,216 @@ class ADAM:
 
     @property
     def b_value(self) -> NDArray:
-        """Parameter vector (R: $B). Alias for coef."""
+        """
+        Full parameter vector B (R: $B).
+
+        Alias for ``coef`` property. Contains all estimated parameters in a
+        single vector, including persistence parameters, initial states,
+        ARIMA coefficients, and other model parameters.
+
+        Returns
+        -------
+        NDArray
+            1D array of all model parameters.
+
+        See Also
+        --------
+        coef : Primary property for parameter vector
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> all_params = model.b_value
+        """
         return self.coef
 
     @property
     def scale(self) -> float:
-        """Scale parameter (R: $scale). Alias for sigma."""
+        """
+        Scale/dispersion parameter (R: $scale).
+
+        Alias for ``sigma`` property. The scale parameter represents the
+        estimated standard deviation of the residuals for normal distribution,
+        or the analogous dispersion parameter for other distributions.
+
+        Returns
+        -------
+        float
+            Estimated scale parameter.
+
+        See Also
+        --------
+        sigma : Primary property for scale parameter
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> print(f"Scale: {model.scale:.4f}")
+        """
         return self.sigma
 
     @property
     def profile(self) -> Optional[Any]:
-        """Recent profiles for forecasting (R: $profile)."""
+        """
+        Profile information for seasonal patterns (R: $profile).
+
+        Contains profile data used for forecasting with multiple seasonality.
+        The profile captures the seasonal pattern structure.
+
+        Returns
+        -------
+        Optional[Any]
+            Profile table for recent observations, or None if not applicable.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=[24, 168])
+        >>> model.fit(y)
+        >>> seasonal_profile = model.profile
+        """
         self._check_is_fitted()
         return self._prepared.get("profiles_recent_table")
 
     @property
     def n_param(self) -> Any:
-        """Parameter count object (R: $nParam)."""
+        """
+        Parameter count information (R: $nParam).
+
+        Provides information about the number of parameters in the model,
+        distinguishing between estimated and provided parameters.
+
+        Returns
+        -------
+        Any
+            Parameter count information (structure may vary).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=12)
+        >>> model.fit(y)
+        >>> print(model.n_param)
+        """
         self._check_is_fitted()
         return self._general.get("n_param")
 
     @property
     def constant_value(self) -> Optional[float]:
-        """Constant term value (R: $constant)."""
+        """
+        Constant/intercept term value (R: $constant).
+
+        The estimated constant term in the model, if one was included.
+
+        Returns
+        -------
+        Optional[float]
+            Constant term value, or None if no constant was estimated.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", constant=True)
+        >>> model.fit(y)
+        >>> if model.constant_value is not None:
+        ...     print(f"Constant: {model.constant_value:.4f}")
+        """
         self._check_is_fitted()
         return self._prepared.get("constant_value")
 
     @property
     def distribution_(self) -> str:
-        """Distribution used for fitting (R: $distribution)."""
+        """
+        Error distribution used for fitting (R: $distribution).
+
+        The probability distribution assumed for the error term in the model.
+        Uses trailing underscore to distinguish from the input parameter and
+        follow scikit-learn convention for fitted attributes.
+
+        Returns
+        -------
+        str
+            Distribution name, one of:
+            - ``"dnorm"``: Normal distribution (default for additive errors)
+            - ``"dgamma"``: Gamma distribution (default for multiplicative)
+            - ``"dlaplace"``: Laplace distribution
+            - ``"dlnorm"``: Log-Normal distribution
+            - ``"dinvgauss"``: Inverse Gaussian distribution
+            - ``"ds"``: S distribution
+            - ``"dgnorm"``: Generalized Normal distribution
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        loss_ : Loss function used for estimation
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", distribution="dlaplace")
+        >>> model.fit(y)
+        >>> print(model.distribution_)
+        'dlaplace'
+        """
         self._check_is_fitted()
         return self._general.get("distribution_new", self._general.get("distribution"))
 
     @property
     def loss_(self) -> str:
-        """Loss function used (R: $loss)."""
+        """
+        Loss function used for parameter estimation (R: $loss).
+
+        The objective function minimized during model fitting. Uses trailing
+        underscore to distinguish from the input parameter and follow
+        scikit-learn convention for fitted attributes.
+
+        Returns
+        -------
+        str
+            Loss function name, one of:
+            - ``"likelihood"``: Maximum likelihood (default)
+            - ``"MSE"``: Mean Squared Error
+            - ``"MAE"``: Mean Absolute Error
+            - ``"HAM"``: Half Absolute Moment
+            - ``"LASSO"``: L1 regularization
+            - ``"RIDGE"``: L2 regularization
+            - ``"GTMSE"``: Geometric Trace MSE
+            - ``"GPL"``: Generalized Predictive Likelihood
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        loss_value : The optimized loss function value
+        distribution_ : Error distribution used
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", loss="MAE")
+        >>> model.fit(y)
+        >>> print(model.loss_)
+        'MAE'
+        """
         self._check_is_fitted()
         return self._general.get("loss")
 
