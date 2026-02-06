@@ -143,10 +143,13 @@
 <dl class="py property">
 <dt class="sig sig-object py" id="smooth.ES.model_type">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ES.</span></span><span class="sig-name descname"><span class="pre">model_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#smooth.ES.model_type" title="Link to this definition"></a></dt>
-<dd><p>Return ETS model type (e.g., ‘AAN’, ‘AAA’, ‘MAdM’).</p>
+<dd><p>Return ETS model type code (e.g., ‘AAN’, ‘AAA’, ‘MAdM’).</p>
+<p>Returns just the three/four-letter ETS code, not the full model name.
+For the full model name including ARIMA orders and X indicator,
+use <code class="docutils literal notranslate"><span class="pre">model_name</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Three-letter ETS model code where:
+<dd class="field-odd"><p>ETS model code where:
 - First letter: Error type (A/M)
 - Second letter: Trend type (N/A/Ad/M/Md)
 - Third letter: Seasonal type (N/A/M)</p>
