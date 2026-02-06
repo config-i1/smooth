@@ -21,7 +21,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="smooth.ES.fit" href="smooth.ES.fit.html" />
-    <link rel="prev" title="smooth.ADAM.summary" href="smooth.ADAM.summary.html" /> 
+    <link rel="prev" title="smooth.ADAM.transition" href="smooth.ADAM.transition.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,21 +46,47 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.html">smooth.ADAM</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">smooth.ES</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#smooth.ES"><code class="docutils literal notranslate"><span class="pre">ES</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.persistence_level_"><code class="docutils literal notranslate"><span class="pre">ES.persistence_level_</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.persistence_trend_"><code class="docutils literal notranslate"><span class="pre">ES.persistence_trend_</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.persistence_seasonal_"><code class="docutils literal notranslate"><span class="pre">ES.persistence_seasonal_</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.phi_"><code class="docutils literal notranslate"><span class="pre">ES.phi_</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.initial_states_"><code class="docutils literal notranslate"><span class="pre">ES.initial_states_</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.model_type_dict"><code class="docutils literal notranslate"><span class="pre">ES.model_type_dict</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#smooth.ES.ic_selection"><code class="docutils literal notranslate"><span class="pre">ES.ic_selection</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#smooth.ES"><code class="docutils literal notranslate"><span class="pre">ES</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.fit.html">smooth.ES.fit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.predict.html">smooth.ES.predict</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.predict_intervals.html">smooth.ES.predict_intervals</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.select_best_model.html">smooth.ES.select_best_model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.summary.html">smooth.ES.summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.actuals.html">smooth.ES.actuals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.aic.html">smooth.ES.aic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.aicc.html">smooth.ES.aicc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.b_value.html">smooth.ES.b_value</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.bic.html">smooth.ES.bic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.bicc.html">smooth.ES.bicc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.coef.html">smooth.ES.coef</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.constant_value.html">smooth.ES.constant_value</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.data.html">smooth.ES.data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.distribution_.html">smooth.ES.distribution_</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.error_type.html">smooth.ES.error_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.fitted.html">smooth.ES.fitted</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.holdout_data.html">smooth.ES.holdout_data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.initial_type.html">smooth.ES.initial_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.initial_value.html">smooth.ES.initial_value</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.lags_used.html">smooth.ES.lags_used</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.loglik.html">smooth.ES.loglik</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.loss_.html">smooth.ES.loss_</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.loss_value.html">smooth.ES.loss_value</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.measurement.html">smooth.ES.measurement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.model_name.html">smooth.ES.model_name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.model_type.html">smooth.ES.model_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.n_param.html">smooth.ES.n_param</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.nobs.html">smooth.ES.nobs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.nparam.html">smooth.ES.nparam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.orders.html">smooth.ES.orders</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.persistence_vector.html">smooth.ES.persistence_vector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.phi_.html">smooth.ES.phi_</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.profile.html">smooth.ES.profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.residuals.html">smooth.ES.residuals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.scale.html">smooth.ES.scale</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.sigma.html">smooth.ES.sigma</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.states.html">smooth.ES.states</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.time_elapsed.html">smooth.ES.time_elapsed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.transition.html">smooth.ES.transition</a></li>
 </ul>
 </li>
 </ul>
@@ -174,83 +200,13 @@ Length should be (seasonal_period - 1) for each seasonal component.</p></li>
 </ul>
 </dd>
 </dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="smooth.ES.persistence_level_">
-<span class="sig-name descname"><span class="pre">persistence_level_</span></span><a class="headerlink" href="#smooth.ES.persistence_level_" title="Link to this definition"></a></dt>
-<dd><p>Estimated level smoothing parameter (alpha).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="smooth.ADAM.html#smooth.ADAM" title="smooth.ADAM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ADAM</span></code></a></dt><dd><p>Parent class with full attribute documentation including <code class="docutils literal notranslate"><span class="pre">persistence_vector</span></code>, <code class="docutils literal notranslate"><span class="pre">states</span></code>, <code class="docutils literal notranslate"><span class="pre">fitted</span></code>, <code class="docutils literal notranslate"><span class="pre">residuals</span></code>, <code class="docutils literal notranslate"><span class="pre">phi_</span></code>, <code class="docutils literal notranslate"><span class="pre">coef</span></code>, and all other properties.</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="smooth.ES.persistence_trend_">
-<span class="sig-name descname"><span class="pre">persistence_trend_</span></span><a class="headerlink" href="#smooth.ES.persistence_trend_" title="Link to this definition"></a></dt>
-<dd><p>Estimated trend smoothing parameter (beta).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="smooth.ES.persistence_seasonal_">
-<span class="sig-name descname"><span class="pre">persistence_seasonal_</span></span><a class="headerlink" href="#smooth.ES.persistence_seasonal_" title="Link to this definition"></a></dt>
-<dd><p>Estimated seasonal smoothing parameter(s) (gamma).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[float]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="smooth.ES.phi_">
-<span class="sig-name descname"><span class="pre">phi_</span></span><a class="headerlink" href="#smooth.ES.phi_" title="Link to this definition"></a></dt>
-<dd><p>Estimated damping parameter.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="smooth.ES.initial_states_">
-<span class="sig-name descname"><span class="pre">initial_states_</span></span><a class="headerlink" href="#smooth.ES.initial_states_" title="Link to this definition"></a></dt>
-<dd><p>Estimated initial states.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>NDArray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="smooth.ES.model_type_dict">
-<span class="sig-name descname"><span class="pre">model_type_dict</span></span><a class="headerlink" href="#smooth.ES.model_type_dict" title="Link to this definition"></a></dt>
-<dd><p>Complete model specification.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="smooth.ES.ic_selection">
-<span class="sig-name descname"><span class="pre">ic_selection</span></span><a class="headerlink" href="#smooth.ES.ic_selection" title="Link to this definition"></a></dt>
-<dd><p>Information criterion value of fitted model.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
+</div>
 <p class="rubric">Examples</p>
 <p>Simple exponential smoothing:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">smooth.adam_general.core.es</span><span class="w"> </span><span class="kn">import</span> <span class="n">ES</span>
@@ -264,7 +220,7 @@ Length should be (seasonal_period - 1) for each seasonal component.</p></li>
 <p>Holt-Winters with automatic model selection:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ES</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;ZZZ&quot;</span><span class="p">,</span> <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">12</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Selected model: </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">model_type_dict</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Selected model: </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Damped trend model:</p>
@@ -281,7 +237,8 @@ Length should be (seasonal_period - 1) for each seasonal component.</p></li>
 </div>
 <p class="rubric">References</p>
 <ul class="simple">
-<li><p>Svetunkov, I. (2023). Forecasting and Analytics with the Augmented Dynamic Adaptive Model. <a class="reference external" href="https://openforecast.org/adam/">https://openforecast.org/adam/</a></p></li>
+<li><p>Svetunkov, I. (2023). Forecasting and Analytics with the
+Augmented Dynamic Adaptive Model. <a class="reference external" href="https://openforecast.org/adam/">https://openforecast.org/adam/</a></p></li>
 <li><p>Hyndman, R.J., et al. (2008). “Forecasting with Exponential Smoothing”</p></li>
 </ul>
 <div class="admonition seealso">
@@ -313,13 +270,123 @@ Length should be (seasonal_period - 1) for each seasonal component.</p></li>
 </tr>
 </tbody>
 </table>
+<p class="rubric">Attributes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.actuals.html#smooth.ES.actuals" title="smooth.ES.actuals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">actuals</span></code></a></p></td>
+<td><p>Return original in-sample data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.aic.html#smooth.ES.aic" title="smooth.ES.aic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aic</span></code></a></p></td>
+<td><p>Return Akaike Information Criterion.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.aicc.html#smooth.ES.aicc" title="smooth.ES.aicc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aicc</span></code></a></p></td>
+<td><p>Return corrected Akaike Information Criterion.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.b_value.html#smooth.ES.b_value" title="smooth.ES.b_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">b_value</span></code></a></p></td>
+<td><p>$B).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.bic.html#smooth.ES.bic" title="smooth.ES.bic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bic</span></code></a></p></td>
+<td><p>Return Bayesian Information Criterion.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.bicc.html#smooth.ES.bicc" title="smooth.ES.bicc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bicc</span></code></a></p></td>
+<td><p>Return corrected Bayesian Information Criterion.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.coef.html#smooth.ES.coef" title="smooth.ES.coef"><code class="xref py py-obj docutils literal notranslate"><span class="pre">coef</span></code></a></p></td>
+<td><p>Return estimated coefficients (parameter vector B).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.constant_value.html#smooth.ES.constant_value" title="smooth.ES.constant_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">constant_value</span></code></a></p></td>
+<td><p>$constant).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.data.html#smooth.ES.data" title="smooth.ES.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a></p></td>
+<td><p>$data).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.distribution_.html#smooth.ES.distribution_" title="smooth.ES.distribution_"><code class="xref py py-obj docutils literal notranslate"><span class="pre">distribution_</span></code></a></p></td>
+<td><p>$distribution).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.error_type.html#smooth.ES.error_type" title="smooth.ES.error_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">error_type</span></code></a></p></td>
+<td><p>'A' (additive) or 'M' (multiplicative).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.fitted.html#smooth.ES.fitted" title="smooth.ES.fitted"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fitted</span></code></a></p></td>
+<td><p>Return in-sample fitted values.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.holdout_data.html#smooth.ES.holdout_data" title="smooth.ES.holdout_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">holdout_data</span></code></a></p></td>
+<td><p>$holdout).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.initial_type.html#smooth.ES.initial_type" title="smooth.ES.initial_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_type</span></code></a></p></td>
+<td><p>$initialType).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.initial_value.html#smooth.ES.initial_value" title="smooth.ES.initial_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_value</span></code></a></p></td>
+<td><p>$initial).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.lags_used.html#smooth.ES.lags_used" title="smooth.ES.lags_used"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lags_used</span></code></a></p></td>
+<td><p>Return the vector of lags used in the model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.loglik.html#smooth.ES.loglik" title="smooth.ES.loglik"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loglik</span></code></a></p></td>
+<td><p>Return log-likelihood of the fitted model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.loss_.html#smooth.ES.loss_" title="smooth.ES.loss_"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss_</span></code></a></p></td>
+<td><p>$loss).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.loss_value.html#smooth.ES.loss_value" title="smooth.ES.loss_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss_value</span></code></a></p></td>
+<td><p>$lossValue).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.measurement.html#smooth.ES.measurement" title="smooth.ES.measurement"><code class="xref py py-obj docutils literal notranslate"><span class="pre">measurement</span></code></a></p></td>
+<td><p>$measurement).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.model_name.html#smooth.ES.model_name" title="smooth.ES.model_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_name</span></code></a></p></td>
+<td><p>Return full model name string.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.model_type.html#smooth.ES.model_type" title="smooth.ES.model_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_type</span></code></a></p></td>
+<td><p>Return ETS model type (e.g., 'AAN', 'AAA', 'MAdM').</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.n_param.html#smooth.ES.n_param" title="smooth.ES.n_param"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_param</span></code></a></p></td>
+<td><p>$nParam).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.nobs.html#smooth.ES.nobs" title="smooth.ES.nobs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nobs</span></code></a></p></td>
+<td><p>Return number of observations used for fitting.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.nparam.html#smooth.ES.nparam" title="smooth.ES.nparam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nparam</span></code></a></p></td>
+<td><p>Return number of estimated parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.orders.html#smooth.ES.orders" title="smooth.ES.orders"><code class="xref py py-obj docutils literal notranslate"><span class="pre">orders</span></code></a></p></td>
+<td><p>Return ARIMA orders as dict with 'ar', 'i', 'ma' keys.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.persistence_vector.html#smooth.ES.persistence_vector" title="smooth.ES.persistence_vector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">persistence_vector</span></code></a></p></td>
+<td><p>$persistence).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.phi_.html#smooth.ES.phi_" title="smooth.ES.phi_"><code class="xref py py-obj docutils literal notranslate"><span class="pre">phi_</span></code></a></p></td>
+<td><p>$phi).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.profile.html#smooth.ES.profile" title="smooth.ES.profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">profile</span></code></a></p></td>
+<td><p>$profile).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.residuals.html#smooth.ES.residuals" title="smooth.ES.residuals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">residuals</span></code></a></p></td>
+<td><p>Return model residuals (errors from fitting).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.scale.html#smooth.ES.scale" title="smooth.ES.scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scale</span></code></a></p></td>
+<td><p>$scale).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.sigma.html#smooth.ES.sigma" title="smooth.ES.sigma"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sigma</span></code></a></p></td>
+<td><p>Return scale/standard error estimate.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.states.html#smooth.ES.states" title="smooth.ES.states"><code class="xref py py-obj docutils literal notranslate"><span class="pre">states</span></code></a></p></td>
+<td><p>$states).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.time_elapsed.html#smooth.ES.time_elapsed" title="smooth.ES.time_elapsed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_elapsed</span></code></a></p></td>
+<td><p>Time taken to fit the model in seconds.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.transition.html#smooth.ES.transition" title="smooth.ES.transition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transition</span></code></a></p></td>
+<td><p>$transition).</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="smooth.ADAM.summary.html" class="btn btn-neutral float-left" title="smooth.ADAM.summary" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="smooth.ADAM.transition.html" class="btn btn-neutral float-left" title="smooth.ADAM.transition" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="smooth.ES.fit.html" class="btn btn-neutral float-right" title="smooth.ES.fit" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

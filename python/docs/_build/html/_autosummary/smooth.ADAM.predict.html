@@ -101,9 +101,10 @@
 <dt class="sig sig-object py" id="smooth.ADAM.predict">
 <span class="sig-prename descclassname"><span class="pre">ADAM.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calculate_intervals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parametric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">side</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'both'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#smooth.ADAM.predict" title="Link to this definition"></a></dt>
 <dd><p>Generate point forecasts using the fitted ADAM model.</p>
-<p>If <cite>calculate_intervals</cite> is True, prediction intervals are also computed
-and stored in <cite>self.forecast_results</cite> but only point forecasts are returned by this method.
-Use <cite>predict_intervals</cite> to get the intervals directly.</p>
+<p>If <cite>calculate_intervals</cite> is True, prediction intervals are also
+computed and stored in <cite>self._forecast_results</cite> but only point
+forecasts are returned by this method. Use <cite>predict_intervals</cite>
+to get the intervals directly.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -111,8 +112,9 @@ Use <cite>predict_intervals</cite> to get the intervals directly.</p>
 <li><p><strong>X</strong> (<em>Optional</em><em>[</em><em>NDArray</em><em>]</em><em>, </em><em>default=None</em>) – Exogenous variables for the forecast period.
 Ensure that X covers the entire forecast horizon <cite>h</cite>.</p></li>
 <li><p><strong>calculate_intervals</strong> (<em>bool</em><em>, </em><em>default=True</em>) – Whether to calculate prediction intervals along with point forecasts.
-The intervals are stored in <cite>self.forecast_results</cite>.</p></li>
-<li><p><strong>interval_method</strong> (<em>Optional</em><em>[</em><em>Literal</em><em>[</em><em>'parametric'</em><em>, </em><em>'simulation'</em><em>, </em><em>'bootstrap'</em><em>]</em><em>]</em><em>, </em><em>default='parametric'</em>) – Method to calculate prediction intervals:
+The intervals are stored in <cite>self._forecast_results</cite>.</p></li>
+<li><p><strong>interval_method</strong> (<em>Optional</em><em>[</em><em>Literal</em><em>[</em><em>'parametric'</em><em>, </em><em>'simulation'</em><em>, </em><em>'bootstrap'</em><em>]</em><em>]</em><em>,</em>) – default=’parametric’
+Method to calculate prediction intervals:
 - ‘parametric’: Assumes a known distribution for errors.
 - ‘simulation’: Simulates future paths to derive intervals.
 - ‘bootstrap’: Uses bootstrapping techniques.
