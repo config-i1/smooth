@@ -895,8 +895,10 @@ class ADAM:
 
             model_parts = []
             is_ets = self._model_type.get("ets_model", False)
+            has_xreg = self._explanatory.get("xreg_model", False)
             if is_ets:
-                model_parts.append(f"ETS({ets_str})")
+                ets_prefix = "ETSX" if has_xreg else "ETS"
+                model_parts.append(f"{ets_prefix}({ets_str})")
 
             is_arima = self._model_type.get("arima_model", False)
             if is_arima and self._arima:
@@ -1833,12 +1835,16 @@ class ADAM:
     @property
     def model_type(self) -> str:
         """
-        Return ETS model type (e.g., 'AAN', 'AAA', 'MAdM').
+        Return ETS model type code (e.g., 'AAN', 'AAA', 'MAdM').
+
+        Returns just the three/four-letter ETS code, not the full model name.
+        For the full model name including ARIMA orders and X indicator,
+        use ``model_name``.
 
         Returns
         -------
         str
-            Three-letter ETS model code where:
+            ETS model code where:
             - First letter: Error type (A/M)
             - Second letter: Trend type (N/A/Ad/M/Md)
             - Third letter: Seasonal type (N/A/M)
@@ -1855,10 +1861,7 @@ class ADAM:
         >>> selected_type = model.model_type  # e.g., 'AAN'
         """
         self._check_is_fitted()
-        model = self._model_type.get("model", "")
-        if "(" in model and ")" in model:
-            return model[model.index("(") + 1 : model.index(")")]
-        return model
+        return self._model_type.get("model", "")
 
     @property
     def orders(self) -> Dict[str, List[int]]:
@@ -1896,15 +1899,16 @@ class ADAM:
     @property
     def model_name(self) -> str:
         """
-        Return full model name string.
+        Return full model name string (R: modelName()).
 
-        Returns the complete model specification string, e.g.,
-        'ETS(AAN)' or 'ETS(AAA)+ARIMA(1,1,1)'.
+        Returns the complete model specification including ETS type,
+        ARIMA orders, and X indicator for regressors.
 
         Returns
         -------
         str
-            Full model name.
+            Full model name, e.g., 'ETS(AAN)', 'ETS(AAA)+ARIMA(1,1,1)',
+            or 'ETSX(MAN)' when regressors are included.
 
         Raises
         ------
@@ -1918,7 +1922,7 @@ class ADAM:
         >>> name = model.model_name  # 'ETS(AAN)'
         """
         self._check_is_fitted()
-        return self._model_type.get("model", "")
+        return self.model
 
     @property
     def lags_used(self) -> List[int]:
