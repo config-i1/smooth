@@ -4716,7 +4716,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
             modelReturned$models[[i]]$model <- modelName;
             modelReturned$models[[i]]$timeElapsed <- Sys.time()-startTime;
-            parametersNumberOverall[1,1] <- parametersNumber[1,1] + parametersNumber[1,1] * adamSelected$icWeights[i];
             if(!is.null(xregData) && !is.null(ncol(data))){
                 modelReturned$models[[i]]$data <- data[1:obsInSample,,drop=FALSE];
                 if(holdout){
@@ -4840,6 +4839,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             modelReturned$residuals[yNAValues[1:obsInSample]] <- NA;
         }
         modelReturned$forecast <- ts(yForecastCombined,start=yForecastStart, frequency=yFrequency);
+        # Weighted estimated parameters minus scale
+        parametersNumberOverall[1,1] <- (sapply(modelReturned$models, nparam)-(loss=="likelihood")*1) %*% adamSelected$icWeights;
         parametersNumberOverall[1,5] <- sum(parametersNumberOverall[1,1:4]);
         parametersNumberOverall[2,5] <- sum(parametersNumberOverall[2,1:4]);
         modelReturned$nParam <- parametersNumberOverall;
