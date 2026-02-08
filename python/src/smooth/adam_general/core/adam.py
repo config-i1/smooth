@@ -367,9 +367,7 @@ class ADAM:
         # Parameters moved from fit
         h: Optional[int] = None,
         holdout: bool = False,
-        model_do: Literal["estimate", "select", "combine"] = "estimate",
         fast: bool = False,
-        models_pool: Optional[List[Dict[str, Any]]] = None,
         lambda_param: Optional[float] = None,
         frequency: Optional[str] = None,
         # Profile parameters
@@ -446,15 +444,8 @@ class ADAM:
             Forecast horizon. If None during initialization, can be set in `predict`.
         holdout : bool, default=False
             Whether to use a holdout sample for validation during the fit process.
-        model_do : Literal["estimate", "select", "combine"], default="estimate"
-            Action to perform:
-            - "estimate": Estimate a single specified model.
-            - "select": Select the best model from a pool or based on components.
-            - "combine": Combine forecasts from multiple models (Not Implemented).
         fast : bool, default=False
             Whether to use faster, possibly less accurate, estimation methods.
-        models_pool : Optional[List[Dict[str, Any]]], default=None
-            A pool of model configurations for selection or combination.
         lambda_param : Optional[float], default=None
             Lambda parameter for Box-Cox transformation or regularization.
         frequency : Optional[str], default=None
@@ -552,9 +543,7 @@ class ADAM:
         # Store parameters that were moved from fit
         self.h = h
         self.holdout = holdout
-        self.model_do = model_do
         self.fast = fast
-        self.models_pool = models_pool
         # Handle 'lambda' from kwargs (since 'lambda' is a reserved word in Python)
         # Users can pass either lambda_param=0.5 or **{'lambda': 0.5}
         if "lambda" in kwargs:
@@ -859,7 +848,6 @@ class ADAM:
             "lambda_param": self.lambda_param,
             "frequency": self.frequency,
             "fast": self.fast,
-            "models_pool": self.models_pool,
             "holdout": self.holdout,
         }
         for key in self._config:
@@ -2254,9 +2242,7 @@ class ADAM:
             ic=self.ic,
             bounds=self.bounds,
             silent=(self.verbose == 0),
-            model_do=self.model_do,
             fast=self.fast,
-            models_pool=self.models_pool,
             lambda_param=self.lambda_param,
             frequency=self.frequency,
         )

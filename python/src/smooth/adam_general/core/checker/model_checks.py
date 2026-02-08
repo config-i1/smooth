@@ -567,8 +567,55 @@ def _check_ets_model(model, distribution, data, silent=False, max_lag=1):
     dict
         Dictionary with ETS model information
     """
+    # Determine if multiplicative models are allowed
+    data_arr = np.array(data)
+    allow_multiplicative = not np.any(np.asarray(data_arr) <= 0)
+
+    # Handle list/tuple of model strings (R: model=c("ANN","AAN","AAA"))
+    if isinstance(model, (list, tuple)):
+        # Check if these are ETS model strings (3-4 chars each)
+        all_ets = all(isinstance(m, str) and len(m) in (3, 4) for m in model)
+        if not all_ets:
+            # Not ETS model strings — treat as ARIMA orders
+            return {
+                "ets_model": False,
+                "model": "ANN",
+                "error_type": "A",
+                "trend_type": "N",
+                "season_type": "N",
+                "damped": False,
+                "allow_multiplicative": allow_multiplicative,
+            }
+
+        # Separate combination ("C") models from regular ones
+        has_combiner = [any(c == "C" for c in m) for m in model]
+        regular_pool = [m for m, is_c in zip(model, has_combiner) if not is_c]
+        regular_pool = list(dict.fromkeys(regular_pool))  # unique, order-preserved
+
+        if any(has_combiner):
+            # If any combination models, infer base as CCC/CCN
+            base_model = "CCC" if any(m[-1] != "N" for m in model) else "CCN"
+        else:
+            # Infer base model: fix components that are uniform across pool
+            base_model = ["Z", "Z", "Z"]
+            if all(m[-1] == "N" for m in regular_pool):
+                base_model[2] = "N"
+            if all(m[1] == "N" for m in regular_pool):
+                base_model[1] = "N"
+            base_model = "".join(base_model)
+
+        # Parse the inferred base model normally
+        model_info = _check_model_composition(
+            base_model, allow_multiplicative, silent, max_lag
+        )
+        # Override models_pool with the user-provided list
+        model_info["models_pool"] = regular_pool if regular_pool else None
+        model_info["ets_model"] = True
+        model_info["allow_multiplicative"] = allow_multiplicative
+        return model_info
+
     # If ARIMA, return default ETS off settings
-    if isinstance(model, (list, tuple)) or model in ["auto.arima", "ARIMA"]:
+    if model in ["auto.arima", "ARIMA"]:
         return {
             "ets_model": False,
             "model": "ANN",
@@ -576,12 +623,8 @@ def _check_ets_model(model, distribution, data, silent=False, max_lag=1):
             "trend_type": "N",
             "season_type": "N",
             "damped": False,
-            "allow_multiplicative": True,
+            "allow_multiplicative": allow_multiplicative,
         }
-
-    # Determine if multiplicative models are allowed
-    data_arr = np.array(data)
-    allow_multiplicative = not np.any(np.asarray(data_arr) <= 0)
 
     # Check if pure ARIMA is requested (not hybrid)
     if isinstance(model, str) and model.upper() in ["ARIMA", "AUTO.ARIMA"]:

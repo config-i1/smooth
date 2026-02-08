@@ -228,11 +228,10 @@ class TestADAMCombinationEdgeCases:
         assert len(forecast["mean"]) == 12
 
     def test_custom_models_pool(self, simple_series):
-        """Test that custom models_pool works correctly."""
-        custom_pool = ["ANN", "AAN", "MNN"]
-        model = ADAM(model="ZZZ", lags=[1], models_pool=custom_pool)
+        """Test that a list of models selects the best one."""
+        model = ADAM(model=["ANN", "AAN", "MNN"], lags=[1])
         model.fit(simple_series)
 
-        # Best model should be one from the custom pool (with ETS prefix)
-        expected_models = [f"ETS({m})" for m in custom_pool]
+        # Best model should be one from the pool (with ETS prefix)
+        expected_models = [f"ETS({m})" for m in ["ANN", "AAN", "MNN"]]
         assert model.model in expected_models
