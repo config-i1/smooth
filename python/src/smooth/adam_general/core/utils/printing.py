@@ -487,11 +487,66 @@ def _format_forecast_errors(errors: Dict[str, float], digits: int = 3) -> str:
     return "\n".join(lines)
 
 
+def model_summary_combined(model: Any, digits: int = 4) -> str:
+    """
+    Generate a formatted summary for a combined ADAM model.
+
+    This function produces output for models fitted with combination
+    (e.g., model="CCC"), showing the number of models combined and
+    their average number of parameters.
+
+    Parameters
+    ----------
+    model : ADAM
+        Fitted combined ADAM model instance
+    digits : int, default=4
+        Number of decimal places for numeric output
+
+    Returns
+    -------
+    str
+        Formatted combined model summary string
+    """
+    lines = []
+
+    # Time elapsed
+    if hasattr(model, "time_elapsed_"):
+        lines.append(f"Time elapsed: {model.time_elapsed_:.2f} seconds")
+
+    # Model type - show original model spec (e.g., "CCC")
+    model_name = _get_model_name(model)
+    lines.append(f"Model estimated: {model_name}")
+    lines.append("Loss function type: likelihood")
+    lines.append("")
+
+    # Number of models in the pool (all models stored, filtering at predict-time)
+    n_models = len(model._prepared_models)
+    lines.append(f"Number of models combined: {n_models}")
+
+    # Sample size
+    nobs = _get_nobs(model)
+    lines.append(f"Sample size: {nobs}")
+
+    # Average number of parameters (weighted)
+    if hasattr(model, "_n_param") and model._n_param:
+        avg_params = model._n_param.estimated["all"]
+    else:
+        avg_params = getattr(model, "_n_param_combined", 0)
+    lines.append(f"Average number of estimated parameters: {avg_params:.{digits}f}")
+
+    # Average degrees of freedom
+    avg_df = nobs - avg_params
+    lines.append(f"Average number of degrees of freedom: {avg_df:.{digits}f}")
+
+    return "\n".join(lines)
+
+
 def model_summary(model: Any, digits: int = 4) -> str:
     """
     Generate a formatted summary of a fitted ADAM model.
 
     This function produces output similar to R's print.adam() method.
+    For combined models (model="CCC"), dispatches to model_summary_combined().
 
     Parameters
     ----------
@@ -512,6 +567,10 @@ def model_summary(model: Any, digits: int = 4) -> str:
     >>> model.fit(y)
     >>> print(model_summary(model))
     """
+    # Dispatch to combined summary if this is a combined model
+    if getattr(model, "_is_combined", False):
+        return model_summary_combined(model, digits)
+
     lines = []
 
     # Time elapsed

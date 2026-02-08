@@ -313,7 +313,9 @@ def _check_model_composition(
         model_do = "select"
 
     # Handle model selection/combination mode
-    if "C" in [error_type, trend_type, season_type]:
+    # Track if combination was requested (to avoid overriding later)
+    is_combination = "C" in [error_type, trend_type, season_type]
+    if is_combination:
         model_do = "combine"
         # Replace C with Z for actual fitting
         if error_type == "C":
@@ -393,7 +395,9 @@ def _check_model_composition(
     elif any(
         c in ["Z", "X", "Y", "F", "P"] for c in [error_type, trend_type, season_type]
     ):
-        model_do = "select"
+        # Don't override "combine" mode - only set to "select" if not already combining
+        if not is_combination:
+            model_do = "select"
 
     # Handle multiplicative restrictions
     if not allow_multiplicative:
