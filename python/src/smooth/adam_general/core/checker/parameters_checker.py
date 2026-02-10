@@ -49,9 +49,7 @@ def parameters_checker(
     ic="AICc",
     bounds="usual",
     silent=False,
-    model_do="estimate",
     fast=False,
-    models_pool=None,
     lambda_param=None,
     frequency=None,
     interval="parametric",
@@ -357,26 +355,11 @@ def parameters_checker(
         - ``False``: Display warnings about model specification issues
         - ``True``: Silent mode (no warnings)
 
-    model_do : str, default="estimate"
-        Action to perform with the model.
-
-        - **"estimate"**: Estimate specified model
-        - **"select"**: Automatic model selection from pool
-        - **"combine"**: Combine forecasts from multiple models (*not implemented yet*)
-
     fast : bool, default=False
         Whether to use faster (but possibly less accurate) estimation.
 
         - ``False``: Standard estimation
         - ``True``: Reduced accuracy for speed (fewer iterations, looser tolerances)
-
-    models_pool : list of str or None, default=None
-        Custom pool of models for selection (when model_do="select").
-
-        Example: ``models_pool=["ANN", "AAN", "AAdN", "AAA"]``
-
-        If None, pool is generated automatically based on model specification
-        (e.g., "ZXZ" generates appropriate pool).
 
     lambda_param : float or None, default=None
         Regularization parameter for LASSO/RIDGE losses.
@@ -559,6 +542,7 @@ def parameters_checker(
     #####################
     ets_info = _check_ets_model(model, distribution, data, silent, max_lag)
     ets_model = ets_info["ets_model"]
+    model_do = ets_info.get("model_do", "estimate")
 
     #####################
     # 4) Check ARIMA
@@ -727,9 +711,7 @@ def parameters_checker(
         error_type=ets_info["error_type"],
         trend_type=ets_info["trend_type"],
         season_type=ets_info["season_type"],
-        models_pool=models_pool
-        if models_pool is not None
-        else ets_info.get("models_pool"),
+        models_pool=ets_info.get("models_pool"),
         allow_multiplicative=allow_multiplicative,
         xreg_number=0,  # Will be updated when xreg is implemented
         silent=silent,
@@ -800,8 +782,6 @@ def parameters_checker(
     # Update models_pool from restriction
     if pool_restriction["models_pool"] is not None:
         model_type_dict["models_pool"] = pool_restriction["models_pool"]
-    elif models_pool is not None:
-        model_type_dict["models_pool"] = models_pool
 
     # Components info
     components_dict = _organize_components_info(
@@ -898,7 +878,6 @@ def parameters_checker(
         "bounds": bounds,
         "model_do": model_do,
         "fast": fast,
-        "models_pool": models_pool,
         "interval": interval,
         "interval_level": interval_level,
         "side": side,

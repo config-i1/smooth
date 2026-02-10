@@ -13,7 +13,8 @@ from smooth.adam_general.core.estimator import (
     selector,
 )
 from smooth.adam_general.core.forecaster import forecaster, preparator
-from smooth.adam_general.core.utils.ic import ic_function
+from smooth.adam_general.core.utils.ic import calculate_ic_weights, ic_function
+from smooth.adam_general.core.utils.n_param import NParam
 
 # Note: adam_cpp instance is stored in self and passed to forecasting functions
 
@@ -366,9 +367,7 @@ class ADAM:
         # Parameters moved from fit
         h: Optional[int] = None,
         holdout: bool = False,
-        model_do: Literal["estimate", "select", "combine"] = "estimate",
         fast: bool = False,
-        models_pool: Optional[List[Dict[str, Any]]] = None,
         lambda_param: Optional[float] = None,
         frequency: Optional[str] = None,
         # Profile parameters
@@ -445,15 +444,8 @@ class ADAM:
             Forecast horizon. If None during initialization, can be set in `predict`.
         holdout : bool, default=False
             Whether to use a holdout sample for validation during the fit process.
-        model_do : Literal["estimate", "select", "combine"], default="estimate"
-            Action to perform:
-            - "estimate": Estimate a single specified model.
-            - "select": Select the best model from a pool or based on components.
-            - "combine": Combine forecasts from multiple models (Not Implemented).
         fast : bool, default=False
             Whether to use faster, possibly less accurate, estimation methods.
-        models_pool : Optional[List[Dict[str, Any]]], default=None
-            A pool of model configurations for selection or combination.
         lambda_param : Optional[float], default=None
             Lambda parameter for Box-Cox transformation or regularization.
         frequency : Optional[str], default=None
@@ -551,9 +543,7 @@ class ADAM:
         # Store parameters that were moved from fit
         self.h = h
         self.holdout = holdout
-        self.model_do = model_do
         self.fast = fast
-        self.models_pool = models_pool
         # Handle 'lambda' from kwargs (since 'lambda' is a reserved word in Python)
         # Users can pass either lambda_param=0.5 or **{'lambda': 0.5}
         if "lambda" in kwargs:
@@ -807,8 +797,14 @@ class ADAM:
             self._execute_estimation(estimation=True)
 
         elif self._model_type["model_do"] == "combine":
-            ...  # I need to implement this
-            raise NotImplementedError("Combine is not implemented yet")
+            # Store original model specification for display (e.g., "CCC")
+            self._original_model_spec = self._model_type.get("model", self.model)
+            # Run model selection first to get all candidate models
+            self._execute_selection()
+            # Combine models using IC weights
+            self._execute_combination()
+            # Execute estimation for the best model (for state-space matrices)
+            self._execute_estimation(estimation=True)
         else:
             model_do = self._model_type["model_do"]
             warnings.warn(
@@ -852,7 +848,6 @@ class ADAM:
             "lambda_param": self.lambda_param,
             "frequency": self.frequency,
             "fast": self.fast,
-            "models_pool": self.models_pool,
             "holdout": self.holdout,
         }
         for key in self._config:
@@ -879,6 +874,11 @@ class ADAM:
                 self.persistence_seasonal_ = self._persistence["persistence_seasonal"]
             if "persistence_xreg" in self._persistence:
                 self.persistence_xreg_ = self._persistence["persistence_xreg"]
+
+        # For combined models, preserve original model specification with ETS prefix
+        if getattr(self, "_is_combined", False):
+            self.model = f"ETS({self._original_model_spec})"
+            return
 
         # Update self.model with the selected/estimated model name
         if self._model_type:
@@ -1489,6 +1489,97 @@ class ADAM:
         return self._general.get("loss")
 
     # =========================================================================
+    # Combined Model Properties
+    # =========================================================================
+
+    @property
+    def is_combined(self) -> bool:
+        """
+        Return True if model is a combination of multiple models.
+
+        Combined models are created using "C" in the model string
+        (e.g., "CCC", "CCN", "ACA"). The combination uses IC weights to
+        combine fitted values and forecasts from all models in the pool.
+
+        Returns
+        -------
+        bool
+            True if the model is a weighted combination of multiple models,
+            False otherwise.
+
+        Examples
+        --------
+        >>> model = ADAM(model="CCC", lags=[1])
+        >>> model.fit(y)
+        >>> model.is_combined  # True
+        """
+        return getattr(self, "_is_combined", False)
+
+    @property
+    def ic_weights(self) -> Dict[str, float]:
+        """
+        Return IC weights for combined models (R: $ICw).
+
+        Akaike weights represent the relative likelihood of each model being
+        the best model given the data. They are used to combine forecasts from
+        multiple models.
+
+        Returns
+        -------
+        Dict[str, float]
+            Dictionary mapping model names to their IC weights. Weights sum to 1.0.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted or was not fitted with combination.
+
+        Examples
+        --------
+        >>> model = ADAM(model="CCC", lags=[1])
+        >>> model.fit(y)
+        >>> weights = model.ic_weights
+        >>> print(f"ANN weight: {weights.get('ANN', 0):.3f}")
+        """
+        self._check_is_fitted()
+        if not getattr(self, "_is_combined", False):
+            raise ValueError("Model was not fitted with combination. Use model='CCC'.")
+        return self._ic_weights
+
+    @property
+    def models(self) -> List[Dict]:
+        """
+        Return list of individual models in the combination (R: $models).
+
+        Each entry contains the model name, its IC weight, and the prepared
+        model data for forecasting.
+
+        Returns
+        -------
+        List[Dict]
+            List of dictionaries containing:
+            - "name": Model name string (e.g., "ANN")
+            - "weight": IC weight for this model
+            - "prepared": Prepared model data for forecasting
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted or was not fitted with combination.
+
+        Examples
+        --------
+        >>> model = ADAM(model="CCC", lags=[1])
+        >>> model.fit(y)
+        >>> for m in model.models:
+        ...     print(f"{m['name']}: {m['weight']:.3f}")
+        """
+        self._check_is_fitted()
+        if not getattr(self, "_is_combined", False):
+            raise ValueError("Model was not fitted with combination. Use model='CCC'.")
+        return self._prepared_models
+
+    # =========================================================================
     # Existing Properties
     # =========================================================================
 
@@ -1496,6 +1587,9 @@ class ADAM:
     def fitted(self) -> NDArray:
         """
         Return in-sample fitted values.
+
+        For combined models (e.g., model="CCC"), returns IC-weighted combination
+        of fitted values from all models in the combination.
 
         Returns
         -------
@@ -1514,6 +1608,8 @@ class ADAM:
         >>> fitted_values = model.fitted
         """
         self._check_is_fitted()
+        if getattr(self, "_is_combined", False):
+            return self._combined_fitted
         return self._prepared["y_fitted"]
 
     @property
@@ -1580,6 +1676,8 @@ class ADAM:
 
         For additive error models, residuals are y_t - fitted_t.
         For multiplicative error models, residuals are y_t / fitted_t - 1.
+        For combined models, returns residuals computed from the IC-weighted
+        combined fitted values: y_t - combined_fitted_t.
 
         Returns
         -------
@@ -1599,6 +1697,8 @@ class ADAM:
         >>> rmse = np.sqrt(np.mean(errors**2))
         """
         self._check_is_fitted()
+        if getattr(self, "_is_combined", False):
+            return self._combined_residuals
         return self._prepared["residuals"]
 
     @property
@@ -2142,9 +2242,7 @@ class ADAM:
             ic=self.ic,
             bounds=self.bounds,
             silent=(self.verbose == 0),
-            model_do=self.model_do,
             fast=self.fast,
-            models_pool=self.models_pool,
             lambda_param=self.lambda_param,
             frequency=self.frequency,
         )
@@ -2285,6 +2383,15 @@ class ADAM:
         # Store number of estimated parameters
         self._n_param_estimated = n_param_estimated
 
+        # Skip updating n_param for combined models (already set in _execute_combination)
+        if getattr(self, "_is_combined", False):
+            # Legacy format for backward compatibility
+            if "parameters_number" not in self._general:
+                self._general["parameters_number"] = self._params_info.get(
+                    "parameters_number", [[0], [0]]
+                )
+            return
+
         # Update the n_param table
         if "n_param" in self._general:
             n_param = self._general["n_param"]
@@ -2404,6 +2511,168 @@ class ADAM:
         self._phi_internal = results[best_id]["phi_dict"]
         self._adam_estimated = results[best_id]["adam_estimated"]
         self._adam_cpp = self._adam_estimated["adam_cpp"]
+
+    def _execute_combination(self):
+        """
+        Execute model combination using IC weights.
+
+        Combines fitted values from multiple models using Akaike weights derived from
+        information criterion values. Each model's contribution is proportional to
+        its relative likelihood of being the best model.
+
+        The combined fitted values are IC-weighted averages across all models.
+        """
+        import copy
+
+        # Get IC weights from selection results
+        self._ic_weights = calculate_ic_weights(self._ic_selection)
+        results = self._adam_selected["results"]
+
+        # Compute filtered weights (>= 0.01) for fitted values calculation only
+        # Full model set is stored; filtering happens at predict-time
+        filtered_weights = {k: v for k, v in self._ic_weights.items() if v >= 0.01}
+        total_filtered = sum(filtered_weights.values())
+        if total_filtered > 0:
+            filtered_weights = {k: v / total_filtered for k, v in filtered_weights.items()}
+
+        # Initialize combined fitted values
+        obs_in_sample = self._observations["obs_in_sample"]
+        y_fitted_combined = np.zeros(obs_in_sample)
+        n_param_weighted = 0.0
+
+        # Store ALL models for later forecasting (filtering happens at predict-time)
+        self._prepared_models = []
+
+        for result in results:
+            model_name = result["model"]
+            original_weight = self._ic_weights.get(model_name, 0)
+            filtered_weight = filtered_weights.get(model_name, 0)
+
+            # Make copies of dicts that get modified by architector
+            lags_dict_copy = copy.deepcopy(self._lags_model)
+            observations_dict_copy = copy.deepcopy(self._observations)
+            model_type_dict = result["model_type_dict"].copy()
+            phi_dict = result["phi_dict"].copy()
+
+            # Call architector to get components for this model
+            (
+                model_type_dict,
+                components_dict,
+                lags_dict_copy,
+                observations_dict_copy,
+                profile_dict,
+                _,
+            ) = architector(
+                model_type_dict=model_type_dict,
+                lags_dict=lags_dict_copy,
+                observations_dict=observations_dict_copy,
+                arima_checked=self._arima,
+                constants_checked=self._constant,
+                explanatory_checked=self._explanatory,
+                profiles_recent_table=self.profiles_recent_table,
+                profiles_recent_provided=self.profiles_recent_provided,
+            )
+
+            # Call creator to build matrices
+            adam_created = creator(
+                model_type_dict=model_type_dict,
+                lags_dict=lags_dict_copy,
+                profiles_dict=profile_dict,
+                observations_dict=observations_dict_copy,
+                persistence_checked=self._persistence,
+                initials_checked=self._initials,
+                arima_checked=self._arima,
+                constants_checked=self._constant,
+                phi_dict=phi_dict,
+                components_dict=components_dict,
+                explanatory_checked=self._explanatory,
+                smoother=self.smoother,
+            )
+
+            # Make copy of general_dict for preparator
+            general_dict_copy = copy.deepcopy(self._general)
+
+            # Ensure distribution_new is set (needed by preparator/scaler)
+            if "distribution_new" not in general_dict_copy:
+                if general_dict_copy.get("distribution") == "default":
+                    if general_dict_copy.get("loss") == "likelihood":
+                        if model_type_dict.get("error_type") == "M":
+                            general_dict_copy["distribution_new"] = "dgamma"
+                        else:
+                            general_dict_copy["distribution_new"] = "dnorm"
+                    else:
+                        general_dict_copy["distribution_new"] = "dnorm"
+                else:
+                    general_dict_copy["distribution_new"] = general_dict_copy.get(
+                        "distribution", "dnorm"
+                    )
+
+            # Call preparator to get fitted values
+            prepared = preparator(
+                model_type_dict=model_type_dict,
+                components_dict=components_dict,
+                lags_dict=lags_dict_copy,
+                matrices_dict=adam_created,
+                persistence_checked=self._persistence,
+                initials_checked=self._initials,
+                arima_checked=self._arima,
+                explanatory_checked=self._explanatory,
+                phi_dict=phi_dict,
+                constants_checked=self._constant,
+                observations_dict=observations_dict_copy,
+                occurrence_dict=self._occurrence,
+                general_dict=general_dict_copy,
+                profiles_dict=profile_dict,
+                adam_estimated=result["adam_estimated"],
+                adam_cpp=result["adam_estimated"]["adam_cpp"],
+            )
+
+            # Get fitted values and handle NaN
+            fitted_values = np.asarray(prepared["y_fitted"]).flatten()
+            fitted_values = np.nan_to_num(fitted_values, nan=0.0)
+
+            # Add IC-weighted contribution (using filtered weight for fitted values)
+            y_fitted_combined += fitted_values * filtered_weight
+            n_param_weighted += (
+                result["adam_estimated"]["n_param_estimated"] * filtered_weight
+            )
+
+            # Store for later forecasting (using ORIGINAL weight - filtering at predict-time)
+            self._prepared_models.append({
+                "name": model_name,
+                "weight": original_weight,
+                "result": result,
+                "model_type_dict": model_type_dict,
+                "components_dict": components_dict,
+                "lags_dict": lags_dict_copy,
+                "observations_dict": observations_dict_copy,
+                "profile_dict": profile_dict,
+                "phi_dict": phi_dict,
+                "adam_created": adam_created,
+                "prepared": prepared,
+            })
+
+        # Store combined results
+        self._combined_fitted = y_fitted_combined
+        self._combined_residuals = (
+            np.array(self._observations["y_in_sample"]) - y_fitted_combined
+        )
+
+        # Create NParam with weighted average internal params + scale
+        n_param = NParam()
+        n_param.estimated["internal"] = n_param_weighted
+        if self._general.get("loss") == "likelihood":
+            n_param.estimated["scale"] = 1
+        n_param.update_totals()
+        self._n_param = n_param
+        self._general["n_param"] = n_param
+        self._n_param_combined = n_param.estimated["all"]  # Backward compat
+
+        # Mark as combined model
+        self._is_combined = True
+
+        # Use the best model as the primary model for state-space matrices
+        self.select_best_model()
 
     def _update_model_from_selection(self, index, result):
         """
@@ -2778,11 +3047,24 @@ class ADAM:
         """
         Execute the forecasting process based on the prepared data.
 
+        For combined models, runs forecaster for each model with non-zero
+        IC weight and combines the results.
+
         Returns
         -------
         dict
             Forecast results including point forecasts and prediction intervals.
         """
+        # Handle combined models
+        if getattr(self, "_is_combined", False):
+            return self._execute_prediction_combined(
+                calculate_intervals=calculate_intervals,
+                interval_method=interval_method,
+                level=level,
+                side=side,
+            )
+
+        # Standard single-model prediction
         self._forecast_results = forecaster(
             model_prepared=self._prepared,
             observations_dict=self._observations,
@@ -2795,6 +3077,40 @@ class ADAM:
             constants_checked=self._constant,
             params_info=self._params_info,
             adam_cpp=self._adam_cpp,
+            calculate_intervals=calculate_intervals,
+            interval_method=interval_method,
+            level=level,
+            side=side,
+        )
+        return self._forecast_results
+
+    def _execute_prediction_combined(
+        self,
+        calculate_intervals=True,
+        interval_method="parametric",
+        level=0.95,
+        side="both",
+    ):
+        """
+        Execute combined forecasting using IC-weighted model averaging.
+
+        Generates forecasts from all models with non-zero IC weights and
+        combines them using Akaike weights.
+
+        Returns
+        -------
+        pd.DataFrame
+            IC-weighted combined forecast results with 'mean' and interval columns.
+        """
+        from smooth.adam_general.core.forecaster import forecaster_combined
+
+        self._forecast_results = forecaster_combined(
+            prepared_models=self._prepared_models,
+            ic_weights=self._ic_weights,
+            observations_dict=self._observations,
+            general_dict=self._general,
+            occurrence_dict=self._occurrence,
+            params_info=self._params_info,
             calculate_intervals=calculate_intervals,
             interval_method=interval_method,
             level=level,
