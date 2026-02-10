@@ -42,8 +42,10 @@
    ~ADAM.error_type
    ~ADAM.fitted
    ~ADAM.holdout_data
+   ~ADAM.ic_weights
    ~ADAM.initial_type
    ~ADAM.initial_value
+   ~ADAM.is_combined
    ~ADAM.lags_used
    ~ADAM.loglik
    ~ADAM.loss_
@@ -51,6 +53,7 @@
    ~ADAM.measurement
    ~ADAM.model_name
    ~ADAM.model_type
+   ~ADAM.models
    ~ADAM.n_param
    ~ADAM.nobs
    ~ADAM.nparam

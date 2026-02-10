@@ -65,8 +65,10 @@
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.error_type.html">smooth.ES.error_type</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.fitted.html">smooth.ES.fitted</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.holdout_data.html">smooth.ES.holdout_data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.ic_weights.html">smooth.ES.ic_weights</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.initial_type.html">smooth.ES.initial_type</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.initial_value.html">smooth.ES.initial_value</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.is_combined.html">smooth.ES.is_combined</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.lags_used.html">smooth.ES.lags_used</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.loglik.html">smooth.ES.loglik</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.loss_.html">smooth.ES.loss_</a></li>
@@ -74,6 +76,7 @@
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.measurement.html">smooth.ES.measurement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.model_name.html">smooth.ES.model_name</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.model_type.html">smooth.ES.model_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.ES.models.html">smooth.ES.models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.n_param.html">smooth.ES.n_param</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.nobs.html">smooth.ES.nobs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.ES.nparam.html">smooth.ES.nparam</a></li>
@@ -312,11 +315,17 @@ Augmented Dynamic Adaptive Model. <a class="reference external" href="https://op
 <tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.holdout_data.html#smooth.ES.holdout_data" title="smooth.ES.holdout_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">holdout_data</span></code></a></p></td>
 <td><p>$holdout).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.initial_type.html#smooth.ES.initial_type" title="smooth.ES.initial_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_type</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.ic_weights.html#smooth.ES.ic_weights" title="smooth.ES.ic_weights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ic_weights</span></code></a></p></td>
+<td><p>$ICw).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.initial_type.html#smooth.ES.initial_type" title="smooth.ES.initial_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_type</span></code></a></p></td>
 <td><p>$initialType).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.initial_value.html#smooth.ES.initial_value" title="smooth.ES.initial_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_value</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.initial_value.html#smooth.ES.initial_value" title="smooth.ES.initial_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_value</span></code></a></p></td>
 <td><p>$initial).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.is_combined.html#smooth.ES.is_combined" title="smooth.ES.is_combined"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_combined</span></code></a></p></td>
+<td><p>Return True if model is a combination of multiple models.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.lags_used.html#smooth.ES.lags_used" title="smooth.ES.lags_used"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lags_used</span></code></a></p></td>
 <td><p>Return the vector of lags used in the model.</p></td>
@@ -339,43 +348,46 @@ Augmented Dynamic Adaptive Model. <a class="reference external" href="https://op
 <tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.model_type.html#smooth.ES.model_type" title="smooth.ES.model_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_type</span></code></a></p></td>
 <td><p>Return ETS model type code (e.g., 'AAN', 'AAA', 'MAdM').</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.n_param.html#smooth.ES.n_param" title="smooth.ES.n_param"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_param</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.models.html#smooth.ES.models" title="smooth.ES.models"><code class="xref py py-obj docutils literal notranslate"><span class="pre">models</span></code></a></p></td>
+<td><p>$models).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.n_param.html#smooth.ES.n_param" title="smooth.ES.n_param"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_param</span></code></a></p></td>
 <td><p>$nParam).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.nobs.html#smooth.ES.nobs" title="smooth.ES.nobs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nobs</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.nobs.html#smooth.ES.nobs" title="smooth.ES.nobs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nobs</span></code></a></p></td>
 <td><p>Return number of observations used for fitting.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.nparam.html#smooth.ES.nparam" title="smooth.ES.nparam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nparam</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.nparam.html#smooth.ES.nparam" title="smooth.ES.nparam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nparam</span></code></a></p></td>
 <td><p>Return number of estimated parameters.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.orders.html#smooth.ES.orders" title="smooth.ES.orders"><code class="xref py py-obj docutils literal notranslate"><span class="pre">orders</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.orders.html#smooth.ES.orders" title="smooth.ES.orders"><code class="xref py py-obj docutils literal notranslate"><span class="pre">orders</span></code></a></p></td>
 <td><p>Return ARIMA orders as dict with 'ar', 'i', 'ma' keys.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.persistence_vector.html#smooth.ES.persistence_vector" title="smooth.ES.persistence_vector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">persistence_vector</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.persistence_vector.html#smooth.ES.persistence_vector" title="smooth.ES.persistence_vector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">persistence_vector</span></code></a></p></td>
 <td><p>$persistence).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.phi_.html#smooth.ES.phi_" title="smooth.ES.phi_"><code class="xref py py-obj docutils literal notranslate"><span class="pre">phi_</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.phi_.html#smooth.ES.phi_" title="smooth.ES.phi_"><code class="xref py py-obj docutils literal notranslate"><span class="pre">phi_</span></code></a></p></td>
 <td><p>$phi).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.profile.html#smooth.ES.profile" title="smooth.ES.profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">profile</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.profile.html#smooth.ES.profile" title="smooth.ES.profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">profile</span></code></a></p></td>
 <td><p>$profile).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.residuals.html#smooth.ES.residuals" title="smooth.ES.residuals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">residuals</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.residuals.html#smooth.ES.residuals" title="smooth.ES.residuals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">residuals</span></code></a></p></td>
 <td><p>Return model residuals (errors from fitting).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.scale.html#smooth.ES.scale" title="smooth.ES.scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scale</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.scale.html#smooth.ES.scale" title="smooth.ES.scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scale</span></code></a></p></td>
 <td><p>$scale).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.sigma.html#smooth.ES.sigma" title="smooth.ES.sigma"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sigma</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.sigma.html#smooth.ES.sigma" title="smooth.ES.sigma"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sigma</span></code></a></p></td>
 <td><p>Return scale/standard error estimate.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.states.html#smooth.ES.states" title="smooth.ES.states"><code class="xref py py-obj docutils literal notranslate"><span class="pre">states</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.states.html#smooth.ES.states" title="smooth.ES.states"><code class="xref py py-obj docutils literal notranslate"><span class="pre">states</span></code></a></p></td>
 <td><p>$states).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.time_elapsed.html#smooth.ES.time_elapsed" title="smooth.ES.time_elapsed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_elapsed</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.time_elapsed.html#smooth.ES.time_elapsed" title="smooth.ES.time_elapsed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_elapsed</span></code></a></p></td>
 <td><p>Time taken to fit the model in seconds.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.ES.transition.html#smooth.ES.transition" title="smooth.ES.transition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transition</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.ES.transition.html#smooth.ES.transition" title="smooth.ES.transition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transition</span></code></a></p></td>
 <td><p>$transition).</p></td>
 </tr>
 </tbody>

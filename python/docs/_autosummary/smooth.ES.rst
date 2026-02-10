@@ -42,8 +42,10 @@
    ~ES.error_type
    ~ES.fitted
    ~ES.holdout_data
+   ~ES.ic_weights
    ~ES.initial_type
    ~ES.initial_value
+   ~ES.is_combined
    ~ES.lags_used
    ~ES.loglik
    ~ES.loss_
@@ -51,6 +53,7 @@
    ~ES.measurement
    ~ES.model_name
    ~ES.model_type
+   ~ES.models
    ~ES.n_param
    ~ES.nobs
    ~ES.nparam
