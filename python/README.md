@@ -4,7 +4,7 @@
 
 Python implementation of the **smooth** package for time series forecasting using Single Source of Error (SSOE) state-space models.
 
-![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python.png?raw=true)
+![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
 
 **Status:** Work in progress
 
