@@ -1,6 +1,5 @@
 """ForecastResult: structured container for ADAM forecasts."""
 
-import numpy as np
 import pandas as pd
 
 
