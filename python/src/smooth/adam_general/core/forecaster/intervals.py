@@ -675,13 +675,9 @@ def generate_simulation_interval(
             else:
                 y_forecast_sim[i] = np.mean(y_simulated[i, :])
 
-            # Use R's type=7 quantile (linear interpolation)
-            y_lower[i] = np.quantile(
-                y_simulated[i, :], level_low, interpolation="linear"
-            )
-            y_upper[i] = np.quantile(
-                y_simulated[i, :], level_up, interpolation="linear"
-            )
+            # Use R's type=7 quantile (linear interpolation is default)
+            y_lower[i] = np.quantile(y_simulated[i, :], level_low)
+            y_upper[i] = np.quantile(y_simulated[i, :], level_up)
 
     # 11. Convert to relative form (like parametric intervals)
     # R uses the same yForecast for both conversion and final combination:
