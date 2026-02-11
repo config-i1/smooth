@@ -726,6 +726,11 @@ def _format_phi(model: Any, digits: int) -> str:
     if not model._model_type.get("damped", False):
         return ""
 
+    # Skip if phi is not estimated (means model isn't actually damped)
+    if hasattr(model, "_phi_internal") and model._phi_internal:
+        if not model._phi_internal.get("phi_estimate", False):
+            return ""
+
     phi_val = None
 
     if hasattr(model, "_phi_internal") and model._phi_internal:
