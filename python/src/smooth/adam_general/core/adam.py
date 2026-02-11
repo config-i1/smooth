@@ -2400,7 +2400,8 @@ class ADAM:
         # Store number of estimated parameters
         self._n_param_estimated = n_param_estimated
 
-        # Skip updating n_param for combined models (already set in _execute_combination)
+        # Skip updating n_param for combined models
+        # (already set in _execute_combination)
         if getattr(self, "_is_combined", False):
             # Legacy format for backward compatibility
             if "parameters_number" not in self._general:
@@ -2656,7 +2657,8 @@ class ADAM:
                 result["adam_estimated"]["n_param_estimated"] * filtered_weight
             )
 
-            # Store for later forecasting (using ORIGINAL weight - filtering at predict-time)
+            # Store for later forecasting
+            # (using ORIGINAL weight - filtering at predict-time)
             self._prepared_models.append(
                 {
                     "name": model_name,
