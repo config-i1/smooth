@@ -851,9 +851,9 @@ def _format_holdout_errors(model: Any, digits: int) -> str:
         return ""
 
     # Get forecasts for holdout period
-    if hasattr(model, "_forecast_results") and model._forecast_results:
-        y_forecast = model._forecast_results.get("forecast")
-        if y_forecast is not None and len(y_forecast) >= len(y_holdout):
+    if hasattr(model, "_forecast_results") and model._forecast_results is not None:
+        y_forecast = model._forecast_results.mean.values
+        if len(y_forecast) >= len(y_holdout):
             y_forecast = y_forecast[: len(y_holdout)]
         else:
             return ""

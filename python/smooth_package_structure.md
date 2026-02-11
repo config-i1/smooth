@@ -19,7 +19,10 @@ smooth/
         ├── checker.py    # Parameter validation
         ├── creator.py    # Model matrix creation, optimization parameter initialization
         ├── estimator.py  # Parameter estimation & model selection
-        ├── forecaster.py # Forecast generation
+        ├── forecaster/   # Forecast generation
+        │   ├── forecaster.py  # Main forecaster logic
+        │   ├── result.py      # ForecastResult container class
+        │   └── ...            # helpers, intervals, preparator
         └── utils/        # Utilities and helper functions
             ├── __init__.py
             ├── cost_functions.py # Cost functions for optimization (CF, log_Lik_ADAM)
@@ -181,13 +184,13 @@ ADAM.predict(h, X, ...) or ADAM.predict_intervals(h, X, ...)
 │       ├── _process_occurrence_forecast()
 │       ├── _prepare_forecast_intervals() // (for predict_intervals or if calculate_intervals=True)
 │       │   └── (uses sigma, covar_anal/var_anal from utils.var_covar.py, or simulation)
-│       └── _format_forecast_output()
-└── return forecasts / {forecasts, lower, upper}
+│       └── _build_ForecastResult()
+└── return ForecastResult(mean, lower, upper, level, side, interval)
 ```
 The prediction phase:
 1. Validates inputs.
 2. Calls `preparator()` (from `forecaster.py`) which readies the fitted model for forecasting. This might involve filling matrices using `filler()` (from `creator.py`) with the estimated parameters if they weren't already in their final form.
-3. Calls `forecaster()` (from `forecaster.py`) which generates point forecasts (potentially using `adam_forecaster` from `_adam_general.py`) and, if requested, prediction intervals. Interval calculation can be parametric (using variance calculations from `utils.var_covar.py`) or simulation-based.
+3. Calls `forecaster()` (from `forecaster.py`) which generates point forecasts (potentially using `adam_forecaster` from `_adam_general.py`) and, if requested, prediction intervals. Interval calculation can be parametric (using variance calculations from `utils.var_covar.py`) or simulation-based. Returns a `ForecastResult` object with `.mean` (pd.Series), `.lower`/`.upper` (pd.DataFrame or None).
 
 ## Data Flow Diagram
 
@@ -210,8 +213,8 @@ The ADAM class provides the primary user interface, modeled after scikit-learn's
 
 - **`__init__(...)`**: Configure the model parameters.
 - **`fit(y, X=None)`**: Fit the model to the data. This orchestrates calls to `parameters_checker`, `architector`, `creator`, and `estimator`/`selector`.
-- **`predict(h, X=None, calculate_intervals=True, ...)`**: Generate point forecasts. Can also compute and store prediction intervals.
-- **`predict_intervals(h, X=None, levels=[0.8, 0.95], ...)`**: Generate and return point forecasts and prediction intervals.
+- **`predict(h, X=None, interval="none", level=0.95, ...)`**: Generate forecasts. Returns a `ForecastResult` with `.mean` (pd.Series), `.lower`/`.upper` (pd.DataFrame or None).
+- **`predict_intervals(h, X=None, levels=[0.8, 0.95], ...)`**: Convenience wrapper calling `predict()` with `interval="prediction"`. Returns `ForecastResult`.
 
 ### Checker (Parameter Validation) - `checker.py`
 
@@ -246,8 +249,9 @@ This module handles parameter optimization and model selection:
 This module generates forecasts and prediction intervals:
 
 - **`preparator()`**: Prepares the fitted model for forecasting. This involves setting up the final state vector, matrices (possibly calling `filler()` from `creator.py` with estimated parameters), and profiles.
-- **`forecaster()`**: Generates point forecasts (using `adam_forecaster` from `_adam_general.py`) and, if requested, prediction intervals. Interval calculation can be parametric (using `sigma`, `covar_anal`/`var_anal` from `utils.var_covar.py`) or simulation-based.
-- **`generate_prediction_interval()`**: A utility function for generating prediction intervals, likely used internally by `forecaster`.
+- **`forecaster()`**: Generates point forecasts (using `adam_forecaster` from `_adam_general.py`) and, if requested, prediction intervals. Returns a `ForecastResult` object. Interval calculation can be parametric (using `sigma`, `covar_anal`/`var_anal` from `utils.var_covar.py`) or simulation-based.
+- **`ForecastResult`** (in `result.py`): Structured container with `.mean` (pd.Series), `.lower`/`.upper` (pd.DataFrame or None), `.level`, `.side`, `.interval`. Supports backward-compatible DataFrame-style access.
+- **`generate_prediction_interval()`**: A utility function for generating prediction intervals, used internally by `forecaster`.
 
 
 ## Class Attributes and Fitted Parameters
@@ -282,11 +286,15 @@ model = ADAM(model="ANN", lags=[1,12])  # Additive error, no trend, no seasonali
 # Fit the model to data
 model.fit(y_data)
 
-# Generate forecasts
-forecasts = model.predict(h=10)
+# Generate forecasts (returns ForecastResult)
+fc = model.predict(h=10)
+fc.mean              # pd.Series of point forecasts
 
-# Generate prediction intervals (these are also calculated by predict if calculate_intervals=True)
-intervals = model.predict_intervals(h=10, levels=[0.8, 0.95])
+# Generate prediction intervals
+fc = model.predict(h=10, interval="prediction", level=[0.8, 0.95])
+fc.lower             # pd.DataFrame with quantile columns
+fc.upper             # pd.DataFrame with quantile columns
+fc.to_dataframe()    # flat pd.DataFrame with prefixed column names
 ```
 
 Example with ARIMA:

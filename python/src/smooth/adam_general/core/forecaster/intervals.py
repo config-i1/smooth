@@ -110,7 +110,8 @@ def generate_prediction_interval(
     # Extract extra values which we will include in the function call
     # Now implement prediction intervals based on distribution
     # Translating from R/adam.R lines 8515-8640
-    y_forecast = predictions
+    y_forecast = np.atleast_1d(predictions)
+    v_voc_multi = np.atleast_1d(v_voc_multi)
     n_levels = len(level_low)
     h = len(y_forecast)
     y_lower = np.zeros((h, n_levels))
