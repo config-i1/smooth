@@ -191,22 +191,41 @@ class TestPredictCumulative:
             r_cum["mean"].values[0], r_ind["mean"].sum(), decimal=8
         )
 
-    def test_cumulative_replicates_value(self):
-        """Cumulative mode replicates the cumulative value across all h rows."""
+    def test_cumulative_returns_single_row(self):
+        """Cumulative mode returns exactly one row."""
         r = _simple_model.predict(h=5, interval="none", cumulative=True)
-        assert r.shape == (5, 1)
-        assert (r["mean"].values == r["mean"].values[0]).all()
+        assert r.shape == (1, 1)
 
     def test_cumulative_with_simulated_intervals(self):
-        """Cumulative with simulated intervals produces interval columns."""
+        """Cumulative with simulated intervals produces single-row output."""
         r = _simple_model.predict(
             h=5, interval="simulated", cumulative=True, nsim=1000
         )
-        assert r.shape == (5, 3)
+        assert r.shape == (1, 3)
         lower_col = [c for c in r.columns if c.startswith("lower")][0]
         upper_col = [c for c in r.columns if c.startswith("upper")][0]
-        assert (r[lower_col].values <= r["mean"].values).all()
-        assert (r["mean"].values <= r[upper_col].values).all()
+        assert r[lower_col].values[0] <= r["mean"].values[0]
+        assert r["mean"].values[0] <= r[upper_col].values[0]
+
+    def test_cumulative_with_approximate_intervals(self):
+        """Cumulative with approximate intervals produces single-row output."""
+        r = _additive_model.predict(
+            h=12, interval="approximate", cumulative=True
+        )
+        assert r.shape == (1, 3)
+        lower_col = [c for c in r.columns if c.startswith("lower")][0]
+        upper_col = [c for c in r.columns if c.startswith("upper")][0]
+        assert r[lower_col].values[0] <= r["mean"].values[0]
+        assert r["mean"].values[0] <= r[upper_col].values[0]
+
+    def test_cumulative_with_approximate_side_upper(self):
+        """Cumulative + side='upper' + approximate intervals works."""
+        r = _additive_model.predict(
+            h=18, interval="approximate", side="upper", cumulative=True
+        )
+        assert r.shape == (1, 2)  # mean + upper only
+        upper_col = [c for c in r.columns if c.startswith("upper")][0]
+        assert r["mean"].values[0] <= r[upper_col].values[0]
 
 
 # ---------------------------------------------------------------------------
@@ -269,6 +288,18 @@ class TestPredictMultiplicative:
         r = _mult_model.predict(h=5, interval="simulated", nsim=1000)
         assert np.all(np.isfinite(r["mean"].values))
         assert (r["mean"].values > 0).all()
+
+    def test_multiplicative_cumulative_simulated_not_inflated(self):
+        """Cumulative simulated mean for MAM should equal sum of step means."""
+        h = 12
+        r_steps = _mult_model.predict(h=h, interval="simulated", nsim=5000)
+        r_cum = _mult_model.predict(
+            h=h, interval="simulated", cumulative=True, nsim=5000
+        )
+        step_sum = r_steps["mean"].sum()
+        cum_mean = r_cum["mean"].values[0]
+        # Both are simulation-based so allow 15% tolerance
+        np.testing.assert_allclose(cum_mean, step_sum, rtol=0.15)
 
 
 # ---------------------------------------------------------------------------

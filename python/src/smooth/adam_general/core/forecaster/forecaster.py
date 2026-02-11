@@ -727,22 +727,32 @@ def forecaster(
         occurrence_dict, general_dict
     )
 
-    # 10. Apply occurrence probabilities to forecasts
-    y_forecast_values = y_forecast_values * p_forecast
-    # 11. Handle cumulative forecasts if specified
-    if general_dict.get("cumulative"):
-        y_forecast_values = np.sum(y_forecast_values)
+    # 10. Apply occurrence probabilities and handle cumulative
+    # When needs_sim_mean fired with cumulative=True, y_forecast_values is
+    # already a scalar cumulative mean from generate_simulation_interval.
+    # Skip p_forecast multiply and np.sum to avoid h-fold inflation.
+    if not (needs_sim_mean and general_dict.get("cumulative")):
+        y_forecast_values = y_forecast_values * p_forecast
+        if general_dict.get("cumulative"):
+            y_forecast_values = np.sum(y_forecast_values)
         # In case of occurrence model use simulations - the cumulative
         # probability is complex
         if occurrence_model:
             general_dict["interval"] = "simulated"
             resolved_interval = "simulated"
 
-    # 12. Build output based on resolved interval type
+    # 12. Determine index: single row for cumulative, full horizon otherwise
+    is_cumulative = general_dict.get("cumulative", False)
+    forecast_index = (
+        observations_dict["y_forecast_index"][:1]
+        if is_cumulative
+        else observations_dict["y_forecast_index"]
+    )
+
     if resolved_interval == "none":
         y_forecast_out = pd.DataFrame(
             {"mean": y_forecast_values},
-            index=observations_dict["y_forecast_index"],
+            index=forecast_index,
         )
     else:
         if level is None:
@@ -804,7 +814,7 @@ def forecaster(
 
         y_forecast_out = pd.DataFrame(
             columns,
-            index=observations_dict["y_forecast_index"],
+            index=forecast_index,
         )
 
     return y_forecast_out
@@ -901,9 +911,10 @@ def forecaster_combined(
 
     # Initialize combined arrays
     has_intervals = interval != "none"
-    y_forecast_combined = np.zeros(h)
+    n_out = 1 if general_dict.get("cumulative", False) else h
+    y_forecast_combined = np.zeros(n_out)
     # For interval columns, accumulate by column name
-    interval_accum = {}  # col_name -> np.zeros(h)
+    interval_accum = {}  # col_name -> np.zeros(n_out)
     forecast_index = None
 
     for model_info in prepared_models:
@@ -956,7 +967,7 @@ def forecaster_combined(
             for col in model_forecast.columns:
                 if col.startswith("lower") or col.startswith("upper"):
                     if col not in interval_accum:
-                        interval_accum[col] = np.zeros(h)
+                        interval_accum[col] = np.zeros(n_out)
                     interval_accum[col] += (
                         np.nan_to_num(model_forecast[col].values, nan=0.0) * weight
                     )
