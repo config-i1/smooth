@@ -498,7 +498,8 @@ def generate_simulation_interval(
     Returns
     -------
     tuple
-        (y_lower, y_upper) arrays of prediction interval bounds.
+        (y_lower, y_upper, y_simulated) where y_simulated is the raw (h, nsim)
+        simulation matrix when ``general_dict["scenarios"]`` is True, else None.
     """
     h = general_dict["h"]
     lags_model_max = lags_dict["lags_model_max"]
@@ -612,10 +613,14 @@ def generate_simulation_interval(
     # Occurrence matrix (all ones for now - no occurrence model)
     mat_ot = np.ones((h, nsim), order="F")
 
-    # Profiles recent table
-    profiles_recent = np.asfortranarray(
-        prepared_model["profiles_recent_table"], dtype=np.float64
+    # Profiles recent table - expand to 3D cube (nComponents, lagsModelMax, nsim)
+    profiles_recent_2d = prepared_model["profiles_recent_table"]
+    profiles_recent = np.zeros(
+        (profiles_recent_2d.shape[0], profiles_recent_2d.shape[1], nsim), order="F"
     )
+    for i in range(nsim):
+        profiles_recent[:, :, i] = profiles_recent_2d
+    profiles_recent = np.asfortranarray(profiles_recent, dtype=np.float64)
 
     # Prepare inputs for C++ simulator
     arr_vt_f = np.asfortranarray(arr_vt, dtype=np.float64)
@@ -670,13 +675,9 @@ def generate_simulation_interval(
             else:
                 y_forecast_sim[i] = np.mean(y_simulated[i, :])
 
-            # Use R's type=7 quantile (linear interpolation)
-            y_lower[i] = np.quantile(
-                y_simulated[i, :], level_low, interpolation="linear"
-            )
-            y_upper[i] = np.quantile(
-                y_simulated[i, :], level_up, interpolation="linear"
-            )
+            # Use R's type=7 quantile (linear interpolation is default)
+            y_lower[i] = np.quantile(y_simulated[i, :], level_low)
+            y_upper[i] = np.quantile(y_simulated[i, :], level_up)
 
     # 11. Convert to relative form (like parametric intervals)
     # R uses the same yForecast for both conversion and final combination:
@@ -717,4 +718,5 @@ def generate_simulation_interval(
         y_lower_final = y_forecast_sim * y_lower_final
         y_upper_final = y_forecast_sim * y_upper_final
 
-    return y_lower_final, y_upper_final
+    scenarios_out = y_simulated if general_dict.get("scenarios", False) else None
+    return y_lower_final, y_upper_final, scenarios_out, y_forecast_sim

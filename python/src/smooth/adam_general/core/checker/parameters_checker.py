@@ -52,12 +52,12 @@ def parameters_checker(
     fast=False,
     lambda_param=None,
     frequency=None,
-    interval="parametric",
+    interval="none",
     interval_level=[0.95],
     side="both",
     cumulative=False,
-    nsim=1000,
-    scenarios=100,
+    nsim=10000,
+    scenarios=False,
     ellipsis=None,
 ):
     """
@@ -378,12 +378,13 @@ def parameters_checker(
 
         If None, inferred from data if it has DatetimeIndex.
 
-    interval : str, default="parametric"
-        Prediction interval calculation method.
+    interval : str, default="prediction"
+        Prediction interval type (matches R's ``forecast.adam()``).
 
-        - **"parametric"**: Analytical intervals based on assumed distribution
-        - **"simulation"**: Simulation-based intervals
-        - **"bootstrap"**: Bootstrap intervals
+        - **"none"**: No intervals.
+        - **"prediction"**: Auto-selects "simulated" or "approximate".
+        - **"simulated"**: Simulation-based intervals.
+        - **"approximate"**: Analytical (parametric) intervals.
 
     interval_level : list of float, default=[0.95]
         Confidence level(s) for prediction intervals.

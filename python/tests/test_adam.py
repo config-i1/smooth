@@ -103,11 +103,11 @@ class TestADAMPredict:
             model.predict(h=10)
 
     def test_predict_includes_intervals(self, simple_series):
-        """Test that predict includes prediction intervals."""
+        """Test that predict includes prediction intervals when requested."""
         model = ADAM(model="ANN")
         model.fit(simple_series)
 
-        forecast = model.predict(h=10)
+        forecast = model.predict(h=10, interval="prediction")
 
         # Should have lower and upper bounds
         cols = forecast.columns.tolist()

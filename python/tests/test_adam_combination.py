@@ -153,7 +153,7 @@ class TestADAMCombinationPredict:
         model.fit(simple_series)
 
         # predict() returns a DataFrame with "mean" column
-        forecast = model.predict(h=10, calculate_intervals=True)
+        forecast = model.predict(h=10)
 
         assert "mean" in forecast.columns
         assert len(forecast["mean"]) == 10

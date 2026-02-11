@@ -190,7 +190,7 @@ class ADAM:
         print(ADAM_fit)
 
         # Generate 12-step ahead forecasts with intervals
-        forecasts = model.predict(h=12, calculate_intervals=True, level=0.95)
+        forecasts = model.predict(h=12, level=0.95)
         print(forecasts)
 
         # Access fitted parameters
@@ -2053,21 +2053,29 @@ class ADAM:
         self,
         h: int,
         X: Optional[NDArray] = None,
-        calculate_intervals: bool = True,
-        interval_method: Optional[
-            Literal["parametric", "simulation", "bootstrap"]
-        ] = "parametric",
+        interval: Literal[
+            "none",
+            "prediction",
+            "simulated",
+            "approximate",
+            "semiparametric",
+            "nonparametric",
+            "empirical",
+            "confidence",
+            "complete",
+        ] = "none",
         level: Optional[Union[float, List[float]]] = 0.95,
         side: Literal["both", "upper", "lower"] = "both",
+        cumulative: bool = False,
         nsim: int = 10000,
+        occurrence: Optional[NDArray] = None,
+        scenarios: bool = False,
     ) -> NDArray:
         """
-        Generate point forecasts using the fitted ADAM model.
+        Generate forecasts using the fitted ADAM model.
 
-        If `calculate_intervals` is True, prediction intervals are also
-        computed and stored in `self._forecast_results` but only point
-        forecasts are returned by this method. Use `predict_intervals`
-        to get the intervals directly.
+        Matches R's ``forecast.adam()`` interface for interval types and
+        additional parameters.
 
         Parameters
         ----------
@@ -2075,40 +2083,45 @@ class ADAM:
             Forecast horizon (number of steps to forecast).
         X : Optional[NDArray], default=None
             Exogenous variables for the forecast period.
-            Ensure that X covers the entire forecast horizon `h`.
-        calculate_intervals : bool, default=True
-            Whether to calculate prediction intervals along with point forecasts.
-            The intervals are stored in `self._forecast_results`.
-        interval_method : Optional[Literal['parametric', 'simulation', 'bootstrap']],
-                default='parametric'
-            Method to calculate prediction intervals:
-            - 'parametric': Assumes a known distribution for errors.
-            - 'simulation': Simulates future paths to derive intervals.
-            - 'bootstrap': Uses bootstrapping techniques.
-            This parameter is used if `calculate_intervals` is True.
-        level : Optional[Union[float, List[float]]], default=0.95
-            Confidence level(s) for prediction intervals (e.g., 0.95 for 95% interval,
-            or [0.8, 0.95] for 80% and 95% intervals).
-            Used if `calculate_intervals` is True.
-        side : Literal['both', 'upper', 'lower'], default='both'
+            Ensure that X covers the entire forecast horizon ``h``.
+        interval : str, default="none"
+            Type of prediction interval to construct:
+
+            - ``"none"``: No intervals, point forecasts only.
+            - ``"prediction"``: Automatically selects ``"simulated"`` or
+              ``"approximate"`` depending on the model type.
+            - ``"simulated"``: Simulation-based intervals (Monte Carlo).
+            - ``"approximate"``: Analytical (parametric) intervals.
+            - ``"semiparametric"``: Not yet implemented.
+            - ``"nonparametric"``: Not yet implemented.
+            - ``"empirical"``: Not yet implemented.
+            - ``"confidence"``: Not yet implemented.
+            - ``"complete"``: Not yet implemented.
+        level : float or list of float, default=0.95
+            Confidence level(s) for prediction intervals (e.g. 0.95 for 95%).
+        side : str, default="both"
             Which side(s) of the intervals to compute:
-            - 'both': Both lower and upper bounds.
-            - 'lower': Only the lower bound.
-            - 'upper': Only the upper bound.
-            Used if `calculate_intervals` is True.
+            ``"both"``, ``"upper"``, or ``"lower"``.
+        cumulative : bool, default=False
+            If True, return cumulative (summed) forecasts over the horizon.
         nsim : int, default=10000
-            Number of simulations to run for simulation-based intervals.
-            Only used when `interval_method='simulation'`.
+            Number of simulations for simulation-based intervals.
+        occurrence : Optional[NDArray], default=None
+            External occurrence probabilities for the forecast period.
+            Overrides the fitted model's occurrence for forecasting.
+        scenarios : bool, default=False
+            If True and ``interval="simulated"``, store the raw simulation
+            matrix in ``self._forecast_results["scenarios"]``.
 
         Returns
         -------
-        NDArray
-            Point forecasts for the next `h` periods.
+        pd.DataFrame
+            DataFrame with ``"mean"`` column and optional interval columns.
 
         Raises
         ------
         ValueError
-            If the model has not been fitted yet or `h` is not set.
+            If the model has not been fitted yet or ``h`` is not set.
         """
         # Set forecast horizon
         if h is not None:
@@ -2118,7 +2131,13 @@ class ADAM:
             if self._general["h"] is None:
                 raise ValueError("Forecast horizon is not set.")
 
+        self._general["interval"] = interval
         self._general["nsim"] = nsim
+        self._general["cumulative"] = cumulative
+        self._general["scenarios"] = scenarios
+
+        if occurrence is not None:
+            self._occurrence["occurrence"] = occurrence
 
         # Validate prediction inputs and prepare data for forecasting
         self._validate_prediction_inputs()
@@ -2126,8 +2145,7 @@ class ADAM:
 
         # Execute the prediction
         predictions = self._execute_prediction(
-            calculate_intervals=calculate_intervals,
-            interval_method=interval_method,
+            interval=interval,
             level=level,
             side=side,
         )
@@ -2174,8 +2192,7 @@ class ADAM:
 
         # Execute the prediction
         self._execute_prediction(
-            calculate_intervals=True,
-            interval_method="parametric",
+            interval="prediction",
             level=levels,
             side=side,
         )
@@ -2383,7 +2400,8 @@ class ADAM:
         # Store number of estimated parameters
         self._n_param_estimated = n_param_estimated
 
-        # Skip updating n_param for combined models (already set in _execute_combination)
+        # Skip updating n_param for combined models
+        # (already set in _execute_combination)
         if getattr(self, "_is_combined", False):
             # Legacy format for backward compatibility
             if "parameters_number" not in self._general:
@@ -2533,7 +2551,9 @@ class ADAM:
         filtered_weights = {k: v for k, v in self._ic_weights.items() if v >= 0.01}
         total_filtered = sum(filtered_weights.values())
         if total_filtered > 0:
-            filtered_weights = {k: v / total_filtered for k, v in filtered_weights.items()}
+            filtered_weights = {
+                k: v / total_filtered for k, v in filtered_weights.items()
+            }
 
         # Initialize combined fitted values
         obs_in_sample = self._observations["obs_in_sample"]
@@ -2637,20 +2657,25 @@ class ADAM:
                 result["adam_estimated"]["n_param_estimated"] * filtered_weight
             )
 
-            # Store for later forecasting (using ORIGINAL weight - filtering at predict-time)
-            self._prepared_models.append({
-                "name": model_name,
-                "weight": original_weight,
-                "result": result,
-                "model_type_dict": model_type_dict,
-                "components_dict": components_dict,
-                "lags_dict": lags_dict_copy,
-                "observations_dict": observations_dict_copy,
-                "profile_dict": profile_dict,
-                "phi_dict": phi_dict,
-                "adam_created": adam_created,
-                "prepared": prepared,
-            })
+            # Store for later forecasting
+            # (using ORIGINAL weight - filtering at predict-time)
+            self._prepared_models.append(
+                {
+                    "name": model_name,
+                    "weight": original_weight,
+                    "result": result,
+                    "model_type_dict": model_type_dict,
+                    "components_dict": components_dict,
+                    "lags_dict": lags_dict_copy,
+                    "observations_dict": observations_dict_copy,
+                    "profile_dict": profile_dict,
+                    "phi_dict": phi_dict,
+                    "adam_created": adam_created,
+                    "prepared": prepared,
+                    "explanatory_dict": self._explanatory,
+                    "constants_dict": self._constant,
+                }
+            )
 
         # Store combined results
         self._combined_fitted = y_fitted_combined
@@ -3039,8 +3064,7 @@ class ADAM:
 
     def _execute_prediction(
         self,
-        calculate_intervals=True,
-        interval_method="parametric",
+        interval="prediction",
         level=0.95,
         side="both",
     ):
@@ -3052,14 +3076,13 @@ class ADAM:
 
         Returns
         -------
-        dict
+        pd.DataFrame
             Forecast results including point forecasts and prediction intervals.
         """
         # Handle combined models
         if getattr(self, "_is_combined", False):
             return self._execute_prediction_combined(
-                calculate_intervals=calculate_intervals,
-                interval_method=interval_method,
+                interval=interval,
                 level=level,
                 side=side,
             )
@@ -3077,8 +3100,7 @@ class ADAM:
             constants_checked=self._constant,
             params_info=self._params_info,
             adam_cpp=self._adam_cpp,
-            calculate_intervals=calculate_intervals,
-            interval_method=interval_method,
+            interval=interval,
             level=level,
             side=side,
         )
@@ -3086,8 +3108,7 @@ class ADAM:
 
     def _execute_prediction_combined(
         self,
-        calculate_intervals=True,
-        interval_method="parametric",
+        interval="prediction",
         level=0.95,
         side="both",
     ):
@@ -3111,8 +3132,7 @@ class ADAM:
             general_dict=self._general,
             occurrence_dict=self._occurrence,
             params_info=self._params_info,
-            calculate_intervals=calculate_intervals,
-            interval_method=interval_method,
+            interval=interval,
             level=level,
             side=side,
         )
