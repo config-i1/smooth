@@ -215,7 +215,7 @@ class TestADAMAirPassengersForecasting:
         model = ADAM(model="ANA", lags=[12])
         model.fit(AIRPASSENGERS)
 
-        forecast = model.predict(h=12)
+        forecast = model.predict(h=12, interval="prediction")
         columns = forecast.columns.tolist()
 
         # Should have lower and upper bounds
@@ -230,7 +230,7 @@ class TestADAMAirPassengersForecasting:
         model = ADAM(model="ANA", lags=[12])
         model.fit(AIRPASSENGERS)
 
-        forecast = model.predict(h=12)
+        forecast = model.predict(h=12, interval="prediction")
 
         # Find lower and upper columns
         lower_col = [c for c in forecast.columns if "lower" in c][0]

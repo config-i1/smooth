@@ -451,10 +451,9 @@ def forecaster(
     constants_checked,
     params_info,
     adam_cpp,
-    calculate_intervals,
-    interval_method,
-    level,
-    side,
+    interval="prediction",
+    level=0.95,
+    side="both",
 ):
     """
     Generate point forecasts and prediction intervals from an estimated ADAM model.
@@ -535,7 +534,7 @@ def forecaster(
         - 'distribution': Error distribution ('dnorm', 'dgamma', etc.)
         - 'cumulative': Whether to produce cumulative forecasts
         - 'nsim': Number of simulations (for simulation method, default 10000)
-        - 'interval': Interval type ('parametric', 'simulation', 'bootstrap')
+        - 'interval': Interval type ('none', 'prediction', 'simulated', 'approximate')
 
     occurrence_dict : dict
         Intermittent demand configuration containing:
@@ -588,16 +587,13 @@ def forecaster(
         - params_info[0][0]: Number of states
         - params_info[1][0]: Number of parameters estimated
 
-    calculate_intervals : bool
-        Whether to calculate prediction intervals. If False, only point forecasts
-        are returned (faster).
+    interval : str, default="prediction"
+        Interval type, matching R's ``forecast.adam()``::
 
-    interval_method : str
-        Prediction interval method:
-
-        - **"parametric"**: Analytical intervals (fast, assumes correct distribution)
-        - **"simulation"**: Monte Carlo intervals (flexible, slower)
-        - **"bootstrap"**: Bootstrap intervals (not fully implemented yet)
+        - **"none"**: No intervals, point forecasts only.
+        - **"prediction"**: Automatically selects "simulated" or "approximate".
+        - **"simulated"**: Simulation-based intervals (Monte Carlo).
+        - **"approximate"**: Analytical (parametric) intervals.
 
     level : float or list of float
         Confidence level(s) for prediction intervals.
@@ -620,12 +616,12 @@ def forecaster(
         DataFrame containing forecast results with columns:
 
         - **'mean'**: Point forecasts (always included)
-        - **'lower_{level}'**: Lower prediction interval (if calculate_intervals=True)
-        - **'upper_{level}'**: Upper prediction interval (if calculate_intervals=True)
+        - **'lower_{level}'**: Lower prediction interval (if interval != "none")
+        - **'upper_{level}'**: Upper prediction interval (if interval != "none")
 
         Index is the forecast period (y_forecast_index from observations_dict).
 
-        Shape: (h, 1) or (h, 3) depending on calculate_intervals.
+        Shape: (h, 1) or (h, 3) depending on interval type.
 
         If cumulative=True, returns shape (1, ...) with sum of forecasts.
 
@@ -702,50 +698,24 @@ def forecaster(
     --------
     Generate point forecasts only::
 
-        >>> forecast_df = forecaster(
-        ...     model_prepared=prepared_model,
-        ...     observations_dict={'y_in_sample': data, 'obs_in_sample': 100, ...},
-        ...     general_dict={'h': 12, 'distribution': 'dnorm', ...},
-        ...     calculate_intervals=False,
-        ...     ...
-        ... )
+        >>> forecast_df = forecaster(..., interval='none')
         >>> print(forecast_df['mean'])  # 12 point forecasts
 
-    Generate 95% prediction intervals with parametric method::
+    Generate 95% prediction intervals (auto-selects method)::
 
-        >>> forecast_df = forecaster(
-        ...     model_prepared=prepared_model,
-        ...     general_dict={'h': 12, 'interval': 'parametric', ...},
-        ...     calculate_intervals=True,
-        ...     interval_method='parametric',
-        ...     level=0.95,
-        ...     side='both',
-        ...     ...
-        ... )
+        >>> forecast_df = forecaster(..., interval='prediction', level=0.95)
         >>> print(forecast_df.columns)  # ['mean', 'lower_0.025', 'upper_0.975']
 
-    Generate intervals using simulation for complex model::
+    Generate simulation-based intervals::
 
-        >>> forecast_df = forecaster(
-        ...     model_prepared=prepared_model,
-        ...     general_dict={'h': 24, 'interval': 'simulation', 'nsim': 10000, ...},
-        ...     calculate_intervals=True,
-        ...     interval_method='simulation',
-        ...     level=0.90,
-        ...     ...
-        ... )
-        >>> # More accurate for multiplicative/intermittent models
+        >>> forecast_df = forecaster(..., interval='simulated', level=0.90)
 
     Cumulative forecast for inventory planning::
 
         >>> forecast_df = forecaster(
         ...     general_dict={'h': 12, 'cumulative': True, ...},
-        ...     calculate_intervals=True,
-        ...     level=0.95,
-        ...     ...
+        ...     interval='prediction', level=0.95, ...
         ... )
-        >>> total_demand = forecast_df.loc[0, 'mean']  # Sum of 12 periods
-        >>> upper_bound = forecast_df.loc[0, 'upper_0.975']  # For safety stock
     """
     # 1. Prepare forecast index
     _prepare_forecast_index(observations_dict, general_dict)
@@ -764,7 +734,8 @@ def forecaster(
     # 5. Prepare lookup table for forecasting
     lookup = _prepare_lookup_table(lags_dict, observations_dict, general_dict)
 
-    # 6. Determine the appropriate interval type
+    # 6. Set interval from caller and resolve "prediction" → "simulated"/"approximate"
+    general_dict["interval"] = interval
     general_dict = _determine_forecast_interval(
         general_dict, model_type_dict, explanatory_checked, lags_dict
     )
@@ -803,27 +774,26 @@ def forecaster(
         if occurrence_model:
             general_dict["interval"] = "simulated"
 
-    # 12. Prepare interval parameters
-    if calculate_intervals:
-        # assert method is parametric, bootstrap or simulation
-        assert interval_method in ["parametric", "simulation", "bootstrap"], (
-            "Interval method must be either parametric, simulation, or bootstrap"
-        )
+    # 12. Build output based on resolved interval type
+    resolved_interval = general_dict["interval"]
 
+    if resolved_interval == "none":
+        y_forecast_out = pd.DataFrame(
+            {"mean": y_forecast_values},
+            index=observations_dict["y_forecast_index"],
+        )
+    else:
         if level is None:
             warnings.warn("No confidence level specified. Using default level of 0.95")
             level = 0.95
-
-        # Ensure level is a scalar for now
         if isinstance(level, list):
             level = level[0]
 
         level_low, level_up = ensure_level_format(level, side)
 
-        # Route to appropriate interval method
-        if interval_method == "simulation":
+        if resolved_interval == "simulated":
             nsim = general_dict.get("nsim", 10000)
-            y_lower, y_upper = generate_simulation_interval(
+            y_lower, y_upper, y_simulated = generate_simulation_interval(
                 y_forecast_values,
                 model_prepared,
                 general_dict,
@@ -838,8 +808,9 @@ def forecaster(
                 level,
                 nsim=nsim,
             )
-        elif interval_method == "bootstrap":
-            warnings.warn("Bootstrap intervals not yet supported. Using parametric.")
+            if general_dict.get("scenarios", False):
+                general_dict["_scenarios_matrix"] = y_simulated
+        elif resolved_interval == "approximate":
             y_lower, y_upper = generate_prediction_interval(
                 y_forecast_values,
                 model_prepared,
@@ -850,30 +821,20 @@ def forecaster(
                 params_info,
                 level,
             )
-        else:  # parametric (default)
-            y_lower, y_upper = generate_prediction_interval(
-                y_forecast_values,
-                model_prepared,
-                general_dict,
-                observations_dict,
-                model_type_dict,
-                lags_dict,
-                params_info,
-                level,
+            if general_dict.get("scenarios", False):
+                warnings.warn(
+                    'scenarios=True requires interval="simulated". Ignored.'
+                )
+        else:
+            raise NotImplementedError(
+                f'interval="{resolved_interval}" is not yet implemented'
             )
 
         y_forecast_out = pd.DataFrame(
             {
                 "mean": y_forecast_values,
-                f"lower_{level_low}": y_lower,  # Return 0 regardless of calculations
-                f"upper_{level_up}": y_upper,  # Return 0 regardless of calculations
-            },
-            index=observations_dict["y_forecast_index"],
-        )
-    else:
-        y_forecast_out = pd.DataFrame(
-            {
-                "mean": y_forecast_values,
+                f"lower_{level_low}": y_lower,
+                f"upper_{level_up}": y_upper,
             },
             index=observations_dict["y_forecast_index"],
         )
@@ -888,8 +849,7 @@ def forecaster_combined(
     general_dict,
     occurrence_dict,
     params_info,
-    calculate_intervals=True,
-    interval_method="parametric",
+    interval="prediction",
     level=0.95,
     side="both",
 ):
@@ -928,11 +888,9 @@ def forecaster_combined(
     params_info : list or array
         Parameter count information for interval calculation.
 
-    calculate_intervals : bool, default=True
-        Whether to calculate prediction intervals.
-
-    interval_method : str, default='parametric'
-        Interval calculation method: 'parametric', 'simulation', or 'bootstrap'.
+    interval : str, default='prediction'
+        Interval type matching R's ``forecast.adam()``:
+        'none', 'prediction', 'simulated', 'approximate', etc.
 
     level : float, default=0.95
         Confidence level for prediction intervals (0 to 1).
@@ -946,8 +904,8 @@ def forecaster_combined(
         DataFrame containing combined forecast results with columns:
 
         - 'mean': IC-weighted point forecasts
-        - 'lower_{level}': Lower prediction interval (if calculate_intervals)
-        - 'upper_{level}': Upper prediction interval (if calculate_intervals)
+        - 'lower_{level}': Lower prediction interval (if interval != "none")
+        - 'upper_{level}': Upper prediction interval (if interval != "none")
 
     Notes
     -----
@@ -974,9 +932,10 @@ def forecaster_combined(
         filtered_weights = {k: v / total_weight for k, v in filtered_weights.items()}
 
     # Initialize combined arrays
+    has_intervals = interval != "none"
     y_forecast_combined = np.zeros(h)
-    y_lower_combined = np.zeros(h) if calculate_intervals else None
-    y_upper_combined = np.zeros(h) if calculate_intervals else None
+    y_lower_combined = np.zeros(h) if has_intervals else None
+    y_upper_combined = np.zeros(h) if has_intervals else None
     forecast_index = None
 
     for model_info in prepared_models:
@@ -996,6 +955,13 @@ def forecaster_combined(
         # Make a copy of general_dict for this model
         general_dict_copy = copy.deepcopy(general_dict)
 
+        # For combined models, use "approximate" for individual forecasts
+        # ("prediction" auto-routing to "simulated" can fail for individual
+        # models in the pool; combined intervals are averaged anyway)
+        model_interval = "approximate" if interval in (
+            "prediction", "simulated"
+        ) else interval
+
         # Generate forecast for this model
         model_forecast = forecaster(
             model_prepared=prepared,
@@ -1004,13 +970,16 @@ def forecaster_combined(
             occurrence_dict=occurrence_dict,
             lags_dict=lags_dict,
             model_type_dict=model_type_dict,
-            explanatory_checked=model_info.get("explanatory_dict", {}),
+            explanatory_checked=model_info.get("explanatory_dict", {
+                "xreg_model": False, "xreg_number": 0,
+            }),
             components_dict=components_dict,
-            constants_checked=model_info.get("constants_dict", {}),
+            constants_checked=model_info.get("constants_dict", {
+                "constant_required": False,
+            }),
             params_info=params_info,
             adam_cpp=adam_cpp,
-            calculate_intervals=calculate_intervals,
-            interval_method=interval_method,
+            interval=model_interval,
             level=level,
             side=side,
         )
@@ -1024,7 +993,7 @@ def forecaster_combined(
         ) * weight
 
         # Add IC-weighted contribution to intervals
-        if calculate_intervals:
+        if has_intervals:
             lower_cols = [c for c in model_forecast.columns if c.startswith("lower")]
             upper_cols = [c for c in model_forecast.columns if c.startswith("upper")]
 
@@ -1040,7 +1009,7 @@ def forecaster_combined(
     # Build result DataFrame
     level_low, level_up = ensure_level_format(level, side)
 
-    if calculate_intervals:
+    if has_intervals:
         return pd.DataFrame(
             {
                 "mean": y_forecast_combined,

@@ -124,6 +124,11 @@ def _organize_lags_info(
     # Calculate the maximum lag
     lags_model_max = max(validated_lags) if validated_lags else 1
 
+    # Smallest seasonal lag (excluding trivial lag=1), or Inf if none
+    lags_model_all = sorted(set(lags_model + lags_model_arima))
+    lags_non_trivial = [lag for lag in lags_model_all if lag != 1]
+    lags_model_min = min(lags_non_trivial) if lags_non_trivial else float('inf')
+
     # Create lags dictionary
     lags_dict = {
         "lags": validated_lags,
@@ -132,7 +137,8 @@ def _organize_lags_info(
         "lags_model_arima": lags_model_arima,
         "lags_length": len(lags_model),
         "lags_model_max": lags_model_max,
-        "lags_model_all": sorted(set(lags_model + lags_model_arima)),
+        "lags_model_min": lags_model_min,
+        "lags_model_all": lags_model_all,
     }
 
     return lags_dict
