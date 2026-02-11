@@ -2157,9 +2157,13 @@ class ADAM:
         X: Optional[NDArray] = None,
         levels: List[float] = [0.8, 0.95],
         side: Literal["both", "upper", "lower"] = "both",
-    ) -> Dict[str, NDArray]:
+        nsim: int = 10000,
+    ):
         """
         Generate prediction intervals using the fitted ADAM model.
+
+        Convenience wrapper around ``predict()`` that defaults to
+        ``interval="prediction"`` and accepts multiple confidence levels.
 
         Parameters
         ----------
@@ -2171,39 +2175,18 @@ class ADAM:
             Confidence levels for prediction intervals.
         side : Literal["both", "upper", "lower"], default="both"
             Which side(s) of the intervals to return.
+        nsim : int, default=10000
+            Number of simulations for simulation-based intervals.
 
         Returns
         -------
-        Dict[str, NDArray]
-            Dictionary containing point forecasts and prediction intervals.
-            Keys include 'forecast', and 'lower'/'upper' depending on `side`.
-
-        Raises
-        ------
-        ValueError
-            If the model has not been fitted yet.
+        pd.DataFrame
+            DataFrame with 'mean' and lower/upper columns for each level.
         """
-        # Set forecast horizon
-        self.h = h
-
-        # Validate prediction inputs and prepare data for forecasting
-        self._validate_prediction_inputs()
-        self._prepare_prediction_data()
-
-        # Execute the prediction
-        self._execute_prediction(
-            interval="prediction",
-            level=levels,
-            side=side,
+        return self.predict(
+            h=h, X=X, interval="prediction", level=levels,
+            side=side, nsim=nsim,
         )
-
-        # Return the forecasts and intervals
-        result = {"forecast": self._forecast_results["forecast"]}
-        if side in ["both", "lower"]:
-            result["lower"] = self._forecast_results["lower"]
-        if side in ["both", "upper"]:
-            result["upper"] = self._forecast_results["upper"]
-        return result
 
     def _check_parameters(self, ts):
         """
