@@ -266,12 +266,8 @@ def generate_prediction_interval(
         scale_log = (scale_2d / 120) ** 0.25
         try:
             if hasattr(stats, "s_dist") and hasattr(stats.s_dist, "ppf"):
-                y_lower_mult = np.exp(
-                    stats.s_dist.ppf(ll, loc=0, scale=scale_log)
-                )
-                y_upper_mult = np.exp(
-                    stats.s_dist.ppf(lu, loc=0, scale=scale_log)
-                )
+                y_lower_mult = np.exp(stats.s_dist.ppf(ll, loc=0, scale=scale_log))
+                y_upper_mult = np.exp(stats.s_dist.ppf(lu, loc=0, scale=scale_log))
             else:
                 print(
                     "Warning: stats.s_dist not found. "
@@ -290,14 +286,10 @@ def generate_prediction_interval(
                     scale_2d * (gamma(1 / shape_beta) / gamma(3 / shape_beta))
                 )
                 y_lower_mult = np.exp(
-                    stats.gennorm.ppf(
-                        ll, beta=shape_beta, loc=0, scale=scale_log
-                    )
+                    stats.gennorm.ppf(ll, beta=shape_beta, loc=0, scale=scale_log)
                 )
                 y_upper_mult = np.exp(
-                    stats.gennorm.ppf(
-                        lu, beta=shape_beta, loc=0, scale=scale_log
-                    )
+                    stats.gennorm.ppf(lu, beta=shape_beta, loc=0, scale=scale_log)
                 )
             except (ValueError, ZeroDivisionError) as e:
                 print(

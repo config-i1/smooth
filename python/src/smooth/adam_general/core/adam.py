@@ -2184,8 +2184,12 @@ class ADAM:
             DataFrame with 'mean' and lower/upper columns for each level.
         """
         return self.predict(
-            h=h, X=X, interval="prediction", level=levels,
-            side=side, nsim=nsim,
+            h=h,
+            X=X,
+            interval="prediction",
+            level=levels,
+            side=side,
+            nsim=nsim,
         )
 
     def _check_parameters(self, ts):
