@@ -99,46 +99,62 @@
 <h1>smooth.ES.predict<a class="headerlink" href="#smooth-es-predict" title="Link to this heading"></a></h1>
 <dl class="py method">
 <dt class="sig sig-object py" id="smooth.ES.predict">
-<span class="sig-prename descclassname"><span class="pre">ES.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calculate_intervals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parametric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">side</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'both'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#smooth.ES.predict" title="Link to this definition"></a></dt>
-<dd><p>Generate point forecasts using the fitted ADAM model.</p>
-<p>If <cite>calculate_intervals</cite> is True, prediction intervals are also
-computed and stored in <cite>self._forecast_results</cite> but only point
-forecasts are returned by this method. Use <cite>predict_intervals</cite>
-to get the intervals directly.</p>
+<span class="sig-prename descclassname"><span class="pre">ES.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">side</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'both'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cumulative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occurrence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scenarios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#smooth.ES.predict" title="Link to this definition"></a></dt>
+<dd><p>Generate forecasts using the fitted ADAM model.</p>
+<p>Matches R’s <code class="docutils literal notranslate"><span class="pre">forecast.adam()</span></code> interface for interval types and
+additional parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>h</strong> (<em>int</em>) – Forecast horizon (number of steps to forecast).</p></li>
 <li><p><strong>X</strong> (<em>Optional</em><em>[</em><em>NDArray</em><em>]</em><em>, </em><em>default=None</em>) – Exogenous variables for the forecast period.
-Ensure that X covers the entire forecast horizon <cite>h</cite>.</p></li>
-<li><p><strong>calculate_intervals</strong> (<em>bool</em><em>, </em><em>default=True</em>) – Whether to calculate prediction intervals along with point forecasts.
-The intervals are stored in <cite>self._forecast_results</cite>.</p></li>
-<li><p><strong>interval_method</strong> (<em>Optional</em><em>[</em><em>Literal</em><em>[</em><em>'parametric'</em><em>, </em><em>'simulation'</em><em>, </em><em>'bootstrap'</em><em>]</em><em>]</em><em>,</em>) – default=’parametric’
-Method to calculate prediction intervals:
-- ‘parametric’: Assumes a known distribution for errors.
-- ‘simulation’: Simulates future paths to derive intervals.
-- ‘bootstrap’: Uses bootstrapping techniques.
-This parameter is used if <cite>calculate_intervals</cite> is True.</p></li>
-<li><p><strong>level</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>float</em><em>, </em><em>List</em><em>[</em><em>float</em><em>]</em><em>]</em><em>]</em><em>, </em><em>default=0.95</em>) – Confidence level(s) for prediction intervals (e.g., 0.95 for 95% interval,
-or [0.8, 0.95] for 80% and 95% intervals).
-Used if <cite>calculate_intervals</cite> is True.</p></li>
-<li><p><strong>side</strong> (<em>Literal</em><em>[</em><em>'both'</em><em>, </em><em>'upper'</em><em>, </em><em>'lower'</em><em>]</em><em>, </em><em>default='both'</em>) – Which side(s) of the intervals to compute:
-- ‘both’: Both lower and upper bounds.
-- ‘lower’: Only the lower bound.
-- ‘upper’: Only the upper bound.
-Used if <cite>calculate_intervals</cite> is True.</p></li>
-<li><p><strong>nsim</strong> (<em>int</em><em>, </em><em>default=10000</em>) – Number of simulations to run for simulation-based intervals.
-Only used when <cite>interval_method=’simulation’</cite>.</p></li>
+Ensure that X covers the entire forecast horizon <code class="docutils literal notranslate"><span class="pre">h</span></code>.</p></li>
+<li><p><strong>interval</strong> (<em>str</em><em>, </em><em>default=&quot;none&quot;</em>) – <p>Type of prediction interval to construct:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>: No intervals, point forecasts only.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;prediction&quot;</span></code>: Automatically selects <code class="docutils literal notranslate"><span class="pre">&quot;simulated&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&quot;approximate&quot;</span></code> depending on the model type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;simulated&quot;</span></code>: Simulation-based intervals (Monte Carlo).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;approximate&quot;</span></code>: Analytical (parametric) intervals.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;semiparametric&quot;</span></code>: Not yet implemented.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;nonparametric&quot;</span></code>: Not yet implemented.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;empirical&quot;</span></code>: Not yet implemented.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;confidence&quot;</span></code>: Not yet implemented.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;complete&quot;</span></code>: Not yet implemented.</p></li>
+</ul>
+</p></li>
+<li><p><strong>level</strong> (<em>float</em><em> or </em><em>list</em><em> of </em><em>float</em><em>, </em><em>default=0.95</em>) – <p>Confidence level(s) for prediction intervals. Accepts a single
+value (e.g. <code class="docutils literal notranslate"><span class="pre">0.95</span></code>) or a list for multiple simultaneous levels
+(e.g. <code class="docutils literal notranslate"><span class="pre">[0.9,</span> <span class="pre">0.95,</span> <span class="pre">0.99]</span></code>). Values above 1 are treated as
+percentages and divided by 100.</p>
+<p>Each level produces a pair of <code class="docutils literal notranslate"><span class="pre">lower_X</span></code> / <code class="docutils literal notranslate"><span class="pre">upper_X</span></code> columns
+in the output, where X is the corresponding quantile. For example,
+<code class="docutils literal notranslate"><span class="pre">level=0.95</span></code> with <code class="docutils literal notranslate"><span class="pre">side=&quot;both&quot;</span></code> yields columns
+<code class="docutils literal notranslate"><span class="pre">&quot;lower_0.025&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;upper_0.975&quot;</span></code>.</p>
+</p></li>
+<li><p><strong>side</strong> (<em>str</em><em>, </em><em>default=&quot;both&quot;</em>) – <p>Which side(s) of the intervals to compute:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;both&quot;</span></code>: Both lower and upper bounds (default).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;upper&quot;</span></code>: Upper bound only. Column named <code class="docutils literal notranslate"><span class="pre">&quot;upper_&lt;level&gt;&quot;</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;lower&quot;</span></code>: Lower bound only. Column named <code class="docutils literal notranslate"><span class="pre">&quot;lower_&lt;1-level&gt;&quot;</span></code>.</p></li>
+</ul>
+</p></li>
+<li><p><strong>cumulative</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True, return cumulative (summed) forecasts over the horizon.</p></li>
+<li><p><strong>nsim</strong> (<em>int</em><em>, </em><em>default=10000</em>) – Number of simulations for simulation-based intervals.</p></li>
+<li><p><strong>occurrence</strong> (<em>Optional</em><em>[</em><em>NDArray</em><em>]</em><em>, </em><em>default=None</em>) – External occurrence probabilities for the forecast period.
+Overrides the fitted model’s occurrence for forecasting.</p></li>
+<li><p><strong>scenarios</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True and <code class="docutils literal notranslate"><span class="pre">interval=&quot;simulated&quot;</span></code>, store the raw simulation
+matrix in <code class="docutils literal notranslate"><span class="pre">self._forecast_results[&quot;scenarios&quot;]</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Point forecasts for the next <cite>h</cite> periods.</p>
+<dd class="field-even"><p>DataFrame with <code class="docutils literal notranslate"><span class="pre">&quot;mean&quot;</span></code> column and optional interval columns.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>NDArray</p>
+<dd class="field-odd"><p>pd.DataFrame</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If the model has not been fitted yet or <cite>h</cite> is not set.</p>
+<dd class="field-even"><p><strong>ValueError</strong> – If the model has not been fitted yet or <code class="docutils literal notranslate"><span class="pre">h</span></code> is not set.</p>
 </dd>
 </dl>
 </dd></dl>
