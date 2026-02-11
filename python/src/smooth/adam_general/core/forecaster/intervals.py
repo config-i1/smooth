@@ -723,4 +723,4 @@ def generate_simulation_interval(
         y_upper_final = y_forecast_sim * y_upper_final
 
     scenarios_out = y_simulated if general_dict.get("scenarios", False) else None
-    return y_lower_final, y_upper_final, scenarios_out
+    return y_lower_final, y_upper_final, scenarios_out, y_forecast_sim

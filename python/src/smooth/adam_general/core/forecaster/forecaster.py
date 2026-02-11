@@ -759,6 +759,36 @@ def forecaster(
         y_forecast_values, model_type_dict, model_prepared, general_dict
     )
 
+    # 8b. Multiplicative models need simulation-based mean for point forecasts
+    # (matches R adam.R:7875-7894). The C++ forecaster returns the conditional
+    # mode, but for multiplicative models mean != mode due to skewness.
+    resolved_interval = general_dict["interval"]
+    _cached_sim = None
+    needs_sim_mean = (
+        (model_type_dict["ets_model"] or explanatory_checked["xreg_number"] > 0)
+        and (
+            model_type_dict["trend_type"] == "M"
+            or (
+                model_type_dict["season_type"] == "M"
+                and general_dict["h"] > lags_dict["lags_model_min"]
+            )
+        )
+        and resolved_interval != "approximate"
+    )
+    if needs_sim_mean:
+        nsim = general_dict.get("nsim", 10000)
+        level_val = level if isinstance(level, (int, float)) else level[0]
+        sim_lower, sim_upper, sim_scenarios, y_forecast_sim = (
+            generate_simulation_interval(
+                y_forecast_values, model_prepared, general_dict,
+                observations_dict, model_type_dict, lags_dict,
+                components_dict, explanatory_checked, constants_checked,
+                params_info, adam_cpp, level_val, nsim=nsim,
+            )
+        )
+        y_forecast_values = y_forecast_sim
+        _cached_sim = (sim_lower, sim_upper, sim_scenarios)
+
     # 9. Process occurrence forecasts
     p_forecast, occurrence_model = _process_occurrence_forecast(
         occurrence_dict, general_dict
@@ -773,10 +803,9 @@ def forecaster(
         # probability is complex
         if occurrence_model:
             general_dict["interval"] = "simulated"
+            resolved_interval = "simulated"
 
     # 12. Build output based on resolved interval type
-    resolved_interval = general_dict["interval"]
-
     if resolved_interval == "none":
         y_forecast_out = pd.DataFrame(
             {"mean": y_forecast_values},
@@ -792,22 +821,25 @@ def forecaster(
         level_low, level_up = ensure_level_format(level, side)
 
         if resolved_interval == "simulated":
-            nsim = general_dict.get("nsim", 10000)
-            y_lower, y_upper, y_simulated = generate_simulation_interval(
-                y_forecast_values,
-                model_prepared,
-                general_dict,
-                observations_dict,
-                model_type_dict,
-                lags_dict,
-                components_dict,
-                explanatory_checked,
-                constants_checked,
-                params_info,
-                adam_cpp,
-                level,
-                nsim=nsim,
-            )
+            if _cached_sim is not None:
+                y_lower, y_upper, y_simulated = _cached_sim
+            else:
+                nsim = general_dict.get("nsim", 10000)
+                y_lower, y_upper, y_simulated, _ = generate_simulation_interval(
+                    y_forecast_values,
+                    model_prepared,
+                    general_dict,
+                    observations_dict,
+                    model_type_dict,
+                    lags_dict,
+                    components_dict,
+                    explanatory_checked,
+                    constants_checked,
+                    params_info,
+                    adam_cpp,
+                    level,
+                    nsim=nsim,
+                )
             if general_dict.get("scenarios", False):
                 general_dict["_scenarios_matrix"] = y_simulated
         elif resolved_interval == "approximate":
@@ -955,13 +987,6 @@ def forecaster_combined(
         # Make a copy of general_dict for this model
         general_dict_copy = copy.deepcopy(general_dict)
 
-        # For combined models, use "approximate" for individual forecasts
-        # ("prediction" auto-routing to "simulated" can fail for individual
-        # models in the pool; combined intervals are averaged anyway)
-        model_interval = "approximate" if interval in (
-            "prediction", "simulated"
-        ) else interval
-
         # Generate forecast for this model
         model_forecast = forecaster(
             model_prepared=prepared,
@@ -979,7 +1004,7 @@ def forecaster_combined(
             }),
             params_info=params_info,
             adam_cpp=adam_cpp,
-            interval=model_interval,
+            interval=interval,
             level=level,
             side=side,
         )
