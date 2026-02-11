@@ -127,7 +127,7 @@ def _organize_lags_info(
     # Smallest seasonal lag (excluding trivial lag=1), or Inf if none
     lags_model_all = sorted(set(lags_model + lags_model_arima))
     lags_non_trivial = [lag for lag in lags_model_all if lag != 1]
-    lags_model_min = min(lags_non_trivial) if lags_non_trivial else float('inf')
+    lags_model_min = min(lags_non_trivial) if lags_non_trivial else float("inf")
 
     # Create lags dictionary
     lags_dict = {

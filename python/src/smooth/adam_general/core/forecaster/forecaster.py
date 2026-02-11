@@ -780,10 +780,19 @@ def forecaster(
         level_val = level if isinstance(level, (int, float)) else level[0]
         sim_lower, sim_upper, sim_scenarios, y_forecast_sim = (
             generate_simulation_interval(
-                y_forecast_values, model_prepared, general_dict,
-                observations_dict, model_type_dict, lags_dict,
-                components_dict, explanatory_checked, constants_checked,
-                params_info, adam_cpp, level_val, nsim=nsim,
+                y_forecast_values,
+                model_prepared,
+                general_dict,
+                observations_dict,
+                model_type_dict,
+                lags_dict,
+                components_dict,
+                explanatory_checked,
+                constants_checked,
+                params_info,
+                adam_cpp,
+                level_val,
+                nsim=nsim,
             )
         )
         y_forecast_values = y_forecast_sim
@@ -854,9 +863,7 @@ def forecaster(
                 level,
             )
             if general_dict.get("scenarios", False):
-                warnings.warn(
-                    'scenarios=True requires interval="simulated". Ignored.'
-                )
+                warnings.warn('scenarios=True requires interval="simulated". Ignored.')
         else:
             raise NotImplementedError(
                 f'interval="{resolved_interval}" is not yet implemented'
@@ -995,13 +1002,20 @@ def forecaster_combined(
             occurrence_dict=occurrence_dict,
             lags_dict=lags_dict,
             model_type_dict=model_type_dict,
-            explanatory_checked=model_info.get("explanatory_dict", {
-                "xreg_model": False, "xreg_number": 0,
-            }),
+            explanatory_checked=model_info.get(
+                "explanatory_dict",
+                {
+                    "xreg_model": False,
+                    "xreg_number": 0,
+                },
+            ),
             components_dict=components_dict,
-            constants_checked=model_info.get("constants_dict", {
-                "constant_required": False,
-            }),
+            constants_checked=model_info.get(
+                "constants_dict",
+                {
+                    "constant_required": False,
+                },
+            ),
             params_info=params_info,
             adam_cpp=adam_cpp,
             interval=interval,
@@ -1013,9 +1027,9 @@ def forecaster_combined(
             forecast_index = model_forecast.index
 
         # Add IC-weighted contribution to point forecast
-        y_forecast_combined += np.nan_to_num(
-            model_forecast["mean"].values, nan=0.0
-        ) * weight
+        y_forecast_combined += (
+            np.nan_to_num(model_forecast["mean"].values, nan=0.0) * weight
+        )
 
         # Add IC-weighted contribution to intervals
         if has_intervals:
@@ -1023,13 +1037,15 @@ def forecaster_combined(
             upper_cols = [c for c in model_forecast.columns if c.startswith("upper")]
 
             if lower_cols:
-                y_lower_combined += np.nan_to_num(
-                    model_forecast[lower_cols[0]].values, nan=0.0
-                ) * weight
+                y_lower_combined += (
+                    np.nan_to_num(model_forecast[lower_cols[0]].values, nan=0.0)
+                    * weight
+                )
             if upper_cols:
-                y_upper_combined += np.nan_to_num(
-                    model_forecast[upper_cols[0]].values, nan=0.0
-                ) * weight
+                y_upper_combined += (
+                    np.nan_to_num(model_forecast[upper_cols[0]].values, nan=0.0)
+                    * weight
+                )
 
     # Build result DataFrame
     level_low, level_up = ensure_level_format(level, side)

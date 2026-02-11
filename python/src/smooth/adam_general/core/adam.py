@@ -2054,9 +2054,15 @@ class ADAM:
         h: int,
         X: Optional[NDArray] = None,
         interval: Literal[
-            "none", "prediction", "simulated", "approximate",
-            "semiparametric", "nonparametric", "empirical",
-            "confidence", "complete",
+            "none",
+            "prediction",
+            "simulated",
+            "approximate",
+            "semiparametric",
+            "nonparametric",
+            "empirical",
+            "confidence",
+            "complete",
         ] = "none",
         level: Optional[Union[float, List[float]]] = 0.95,
         side: Literal["both", "upper", "lower"] = "both",
@@ -2544,7 +2550,9 @@ class ADAM:
         filtered_weights = {k: v for k, v in self._ic_weights.items() if v >= 0.01}
         total_filtered = sum(filtered_weights.values())
         if total_filtered > 0:
-            filtered_weights = {k: v / total_filtered for k, v in filtered_weights.items()}
+            filtered_weights = {
+                k: v / total_filtered for k, v in filtered_weights.items()
+            }
 
         # Initialize combined fitted values
         obs_in_sample = self._observations["obs_in_sample"]
@@ -2649,21 +2657,23 @@ class ADAM:
             )
 
             # Store for later forecasting (using ORIGINAL weight - filtering at predict-time)
-            self._prepared_models.append({
-                "name": model_name,
-                "weight": original_weight,
-                "result": result,
-                "model_type_dict": model_type_dict,
-                "components_dict": components_dict,
-                "lags_dict": lags_dict_copy,
-                "observations_dict": observations_dict_copy,
-                "profile_dict": profile_dict,
-                "phi_dict": phi_dict,
-                "adam_created": adam_created,
-                "prepared": prepared,
-                "explanatory_dict": self._explanatory,
-                "constants_dict": self._constant,
-            })
+            self._prepared_models.append(
+                {
+                    "name": model_name,
+                    "weight": original_weight,
+                    "result": result,
+                    "model_type_dict": model_type_dict,
+                    "components_dict": components_dict,
+                    "lags_dict": lags_dict_copy,
+                    "observations_dict": observations_dict_copy,
+                    "profile_dict": profile_dict,
+                    "phi_dict": phi_dict,
+                    "adam_created": adam_created,
+                    "prepared": prepared,
+                    "explanatory_dict": self._explanatory,
+                    "constants_dict": self._constant,
+                }
+            )
 
         # Store combined results
         self._combined_fitted = y_fitted_combined
