@@ -155,15 +155,25 @@ class TestPredictSides:
         assert len(lower_cols) == 1
         assert len(upper_cols) == 1
 
-    def test_side_upper_raises(self):
-        """side='upper' currently raises UnboundLocalError (not yet implemented)."""
-        with pytest.raises(UnboundLocalError):
-            _simple_model.predict(h=5, interval="approximate", side="upper")
+    def test_side_upper(self):
+        """side='upper' returns only upper interval column."""
+        r = _simple_model.predict(h=5, interval="approximate", level=0.9, side="upper")
+        lower_cols = [c for c in r.columns if c.startswith("lower")]
+        upper_cols = [c for c in r.columns if c.startswith("upper")]
+        assert len(lower_cols) == 0
+        assert len(upper_cols) == 1
+        assert "upper_0.9" in r.columns
+        assert (r[upper_cols[0]].values >= r["mean"].values).all()
 
-    def test_side_lower_raises(self):
-        """side='lower' currently raises UnboundLocalError (not yet implemented)."""
-        with pytest.raises(UnboundLocalError):
-            _simple_model.predict(h=5, interval="approximate", side="lower")
+    def test_side_lower(self):
+        """side='lower' returns only lower interval column."""
+        r = _simple_model.predict(h=5, interval="approximate", level=0.9, side="lower")
+        lower_cols = [c for c in r.columns if c.startswith("lower")]
+        upper_cols = [c for c in r.columns if c.startswith("upper")]
+        assert len(lower_cols) == 1
+        assert len(upper_cols) == 0
+        assert "lower_0.1" in r.columns
+        assert (r[lower_cols[0]].values <= r["mean"].values).all()
 
 
 # ---------------------------------------------------------------------------
@@ -288,3 +298,92 @@ class TestPredictCombined:
         assert r.shape == (10, 1)
         assert list(r.columns) == ["mean"]
         assert np.all(np.isfinite(r["mean"].values))
+
+
+# ---------------------------------------------------------------------------
+# 8. Multi-level prediction intervals
+# ---------------------------------------------------------------------------
+
+class TestPredictMultiLevel:
+    """Tests for multi-level prediction intervals."""
+
+    def test_multi_level_column_count(self):
+        """Two levels produce 5 columns: mean + 2 lower + 2 upper."""
+        r = _simple_model.predict(
+            h=5, interval="approximate", level=[0.9, 0.95]
+        )
+        assert r.shape == (5, 5)
+        lower_cols = [c for c in r.columns if c.startswith("lower")]
+        upper_cols = [c for c in r.columns if c.startswith("upper")]
+        assert len(lower_cols) == 2
+        assert len(upper_cols) == 2
+
+    def test_multi_level_column_names(self):
+        r = _simple_model.predict(
+            h=5, interval="approximate", level=[0.9, 0.95]
+        )
+        assert "lower_0.05" in r.columns
+        assert "lower_0.025" in r.columns
+        assert "upper_0.95" in r.columns
+        assert "upper_0.975" in r.columns
+
+    def test_multi_level_nesting(self):
+        """Wider level contains narrower level."""
+        r = _simple_model.predict(
+            h=5, interval="approximate", level=[0.8, 0.99]
+        )
+        lower80 = r[[c for c in r.columns if "lower" in c and "0.1" in c]].values
+        lower99 = r[[c for c in r.columns if "lower" in c and "0.005" in c]].values
+        upper80 = r[[c for c in r.columns if "upper" in c and "0.9" in c]].values
+        upper99 = r[[c for c in r.columns if "upper" in c and "0.995" in c]].values
+        assert (lower99 <= lower80).all()
+        assert (upper99 >= upper80).all()
+
+    def test_multi_level_simulated(self):
+        """Multi-level works with simulated intervals."""
+        r = _additive_model.predict(
+            h=5, interval="simulated", level=[0.8, 0.95], nsim=1000
+        )
+        assert r.shape == (5, 5)
+        lower_cols = sorted(c for c in r.columns if c.startswith("lower"))
+        upper_cols = sorted(c for c in r.columns if c.startswith("upper"))
+        assert len(lower_cols) == 2
+        assert len(upper_cols) == 2
+
+    def test_multi_level_side_upper(self):
+        """Multi-level with side='upper' gives only upper columns."""
+        r = _simple_model.predict(
+            h=5, interval="approximate", level=[0.9, 0.95], side="upper"
+        )
+        lower_cols = [c for c in r.columns if c.startswith("lower")]
+        upper_cols = [c for c in r.columns if c.startswith("upper")]
+        assert len(lower_cols) == 0
+        assert len(upper_cols) == 2
+        assert r.shape == (5, 3)  # mean + 2 upper
+
+    def test_multi_level_side_lower(self):
+        """Multi-level with side='lower' gives only lower columns."""
+        r = _simple_model.predict(
+            h=5, interval="approximate", level=[0.9, 0.95], side="lower"
+        )
+        lower_cols = [c for c in r.columns if c.startswith("lower")]
+        upper_cols = [c for c in r.columns if c.startswith("upper")]
+        assert len(lower_cols) == 2
+        assert len(upper_cols) == 0
+        assert r.shape == (5, 3)  # mean + 2 lower
+
+    def test_three_levels(self):
+        """Three levels produce 7 columns."""
+        r = _simple_model.predict(
+            h=5, interval="approximate", level=[0.8, 0.9, 0.99]
+        )
+        assert r.shape == (5, 7)
+
+    def test_predict_intervals_method(self):
+        """predict_intervals() returns multi-level DataFrame."""
+        r = _simple_model.predict_intervals(h=5, levels=[0.8, 0.95])
+        assert "mean" in r.columns
+        lower_cols = [c for c in r.columns if c.startswith("lower")]
+        upper_cols = [c for c in r.columns if c.startswith("upper")]
+        assert len(lower_cols) == 2
+        assert len(upper_cols) == 2

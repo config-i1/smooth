@@ -362,83 +362,6 @@ def _process_occurrence_forecast(occurrence_dict, general_dict):
     return p_forecast, occurrence_model
 
 
-def _prepare_forecast_intervals(general_dict):
-    """
-    Prepare parameters for forecast intervals.
-
-    Parameters
-    ----------
-    general_dict : dict
-        Dictionary with general model parameters
-
-    Returns
-    -------
-    tuple
-        Tuple containing level information and side-specific interval levels
-    """
-    # Fix just in case user used 95 instead of 0.95
-    level = general_dict["interval_level"]
-    level = [
-        level_value / 100 if level_value > 1 else level_value for level_value in level
-    ]
-
-    # Handle different interval sides
-    if general_dict.get("side") == "both":
-        level_low = round((1 - level[0]) / 2, 3)
-        level_up = round((1 + level[0]) / 2, 3)
-    elif general_dict.get("side") == "upper":
-        level_low = None  # Not used for upper-side intervals
-        level_up = level
-    else:
-        level_low = 1 - level
-        level_up = None  # Not used for lower-side intervals
-
-    return level, level_low, level_up
-
-
-def _format_forecast_output(
-    y_forecast, observations_dict, level_low, level_up, h_final=None
-):
-    """
-    Format the forecast data into a pandas DataFrame with intervals.
-
-    Parameters
-    ----------
-    y_forecast : numpy.ndarray
-        Array of point forecasts
-    observations_dict : dict
-        Dictionary with observation data and related information
-    level_low : float
-        Lower level for prediction interval
-    level_up : float
-        Upper level for prediction interval
-    h_final : int, optional
-        Final forecast horizon (may differ from original if cumulative)
-
-    Returns
-    -------
-    pandas.DataFrame
-        DataFrame with forecasts and intervals
-    """
-    # Use the original horizon if h_final not provided
-    if h_final is None:
-        h_final = len(y_forecast) if hasattr(y_forecast, "__len__") else 1
-
-    # Convert to dataframe with level_low and level_up as column names
-    y_forecast_out = pd.DataFrame(
-        {
-            "mean": y_forecast,
-            # Return NaN for intervals
-            # (would be calculated in a more complete implementation)
-            f"lower_{level_low}": np.nan,
-            f"upper_{level_up}": np.nan,
-        },
-        index=observations_dict["y_forecast_index"][:h_final],
-    )
-
-    return y_forecast_out
-
-
 def forecaster(
     model_prepared,
     observations_dict,
@@ -777,7 +700,7 @@ def forecaster(
     )
     if needs_sim_mean:
         nsim = general_dict.get("nsim", 10000)
-        level_val = level if isinstance(level, (int, float)) else level[0]
+        ll, lu = ensure_level_format(level, side)
         sim_lower, sim_upper, sim_scenarios, y_forecast_sim = (
             generate_simulation_interval(
                 y_forecast_values,
@@ -791,7 +714,8 @@ def forecaster(
                 constants_checked,
                 params_info,
                 adam_cpp,
-                level_val,
+                ll,
+                lu,
                 nsim=nsim,
             )
         )
@@ -824,8 +748,6 @@ def forecaster(
         if level is None:
             warnings.warn("No confidence level specified. Using default level of 0.95")
             level = 0.95
-        if isinstance(level, list):
-            level = level[0]
 
         level_low, level_up = ensure_level_format(level, side)
 
@@ -846,7 +768,8 @@ def forecaster(
                     constants_checked,
                     params_info,
                     adam_cpp,
-                    level,
+                    level_low,
+                    level_up,
                     nsim=nsim,
                 )
             if general_dict.get("scenarios", False):
@@ -860,7 +783,8 @@ def forecaster(
                 model_type_dict,
                 lags_dict,
                 params_info,
-                level,
+                level_low,
+                level_up,
             )
             if general_dict.get("scenarios", False):
                 warnings.warn('scenarios=True requires interval="simulated". Ignored.')
@@ -869,12 +793,17 @@ def forecaster(
                 f'interval="{resolved_interval}" is not yet implemented'
             )
 
+        # Build multi-column DataFrame: mean, then lower cols, then upper cols
+        columns = {"mean": y_forecast_values}
+        n_levels = len(level_low)
+        for j in range(n_levels):
+            if side != "upper":
+                columns[f"lower_{level_low[j]}"] = y_lower[:, j]
+            if side != "lower":
+                columns[f"upper_{level_up[j]}"] = y_upper[:, j]
+
         y_forecast_out = pd.DataFrame(
-            {
-                "mean": y_forecast_values,
-                f"lower_{level_low}": y_lower,
-                f"upper_{level_up}": y_upper,
-            },
+            columns,
             index=observations_dict["y_forecast_index"],
         )
 
@@ -973,8 +902,8 @@ def forecaster_combined(
     # Initialize combined arrays
     has_intervals = interval != "none"
     y_forecast_combined = np.zeros(h)
-    y_lower_combined = np.zeros(h) if has_intervals else None
-    y_upper_combined = np.zeros(h) if has_intervals else None
+    # For interval columns, accumulate by column name
+    interval_accum = {}  # col_name -> np.zeros(h)
     forecast_index = None
 
     for model_info in prepared_models:
@@ -991,10 +920,8 @@ def forecaster_combined(
         lags_dict = model_info["lags_dict"]
         adam_cpp = result["adam_estimated"]["adam_cpp"]
 
-        # Make a copy of general_dict for this model
         general_dict_copy = copy.deepcopy(general_dict)
 
-        # Generate forecast for this model
         model_forecast = forecaster(
             model_prepared=prepared,
             observations_dict=observations_dict,
@@ -1004,17 +931,12 @@ def forecaster_combined(
             model_type_dict=model_type_dict,
             explanatory_checked=model_info.get(
                 "explanatory_dict",
-                {
-                    "xreg_model": False,
-                    "xreg_number": 0,
-                },
+                {"xreg_model": False, "xreg_number": 0},
             ),
             components_dict=components_dict,
             constants_checked=model_info.get(
                 "constants_dict",
-                {
-                    "constant_required": False,
-                },
+                {"constant_required": False},
             ),
             params_info=params_info,
             adam_cpp=adam_cpp,
@@ -1026,41 +948,26 @@ def forecaster_combined(
         if forecast_index is None:
             forecast_index = model_forecast.index
 
-        # Add IC-weighted contribution to point forecast
         y_forecast_combined += (
             np.nan_to_num(model_forecast["mean"].values, nan=0.0) * weight
         )
 
-        # Add IC-weighted contribution to intervals
         if has_intervals:
-            lower_cols = [c for c in model_forecast.columns if c.startswith("lower")]
-            upper_cols = [c for c in model_forecast.columns if c.startswith("upper")]
-
-            if lower_cols:
-                y_lower_combined += (
-                    np.nan_to_num(model_forecast[lower_cols[0]].values, nan=0.0)
-                    * weight
-                )
-            if upper_cols:
-                y_upper_combined += (
-                    np.nan_to_num(model_forecast[upper_cols[0]].values, nan=0.0)
-                    * weight
-                )
+            for col in model_forecast.columns:
+                if col.startswith("lower") or col.startswith("upper"):
+                    if col not in interval_accum:
+                        interval_accum[col] = np.zeros(h)
+                    interval_accum[col] += (
+                        np.nan_to_num(model_forecast[col].values, nan=0.0) * weight
+                    )
 
     # Build result DataFrame
-    level_low, level_up = ensure_level_format(level, side)
-
+    columns = {"mean": y_forecast_combined}
     if has_intervals:
-        return pd.DataFrame(
-            {
-                "mean": y_forecast_combined,
-                f"lower_{level_low}": y_lower_combined,
-                f"upper_{level_up}": y_upper_combined,
-            },
-            index=forecast_index,
-        )
-    else:
-        return pd.DataFrame(
-            {"mean": y_forecast_combined},
-            index=forecast_index,
-        )
+        # Sort columns: lower_* then upper_*
+        lower_cols = sorted(c for c in interval_accum if c.startswith("lower"))
+        upper_cols = sorted(c for c in interval_accum if c.startswith("upper"))
+        for c in lower_cols + upper_cols:
+            columns[c] = interval_accum[c]
+
+    return pd.DataFrame(columns, index=forecast_index)
