@@ -15,6 +15,7 @@ from .intervals import (
     generate_prediction_interval,
     generate_simulation_interval,
 )
+from .result import ForecastResult
 
 
 def _prepare_forecast_index(observations_dict, general_dict):
@@ -535,18 +536,21 @@ def forecaster(
 
     Returns
     -------
-    pandas.DataFrame
-        DataFrame containing forecast results with columns:
+    ForecastResult
+        Structured result with attributes:
 
-        - **'mean'**: Point forecasts (always included)
-        - **'lower_{level}'**: Lower prediction interval (if interval != "none")
-        - **'upper_{level}'**: Upper prediction interval (if interval != "none")
+        - **mean**: ``pd.Series`` of point forecasts (always present).
+        - **lower**: ``pd.DataFrame`` of lower bounds, columns are quantile
+          values (e.g. ``0.025``).  ``None`` when ``interval="none"``
+          or ``side="upper"``.
+        - **upper**: ``pd.DataFrame`` of upper bounds, columns are quantile
+          values (e.g. ``0.975``).  ``None`` when ``interval="none"``
+          or ``side="lower"``.
+        - **level**, **side**, **interval**: echo of the requested parameters.
 
-        Index is the forecast period (y_forecast_index from observations_dict).
-
-        Shape: (h, 1) or (h, 3) depending on interval type.
-
-        If cumulative=True, returns shape (1, ...) with sum of forecasts.
+        Also supports DataFrame-style access (``result["mean"]``,
+        ``result.shape``, ``result.columns``) for backward compatibility.
+        Use ``result.to_dataframe()`` for a flat ``pd.DataFrame``.
 
     Notes
     -----
@@ -621,21 +625,23 @@ def forecaster(
     --------
     Generate point forecasts only::
 
-        >>> forecast_df = forecaster(..., interval='none')
-        >>> print(forecast_df['mean'])  # 12 point forecasts
+        >>> result = forecaster(..., interval='none')
+        >>> print(result.mean)           # pd.Series of point forecasts
+        >>> print(result.lower)          # None
 
     Generate 95% prediction intervals (auto-selects method)::
 
-        >>> forecast_df = forecaster(..., interval='prediction', level=0.95)
-        >>> print(forecast_df.columns)  # ['mean', 'lower_0.025', 'upper_0.975']
+        >>> result = forecaster(..., interval='prediction', level=0.95)
+        >>> print(result.lower.columns)  # Float64Index([0.025])
+        >>> print(result.upper.columns)  # Float64Index([0.975])
 
     Generate simulation-based intervals::
 
-        >>> forecast_df = forecaster(..., interval='simulated', level=0.90)
+        >>> result = forecaster(..., interval='simulated', level=0.90)
 
     Cumulative forecast for inventory planning::
 
-        >>> forecast_df = forecaster(
+        >>> result = forecaster(
         ...     general_dict={'h': 12, 'cumulative': True, ...},
         ...     interval='prediction', level=0.95, ...
         ... )
@@ -750,9 +756,13 @@ def forecaster(
     )
 
     if resolved_interval == "none":
-        y_forecast_out = pd.DataFrame(
-            {"mean": y_forecast_values},
-            index=forecast_index,
+        return ForecastResult(
+            mean=pd.Series(y_forecast_values, index=forecast_index, name="mean"),
+            lower=None,
+            upper=None,
+            level=level,
+            side=side,
+            interval=resolved_interval,
         )
     else:
         if level is None:
@@ -803,21 +813,28 @@ def forecaster(
                 f'interval="{resolved_interval}" is not yet implemented'
             )
 
-        # Build multi-column DataFrame: mean, then lower cols, then upper cols
-        columns = {"mean": y_forecast_values}
         n_levels = len(level_low)
-        for j in range(n_levels):
-            if side != "upper":
-                columns[f"lower_{level_low[j]}"] = y_lower[:, j]
-            if side != "lower":
-                columns[f"upper_{level_up[j]}"] = y_upper[:, j]
+        lower_df = None
+        upper_df = None
+        if side != "upper":
+            lower_df = pd.DataFrame(
+                {level_low[j]: y_lower[:, j] for j in range(n_levels)},
+                index=forecast_index,
+            )
+        if side != "lower":
+            upper_df = pd.DataFrame(
+                {level_up[j]: y_upper[:, j] for j in range(n_levels)},
+                index=forecast_index,
+            )
 
-        y_forecast_out = pd.DataFrame(
-            columns,
-            index=forecast_index,
-        )
-
-    return y_forecast_out
+    return ForecastResult(
+        mean=pd.Series(y_forecast_values, index=forecast_index, name="mean"),
+        lower=lower_df,
+        upper=upper_df,
+        level=level,
+        side=side,
+        interval=resolved_interval,
+    )
 
 
 def forecaster_combined(
@@ -878,12 +895,10 @@ def forecaster_combined(
 
     Returns
     -------
-    pd.DataFrame
-        DataFrame containing combined forecast results with columns:
-
-        - 'mean': IC-weighted point forecasts
-        - 'lower_{level}': Lower prediction interval (if interval != "none")
-        - 'upper_{level}': Upper prediction interval (if interval != "none")
+    ForecastResult
+        Structured result with ``mean`` (pd.Series), ``lower`` and
+        ``upper`` (pd.DataFrame or None) containing IC-weighted combined
+        forecasts.
 
     Notes
     -----
@@ -957,28 +972,55 @@ def forecaster_combined(
         )
 
         if forecast_index is None:
-            forecast_index = model_forecast.index
+            forecast_index = model_forecast.mean.index
 
         y_forecast_combined += (
-            np.nan_to_num(model_forecast["mean"].values, nan=0.0) * weight
+            np.nan_to_num(model_forecast.mean.values, nan=0.0) * weight
         )
 
         if has_intervals:
-            for col in model_forecast.columns:
-                if col.startswith("lower") or col.startswith("upper"):
-                    if col not in interval_accum:
-                        interval_accum[col] = np.zeros(n_out)
-                    interval_accum[col] += (
-                        np.nan_to_num(model_forecast[col].values, nan=0.0) * weight
+            if model_forecast.lower is not None:
+                for col in model_forecast.lower.columns:
+                    key = ("lower", col)
+                    if key not in interval_accum:
+                        interval_accum[key] = np.zeros(n_out)
+                    interval_accum[key] += (
+                        np.nan_to_num(model_forecast.lower[col].values, nan=0.0)
+                        * weight
+                    )
+            if model_forecast.upper is not None:
+                for col in model_forecast.upper.columns:
+                    key = ("upper", col)
+                    if key not in interval_accum:
+                        interval_accum[key] = np.zeros(n_out)
+                    interval_accum[key] += (
+                        np.nan_to_num(model_forecast.upper[col].values, nan=0.0)
+                        * weight
                     )
 
-    # Build result DataFrame
-    columns = {"mean": y_forecast_combined}
+    # Build ForecastResult
+    mean_series = pd.Series(y_forecast_combined, index=forecast_index, name="mean")
+    lower_df = None
+    upper_df = None
     if has_intervals:
-        # Sort columns: lower_* then upper_*
-        lower_cols = sorted(c for c in interval_accum if c.startswith("lower"))
-        upper_cols = sorted(c for c in interval_accum if c.startswith("upper"))
-        for c in lower_cols + upper_cols:
-            columns[c] = interval_accum[c]
+        lower_keys = sorted(k for k in interval_accum if k[0] == "lower")
+        upper_keys = sorted(k for k in interval_accum if k[0] == "upper")
+        if lower_keys:
+            lower_df = pd.DataFrame(
+                {k[1]: interval_accum[k] for k in lower_keys},
+                index=forecast_index,
+            )
+        if upper_keys:
+            upper_df = pd.DataFrame(
+                {k[1]: interval_accum[k] for k in upper_keys},
+                index=forecast_index,
+            )
 
-    return pd.DataFrame(columns, index=forecast_index)
+    return ForecastResult(
+        mean=mean_series,
+        lower=lower_df,
+        upper=upper_df,
+        level=level,
+        side=side,
+        interval=interval,
+    )

@@ -2122,12 +2122,15 @@ class ADAM:
             Overrides the fitted model's occurrence for forecasting.
         scenarios : bool, default=False
             If True and ``interval="simulated"``, store the raw simulation
-            matrix in ``self._forecast_results["scenarios"]``.
+            matrix in ``self._general["_scenarios_matrix"]``.
 
         Returns
         -------
-        pd.DataFrame
-            DataFrame with ``"mean"`` column and optional interval columns.
+        ForecastResult
+            Structured result with ``.mean`` (pd.Series), ``.lower`` and
+            ``.upper`` (pd.DataFrame or None), ``.level``, ``.side``, and
+            ``.interval`` attributes.  Use ``.to_dataframe()`` for a flat
+            pd.DataFrame.
 
         Raises
         ------
@@ -2195,8 +2198,8 @@ class ADAM:
 
         Returns
         -------
-        pd.DataFrame
-            DataFrame with ``"mean"`` and lower/upper columns for each level.
+        ForecastResult
+            Structured result with ``.mean``, ``.lower``, ``.upper`` attributes.
         """
         return self.predict(
             h=h,
@@ -3078,7 +3081,7 @@ class ADAM:
 
         Returns
         -------
-        pd.DataFrame
+        ForecastResult
             Forecast results including point forecasts and prediction intervals.
         """
         # Handle combined models
@@ -3122,8 +3125,8 @@ class ADAM:
 
         Returns
         -------
-        pd.DataFrame
-            IC-weighted combined forecast results with 'mean' and interval columns.
+        ForecastResult
+            IC-weighted combined forecast results.
         """
         from smooth.adam_general.core.forecaster import forecaster_combined
 
@@ -3143,20 +3146,15 @@ class ADAM:
     def _format_prediction_results(self):
         """
         Format the prediction results into a more user-friendly structure.
-        Currently, this method primarily adds the elapsed time to the forecast results.
 
-        Note: This method is defined but not explicitly called within the ADAM class's
-        current public interface (fit, predict, predict_intervals).
-        It might be intended for internal use or future extensions.
+        Note: This method is defined but not explicitly called within the ADAM
+        class's current public interface (fit, predict, predict_intervals).
 
         Returns
         -------
-        dict
+        ForecastResult
             Formatted prediction results including point forecasts and intervals.
         """
-        # Calculate and include elapsed time before returning
-        self._forecast_results["elapsed_time"] = time.time() - self._start_time
-
         return self._forecast_results
 
     def __str__(self) -> str:
