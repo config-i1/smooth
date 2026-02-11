@@ -1,3 +1,10 @@
+smooth v4.4.1 (Release data: 2026-02-07)
+=======
+
+Bugfixes:
+* Fixed the calculation of the number of estimated parameters in case of combined ETS.
+
+
 smooth v4.4.0 (Release data: 2026-02-05)
 =======
 

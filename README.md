@@ -33,7 +33,19 @@ remotes::install_github("config-i1/smooth")
 # Not yet available
 ```
 
-**Python (github):**
+**Python (github, release):**
+Choose the wheel file for your platform from the [latest release](https://github.com/config-i1/smooth/releases/tag/v4.4.0) then run:
+```bash
+pip install <wheel-file-for-your-platform>
+```
+For example, for Windows with Python 3.13:
+
+```bash
+pip install https://github.com/config-i1/smooth/releases/download/v4.4.0/smooth-1.0.0-cp313-cp313-win_amd64.whl
+```
+
+
+**Python (github, dev):**
 ```bash
 pip install "git+https://github.com/config-i1/smooth.git@master#subdirectory=python"
 ```

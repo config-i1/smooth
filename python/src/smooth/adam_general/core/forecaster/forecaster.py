@@ -879,3 +879,178 @@ def forecaster(
         )
 
     return y_forecast_out
+
+
+def forecaster_combined(
+    prepared_models,
+    ic_weights,
+    observations_dict,
+    general_dict,
+    occurrence_dict,
+    params_info,
+    calculate_intervals=True,
+    interval_method="parametric",
+    level=0.95,
+    side="both",
+):
+    """
+    Generate combined forecasts from multiple prepared models using IC weights.
+
+    This function produces IC-weighted point forecasts and prediction intervals
+    by combining forecasts from multiple ADAM models. Each model's forecast
+    contribution is proportional to its Akaike weight.
+
+    Parameters
+    ----------
+    prepared_models : list of dict
+        List of prepared model dictionaries. Each dict must contain:
+
+        - 'name': Model name string (e.g., 'ANN')
+        - 'weight': IC weight for this model (>= 0.01 to be included)
+        - 'result': Original selection result with adam_estimated
+        - 'model_type_dict': Model type specification
+        - 'components_dict': Component counts
+        - 'lags_dict': Lag structure
+        - 'prepared': Prepared model from preparator()
+
+    ic_weights : dict
+        Dictionary mapping model names to IC weights. Weights should sum to 1.0.
+
+    observations_dict : dict
+        Observation information (shared across all models).
+
+    general_dict : dict
+        General configuration containing 'h' (horizon) and other settings.
+
+    occurrence_dict : dict
+        Occurrence model specification.
+
+    params_info : list or array
+        Parameter count information for interval calculation.
+
+    calculate_intervals : bool, default=True
+        Whether to calculate prediction intervals.
+
+    interval_method : str, default='parametric'
+        Interval calculation method: 'parametric', 'simulation', or 'bootstrap'.
+
+    level : float, default=0.95
+        Confidence level for prediction intervals (0 to 1).
+
+    side : str, default='both'
+        Interval side: 'both', 'lower', or 'upper'.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing combined forecast results with columns:
+
+        - 'mean': IC-weighted point forecasts
+        - 'lower_{level}': Lower prediction interval (if calculate_intervals)
+        - 'upper_{level}': Upper prediction interval (if calculate_intervals)
+
+    Notes
+    -----
+    The combined forecast is computed as:
+
+    .. math::
+
+        \\hat{y}_{T+h}^{combined} = \\sum_{m=1}^{M} w_m \\hat{y}_{T+h}^{(m)}
+
+    where :math:`w_m` is the Akaike weight for model m.
+
+    For prediction intervals, the same weighting is applied to lower and upper
+    bounds. This is an approximation that works well when models agree.
+    """
+    import copy
+
+    h = general_dict["h"]
+
+    # Filter weights >= 0.01 and renormalize (matches R's forecast.adamCombined)
+    model_weights = {m["name"]: m["weight"] for m in prepared_models}
+    filtered_weights = {k: v for k, v in model_weights.items() if v >= 0.01}
+    total_weight = sum(filtered_weights.values())
+    if total_weight > 0:
+        filtered_weights = {k: v / total_weight for k, v in filtered_weights.items()}
+
+    # Initialize combined arrays
+    y_forecast_combined = np.zeros(h)
+    y_lower_combined = np.zeros(h) if calculate_intervals else None
+    y_upper_combined = np.zeros(h) if calculate_intervals else None
+    forecast_index = None
+
+    for model_info in prepared_models:
+        model_name = model_info["name"]
+        weight = filtered_weights.get(model_name, 0)
+
+        if weight == 0:
+            continue
+
+        result = model_info["result"]
+        prepared = model_info["prepared"]
+        model_type_dict = model_info["model_type_dict"]
+        components_dict = model_info["components_dict"]
+        lags_dict = model_info["lags_dict"]
+        adam_cpp = result["adam_estimated"]["adam_cpp"]
+
+        # Make a copy of general_dict for this model
+        general_dict_copy = copy.deepcopy(general_dict)
+
+        # Generate forecast for this model
+        model_forecast = forecaster(
+            model_prepared=prepared,
+            observations_dict=observations_dict,
+            general_dict=general_dict_copy,
+            occurrence_dict=occurrence_dict,
+            lags_dict=lags_dict,
+            model_type_dict=model_type_dict,
+            explanatory_checked=model_info.get("explanatory_dict", {}),
+            components_dict=components_dict,
+            constants_checked=model_info.get("constants_dict", {}),
+            params_info=params_info,
+            adam_cpp=adam_cpp,
+            calculate_intervals=calculate_intervals,
+            interval_method=interval_method,
+            level=level,
+            side=side,
+        )
+
+        if forecast_index is None:
+            forecast_index = model_forecast.index
+
+        # Add IC-weighted contribution to point forecast
+        y_forecast_combined += np.nan_to_num(
+            model_forecast["mean"].values, nan=0.0
+        ) * weight
+
+        # Add IC-weighted contribution to intervals
+        if calculate_intervals:
+            lower_cols = [c for c in model_forecast.columns if c.startswith("lower")]
+            upper_cols = [c for c in model_forecast.columns if c.startswith("upper")]
+
+            if lower_cols:
+                y_lower_combined += np.nan_to_num(
+                    model_forecast[lower_cols[0]].values, nan=0.0
+                ) * weight
+            if upper_cols:
+                y_upper_combined += np.nan_to_num(
+                    model_forecast[upper_cols[0]].values, nan=0.0
+                ) * weight
+
+    # Build result DataFrame
+    level_low, level_up = ensure_level_format(level, side)
+
+    if calculate_intervals:
+        return pd.DataFrame(
+            {
+                "mean": y_forecast_combined,
+                f"lower_{level_low}": y_lower_combined,
+                f"upper_{level_up}": y_upper_combined,
+            },
+            index=forecast_index,
+        )
+    else:
+        return pd.DataFrame(
+            {"mean": y_forecast_combined},
+            index=forecast_index,
+        )

@@ -114,11 +114,13 @@ class NParam:
         # Build rows
         est_row = "estimated "
         for col in cols:
-            est_row += f"{self.estimated[col]:>{col_width}}"
+            val = self.estimated[col]
+            est_row += f"{float(val):>{col_width}.3f}"
 
         prov_row = "provided  "
         for col in cols:
-            prov_row += f"{self.provided[col]:>{col_width}}"
+            val = self.provided[col]
+            prov_row += f"{float(val):>{col_width}.3f}"
 
         return f"{header}\n{est_row}\n{prov_row}"
 

@@ -5,7 +5,7 @@ from smooth.adam_general.core.utils.ic import ic_function
 from .estimator import estimator
 
 
-def _form_model_pool(model_type_dict, silent=False):
+def _form_model_pool(model_type_dict, silent=False, lags_dict=None):
     """
     Form a pool of models based on model type specifications.
 
@@ -15,6 +15,8 @@ def _form_model_pool(model_type_dict, silent=False):
         Model type specification
     silent : bool, optional
         Whether to suppress progress messages
+    lags_dict : dict, optional
+        Lags information including lags_model_max
 
     Returns
     -------
@@ -30,15 +32,19 @@ def _form_model_pool(model_type_dict, silent=False):
     if not silent:
         print("Forming the pool of models based on... ", end="")
 
+    # Check if seasonal models are possible based on lags
+    max_lag = lags_dict.get("lags_model_max", 1) if lags_dict else 1
+    has_seasonality = max_lag > 1
+
     # Define the whole pool of errors, trends, and seasonals
     if not model_type_dict["allow_multiplicative"]:
         pool_errors = ["A"]
         pool_trends = ["N", "A", "Ad"]
-        pool_seasonals = ["N", "A"]
+        pool_seasonals = ["N", "A"] if has_seasonality else ["N"]
     else:
         pool_errors = ["A", "M"]
         pool_trends = ["N", "A", "Ad", "M", "Md"]
-        pool_seasonals = ["N", "A", "M"]
+        pool_seasonals = ["N", "A", "M"] if has_seasonality else ["N"]
 
     # Prepare error type
     if model_type_dict["error_type"] != "Z":
@@ -75,7 +81,11 @@ def _form_model_pool(model_type_dict, silent=False):
         check_trend = True
 
     # Prepare seasonal type
-    if model_type_dict["season_type"] != "Z":
+    # If no seasonality is possible (max_lag <= 1), force to "N"
+    if not has_seasonality:
+        pool_seasonals = pool_seasonals_small = ["N"]
+        check_seasonal = False
+    elif model_type_dict["season_type"] != "Z":
         if model_type_dict["season_type"] == "X":
             pool_seasonals = pool_seasonals_small = ["N", "A"]
             check_seasonal = True
@@ -1000,46 +1010,55 @@ def selector(
         pool_seasonals,
         check_trend,
         check_seasonal,
-    ) = _form_model_pool(model_type_dict, silent)
+    ) = _form_model_pool(model_type_dict, silent, lags_dict)
     # Step 2: Run branch and bound if pool was not provided
 
     # Initialize variables for precomputed results
     bb_results = None
     bb_models_tested = None
 
+    # Check if we're in combination mode - skip B&B and use full pool
+    is_combining = model_type_dict.get("model_do") == "combine"
+
     if model_type_dict["models_pool"] is None:
-        # Run branch and bound to select models
-        bb_results, bb_models_tested, pool_seasonals, pool_trends = (
-            _run_branch_and_bound(
-                pool_small,
-                model_type_dict,
-                phi_dict,
-                general_dict,
-                lags_dict,
-                observations_dict,
-                arima_dict,
-                constant_dict,
-                explanatory_dict,
-                profiles_recent_table,
-                profiles_recent_provided,
-                persistence_results,
-                initials_results,
-                occurrence_dict,
-                components_dict,
-                pool_seasonals,
-                pool_trends,
-                check_seasonal,
-                check_trend,
-                print_level=print_level,
-                xtol_rel=xtol_rel,
-                xtol_abs=xtol_abs,
-                ftol_rel=ftol_rel,
-                ftol_abs=ftol_abs,
-                algorithm=algorithm,
-                smoother=smoother,
-                silent=silent,
+        if is_combining:
+            # For combination, use full pool without Branch & Bound filtering
+            # This generates all 30 models (2 errors × 5 trends × 3 seasonals)
+            bb_models_tested = []
+            # Keep original pools from _form_model_pool (not filtered by B&B)
+        else:
+            # Run branch and bound to select models for model selection
+            bb_results, bb_models_tested, pool_seasonals, pool_trends = (
+                _run_branch_and_bound(
+                    pool_small,
+                    model_type_dict,
+                    phi_dict,
+                    general_dict,
+                    lags_dict,
+                    observations_dict,
+                    arima_dict,
+                    constant_dict,
+                    explanatory_dict,
+                    profiles_recent_table,
+                    profiles_recent_provided,
+                    persistence_results,
+                    initials_results,
+                    occurrence_dict,
+                    components_dict,
+                    pool_seasonals,
+                    pool_trends,
+                    check_seasonal,
+                    check_trend,
+                    print_level=print_level,
+                    xtol_rel=xtol_rel,
+                    xtol_abs=xtol_abs,
+                    ftol_rel=ftol_rel,
+                    ftol_abs=ftol_abs,
+                    algorithm=algorithm,
+                    smoother=smoother,
+                    silent=silent,
+                )
             )
-        )
 
         # Prepare a bigger pool based on the small one
         # Ensure pool_seasonals and pool_trends are lists

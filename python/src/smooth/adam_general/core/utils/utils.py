@@ -291,29 +291,19 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
     **Algorithm Steps**:
 
-    1. **Log Transform** (if multiplicative): Apply log to convert to additive form
-    2. **Missing Value Imputation**: Fill NaN values using polynomial + Fourier
-    regression
+    1. **Log Transform** (if multiplicative): Apply log to convert to additive form.
+    2. **Missing Value Imputation**: Fill NaN using polynomial + Fourier regression.
     3. **Iterative Smoothing**: For each lag period (sorted ascending), apply smoother
-       with window = lag period, extract seasonal pattern as residual from next
-       smoother level, and remove seasonal mean to center patterns
-    4. **Trend Extraction**: Final smoothed series is the trend
-    5. **Initial States**: Compute level and slope from trend for model initialization
+       with window = lag period, extract seasonal pattern, remove seasonal mean.
+    4. **Trend Extraction**: Final smoothed series is the trend.
+    5. **Initial States**: Compute level and slope from trend for model initialization.
 
     **Smoother Types**:
 
     - **"ma"**: Moving average with window = lag period. Fast but less flexible.
-      Automatically switches to LOWESS if sample size < minimum lag.
-
-    - **"lowess"** (default): Locally weighted scatterplot smoothing. Robust to
-    outliers,
-      adapts to local patterns. Equivalent to R's `lowess()`.
-
-    - **"supsmu"**: Friedman's super smoother (uses LOWESS implementation in Python).
-      Adaptive bandwidth selection.
-
+    - **"lowess"** (default): LOWESS smoothing. Robust to outliers.
+    - **"supsmu"**: Friedman's super smoother (uses LOWESS in Python).
     - **"global"**: Global linear regression with intercept and deterministic trend.
-      Fits a straight line to the data.
 
     Parameters
     ----------
@@ -349,21 +339,14 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     Returns
     -------
     dict
-        Dictionary containing decomposition results:
-
-        - **'states'** (numpy.ndarray): Matrix of extracted states, shape (T, n_states).
-          Columns are [Level, Trend, Seasonal_1, Seasonal_2, ..., Seasonal_n].
-          These states can be used as initial values for ADAM model estimation.
-        - **'initial'** (dict): Dictionary with initial values. Contains
-          'nonseasonal' (dict with 'level' and 'trend' keys) and 'seasonal'
-          (list of numpy.ndarray with initial seasonal values for each lag).
-        - **'trend'** (numpy.ndarray): Extracted trend component, shape (T,).
-          Long-term movement after removing seasonal patterns.
-        - **'seasonal'** (list of numpy.ndarray): Seasonal patterns, one array per lag.
-          Each seasonal[i] has shape (T,) and is centered (mean = 0).
-        - **'component'** (list): Component type descriptions (for compatibility).
-        - **'lags'** (numpy.ndarray): Sorted unique lag periods used.
-        - **'type'** (str): Decomposition type ('additive' or 'multiplicative').
+        Dictionary containing decomposition results with keys: ``'states'``
+        (ndarray of shape (T, n_states) with level, trend, seasonals),
+        ``'initial'`` (dict with 'nonseasonal' and 'seasonal' initial values),
+        ``'trend'`` (ndarray of shape (T,) with trend component),
+        ``'seasonal'`` (list of ndarrays, one per lag, each centered at 0),
+        ``'component'`` (list of component descriptions),
+        ``'lags'`` (ndarray of sorted unique lag periods),
+        ``'type'`` (str, 'additive' or 'multiplicative').
 
     Raises
     ------

@@ -13,7 +13,8 @@ from smooth.adam_general.core.estimator import (
     selector,
 )
 from smooth.adam_general.core.forecaster import forecaster, preparator
-from smooth.adam_general.core.utils.ic import ic_function
+from smooth.adam_general.core.utils.ic import calculate_ic_weights, ic_function
+from smooth.adam_general.core.utils.n_param import NParam
 
 # Note: adam_cpp instance is stored in self and passed to forecasting functions
 
@@ -366,9 +367,7 @@ class ADAM:
         # Parameters moved from fit
         h: Optional[int] = None,
         holdout: bool = False,
-        model_do: Literal["estimate", "select", "combine"] = "estimate",
         fast: bool = False,
-        models_pool: Optional[List[Dict[str, Any]]] = None,
         lambda_param: Optional[float] = None,
         frequency: Optional[str] = None,
         # Profile parameters
@@ -445,15 +444,8 @@ class ADAM:
             Forecast horizon. If None during initialization, can be set in `predict`.
         holdout : bool, default=False
             Whether to use a holdout sample for validation during the fit process.
-        model_do : Literal["estimate", "select", "combine"], default="estimate"
-            Action to perform:
-            - "estimate": Estimate a single specified model.
-            - "select": Select the best model from a pool or based on components.
-            - "combine": Combine forecasts from multiple models (Not Implemented).
         fast : bool, default=False
             Whether to use faster, possibly less accurate, estimation methods.
-        models_pool : Optional[List[Dict[str, Any]]], default=None
-            A pool of model configurations for selection or combination.
         lambda_param : Optional[float], default=None
             Lambda parameter for Box-Cox transformation or regularization.
         frequency : Optional[str], default=None
@@ -551,9 +543,7 @@ class ADAM:
         # Store parameters that were moved from fit
         self.h = h
         self.holdout = holdout
-        self.model_do = model_do
         self.fast = fast
-        self.models_pool = models_pool
         # Handle 'lambda' from kwargs (since 'lambda' is a reserved word in Python)
         # Users can pass either lambda_param=0.5 or **{'lambda': 0.5}
         if "lambda" in kwargs:
@@ -807,8 +797,14 @@ class ADAM:
             self._execute_estimation(estimation=True)
 
         elif self._model_type["model_do"] == "combine":
-            ...  # I need to implement this
-            raise NotImplementedError("Combine is not implemented yet")
+            # Store original model specification for display (e.g., "CCC")
+            self._original_model_spec = self._model_type.get("model", self.model)
+            # Run model selection first to get all candidate models
+            self._execute_selection()
+            # Combine models using IC weights
+            self._execute_combination()
+            # Execute estimation for the best model (for state-space matrices)
+            self._execute_estimation(estimation=True)
         else:
             model_do = self._model_type["model_do"]
             warnings.warn(
@@ -852,7 +848,6 @@ class ADAM:
             "lambda_param": self.lambda_param,
             "frequency": self.frequency,
             "fast": self.fast,
-            "models_pool": self.models_pool,
             "holdout": self.holdout,
         }
         for key in self._config:
@@ -880,6 +875,11 @@ class ADAM:
             if "persistence_xreg" in self._persistence:
                 self.persistence_xreg_ = self._persistence["persistence_xreg"]
 
+        # For combined models, preserve original model specification with ETS prefix
+        if getattr(self, "_is_combined", False):
+            self.model = f"ETS({self._original_model_spec})"
+            return
+
         # Update self.model with the selected/estimated model name
         if self._model_type:
             if hasattr(self, "_best_model") and self._best_model:
@@ -895,8 +895,10 @@ class ADAM:
 
             model_parts = []
             is_ets = self._model_type.get("ets_model", False)
+            has_xreg = self._explanatory.get("xreg_model", False)
             if is_ets:
-                model_parts.append(f"ETS({ets_str})")
+                ets_prefix = "ETSX" if has_xreg else "ETS"
+                model_parts.append(f"{ets_prefix}({ets_str})")
 
             is_arima = self._model_type.get("arima_model", False)
             if is_arima and self._arima:
@@ -928,19 +930,104 @@ class ADAM:
 
     @property
     def states(self) -> NDArray:
-        """State matrix over time (R: $states)."""
+        """
+        State matrix containing component values over time (R: $states).
+
+        The state matrix stores the evolution of all model components including
+        level, trend (if present), seasonal components (if present), and ARIMA
+        states (if present). Each column represents a different state component,
+        and each row represents a time point.
+
+        Returns
+        -------
+        NDArray
+            2D array of shape (n_states, obs_in_sample + 1). Columns represent
+            level, trend (if model has trend), and seasonal components (if model
+            has seasonality, one column per lag).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=12)
+        >>> model.fit(y)
+        >>> states = model.states
+        >>> level = states[0, :]  # Level component over time
+        """
         self._check_is_fitted()
         return self._prepared["mat_vt"]
 
     @property
     def persistence_vector(self) -> Dict[str, Any]:
-        """Named persistence dict: {alpha, beta, gamma} (R: $persistence)."""
+        """
+        Estimated smoothing parameters (R: $persistence).
+
+        Returns a dictionary containing the smoothing/persistence parameters
+        that control how quickly the model adapts to new observations. Higher
+        values mean faster adaptation (more weight on recent observations).
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary with keys ``persistence_level`` (alpha, 0-1),
+            ``persistence_trend`` (beta, 0-alpha, only if model has trend),
+            and ``persistence_seasonal`` (gamma, 0 to 1-alpha, only if model
+            has seasonality).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        phi_ : Damping parameter for trend
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=12)
+        >>> model.fit(y)
+        >>> alpha = model.persistence_vector['persistence_level']
+        >>> gamma = model.persistence_vector['persistence_seasonal']
+        """
         self._check_is_fitted()
         return self._prepared.get("persistence", {})
 
     @property
     def phi_(self) -> Optional[float]:
-        """Damping parameter (R: $phi)."""
+        """
+        Damping parameter for trend component (R: $phi).
+
+        The damping parameter (phi) controls how quickly the trend dampens
+        toward zero over the forecast horizon. A value of 1.0 means no damping
+        (linear trend), while values less than 1.0 cause the trend to
+        gradually flatten.
+
+        Returns
+        -------
+        Optional[float]
+            Damping parameter value between 0 and 1, or None if the model
+            does not include a damped trend component.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Notes
+        -----
+        Uses trailing underscore following scikit-learn convention for fitted
+        parameters.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAdN")  # Damped trend model
+        >>> model.fit(y)
+        >>> print(f"Damping: {model.phi_:.3f}")
+        """
         self._check_is_fitted()
         if self._model_type.get("damped", False):
             return self._prepared.get("phi", 1.0)
@@ -948,48 +1035,239 @@ class ADAM:
 
     @property
     def transition(self) -> NDArray:
-        """Transition matrix matF (R: $transition)."""
+        """
+        State transition matrix F (R: $transition).
+
+        The transition matrix governs how states evolve from one time period
+        to the next in the state-space formulation: v_t = F @ v_{t-1} + g * e_t
+
+        Returns
+        -------
+        NDArray
+            Square matrix of shape (n_states, n_states) defining state
+            transitions. Structure depends on model components (ETS, ARIMA).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        measurement : Measurement matrix W
+        states : State values over time
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> F = model.transition
+        """
         self._check_is_fitted()
         return self._prepared["mat_f"]
 
     @property
     def measurement(self) -> NDArray:
-        """Measurement matrix matWt (R: $measurement)."""
+        """
+        Measurement matrix W (R: $measurement).
+
+        The measurement matrix maps the state vector to the observation
+        equation: y_t = W @ v_t + e_t (for additive errors).
+
+        Returns
+        -------
+        NDArray
+            Matrix of shape (obs_in_sample, n_states) that maps states to
+            observations. For time-invariant models, all rows are identical.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        transition : State transition matrix F
+        states : State values over time
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> W = model.measurement
+        """
         self._check_is_fitted()
         return self._prepared["mat_wt"]
 
     @property
     def initial_value(self) -> Dict[str, Any]:
-        """Initial values dict (R: $initial)."""
+        """
+        Initial state values used for model fitting (R: $initial).
+
+        Contains the starting values for each state component at time t=0,
+        which serve as the foundation for the state evolution.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary with keys ``level`` (initial level value), ``trend``
+            (initial trend value, only if model has trend), and ``seasonal``
+            (initial seasonal values as array, only if model has seasonality).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        initial_type : Method used for initialization
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=12)
+        >>> model.fit(y)
+        >>> init_level = model.initial_value['level']
+        """
         self._check_is_fitted()
         return self._prepared.get("initial_value", {})
 
     @property
     def initial_type(self) -> str:
-        """Initialization type used (R: $initialType)."""
+        """
+        Initialization method used for initial states (R: $initialType).
+
+        Returns
+        -------
+        str
+            One of:
+            - ``"optimal"``: Initial states optimized during fitting
+            - ``"backcasting"``: Initial states estimated via backcasting
+            - ``"two-stage"``: Backcast then optimize
+            - ``"complete"``: Pure backcasting without optimization
+            - ``"provided"``: User-supplied initial values
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        initial_value : The actual initial state values
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", initial="backcasting")
+        >>> model.fit(y)
+        >>> print(model.initial_type)
+        'backcasting'
+        """
         self._check_is_fitted()
         return self._initials.get("initial_type", "optimal")
 
     @property
     def loss_value(self) -> float:
-        """Optimized loss function value (R: $lossValue)."""
+        """
+        Optimized loss/cost function value (R: $lossValue).
+
+        The final value of the loss function after optimization. Lower values
+        indicate better fit (for most loss functions).
+
+        Returns
+        -------
+        float
+            The minimized loss function value from the optimization process.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        loss : The loss function type used
+        loglik : Log-likelihood value
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", loss="MSE")
+        >>> model.fit(y)
+        >>> print(f"MSE: {model.loss_value:.4f}")
+        """
         self._check_is_fitted()
         return self._adam_estimated["CF_value"]
 
     @property
     def time_elapsed(self) -> float:
-        """Time elapsed for fitting (seconds)."""
+        """
+        Time taken to fit the model in seconds.
+
+        Returns
+        -------
+        float
+            Elapsed time in seconds from start to end of the fit() call.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="ZXZ", lags=12)
+        >>> model.fit(y)
+        >>> print(f"Fitting took {model.time_elapsed:.2f} seconds")
+        """
         self._check_is_fitted()
         return self.time_elapsed_
 
     @property
     def data(self) -> NDArray:
-        """In-sample data (R: $data). Alias for actuals."""
+        """
+        In-sample training data (R: $data).
+
+        Alias for ``actuals`` property. Returns the original time series
+        data used for model fitting.
+
+        Returns
+        -------
+        NDArray
+            1D array of in-sample observations.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> training_data = model.data
+        """
         return self.actuals
 
     @property
     def holdout_data(self) -> Optional[NDArray]:
-        """Holdout data (R: $holdout)."""
+        """
+        Holdout validation data (R: $holdout).
+
+        If ``holdout=True`` was specified during fitting, returns the portion
+        of data withheld for validation. Otherwise returns None.
+
+        Returns
+        -------
+        Optional[NDArray]
+            1D array of holdout observations, or None if no holdout was used.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", holdout=True, h=12)
+        >>> model.fit(y)
+        >>> if model.holdout_data is not None:
+        ...     print(f"Holdout size: {len(model.holdout_data)}")
+        """
         self._check_is_fitted()
         if self._general.get("holdout"):
             return np.array(self._observations.get("y_holdout", []))
@@ -997,43 +1275,309 @@ class ADAM:
 
     @property
     def b_value(self) -> NDArray:
-        """Parameter vector (R: $B). Alias for coef."""
+        """
+        Full parameter vector B (R: $B).
+
+        Alias for ``coef`` property. Contains all estimated parameters in a
+        single vector, including persistence parameters, initial states,
+        ARIMA coefficients, and other model parameters.
+
+        Returns
+        -------
+        NDArray
+            1D array of all model parameters.
+
+        See Also
+        --------
+        coef : Primary property for parameter vector
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> all_params = model.b_value
+        """
         return self.coef
 
     @property
     def scale(self) -> float:
-        """Scale parameter (R: $scale). Alias for sigma."""
+        """
+        Scale/dispersion parameter (R: $scale).
+
+        Alias for ``sigma`` property. The scale parameter represents the
+        estimated standard deviation of the residuals for normal distribution,
+        or the analogous dispersion parameter for other distributions.
+
+        Returns
+        -------
+        float
+            Estimated scale parameter.
+
+        See Also
+        --------
+        sigma : Primary property for scale parameter
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> print(f"Scale: {model.scale:.4f}")
+        """
         return self.sigma
 
     @property
     def profile(self) -> Optional[Any]:
-        """Recent profiles for forecasting (R: $profile)."""
+        """
+        Profile information for seasonal patterns (R: $profile).
+
+        Contains profile data used for forecasting with multiple seasonality.
+        The profile captures the seasonal pattern structure.
+
+        Returns
+        -------
+        Optional[Any]
+            Profile table for recent observations, or None if not applicable.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=[24, 168])
+        >>> model.fit(y)
+        >>> seasonal_profile = model.profile
+        """
         self._check_is_fitted()
         return self._prepared.get("profiles_recent_table")
 
     @property
     def n_param(self) -> Any:
-        """Parameter count object (R: $nParam)."""
+        """
+        Parameter count information (R: $nParam).
+
+        Provides information about the number of parameters in the model,
+        distinguishing between estimated and provided parameters.
+
+        Returns
+        -------
+        Any
+            Parameter count information (structure may vary).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=12)
+        >>> model.fit(y)
+        >>> print(model.n_param)
+        """
         self._check_is_fitted()
         return self._general.get("n_param")
 
     @property
     def constant_value(self) -> Optional[float]:
-        """Constant term value (R: $constant)."""
+        """
+        Constant/intercept term value (R: $constant).
+
+        The estimated constant term in the model, if one was included.
+
+        Returns
+        -------
+        Optional[float]
+            Constant term value, or None if no constant was estimated.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", constant=True)
+        >>> model.fit(y)
+        >>> if model.constant_value is not None:
+        ...     print(f"Constant: {model.constant_value:.4f}")
+        """
         self._check_is_fitted()
         return self._prepared.get("constant_value")
 
     @property
     def distribution_(self) -> str:
-        """Distribution used for fitting (R: $distribution)."""
+        """
+        Error distribution used for fitting (R: $distribution).
+
+        The probability distribution assumed for the error term in the model.
+        Uses trailing underscore to distinguish from the input parameter and
+        follow scikit-learn convention for fitted attributes.
+
+        Returns
+        -------
+        str
+            Distribution name, one of:
+            - ``"dnorm"``: Normal distribution (default for additive errors)
+            - ``"dgamma"``: Gamma distribution (default for multiplicative)
+            - ``"dlaplace"``: Laplace distribution
+            - ``"dlnorm"``: Log-Normal distribution
+            - ``"dinvgauss"``: Inverse Gaussian distribution
+            - ``"ds"``: S distribution
+            - ``"dgnorm"``: Generalized Normal distribution
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        loss_ : Loss function used for estimation
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", distribution="dlaplace")
+        >>> model.fit(y)
+        >>> print(model.distribution_)
+        'dlaplace'
+        """
         self._check_is_fitted()
         return self._general.get("distribution_new", self._general.get("distribution"))
 
     @property
     def loss_(self) -> str:
-        """Loss function used (R: $loss)."""
+        """
+        Loss function used for parameter estimation (R: $loss).
+
+        The objective function minimized during model fitting. Uses trailing
+        underscore to distinguish from the input parameter and follow
+        scikit-learn convention for fitted attributes.
+
+        Returns
+        -------
+        str
+            Loss function name, one of:
+            - ``"likelihood"``: Maximum likelihood (default)
+            - ``"MSE"``: Mean Squared Error
+            - ``"MAE"``: Mean Absolute Error
+            - ``"HAM"``: Half Absolute Moment
+            - ``"LASSO"``: L1 regularization
+            - ``"RIDGE"``: L2 regularization
+            - ``"GTMSE"``: Geometric Trace MSE
+            - ``"GPL"``: Generalized Predictive Likelihood
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        loss_value : The optimized loss function value
+        distribution_ : Error distribution used
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN", loss="MAE")
+        >>> model.fit(y)
+        >>> print(model.loss_)
+        'MAE'
+        """
         self._check_is_fitted()
         return self._general.get("loss")
+
+    # =========================================================================
+    # Combined Model Properties
+    # =========================================================================
+
+    @property
+    def is_combined(self) -> bool:
+        """
+        Return True if model is a combination of multiple models.
+
+        Combined models are created using "C" in the model string
+        (e.g., "CCC", "CCN", "ACA"). The combination uses IC weights to
+        combine fitted values and forecasts from all models in the pool.
+
+        Returns
+        -------
+        bool
+            True if the model is a weighted combination of multiple models,
+            False otherwise.
+
+        Examples
+        --------
+        >>> model = ADAM(model="CCC", lags=[1])
+        >>> model.fit(y)
+        >>> model.is_combined  # True
+        """
+        return getattr(self, "_is_combined", False)
+
+    @property
+    def ic_weights(self) -> Dict[str, float]:
+        """
+        Return IC weights for combined models (R: $ICw).
+
+        Akaike weights represent the relative likelihood of each model being
+        the best model given the data. They are used to combine forecasts from
+        multiple models.
+
+        Returns
+        -------
+        Dict[str, float]
+            Dictionary mapping model names to their IC weights. Weights sum to 1.0.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted or was not fitted with combination.
+
+        Examples
+        --------
+        >>> model = ADAM(model="CCC", lags=[1])
+        >>> model.fit(y)
+        >>> weights = model.ic_weights
+        >>> print(f"ANN weight: {weights.get('ANN', 0):.3f}")
+        """
+        self._check_is_fitted()
+        if not getattr(self, "_is_combined", False):
+            raise ValueError("Model was not fitted with combination. Use model='CCC'.")
+        return self._ic_weights
+
+    @property
+    def models(self) -> List[Dict]:
+        """
+        Return list of individual models in the combination (R: $models).
+
+        Each entry contains the model name, its IC weight, and the prepared
+        model data for forecasting.
+
+        Returns
+        -------
+        List[Dict]
+            List of dictionaries containing:
+            - "name": Model name string (e.g., "ANN")
+            - "weight": IC weight for this model
+            - "prepared": Prepared model data for forecasting
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted or was not fitted with combination.
+
+        Examples
+        --------
+        >>> model = ADAM(model="CCC", lags=[1])
+        >>> model.fit(y)
+        >>> for m in model.models:
+        ...     print(f"{m['name']}: {m['weight']:.3f}")
+        """
+        self._check_is_fitted()
+        if not getattr(self, "_is_combined", False):
+            raise ValueError("Model was not fitted with combination. Use model='CCC'.")
+        return self._prepared_models
 
     # =========================================================================
     # Existing Properties
@@ -1043,6 +1587,9 @@ class ADAM:
     def fitted(self) -> NDArray:
         """
         Return in-sample fitted values.
+
+        For combined models (e.g., model="CCC"), returns IC-weighted combination
+        of fitted values from all models in the combination.
 
         Returns
         -------
@@ -1061,6 +1608,8 @@ class ADAM:
         >>> fitted_values = model.fitted
         """
         self._check_is_fitted()
+        if getattr(self, "_is_combined", False):
+            return self._combined_fitted
         return self._prepared["y_fitted"]
 
     @property
@@ -1127,6 +1676,8 @@ class ADAM:
 
         For additive error models, residuals are y_t - fitted_t.
         For multiplicative error models, residuals are y_t / fitted_t - 1.
+        For combined models, returns residuals computed from the IC-weighted
+        combined fitted values: y_t - combined_fitted_t.
 
         Returns
         -------
@@ -1146,6 +1697,8 @@ class ADAM:
         >>> rmse = np.sqrt(np.mean(errors**2))
         """
         self._check_is_fitted()
+        if getattr(self, "_is_combined", False):
+            return self._combined_residuals
         return self._prepared["residuals"]
 
     @property
@@ -1382,12 +1935,16 @@ class ADAM:
     @property
     def model_type(self) -> str:
         """
-        Return ETS model type (e.g., 'AAN', 'AAA', 'MAdM').
+        Return ETS model type code (e.g., 'AAN', 'AAA', 'MAdM').
+
+        Returns just the three/four-letter ETS code, not the full model name.
+        For the full model name including ARIMA orders and X indicator,
+        use ``model_name``.
 
         Returns
         -------
         str
-            Three-letter ETS model code where:
+            ETS model code where:
             - First letter: Error type (A/M)
             - Second letter: Trend type (N/A/Ad/M/Md)
             - Third letter: Seasonal type (N/A/M)
@@ -1404,10 +1961,7 @@ class ADAM:
         >>> selected_type = model.model_type  # e.g., 'AAN'
         """
         self._check_is_fitted()
-        model = self._model_type.get("model", "")
-        if "(" in model and ")" in model:
-            return model[model.index("(") + 1 : model.index(")")]
-        return model
+        return self._model_type.get("model", "")
 
     @property
     def orders(self) -> Dict[str, List[int]]:
@@ -1445,15 +1999,16 @@ class ADAM:
     @property
     def model_name(self) -> str:
         """
-        Return full model name string.
+        Return full model name string (R: modelName()).
 
-        Returns the complete model specification string, e.g.,
-        'ETS(AAN)' or 'ETS(AAA)+ARIMA(1,1,1)'.
+        Returns the complete model specification including ETS type,
+        ARIMA orders, and X indicator for regressors.
 
         Returns
         -------
         str
-            Full model name.
+            Full model name, e.g., 'ETS(AAN)', 'ETS(AAA)+ARIMA(1,1,1)',
+            or 'ETSX(MAN)' when regressors are included.
 
         Raises
         ------
@@ -1467,7 +2022,7 @@ class ADAM:
         >>> name = model.model_name  # 'ETS(AAN)'
         """
         self._check_is_fitted()
-        return self._model_type.get("model", "")
+        return self.model
 
     @property
     def lags_used(self) -> List[int]:
@@ -1687,9 +2242,7 @@ class ADAM:
             ic=self.ic,
             bounds=self.bounds,
             silent=(self.verbose == 0),
-            model_do=self.model_do,
             fast=self.fast,
-            models_pool=self.models_pool,
             lambda_param=self.lambda_param,
             frequency=self.frequency,
         )
@@ -1830,6 +2383,15 @@ class ADAM:
         # Store number of estimated parameters
         self._n_param_estimated = n_param_estimated
 
+        # Skip updating n_param for combined models (already set in _execute_combination)
+        if getattr(self, "_is_combined", False):
+            # Legacy format for backward compatibility
+            if "parameters_number" not in self._general:
+                self._general["parameters_number"] = self._params_info.get(
+                    "parameters_number", [[0], [0]]
+                )
+            return
+
         # Update the n_param table
         if "n_param" in self._general:
             n_param = self._general["n_param"]
@@ -1949,6 +2511,168 @@ class ADAM:
         self._phi_internal = results[best_id]["phi_dict"]
         self._adam_estimated = results[best_id]["adam_estimated"]
         self._adam_cpp = self._adam_estimated["adam_cpp"]
+
+    def _execute_combination(self):
+        """
+        Execute model combination using IC weights.
+
+        Combines fitted values from multiple models using Akaike weights derived from
+        information criterion values. Each model's contribution is proportional to
+        its relative likelihood of being the best model.
+
+        The combined fitted values are IC-weighted averages across all models.
+        """
+        import copy
+
+        # Get IC weights from selection results
+        self._ic_weights = calculate_ic_weights(self._ic_selection)
+        results = self._adam_selected["results"]
+
+        # Compute filtered weights (>= 0.01) for fitted values calculation only
+        # Full model set is stored; filtering happens at predict-time
+        filtered_weights = {k: v for k, v in self._ic_weights.items() if v >= 0.01}
+        total_filtered = sum(filtered_weights.values())
+        if total_filtered > 0:
+            filtered_weights = {k: v / total_filtered for k, v in filtered_weights.items()}
+
+        # Initialize combined fitted values
+        obs_in_sample = self._observations["obs_in_sample"]
+        y_fitted_combined = np.zeros(obs_in_sample)
+        n_param_weighted = 0.0
+
+        # Store ALL models for later forecasting (filtering happens at predict-time)
+        self._prepared_models = []
+
+        for result in results:
+            model_name = result["model"]
+            original_weight = self._ic_weights.get(model_name, 0)
+            filtered_weight = filtered_weights.get(model_name, 0)
+
+            # Make copies of dicts that get modified by architector
+            lags_dict_copy = copy.deepcopy(self._lags_model)
+            observations_dict_copy = copy.deepcopy(self._observations)
+            model_type_dict = result["model_type_dict"].copy()
+            phi_dict = result["phi_dict"].copy()
+
+            # Call architector to get components for this model
+            (
+                model_type_dict,
+                components_dict,
+                lags_dict_copy,
+                observations_dict_copy,
+                profile_dict,
+                _,
+            ) = architector(
+                model_type_dict=model_type_dict,
+                lags_dict=lags_dict_copy,
+                observations_dict=observations_dict_copy,
+                arima_checked=self._arima,
+                constants_checked=self._constant,
+                explanatory_checked=self._explanatory,
+                profiles_recent_table=self.profiles_recent_table,
+                profiles_recent_provided=self.profiles_recent_provided,
+            )
+
+            # Call creator to build matrices
+            adam_created = creator(
+                model_type_dict=model_type_dict,
+                lags_dict=lags_dict_copy,
+                profiles_dict=profile_dict,
+                observations_dict=observations_dict_copy,
+                persistence_checked=self._persistence,
+                initials_checked=self._initials,
+                arima_checked=self._arima,
+                constants_checked=self._constant,
+                phi_dict=phi_dict,
+                components_dict=components_dict,
+                explanatory_checked=self._explanatory,
+                smoother=self.smoother,
+            )
+
+            # Make copy of general_dict for preparator
+            general_dict_copy = copy.deepcopy(self._general)
+
+            # Ensure distribution_new is set (needed by preparator/scaler)
+            if "distribution_new" not in general_dict_copy:
+                if general_dict_copy.get("distribution") == "default":
+                    if general_dict_copy.get("loss") == "likelihood":
+                        if model_type_dict.get("error_type") == "M":
+                            general_dict_copy["distribution_new"] = "dgamma"
+                        else:
+                            general_dict_copy["distribution_new"] = "dnorm"
+                    else:
+                        general_dict_copy["distribution_new"] = "dnorm"
+                else:
+                    general_dict_copy["distribution_new"] = general_dict_copy.get(
+                        "distribution", "dnorm"
+                    )
+
+            # Call preparator to get fitted values
+            prepared = preparator(
+                model_type_dict=model_type_dict,
+                components_dict=components_dict,
+                lags_dict=lags_dict_copy,
+                matrices_dict=adam_created,
+                persistence_checked=self._persistence,
+                initials_checked=self._initials,
+                arima_checked=self._arima,
+                explanatory_checked=self._explanatory,
+                phi_dict=phi_dict,
+                constants_checked=self._constant,
+                observations_dict=observations_dict_copy,
+                occurrence_dict=self._occurrence,
+                general_dict=general_dict_copy,
+                profiles_dict=profile_dict,
+                adam_estimated=result["adam_estimated"],
+                adam_cpp=result["adam_estimated"]["adam_cpp"],
+            )
+
+            # Get fitted values and handle NaN
+            fitted_values = np.asarray(prepared["y_fitted"]).flatten()
+            fitted_values = np.nan_to_num(fitted_values, nan=0.0)
+
+            # Add IC-weighted contribution (using filtered weight for fitted values)
+            y_fitted_combined += fitted_values * filtered_weight
+            n_param_weighted += (
+                result["adam_estimated"]["n_param_estimated"] * filtered_weight
+            )
+
+            # Store for later forecasting (using ORIGINAL weight - filtering at predict-time)
+            self._prepared_models.append({
+                "name": model_name,
+                "weight": original_weight,
+                "result": result,
+                "model_type_dict": model_type_dict,
+                "components_dict": components_dict,
+                "lags_dict": lags_dict_copy,
+                "observations_dict": observations_dict_copy,
+                "profile_dict": profile_dict,
+                "phi_dict": phi_dict,
+                "adam_created": adam_created,
+                "prepared": prepared,
+            })
+
+        # Store combined results
+        self._combined_fitted = y_fitted_combined
+        self._combined_residuals = (
+            np.array(self._observations["y_in_sample"]) - y_fitted_combined
+        )
+
+        # Create NParam with weighted average internal params + scale
+        n_param = NParam()
+        n_param.estimated["internal"] = n_param_weighted
+        if self._general.get("loss") == "likelihood":
+            n_param.estimated["scale"] = 1
+        n_param.update_totals()
+        self._n_param = n_param
+        self._general["n_param"] = n_param
+        self._n_param_combined = n_param.estimated["all"]  # Backward compat
+
+        # Mark as combined model
+        self._is_combined = True
+
+        # Use the best model as the primary model for state-space matrices
+        self.select_best_model()
 
     def _update_model_from_selection(self, index, result):
         """
@@ -2323,11 +3047,24 @@ class ADAM:
         """
         Execute the forecasting process based on the prepared data.
 
+        For combined models, runs forecaster for each model with non-zero
+        IC weight and combines the results.
+
         Returns
         -------
         dict
             Forecast results including point forecasts and prediction intervals.
         """
+        # Handle combined models
+        if getattr(self, "_is_combined", False):
+            return self._execute_prediction_combined(
+                calculate_intervals=calculate_intervals,
+                interval_method=interval_method,
+                level=level,
+                side=side,
+            )
+
+        # Standard single-model prediction
         self._forecast_results = forecaster(
             model_prepared=self._prepared,
             observations_dict=self._observations,
@@ -2340,6 +3077,40 @@ class ADAM:
             constants_checked=self._constant,
             params_info=self._params_info,
             adam_cpp=self._adam_cpp,
+            calculate_intervals=calculate_intervals,
+            interval_method=interval_method,
+            level=level,
+            side=side,
+        )
+        return self._forecast_results
+
+    def _execute_prediction_combined(
+        self,
+        calculate_intervals=True,
+        interval_method="parametric",
+        level=0.95,
+        side="both",
+    ):
+        """
+        Execute combined forecasting using IC-weighted model averaging.
+
+        Generates forecasts from all models with non-zero IC weights and
+        combines them using Akaike weights.
+
+        Returns
+        -------
+        pd.DataFrame
+            IC-weighted combined forecast results with 'mean' and interval columns.
+        """
+        from smooth.adam_general.core.forecaster import forecaster_combined
+
+        self._forecast_results = forecaster_combined(
+            prepared_models=self._prepared_models,
+            ic_weights=self._ic_weights,
+            observations_dict=self._observations,
+            general_dict=self._general,
+            occurrence_dict=self._occurrence,
+            params_info=self._params_info,
             calculate_intervals=calculate_intervals,
             interval_method=interval_method,
             level=level,
