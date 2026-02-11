@@ -1,5 +1,5 @@
-name: 🐛 Bug Report for Python
-description: Report a bug in the smooth package for Python
+name: 🐛 Bug Report for R
+description: Report a bug in the smooth package for R
 labels: ["bug", "triage"]
 body:
   - type: markdown
@@ -18,10 +18,10 @@ body:
     attributes:
       label: Reproducible Example
       description: |
-        Please provide a minimal, self-contained snippet of Python code.
-        Use synthetic data (e.g., `np.random`) or a time series
-        from the `fcompdata` package if necessary.
-      render: python
+        Please provide a minimal, self-contained snippet of R code.
+        Use synthetic data (e.g., `rnrom`) or a time series
+        from the `datasets` or `Mcomp` package if necessary.
+      render: R
       placeholder: |
         # Your code here...
     validations:
@@ -46,10 +46,11 @@ body:
       label: Environment Info
       description: |
                    Run this and insert the output:
-                   ```python
-                   from smooth.utils import show_versions; show_versions()
+                   ```r
+                   sessionInfo()
+                   packageVersion("smooth")
                    ```
       placeholder: |
         - OS: macOS/Windows/Linux
-        - Python version: 3.13
-        - Package version: 1.0.0
+        - R version: 4.5.1
+        - Package version: 4.4.0
