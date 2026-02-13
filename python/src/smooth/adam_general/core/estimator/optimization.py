@@ -30,13 +30,13 @@ def _setup_arima_polynomials(model_type_dict, arima_dict, lags_dict):
         ar_dim = int(np.dot(arima_dict["ar_orders"], lags))
         ar_polynomial_matrix = np.zeros((ar_dim, ar_dim))
         if ar_polynomial_matrix.shape[0] > 1:
-            ar_polynomial_matrix[1:, :-1] = np.eye(ar_polynomial_matrix.shape[0] - 1)
+            ar_polynomial_matrix[:-1, 1:] = np.eye(ar_polynomial_matrix.shape[0] - 1)
 
         # MA polynomials - use dot product (R's %*%) since lags is an array
         ma_dim = int(np.dot(arima_dict["ma_orders"], lags))
         ma_polynomial_matrix = np.zeros((ma_dim, ma_dim))
         if ma_polynomial_matrix.shape[0] > 1:
-            ma_polynomial_matrix[1:, :-1] = np.eye(ma_polynomial_matrix.shape[0] - 1)
+            ma_polynomial_matrix[:-1, 1:] = np.eye(ma_polynomial_matrix.shape[0] - 1)
 
         return ar_polynomial_matrix, ma_polynomial_matrix
     else:
@@ -126,12 +126,13 @@ def _setup_optimization_parameters(
         if explanatory_dict["xreg_model"]:
             maxeval_used = len(B) * 100
             maxeval_used = max(1000, maxeval_used)
-        # Pure ARIMA: R adam.R:2602-2604 (commented) used length(B)*80 for stability
-        elif (
-            components_dict.get("components_number_arima", 0) > 0
-            and components_dict.get("components_number_ets", 0) == 0
-        ):
-            maxeval_used = len(B) * 80
+        # NOTE: R does NOT use 80 for pure ARIMA - the commented code is not active
+        # Keeping the logic here for potential future use, but matching R exactly
+        # elif (
+        #     components_dict.get("components_number_arima", 0) > 0
+        #     and components_dict.get("components_number_ets", 0) == 0
+        # ):
+        #     maxeval_used = len(B) * 80
 
     # Handle LASSO/RIDGE denominator calculation
     if general_dict["loss"] in ["LASSO", "RIDGE"]:

@@ -772,7 +772,7 @@ def calculate_pacf(data, nlags=40):
     if isinstance(data, pd.Series):
         data = data.values
 
-    return pacf(data, nlags=nlags, method="ld")
+    return pacf(data, nlags=nlags, method="ywmle")
 
 
 def calculate_likelihood(distribution, Etype, y, y_fitted, scale, other):

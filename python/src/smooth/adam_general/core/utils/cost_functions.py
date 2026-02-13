@@ -411,6 +411,7 @@ def CF(  # noqa: N802
     # Convert pandas Series/DataFrames to numpy arrays
     y_in_sample = np.asarray(observations_dict["y_in_sample"], dtype=np.float64)
     ot = np.asarray(observations_dict["ot"], dtype=np.float64)
+
     # CRITICAL FIX: C++ adamFitter takes matrixVt by reference and modifies it!
     # We must pass a COPY to avoid polluting adam_elements across
     # optimization iterations
@@ -486,7 +487,6 @@ def CF(  # noqa: N802
                     other,
                 )
             )
-            # print(CFValue)
             # Differential entropy for the logLik of occurrence model
             if observations_dict.get("occurrence_model", False) or any(
                 ~observations_dict["ot_logical"]
