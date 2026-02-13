@@ -6,30 +6,31 @@ Python implementation of the **smooth** package for time series forecasting usin
 
 ![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
 
-**Status:** Work in progress
 
 ## Installation
 
-**From GitHub:**
+**From GitHub (source):**
 ```bash
 pip install "git+https://github.com/config-i1/smooth.git@master#subdirectory=python"
 ```
 
-**From source (development):**
+**From wheels:**
+Check the wheels for your system [the latest release](https://github.com/config-i1/smooth/releases/tag/v4.4.0).
+
+For example, for Windows with Python 3.13:
 ```bash
-git clone https://github.com/config-i1/smooth.git
-cd smooth/python
-pip install -e ".[dev]"
+pip install https://github.com/config-i1/smooth/releases/download/v4.4.0/smooth-1.0.0-cp313-cp313-win_amd64.whl
 ```
+
+See the [Installation Guide](https://github.com/config-i1/smooth/wiki/Installation) for platform-specific instructions.
+
 
 ## System Requirements
 
-This package requires compilation of C++ extensions. Before installing, ensure you have:
+If installing from source, this package requires compilation of C++ extensions. Before installing, ensure you have:
 - **C++ compiler** (g++, clang++, or MSVC)
 - **CMake** >= 3.25
 - **Armadillo** linear algebra library
-
-See the [Installation Guide](https://github.com/config-i1/smooth/wiki/Installation) for platform-specific instructions.
 
 ## Quick Example
 

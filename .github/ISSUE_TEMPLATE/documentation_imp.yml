@@ -1,0 +1,49 @@
+name: 📖 Documentation Improvement
+description: Suggest a fix for a typo, a clearer explanation, or a new tutorial.
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Strong documentation is the backbone of reliable forecasting! Thank you for helping us improve.
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: What kind of improvement is this?
+      options:
+        - Missing Documentation (e.g., a function has no docstring)
+        - Typo or Grammar Fix
+        - Mathematical Clarification (e.g., LaTeX formula is wrong)
+        - New Tutorial or Example (e.g., a Jupyter notebook guide)
+        - Outdated Information (e.g., API has changed)
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Where is the improvement needed?
+      description: Provide a link to the documentation page or the path to the file in the repo.
+      placeholder: "e.g., https://github.com/config-i1/smooth/wiki/ADAM or /R/adam.R"
+    validations:
+      required: true
+  - type: textarea
+    id: current-content
+    attributes:
+      label: Current Content
+      description: What does the documentation currently say? (Copy-paste the snippet if applicable).
+  - type: textarea
+    id: suggested-change
+    attributes:
+      label: Suggested Change
+      description: |
+        Please describe the change you'd like to see.
+        If this is a mathematical fix, feel free to use LaTeX notation.
+      placeholder: "The formula for the seasonal component should be..."
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Would you like to help?
+      options:
+        - label: I would like to submit a Pull Request to fix this myself!

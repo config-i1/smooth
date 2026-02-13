@@ -1,0 +1,42 @@
+name: ✨ Feature Request
+description: Suggest a new model, method or evaluation metric.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear description of what the problem is (e.g., I'm frustrated because...).
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution you'd like
+      description: |
+        Explain the new functionality.
+        If it's a new model (e.g., Theta Method), please link to the relevant paper or documentation.
+    validations:
+      required: true
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Describe alternatives you've considered
+      description: Are there existing ways to achieve this in the package or via other libraries?
+  - type: checkboxes
+    id: language
+    attributes:
+      label: Language
+      description: Which programming language is this for?
+      options:
+        - label: R
+        - label: Python
+        - label: Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Would you be willing to contribute this feature?
+      options:
+        - label: Yes, I can submit a Pull Request.
