@@ -6,7 +6,6 @@ Python implementation of the **smooth** package for time series forecasting usin
 
 ![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
 
-**Status:** Work in progress
 
 ## Installation
 
