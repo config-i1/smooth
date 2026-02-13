@@ -1,5 +1,6 @@
 import numpy as np
 
+from smooth.adam_general.core.utils.polynomials import adam_polynomialiser
 from smooth.adam_general.core.utils.utils import (
     calculate_acf,
     calculate_pacf,
@@ -27,6 +28,7 @@ def initialiser(
     bounds="usual",
     other=None,
     profile_dict=None,  # Added
+    adam_cpp=None,
 ):
     """
     Initialize parameter vector and bounds for ADAM optimization.
@@ -543,7 +545,7 @@ def initialiser(
             ma_orders_arr = np.array(arima_checked["ma_orders"])
             ar_orders_arr = np.array(arima_checked["ar_orders"])
             i_orders_arr = np.array(arima_checked["i_orders"])
-            lags_arr = np.array(lags_dict["lags"])
+            lags_arr = np.array(lags_dict.get("lags_original", lags_dict["lags"]))
 
             acf_values = [-0.1] * int(np.sum(ma_orders_arr * lags_arr))
             pacf_values = [0.1] * int(np.sum(ar_orders_arr * lags_arr))
@@ -566,18 +568,22 @@ def initialiser(
                         )
                     if arima_checked["ar_required"] and arima_checked["ar_estimate"]:
                         pacf_values[: min(ar_total, len(y_differenced) - 1)] = (
-                            calculate_pacf(y_differenced, nlags=max(1, ar_total))
+                            calculate_pacf(y_differenced, nlags=max(1, ar_total))[1:]
                         )
 
-            for i, lag in enumerate(lags_dict["lags"]):
+            arma_start_index = j
+            for i, lag in enumerate(lags_dict.get("lags_original", lags_dict["lags"])):
                 if (
                     arima_checked["ar_required"]
                     and arima_checked["ar_estimate"]
                     and arima_checked["ar_orders"][i] > 0
                 ):
-                    B[j : j + arima_checked["ar_orders"][i]] = pacf_values[
-                        i * lag : (i + 1) * lag
-                    ][: arima_checked["ar_orders"][i]]
+                    indices = np.arange(1, arima_checked["ar_orders"][i] + 1) * lag - 1
+                    vals = [pacf_values[idx] if idx < len(pacf_values) else 0.1 for idx in indices]
+                    if all(not np.isnan(v) for v in vals):
+                        B[j : j + arima_checked["ar_orders"][i]] = vals
+                    else:
+                        B[j : j + arima_checked["ar_orders"][i]] = 0.1
                     if sum(B[j : j + arima_checked["ar_orders"][i]]) > 1:
                         B[j : j + arima_checked["ar_orders"][i]] = (
                             B[j : j + arima_checked["ar_orders"][i]]
@@ -599,9 +605,12 @@ def initialiser(
                     and arima_checked["ma_estimate"]
                     and arima_checked["ma_orders"][i] > 0
                 ):
-                    B[j : j + arima_checked["ma_orders"][i]] = acf_values[
-                        i * lag : (i + 1) * lag
-                    ][: arima_checked["ma_orders"][i]]
+                    indices = np.arange(1, arima_checked["ma_orders"][i] + 1) * lag - 1
+                    vals = [acf_values[idx] if idx < len(acf_values) else -0.1 for idx in indices]
+                    if all(not np.isnan(v) for v in vals):
+                        B[j : j + arima_checked["ma_orders"][i]] = vals
+                    else:
+                        B[j : j + arima_checked["ma_orders"][i]] = -0.1
                     if sum(B[j : j + arima_checked["ma_orders"][i]]) > 1:
                         B[j : j + arima_checked["ma_orders"][i]] = (
                             B[j : j + arima_checked["ma_orders"][i]]
@@ -696,11 +705,43 @@ def initialiser(
         and arima_checked["arima_model"]
         and initials_checked["initial_arima_estimate"]
     ):
+        # Fix: Python 0-based indexing requires -1 (R uses 1-based)
         B[j : j + initials_checked["initial_arima_number"]] = adam_created["mat_vt"][
             components_dict["components_number_ets"]
-            + components_dict["components_number_arima"],
+            + components_dict["components_number_arima"]
+            - 1,
             : initials_checked["initial_arima_number"],
         ]
+        # Normalize by ARI polynomial tail (matches R lines 1684-1686)
+        if adam_cpp is not None:
+            n_ar = (
+                sum(arima_checked["ar_orders"])
+                if arima_checked["ar_estimate"]
+                else 0
+            )
+            n_ma = (
+                sum(arima_checked["ma_orders"])
+                if arima_checked["ma_estimate"]
+                else 0
+            )
+            n_arma = n_ar + n_ma
+            if n_arma > 0:
+                arima_polys = adam_polynomialiser(
+                    adam_cpp,
+                    B[arma_start_index : arma_start_index + n_arma],
+                    arima_checked["ar_orders"],
+                    arima_checked["i_orders"],
+                    arima_checked["ma_orders"],
+                    arima_checked["ar_estimate"],
+                    arima_checked["ma_estimate"],
+                    arima_checked["arma_parameters"]
+                    if arima_checked["arma_parameters"]
+                    else [],
+                    lags_dict.get("lags_original", lags_dict["lags"]),
+                )
+                ari_tail = arima_polys["ari_polynomial"][-1]
+                if ari_tail != 0:
+                    B[j : j + initials_checked["initial_arima_number"]] /= ari_tail
         names.extend(
             [
                 f"ARIMAState{n}"

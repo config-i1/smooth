@@ -547,6 +547,7 @@ def _initialize_arima_states(
     components_number_arima = model_params["components_number_arima"]
     e_type = model_params["e_type"]
     lags = model_params["lags"]
+    lags_model_arima = model_params.get("lags_model_arima", [1])
     y_in_sample = model_params["y_in_sample"]
     ot_logical = model_params["ot_logical"]
 
@@ -570,12 +571,14 @@ def _initialize_arima_states(
                 else np.exp(np.mean(np.diff(np.log(y_in_sample[ot_logical]))))
             )
 
+        # Use ARIMA lags for tiling (R uses lagsModelARIMA, not seasonal lags)
+        max_arima_lag = max(lags_model_arima) if lags_model_arima else 1
         mat_vt[
             components_number_ets + components_number_arima - 1,
             0 : initials_checked["initial_arima_number"],
         ] = np.tile(
             y_decomposition,
-            int(np.ceil(initials_checked["initial_arima_number"] / max(lags))),
+            int(np.ceil(initials_checked["initial_arima_number"] / max_arima_lag)),
         )[: initials_checked["initial_arima_number"]]
     else:
         mat_vt[
