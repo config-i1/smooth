@@ -96,7 +96,7 @@ dfDiscounter <- function(object){
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, adamETS);
 
     adamProfileCreated <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample);
@@ -206,10 +206,16 @@ componentsDefiner <- function(object){
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- componentsNumberETSNonSeasonal <- 0;
-        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
+        componentsNumberARIMA <- length(object$initial$nonseasonal);
         # If seasonal is formed via a matrix, this must be "simple" or a "full" model
-        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
-            componentsNumberARIMA[] <- componentsNumberARIMA+1;
+        if(!is.null(object$initial$seasonal)){
+            # If this is not a matrix then we have only one seasonal component
+            if(is.matrix(object$initial$seasonal)){
+                componentsNumberARIMA[] <- componentsNumberARIMA + nrow(object$initial$seasonal);
+            }
+            else{
+                componentsNumberARIMA[] <- componentsNumberARIMA + 1;
+            }
         }
     }
     else if(gumModel){
@@ -243,10 +249,14 @@ componentsDefiner <- function(object){
         componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     }
 
+    # See if constant is required
+    constantRequired <- !is.null(object$constant);
+
     return(list(componentsNumberETS=componentsNumberETS,
                 componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
                 componentsNumberETSSeasonal=componentsNumberETSSeasonal,
-                componentsNumberARIMA=componentsNumberARIMA))
+                componentsNumberARIMA=componentsNumberARIMA,
+                constantRequired=constantRequired))
 }
 
 
@@ -278,29 +288,37 @@ sparmaChecker <- function(object){
 #### The function that returns the eigen values for specified parameters ADAM ####
 smoothEigens <- function(persistence, transition, measurement,
                          lagsModelAll, xregModel, obsInSample){
+    persistenceNames <- names(persistence);
+    hasDelta <- any(substr(persistenceNames,1,5)=="delta");
+    xregNumber <- sum(substr(persistenceNames,1,5)=="delta");
+    constantRequired <- any(persistenceNames %in% c("constant","drift"));
 
-    lagsUnique <- unique(lagsModelAll);
-    lagsUniqueLength <- length(lagsUnique);
-    eigenValues <- vector("numeric", lagsUniqueLength);
-    # Check eigen values per unique component (unique lag)
-    #### !!!! Eigen values checks do not work for xreg. So, check the average condition
-    if(xregModel && any(substr(names(persistence),1,5)=="delta")){
-        # We check the condition on average
-        return(eigen((transition -
-                          diag(as.vector(persistence)) %*%
-                          t(measurementInverter(measurement[1:obsInSample,,drop=FALSE])) %*%
-                          measurement[1:obsInSample,,drop=FALSE] / obsInSample),
-                     symmetric=FALSE, only.values=TRUE)$values);
-    }
-    else{
-        for(i in 1:lagsUniqueLength){
-            eigenValues[which(lagsModelAll==lagsUnique[i])] <-
-                eigen(transition[lagsModelAll==lagsUnique[i], lagsModelAll==lagsUnique[i], drop=FALSE] -
-                          persistence[lagsModelAll==lagsUnique[i],,drop=FALSE] %*%
-                          measurement[obsInSample,lagsModelAll==lagsUnique[i],drop=FALSE],
-                      symmetric=FALSE, only.values=TRUE)$values
-        }
-    }
-    return(eigenValues);
+    return(smoothEigensR(persistence, transition, measurement,
+                         lagsModelAll, xregModel, obsInSample,
+                         hasDelta, xregNumber, constantRequired));
+
+    # lagsUnique <- unique(lagsModelAll);
+    # lagsUniqueLength <- length(lagsUnique);
+    # eigenValues <- vector("numeric", lagsUniqueLength);
+    # # Check eigen values per unique component (unique lag)
+    # #### !!!! Eigen values checks do not work for xreg. So, check the average condition
+    # if(xregModel && any(substr(names(persistence),1,5)=="delta")){
+    #     # We check the condition on average
+    #     return(eigen((transition -
+    #                       diag(as.vector(persistence)) %*%
+    #                       t(measurementInverter(measurement[1:obsInSample,,drop=FALSE])) %*%
+    #                       measurement[1:obsInSample,,drop=FALSE] / obsInSample),
+    #                  symmetric=FALSE, only.values=TRUE)$values);
+    # }
+    # else{
+    #     for(i in 1:lagsUniqueLength){
+    #         eigenValues[which(lagsModelAll==lagsUnique[i])] <-
+    #             eigen(transition[lagsModelAll==lagsUnique[i], lagsModelAll==lagsUnique[i], drop=FALSE] -
+    #                       persistence[lagsModelAll==lagsUnique[i],,drop=FALSE] %*%
+    #                       measurement[obsInSample,lagsModelAll==lagsUnique[i],drop=FALSE],
+    #                   symmetric=FALSE, only.values=TRUE)$values
+    #     }
+    # }
+    # return(eigenValues);
 }
 

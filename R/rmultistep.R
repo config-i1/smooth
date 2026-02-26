@@ -69,6 +69,7 @@ rmultistep.adam <- function(object, h=10,
     componentsNumberETSSeasonal <- componentsDefined$componentsNumberETSSeasonal;
     componentsNumberETSNonSeasonal <- componentsDefined$componentsNumberETSNonSeasonal;
     componentsNumberARIMA <- componentsDefined$componentsNumberARIMA;
+    constantRequired <- componentsDefined$constantRequired;
 
     if(ncol(object$data)>1){
         xregNumber <- ncol(object$data)-1;
@@ -78,15 +79,13 @@ rmultistep.adam <- function(object, h=10,
     }
     obsInSample <- nobs(object);
 
-    constantRequired <- !is.null(object$constant);
-
     # Create C++ adam class, which will then use fit, forecast etc methods
     adamCpp <- new(adamCore,
                    lagsModelAll, Etype, Ttype, Stype,
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, adamETS);
 
     # Function returns the matrix with multi-step errors
@@ -107,12 +106,6 @@ rmultistep.adam <- function(object, h=10,
     # Return multi-step errors matrix
     if(any(yClasses=="ts")){
         return(ts(
-            # adamErrorerWrap(t(object$states), object$measurement, object$transition,
-            #                       lagsModelAll, indexLookupTable, profilesRecentTable,
-            #                       Etype, Ttype, Stype,
-            #                       componentsNumberETS, componentsNumberETSSeasonal,
-            #                       componentsNumberARIMA, xregNumber, constantRequired, h,
-            #                       matrix(actuals(object),obsInSample,1), ot),
             adamCpp$ferrors(t(object$states), object$measurement,
                             object$transition,
                             indexLookupTable, profilesRecentTable,
@@ -121,12 +114,6 @@ rmultistep.adam <- function(object, h=10,
     }
     else{
         return(zoo(
-            # adamErrorerWrap(t(object$states), object$measurement, object$transition,
-            #                        lagsModelAll, indexLookupTable, profilesRecentTable,
-            #                        Etype, Ttype, Stype,
-            #                        componentsNumberETS, componentsNumberETSSeasonal,
-            #                        componentsNumberARIMA, xregNumber, constantRequired, h,
-            #                        matrix(actuals(object),obsInSample,1), ot),
             adamCpp$ferrors(t(object$states), object$measurement,
                             object$transition,
                             indexLookupTable, profilesRecentTable,

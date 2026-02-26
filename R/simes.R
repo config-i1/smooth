@@ -542,7 +542,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModel),
                    constantRequired, adamETS);
 
     #### Simulate the data ####

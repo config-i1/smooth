@@ -21,19 +21,18 @@
 #' \code{smoother="lowess"} will use \link[stats]{lowess}, resulting in a
 #' decomposition similar to the STL (\link[stats]{stl}). Finally,
 #' \code{smoother="supsmu"} will use the Friedman's super smoother via
-#' \link[stats]{supsmu}.
+#' \link[stats]{supsmu}. \code{smoother="global"} will fit the global model to
+#' the data.
 #' @param ... Other parameters passed to smoothers. Only works with
 #' lowess/supsmu.
 #'
 #' @return The object of the class "msdecompose" is return, containing:
 #' \itemize{
 #' \item \code{y} - the original time series.
-#' \item \code{initial} - the estimates of the initial level and trend.
+#' \item \code{initial} - the named list of the estimates of the initial level,
+#' trend and seasonality.
 #' \item \code{trend} - the long term trend in the data.
 #' \item \code{seasonal} - the list of seasonal parameters.
-#' \item \code{gta} - parameters for the intercept and slope of the Global
-#' Trend, Additive.
-#' \item \code{gtm} - same as gta, but for the multiplicative model (thus "m").
 #' \item \code{lags} - the provided lags.
 #' \item \code{type} - the selected type of the decomposition.
 #' \item \code{yName} - the name of the provided data.
@@ -53,7 +52,7 @@
 #' @importFrom stats filter poly .lm.fit supsmu
 #' @export msdecompose
 msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
-                        smoother=c("ma","lowess","supsmu"), ...){
+                        smoother=c("lowess","ma","supsmu","global"), ...){
     # Function decomposes time series, assuming multiple frequencies provided in lags
     type <- match.arg(type);
     smoother <- match.arg(smoother);
@@ -94,6 +93,11 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
             }
             return(supsmu(1:length(y), y, span=span, ...)$y)
         }
+        else if(smoother=="global"){
+            X <- cbind("Intercept"=1, trend=1:length(y));
+            trendDetermAdd <- .lm.fit(X,y);
+            return(y - trendDetermAdd$residuals);
+        }
     }
 
     obsInSample <- length(y);
@@ -121,17 +125,19 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
         yInsample <- y;
     }
 
+    lags <- sort(unique(lags));
+    lagsLength <- length(lags);
+    lagsMax <- max(lags);
+
     # Treat the missing values
     if(any(yNAValues)){
         X <- cbind(1,poly(c(1:obsInSample),degree=min(max(trunc(obsInSample/10),1),5)),
-                   sinpi(matrix(c(1:obsInSample)*rep(c(1:max(lags)),each=obsInSample)/max(lags), ncol=max(lags))));
+                   sinpi(matrix(c(1:obsInSample)*rep(c(1:lagsMax),each=obsInSample)/lagsMax, ncol=lagsMax)));
         lmFit <- .lm.fit(X[!yNAValues,,drop=FALSE], matrix(yInsample[!yNAValues],ncol=1));
         yInsample[yNAValues] <- (X %*% coef(lmFit))[yNAValues];
         rm(X)
     }
 
-    lags <- sort(unique(lags));
-    lagsLength <- length(lags);
     # List of smoothed values
     ySmooth <- vector("list",lagsLength+1);
     # Put actuals int he first element of the list
@@ -153,6 +159,9 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
             yClear[[i]] <- ySmooth[[i]] - ySmooth[[i+1]];
         }
 
+        smootherSecond <- switch(smoother,
+                                 "global"="ma",
+                                 smoother);
         # The seasonal patterns
         patterns <- vector("list",lagsLength);
         for(i in 1:lagsLength){
@@ -162,12 +171,12 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
                 ySeasonal <- yClear[[i]][(1:ceiling(obsInSample/lags[i])-1)*lags[i]+j];
                 # If it is "ma", take the simple average, i.e. order=n for the specific index
                 ySeasonalSmooth <- smoothingFunction(ySeasonal[!is.na(ySeasonal)],
-                                                     order=switch(smoother,
+                                                     order=switch(smootherSecond,
                                                                   "ma"=length(ySeasonal[!is.na(ySeasonal)]),
                                                                   obsInSample),
-                                                     smoother=smoother);
+                                                     smoother=smootherSecond);
                 # In case of MA, only one value is returned
-                if(smoother=="ma"){
+                if(smootherSecond=="ma"){
                     patterns[[i]][(1:ceiling(obsInSample/lags[i])-1)*lags[i]+j] <- ySeasonalSmooth[!is.na(ySeasonalSmooth)];
                 }
                 else{
@@ -176,50 +185,45 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
             }
             # This is needed to fix potential issues with samples becoming larger than needed due to ceiling
             patterns[[i]] <- patterns[[i]][1:obsInSample]
-            patterns[[i]][] <- patterns[[i]] - mean(patterns[[i]], na.rm=TRUE);
+            obsInSampleLags <- floor(obsInSample/lags[i]) * lags[i];
+            patterns[[i]][] <- patterns[[i]] - mean(patterns[[i]][1:obsInSampleLags], na.rm=TRUE);
         }
     }
     else{
         patterns <- NULL;
     }
 
-    # Deterministic trend fit to the smooth series.
-    # This is required by adam() with backcasting
-    X <- cbind("Intercept"=1, trend=1:obsInSample)[!is.na(trend),];
-    trendDetermAdd <- .lm.fit(X,trend[!is.na(trend)])$coefficients;
+    ySmoothLength <- length(ySmooth);
 
+    initial <- vector("list", 2)
+    names(initial) <- c("nonseasonal","seasonal")
     # Initial level and trend
-    initial <- c(ySmooth[[lagsLength]][!is.na(ySmooth[[lagsLength]])][1],
-                 mean(diff(ySmooth[[lagsLength]]),na.rm=T));
+    initial$nonseasonal <- c(ySmooth[[ySmoothLength]][!is.na(ySmooth[[ySmoothLength]])][1],
+                             mean(diff(ySmooth[[ySmoothLength]]),na.rm=T));
 
     if(smoother=="ma"){
         # Fix the initial, to get to the beginning of the sample
-        initial[1] <- initial[1] - initial[2]*floor(max(lags)/2);
+        initial$nonseasonal[1] <- initial$nonseasonal[1] - initial$nonseasonal[2]*floor(lagsMax/2);
     }
-    names(initial) <- c("level","trend");
+    # Lag things back to get values useful for ADAM
+    initial$nonseasonal[1] <- initial$nonseasonal[1] - initial$nonseasonal[2] * lagsMax;
+    names(initial$nonseasonal) <- c("level","trend");
 
-    # Move the trend back to start it off-sample in case of ADAM
-    trendDetermAdd[1] <- trendDetermAdd[1] - trendDetermAdd[2]*max(lags);
-
-    # Return to the original scale
+    # # Return to the original scale
     if(type=="multiplicative"){
-        initial[] <- exp(initial);
+        initial$nonseasonal[] <- exp(initial$nonseasonal);
         trend[] <- exp(trend);
-        # Sort out additive/multiplicative trend for ADAM
-        trendDetermMult <- exp(trendDetermAdd);
-        trendDetermAdd <- .lm.fit(X,trend[!is.na(trend)])$coefficients;
-        trendDetermAdd[1] <- trendDetermAdd[1] - trendDetermAdd[2]*max(lags);
         if(seasonalLags){
             patterns[] <- lapply(patterns,exp);
         }
         if(shiftedData){
-            initial[1] <- initial[1] - 1;
+            initial$nonseasonal[1] <- initial$nonseasonal[1] - 1;
             trend[] <- trend -1;
             trendDetermAdd[1] <- trendDetermAdd[1] - 1;
             trendDetermMult[1] <- trendDetermMult[1] - 1;
         }
     }
-    # Get the deterministic multiplicative trend
+    # # Get the deterministic multiplicative trend
     else{
         # Shift the trend if it contains negative values
         nonPositiveValues <- FALSE;
@@ -228,17 +232,13 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
             trendMin <- min(trend, na.rm=TRUE);
             trend[] <- trend - trendMin + 1;
         }
-        trendDetermMult <- .lm.fit(X,log(trend[!is.na(trend)]))$coefficients;
-        trendDetermMult[] <- exp(trendDetermMult);
-        # Correct the initial level
-        if(nonPositiveValues){
-            trendDetermMult[1] <- trendDetermMult[1] - trendMin - 1;
-        }
     }
 
     # Prepare the matrix of states
     yFitted <- trend;
     if(seasonalLags){
+        initial$seasonal <- vector("list", lagsLength);
+
         states <- cbind(trend, c(NA,diff(trend)), matrix(unlist(patterns), obsInSample, lagsLength));
         if(lagsLength>1){
             colnames(states) <- c("level","trend",paste0("seasonal",1:lagsLength));
@@ -247,14 +247,18 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
             colnames(states) <- c("level","trend","seasonal");
         }
         if(type=="additive"){
-            for(i in 1:length(lags)){
+            for(i in 1:lagsLength){
                 yFitted[] <- yFitted + rep(patterns[[i]],ceiling(obsInSample/lags[i]))[1:obsInSample];
             }
         }
         else{
-            for(i in 1:length(lags)){
+            for(i in 1:lagsLength){
                 yFitted[] <- yFitted * rep(patterns[[i]],ceiling(obsInSample/lags[i]))[1:obsInSample];
             }
+        }
+
+        for(i in 1:lagsLength){
+            initial$seasonal[[i]] <- patterns[[i]][1:lags[i]];
         }
     }
     else{
@@ -262,9 +266,14 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
         colnames(states) <- c("level","trend");
     }
 
+    # Fix for the "NA" in trend in case of global trend
+    if(smoother=="global"){
+        states[,2] <- mean(states[,2], na.rm=TRUE);
+    }
+
     return(structure(list(y=y, states=states, initial=initial, seasonal=patterns, fitted=yFitted,
                           # gta is the Global Trend, Additive. gtm is the Global Trend, Multiplicative
-                          gta=trendDetermAdd, gtm=trendDetermMult,
+                          # gta=trendDetermAdd, gtm=trendDetermMult,
                           loss="MSE", lags=lags, type=type, yName=yName, smoother=smoother),
                      class=c("msdecompose","smooth")));
 }

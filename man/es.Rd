@@ -8,9 +8,9 @@ es(y, model = "ZXZ", lags = c(frequency(y)), persistence = NULL,
   phi = NULL, initial = c("backcasting", "optimal", "two-stage",
   "complete"), initialSeason = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
-  "MSCE"), h = 0, holdout = FALSE, bounds = c("usual", "admissible",
-  "none"), silent = TRUE, xreg = NULL, regressors = c("use", "select"),
-  initialX = NULL, ...)
+  "MSCE", "GPL"), h = 0, holdout = FALSE, bounds = c("usual",
+  "admissible", "none"), silent = TRUE, xreg = NULL,
+  regressors = c("use", "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}

@@ -362,7 +362,7 @@ sim.gum <- function(orders=c(1), lags=c(1),
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModel),
                    constantRequired, adamETS);
 
     #### Simulate the data ####

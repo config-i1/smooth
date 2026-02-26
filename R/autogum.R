@@ -19,8 +19,8 @@
 #' @export
 auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multiplicative","select"),
                      initial=c("backcasting","optimal","two-stage","complete"), ic=c("AICc","AIC","BIC","BICc"),
-                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-                     h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
+                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE","GPL"),
+                     h=0, holdout=FALSE, bounds=c("usual","admissible","none"), silent=TRUE,
                      xreg=NULL, regressors=c("use","select","adapt","integrate"), ...){
 # Function estimates several GUM models and selects the best one using the selected information criterion.
 #
@@ -88,6 +88,9 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
     ICsFinal <- rep(NA,length(type));
     lagsFinal <- list(NA);
     ordersFinal <- list(NA);
+    # List of estimated parameters
+    BValues <- list(NA);
+    BFinal <- list(NA);
 
     if(!silent){
         if(lags>12){
@@ -127,6 +130,7 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                             bounds=bounds, silent=TRUE, environment=env,
                             xreg=xreg, regressors=regressors, ...);
             ICs[i] <- IC(gumModel);
+            BValues[[i]] <- gumModel$B;
             if(!silent){
                 cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lags))),collapse=""));
                 cat(paste0(i," out of ",lags));
@@ -166,12 +170,15 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                                 bounds=bounds, silent=TRUE, environment=env,
                                 xreg=xreg, regressors=regressors, ...);
                 ICs[i] <- IC(gumModel);
+                BValues[[i]] <- gumModel$B;
             }
-            if(!any(which(ICs==min(ICs))==lagsBest)){
-                lagsBest <- c(which(ICs==min(ICs))[1],lagsBest);
+            iBest <- which.min(ICs)[1];
+            if(!any(iBest==lagsBest)){
+                lagsBest <- c(iBest, lagsBest);
             }
             ICsBest <- min(ICs);
         }
+        BBest <- BValues[[iBest]]
 
         #### Checking all the possible orders ####
         if(!silent){
@@ -182,6 +189,7 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
         ICsBest <- min(ICs);
         ICs <- array(c(1:(orders^length(lagsBest))),rep(orders,length(lagsBest)));
         ICs[1] <- ICsBest;
+        BValues[[1]] <- BBest;
         for(i in 1:length(ICs)){
             if(!silent){
                 cat("\b");
@@ -204,8 +212,10 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                             bounds=bounds, silent=TRUE, environment=env,
                             xreg=xreg, regressors=regressors, ...);
             ICs[i] <- IC(gumModel);
+            BValues[[i]] <- gumModel$B;
         }
         ordersBest <- which(ICs==min(ICs,na.rm=TRUE),arr.ind=TRUE);
+        BBest <- BValues[[which.min(ICs)]];
         if(!silent){
             cat("\b");
             cat("Orders found.\n");
@@ -214,8 +224,9 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
         ICsFinal[t] <- min(ICs,na.rm=TRUE);
         lagsFinal[[t]] <- lagsBest;
         ordersFinal[[t]] <- ordersBest;
+        BFinal[[t]] <- BBest;
     }
-    t <- which(ICsFinal==min(ICsFinal))[1];
+    t <- which.min(ICsFinal)[1];
 
     if(!silent){
         cat("Reestimating the model. ");
@@ -225,7 +236,7 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                      initial=initial, loss=loss,
                      h=h, holdout=holdout,
                      bounds=bounds, silent=TRUE, environment=env,
-                     xreg=xreg, regressors=regressors, ...);
+                     xreg=xreg, regressors=regressors, B=BFinal[[t]], maxeval=1, ...);
 
     bestModel$timeElapsed <- Sys.time()-startTime;
 

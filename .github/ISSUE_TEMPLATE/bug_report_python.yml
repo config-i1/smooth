@@ -1,0 +1,55 @@
+name: 🐛 Bug Report for Python
+description: Report a bug in the smooth package for Python
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please provide as much detail as possible to help us reproduce the issue.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproducible Example
+      description: |
+        Please provide a minimal, self-contained snippet of Python code.
+        Use synthetic data (e.g., `np.random`) or a time series
+        from the `fcompdata` package if necessary.
+      render: python
+      placeholder: |
+        # Your code here...
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Data Frequency
+      description: What is the frequency of your time series?
+      options:
+        - Hourly/Minutely
+        - Daily
+        - Weekly
+        - Monthly
+        - Yearly
+        - Irregular
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Info
+      description: |
+                   Run this and insert the output:
+                   ```python
+                   from smooth.utils import show_versions; show_versions()
+                   ```
+      placeholder: |
+        - OS: macOS/Windows/Linux
+        - Python version: 3.13
+        - Package version: 1.0.0

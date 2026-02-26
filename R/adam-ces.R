@@ -10,9 +10,6 @@
 #' The \code{auto.ces()} function implements the automatic seasonal component
 #' selection based on information criteria.
 #'
-#' \code{ces_old()} is the old implementation of the model and will be discontinued
-#' starting from smooth v4.5.0.
-#'
 #' \code{ces()} uses two optimisers to get good estimates of parameters. By default
 #' these are BOBYQA and then Nelder-Mead. This can be regulated via \code{...} - see
 #' details below.
@@ -93,7 +90,7 @@
 #' @export
 ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequency(y)),
                 initial=c("backcasting","optimal","two-stage","complete"), a=NULL, b=NULL,
-                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE","GPL"),
                 h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
                 model=NULL, xreg=NULL, regressors=c("use","select","adapt"), initialX=NULL, ...){
 # Function estimates CES in state space form with sigma = error
@@ -452,6 +449,10 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                                             rep(lagsModelSeasonal,each=2),"]"), xregNames);
                 matVt[(1:nSeasonal)*2-1,1:lagsModelMax] <- yInSample[1:lagsModelMax];
                 matVt[(1:nSeasonal)*2,1:lagsModelMax] <- matVt[(1:nSeasonal)*2-1,1:lagsModelMax]/1.1;
+                for(i in 1:nSeasonal){
+                    matF[2*i,2*i-1] <- 1;
+                    matWt[,2*i] <- 0;
+                }
             }
             else{
                 rownames(matVt) <- c("level.s", "potential.s", xregNames);
@@ -488,8 +489,8 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
 
         if(bounds=="admissible"){
             # Stability / invertibility condition
-            eigenValues <- abs(smoothEigens(elements$vecG, elements$matF, matWt,
-                                            lagsModelAll, xregModel, obsInSample));
+            eigenValues <- smoothEigens(elements$vecG, elements$matF, matWt,
+                                        lagsModelAll, xregModel, obsInSample);
             if(any(eigenValues>1+1E-50)){
                 return(1E+100*max(eigenValues));
             }
@@ -598,7 +599,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, FALSE);
 
     ##### Pre-set yFitted, yForecast, errors and basic parameters #####
@@ -933,7 +934,10 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
     matVt[,1:lagsModelMax] <- elements$vt;
 
     # Write down the initials in the recent profile
-    profilesRecentInitial <- profilesRecentTable[] <- matVt[,1:lagsModelMax,drop=FALSE];
+    profilesRecentTable[] <- elements$vt;
+    if(!profilesRecentProvided){
+        profilesRecentInitial <- elements$vt;
+    }
 
     #### Fisher Information ####
     if(FI){
@@ -1162,7 +1166,8 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                                     # ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
                                     #              c("AIC","AICc","BIC","BICc")),
                                     distribution=distribution, bounds=bounds,
-                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI),
+                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI,
+                                    adamCpp=adamCpp),
                                class=c("adam","smooth"));
 
     # Fix data and holdout if we had explanatory variables

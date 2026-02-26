@@ -1539,6 +1539,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         armaParameters <- NULL;
     }
 
+    # Make armaParameters a zero vector. Needed for C++ code to work
+    if(is.null(armaParameters)){
+        armaParameters <- matrix(0,0,0);
+    }
+
     #### xreg preparation ####
     # Check the regressors
     if(!xregModel){
@@ -2665,28 +2670,28 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 # We have enough observations for trend model
                 if(obsNonzero > (5 + nParamExo)){
                     if(any(Ttype==c("Z","X","A"))){
-                        modelsPool <- c(modelsPool,"AAN");
+                        modelsPool <- c(modelsPool,"AAN","MAN");
                     }
                     if(allowMultiplicative && any(Ttype==c("Z","Y","M"))){
-                        modelsPool <- c(modelsPool,"AMN","MAN","MMN");
+                        modelsPool <- c(modelsPool,"AMN","MMN");
                     }
                 }
                 # We have enough observations for damped trend model
                 if(obsNonzero > (6 + nParamExo)){
                     if(any(Ttype==c("Z","X","A"))){
-                        modelsPool <- c(modelsPool,"AAdN");
+                        modelsPool <- c(modelsPool,"AAdN","MAdN");
                     }
                     if(allowMultiplicative && any(Ttype==c("Z","Y","M"))){
-                        modelsPool <- c(modelsPool,"AMdN","MAdN","MMdN");
+                        modelsPool <- c(modelsPool,"AMdN","MMdN");
                     }
                 }
                 # We have enough observations for seasonal model
                 if((obsNonzero > (lagsModelMax)) && lagsModelMax!=1){
                     if(any(Stype==c("Z","X","A"))){
-                        modelsPool <- c(modelsPool,"ANA");
+                        modelsPool <- c(modelsPool,"ANA","MNA");
                     }
                     if(allowMultiplicative && any(Stype==c("Z","Y","M"))){
-                        modelsPool <- c(modelsPool,"ANM","MNA","MNM");
+                        modelsPool <- c(modelsPool,"ANM","MNM");
                     }
                 }
                 # We have enough observations for seasonal model with trend
@@ -2774,6 +2779,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 # We don't have enough observations for seasonal models with damped trend
                 if((obsNonzero <= (6 + lagsModelMax + 1 + nParamExo))){
                     if(nchar(model)==4){
+                        warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
+                                call.=FALSE);
                         model <- paste0(substr(model,1,2),substr(model,4,4));
                     }
                     # model <- model[!(nchar(model)==4 &
@@ -2783,27 +2790,45 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 }
                 # We don't have enough observations for seasonal models with trend
                 if((obsNonzero <= (5 + lagsModelMax + 1 + nParamExo))){
+                    warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
+                            call.=FALSE);
                     model <- paste0(substr(model,1,1),"N",substr(model,3,3));
                     # model <- model[!(substr(model,2,2)!="N" &
                     #                      substr(model,nchar(model),nchar(model))!="N")];
                 }
                 # We don't have enough observations for seasonal models
                 if(obsNonzero <= lagsModelMax){
+                    warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
+                            call.=FALSE);
                     model <- paste0(substr(model,1,2),"N");
                     # model <- model[substr(model,nchar(model),nchar(model))=="N"];
                 }
                 # We don't have enough observations for damped trend
                 if(obsNonzero <= (6 + nParamExo)){
                     if(nchar(model)==4){
+                        warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
+                                call.=FALSE);
                         model <- paste0(substr(model,1,2),substr(model,4,4));
                     }
                     # model <- model[nchar(model)!=4];
                 }
                 # We don't have enough observations for any trend
                 if(obsNonzero <= (5 + nParamExo)){
+                    warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
+                            call.=FALSE);
                     model <- paste0(substr(model,1,1),"N",substr(model,3,3));
                     # model <- model[substr(model,2,2)=="N"];
                 }
+                # Change E,T,S elements based on the trimmed thingy
+                Etype <- substr(model,1,1);
+                Ttype <- substr(model,2,2);
+                Stype <- substr(model,nchar(model),nchar(model));
+
+                modelIsTrendy <- Ttype!="N";
+                modelIsSeasonal <- Stype!="N";
+
+                damped <- modelIsTrendy && (nchar(model)==4);
+                phiEstimate <- damped;
             }
             # Extreme cases of small samples
             else if(obsNonzero==4){

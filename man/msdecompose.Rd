@@ -5,7 +5,7 @@
 \title{Multiple seasonal classical decomposition}
 \usage{
 msdecompose(y, lags = c(12), type = c("additive", "multiplicative"),
-  smoother = c("ma", "lowess", "supsmu"), ...)
+  smoother = c("lowess", "ma", "supsmu", "global"), ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be smoothed.}
@@ -21,7 +21,8 @@ on the centred moving average and will result in the classical decomposition.
 \code{smoother="lowess"} will use \link[stats]{lowess}, resulting in a
 decomposition similar to the STL (\link[stats]{stl}). Finally,
 \code{smoother="supsmu"} will use the Friedman's super smoother via
-\link[stats]{supsmu}.}
+\link[stats]{supsmu}. \code{smoother="global"} will fit the global model to
+the data.}
 
 \item{...}{Other parameters passed to smoothers. Only works with
 lowess/supsmu.}
@@ -30,12 +31,10 @@ lowess/supsmu.}
 The object of the class "msdecompose" is return, containing:
 \itemize{
 \item \code{y} - the original time series.
-\item \code{initial} - the estimates of the initial level and trend.
+\item \code{initial} - the named list of the estimates of the initial level,
+trend and seasonality.
 \item \code{trend} - the long term trend in the data.
 \item \code{seasonal} - the list of seasonal parameters.
-\item \code{gta} - parameters for the intercept and slope of the Global
-Trend, Additive.
-\item \code{gtm} - same as gta, but for the multiplicative model (thus "m").
 \item \code{lags} - the provided lags.
 \item \code{type} - the selected type of the decomposition.
 \item \code{yName} - the name of the provided data.

@@ -14,7 +14,7 @@ adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   "inverse-odds-ratio", "direct"), distribution = c("default", "dnorm",
   "dlaplace", "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
-  "TMSE", "GTMSE", "MSCE"), outliers = c("ignore", "use", "select"),
+  "TMSE", "GTMSE", "MSCE", "GPL"), outliers = c("ignore", "use", "select"),
   level = 0.99, h = 0, holdout = FALSE, persistence = NULL,
   phi = NULL, initial = c("backcasting", "optimal", "two-stage",
   "complete"), arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
@@ -165,7 +165,8 @@ likelihood of the function specified in \code{distribution};
 \item \code{TMSE} - Trace Mean Squared Error,
 \item \code{GTMSE} - Geometric Trace Mean Squared Error,
 \item \code{MSEh} - optimisation using only h-steps ahead error,
-\item \code{MSCE} - Mean Squared Cumulative Error.
+\item \code{MSCE} - Mean Squared Cumulative Error,
+\item \code{GPL} - Generalised Predictive Likelihood.
 }
 In case of LASSO / RIDGE, the variables are not normalised prior to the estimation,
 but the parameters are divided by the mean values of explanatory variables.

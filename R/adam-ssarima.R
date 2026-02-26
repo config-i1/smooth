@@ -110,7 +110,7 @@
 ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(y)),
                     constant=FALSE, arma=NULL, model=NULL,
                     initial=c("backcasting","optimal","two-stage","complete"),
-                    loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                    loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE","GPL"),
                     h=0, holdout=FALSE, bounds=c("admissible","usual","none"), silent=TRUE,
                     xreg=NULL, regressors=c("use","select","adapt"), initialX=NULL,
                     ...){
@@ -268,6 +268,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
             }
 
             if(arRequired || any(iOrders>0)){
+                # Reset the places for the ma polynomial not to duplicate the values
+                vecG[1:length(arimaPolynomials$maPolynomial[-1]),] <- 0
                 # Fill in the transition matrix
                 matF[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
                 # Fill in the persistence vector
@@ -388,8 +390,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
                 }
 
                 # Stability / invertibility condition
-                eigenValues <- abs(smoothEigens(elements$vecG, elements$matF, matWt,
-                                                lagsModelAll, xregModel, obsInSample));
+                eigenValues <- smoothEigens(elements$vecG, elements$matF, matWt,
+                                            lagsModelAll, xregModel, obsInSample);
                 if(any(eigenValues>1+1E-50)){
                     return(1E+100*max(eigenValues));
                 }
@@ -577,7 +579,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModelAll),
                    constantRequired, FALSE);
 
     if(!is.null(initialValueProvided)){
@@ -1299,7 +1301,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
                                     ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
                                                  c("AIC","AICc","BIC","BICc")),
                                     distribution=distribution, bounds=bounds,
-                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI),
+                                    scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI,
+                                    adamCpp=adamCpp),
                                class=c("adam","smooth"));
 
     # Fix data and holdout if we had explanatory variables

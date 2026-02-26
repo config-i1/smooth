@@ -380,7 +380,7 @@ sim.ssarima <- function(orders=list(ar=0,i=1,ma=1), lags=1,
                    componentsNumberETSNonSeasonal,
                    componentsNumberETSSeasonal,
                    componentsNumberETS, componentsNumberARIMA,
-                   xregNumber,
+                   xregNumber, length(lagsModel),
                    constantRequired, adamETS);
 
     #### Initials ####

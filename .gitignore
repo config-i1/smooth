@@ -25,7 +25,7 @@ vignettes/rsconnect
 vignettes/Figs
 # Rprofile
 .Rprofile
-
+prompts/
 ########################
 ### python gitignore ###
 ########################
@@ -172,3 +172,4 @@ dmypy.json
 # cursor files
 .cursor/
 .claude/
+python/tests/speed_tests/benchmark_data/

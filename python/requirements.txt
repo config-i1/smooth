@@ -1,6 +1,0 @@
-numpy>=1.24.0
-pandas>=2.0.0
-rpy2>=3.5.0
-ipython>=8.0.0
-matplotlib>=3.7.0  # Optional, for plotting 
-statsmodels>=0.14.4 # for lowess smoother <- maybe we should avoid this 
