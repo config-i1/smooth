@@ -3081,7 +3081,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
     # Smoother used in msdecompose
     if(is.null(ellipsis$smoother)){
-        smoother <- "lowess";
+        smoother <- "global";
     }
     else{
         smoother <- ellipsis$smoother;
