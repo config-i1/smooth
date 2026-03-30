@@ -6,6 +6,7 @@ Changes:
 
 Bugfixes:
 * Fixed the calculation of the number of estimated parameters in case of combined ETS.
+* A failsafe for models with lb>B or ub<B.
 
 
 smooth v4.4.0 (Release data: 2026-02-05)

@@ -2554,6 +2554,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             ub <- BValues$Bu;
         }
 
+        # Failsafe to make optimiser work
+        if(any(lb>B)){
+            lb[lb>B] <- B[lb>B]-0.1;
+        }
+        if(any(ub<B)){
+            ub[ub<B] <- B[ub<B]+0.1;
+        }
+
         # Companion matrices for the polynomials calculation -> stationarity/stability checks
         if(arimaModel){
             # AR polynomials
