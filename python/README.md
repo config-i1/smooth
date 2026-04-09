@@ -14,22 +14,14 @@ Python implementation of the **smooth** package for time series forecasting usin
 
 ## Installation
 
-**Python (PyPI):**
+**From PyPI (recommended):**
 ```bash
-# Not yet available
+pip install smooth
 ```
 
-**From GitHub (source):**
+**From source (development):**
 ```bash
 pip install "git+https://github.com/config-i1/smooth.git@master#subdirectory=python"
-```
-
-**From wheels:**
-Check the wheels for your system [the latest release](https://github.com/config-i1/smooth/releases/tag/v4.4.0).
-
-For example, for Windows with Python 3.13:
-```bash
-pip install https://github.com/config-i1/smooth/releases/download/v4.4.0/smooth-1.0.0-cp313-cp313-win_amd64.whl
 ```
 
 See the [Installation Guide](https://github.com/config-i1/smooth/wiki/Installation) for platform-specific instructions.
