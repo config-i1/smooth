@@ -166,12 +166,9 @@ def test_etsx_single_regressor(etsx_data):
 def test_etsx_holdout(etsx_data):
     y, X = etsx_data
     h = 12
-    # When holdout=True, obs_all = len(y) + h, so X must cover all rows
-    rng = np.random.default_rng(55)
-    X_full = np.vstack([X, rng.standard_normal((h, 2))])
     model = ADAM(model="AAN", regressors="use", holdout=True, h=h)
-    model.fit(y, X_full)
-    fc = model.predict(h=h, X=X_full[-h:])
+    model.fit(y, X)
+    fc = model.predict(h=h, X=X[-h:])
     assert len(fc.mean) == h
 
 
@@ -183,11 +180,13 @@ def test_etsx_no_x_fits_plain_ets(etsx_data):
     assert model._explanatory.get("xreg_model") is False
 
 
-def test_etsx_wrong_x_length_raises(etsx_data):
+def test_etsx_short_x_pads_with_warning(etsx_data):
+    """X shorter than y: last row is repeated and a warning is issued."""
     y, X = etsx_data
     model = ADAM(model="AAN", regressors="use")
-    with pytest.raises((ValueError, TypeError)):
+    with pytest.warns(UserWarning, match="repeated"):
         model.fit(y, X[:-5])
+    assert model._explanatory["xreg_number"] == 2
 
 
 def test_etsx_dataframe_x(etsx_data):
@@ -197,3 +196,63 @@ def test_etsx_dataframe_x(etsx_data):
     model.fit(y, X_df)
     assert model._explanatory["xreg_number"] == 2
     assert model._explanatory["xreg_names"] == ["x1", "x2"]
+
+
+# --- initial type R/Python equivalence ---
+# R reference: adam(df, model="AAN", regressors="use", formula=y~x1+x2, initial=X)
+
+def test_etsx_initial_backcasting(etsx_data):
+    """initial='backcasting': xreg coefs in B, AIC and fitted match R."""
+    y, X = etsx_data
+    model = ADAM(model="AAN", regressors="use", initial="backcasting")
+    model.fit(y, X)
+    B = model.coef
+    # R: alpha=0.07559, x1=1.90847, x2=-1.46394, AIC=345.51
+    assert abs(B[0] - 0.07559) < 0.02
+    assert abs(B[2] - 1.90847) < 0.1
+    assert abs(B[3] - (-1.46394)) < 0.1
+    assert abs(model.aic - 345.5101) < 1.0
+    assert abs(model.fitted.values[0] - 15.213) < 0.5
+
+
+def test_etsx_initial_complete_no_xreg_in_b(etsx_data):
+    """initial='complete': xreg coefs NOT in B (backcasting handles them)."""
+    y, X = etsx_data
+    model_bc = ADAM(model="AAN", regressors="use", initial="backcasting")
+    model_bc.fit(y, X)
+    model_co = ADAM(model="AAN", regressors="use", initial="complete")
+    model_co.fit(y, X)
+    # "complete" B must have 2 fewer params (the 2 xreg coefs are excluded)
+    assert len(model_co.coef) == len(model_bc.coef) - 2
+    # AIC and fitted[0] should be close to R reference
+    assert abs(model_co.aic - 341.5459) < 1.5
+    assert abs(model_co.fitted.values[0] - 15.238) < 0.5
+
+
+def test_etsx_initial_optimal(etsx_data):
+    """initial='optimal': xreg coefs in B (after ETS initials), match R reference."""
+    y, X = etsx_data
+    model = ADAM(model="AAN", regressors="use", initial="optimal")
+    model.fit(y, X)
+    B = model.coef
+    # For "optimal", B = [alpha, beta, level_init, trend_init, x1, x2]
+    # xreg coefs are always the last 2 (no constant in this model)
+    # R: x1=1.91701, x2=-1.47879, AIC=338.37, fitted[0]=14.958
+    assert abs(B[-2] - 1.91701) < 0.15
+    assert abs(B[-1] - (-1.47879)) < 0.15
+    assert abs(model.aic - 338.3654) < 2.0
+    assert abs(model.fitted.values[0] - 14.958) < 0.5
+
+
+def test_etsx_initial_two_stage(etsx_data):
+    """initial='two-stage': xreg coefs in B (after ETS initials), match R reference."""
+    y, X = etsx_data
+    model = ADAM(model="AAN", regressors="use", initial="two-stage")
+    model.fit(y, X)
+    B = model.coef
+    # For "two-stage", B = [alpha, beta, level_init, trend_init, x1, x2]
+    # R: x1=1.91715, x2=-1.47850, AIC=338.37, fitted[0]=14.959
+    assert abs(B[-2] - 1.91715) < 0.15
+    assert abs(B[-1] - (-1.47850)) < 0.15
+    assert abs(model.aic - 338.3654) < 2.0
+    assert abs(model.fitted.values[0] - 14.959) < 0.5

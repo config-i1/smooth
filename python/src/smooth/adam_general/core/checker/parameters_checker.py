@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -536,7 +538,7 @@ def parameters_checker(
     # X validation
     #####################
     has_xreg, X, xreg_number, xreg_names_from_input = _validate_X(
-        X, obs_all=occ_info["obs_all"]
+        X, obs_all=occ_info["obs_in_sample"]
     )
 
     #####################
@@ -1064,7 +1066,6 @@ def _validate_X(X, obs_all):
     if X is None:
         return False, None, 0, None
 
-    # Preserve column names from DataFrames before converting
     if hasattr(X, "columns"):
         names = list(X.columns)
         X = X.values
@@ -1075,10 +1076,17 @@ def _validate_X(X, obs_all):
     if X.ndim == 1:
         X = X.reshape(-1, 1)
 
-    if len(X) != obs_all:
-        raise ValueError(
-            f"X must have {obs_all} rows (same as len(data)), got {len(X)}."
+    n = len(X)
+    if n > obs_all:
+        X = X[:obs_all]
+    elif n < obs_all:
+        pad = obs_all - n
+        warnings.warn(
+            f"X has {n} rows but y has {obs_all}. "
+            f"The last row of X will be repeated {pad} time(s) to match.",
+            stacklevel=4,
         )
+        X = np.vstack([X, np.tile(X[-1], (pad, 1))])
 
     return True, X, X.shape[1], names
 

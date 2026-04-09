@@ -718,9 +718,11 @@ def initialiser(
             Bu[j : j + initials_checked["initial_arima_number"]] = np.inf
         j += initials_checked["initial_arima_number"]
 
-    if initials_checked["initial_xreg_estimate"] and explanatory_checked["xreg_model"]:
-        # Xreg coefficients are always estimated in B, regardless of initial_type
-        # (backcasting only affects ETS states, not regressor coefficients)
+    if (
+        initials_checked["initial_xreg_estimate"]
+        and explanatory_checked["xreg_model"]
+        and initials_checked["initial_type"] != "complete"
+    ):
         xreg_number_to_estimate = sum(
             explanatory_checked["xreg_parameters_estimated"]
         )
