@@ -1,6 +1,11 @@
 # smooth (Python)
 
+[![PyPI version](https://img.shields.io/pypi/v/smooth.svg)](https://pypi.org/project/smooth/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/smooth.svg)](https://pypi.org/project/smooth/)
 [![Python CI](https://github.com/config-i1/smooth/actions/workflows/python_ci.yml/badge.svg)](https://github.com/config-i1/smooth/actions/workflows/python_ci.yml)
+[![Python versions](https://img.shields.io/pypi/pyversions/smooth.svg)](https://pypi.org/project/smooth/)
+[![License: LGPL-2.1](https://img.shields.io/badge/License-LGPL--2.1-blue.svg)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)
+
 
 Python implementation of the **smooth** package for time series forecasting using Single Source of Error (SSOE) state-space models.
 
@@ -9,17 +14,14 @@ Python implementation of the **smooth** package for time series forecasting usin
 
 ## Installation
 
-**From GitHub (source):**
+**From PyPI (recommended):**
 ```bash
-pip install "git+https://github.com/config-i1/smooth.git@master#subdirectory=python"
+pip install smooth
 ```
 
-**From wheels:**
-Check the wheels for your system [the latest release](https://github.com/config-i1/smooth/releases/tag/v4.4.0).
-
-For example, for Windows with Python 3.13:
+**From source (development):**
 ```bash
-pip install https://github.com/config-i1/smooth/releases/download/v4.4.0/smooth-1.0.0-cp313-cp313-win_amd64.whl
+pip install "git+https://github.com/config-i1/smooth.git@master#subdirectory=python"
 ```
 
 See the [Installation Guide](https://github.com/config-i1/smooth/wiki/Installation) for platform-specific instructions.

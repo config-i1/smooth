@@ -2554,6 +2554,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             ub <- BValues$Bu;
         }
 
+        # Failsafe to make optimiser work
+        if(any(lb>B)){
+            lb[lb>B] <- B[lb>B]-0.1;
+        }
+        if(any(ub<B)){
+            ub[ub<B] <- B[ub<B]+0.1;
+        }
+
         # Companion matrices for the polynomials calculation -> stationarity/stability checks
         if(arimaModel){
             # AR polynomials
@@ -2769,7 +2777,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                            etsModel, Stype, componentsNumberETSNonSeasonal,
                                                            componentsNumberETSSeasonal, adamFilled$vecG, adamFilled$matF,
                                                            obsInSample, lagsModelMax, indexLookupTable,
-                                                           adamCpp);
+                                                           adamCpp, dfForBack);
         }
 
         nParamEstimated <- length(B) + nStatesBackcasting;
@@ -7872,26 +7880,27 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     #                xregNumber, length(lagsModelAll),
     #                constantRequired, adamETS);
 
+    ##### Produce point forecasts, not mean forecasts from the model! #####
     # Produce point forecasts for non-multiplicative trend / seasonality
     # Do this for cases, when h<=m as well and prediction /confidence / simulated interval
-    if(Ttype!="M" && (Stype!="M" | (Stype=="M" & h<=lagsModelMin)) ||
-       any(interval==c("nonparametric","semiparametric","empirical","approximate"))){
+    # if(Ttype!="M" && (Stype!="M" | (Stype=="M" & h<=lagsModelMin)) ||
+    #    any(interval==c("nonparametric","semiparametric","empirical","approximate"))){
         adamForecast <- adamCpp$forecast(matWt, matF,
                                          indexLookupTable, profilesRecentTable,
                                          h)$forecast;
-    }
-    else{
-        # If we do simulations, leave it for later
-        if(interval=="simulated"){
-            adamForecast <- rep(0, h);
-        }
-        # If we don't, do simulations to get mean
-        else{
-            adamForecast <- forecast(object, h=h, newdata=newdata, occurrence=occurrence,
-                                     interval="simulated",
-                                     level=level, side="both", cumulative=cumulative, nsim=nsim, ...)$mean;
-        }
-    }
+    # }
+    # else{
+    #     # If we do simulations, leave it for later
+    #     if(interval=="simulated"){
+    #         adamForecast <- rep(0, h);
+    #     }
+    #     # If we don't, do simulations to get mean
+    #     else{
+    #         adamForecast <- forecast(object, h=h, newdata=newdata, occurrence=occurrence,
+    #                                  interval="simulated",
+    #                                  level=level, side="both", cumulative=cumulative, nsim=nsim, ...)$mean;
+    #     }
+    # }
 
     #### Make safety checks
     # If there are NaN values
@@ -8092,10 +8101,11 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
         else{
             for(i in 1:h){
-                if(Ttype=="M" || (Stype=="M" & h>lagsModelMin)){
-                    # Trim 1% of values just to resolve some issues with outliers
-                    yForecast[i] <- mean(ySimulated[i,],na.rm=TRUE,trim=0.01);
-                }
+                ##### We now do point forecasts, not mean #####
+                # if(Ttype=="M" || (Stype=="M" & h>lagsModelMin)){
+                #     # Trim 1% of values just to resolve some issues with outliers
+                #     yForecast[i] <- mean(ySimulated[i,],na.rm=TRUE,trim=0.01);
+                # }
                 yLower[i,] <- quantile(ySimulated[i,],levelLow[i,],na.rm=TRUE,type=7);
                 yUpper[i,] <- quantile(ySimulated[i,],levelUp[i,],na.rm=TRUE,type=7);
             }

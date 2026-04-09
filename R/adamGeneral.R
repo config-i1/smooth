@@ -3081,7 +3081,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
     # Smoother used in msdecompose
     if(is.null(ellipsis$smoother)){
-        smoother <- "lowess";
+        smoother <- "global";
     }
     else{
         smoother <- ellipsis$smoother;
@@ -3100,6 +3100,15 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     else{
         stepSize <- ellipsis$stepSize;
     }
+
+    #### Temporary hidden parameter to switch the df calculation in case of backcasting ####
+    if(is.null(ellipsis$dfForBack)){
+        dfForBack <- FALSE;
+    }
+    else{
+        dfForBack <- ellipsis$dfForBack;
+    }
+
 
     # Add constant in the model
     if(is.numeric(constant)){
@@ -3377,6 +3386,9 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     assign("FI",FI,ParentEnvironment);
     # Step size for the hessian
     assign("stepSize",stepSize,ParentEnvironment);
+
+    # Temporary parameter to switch on/off the backcasting df
+    assign("dfForBack",dfForBack,ParentEnvironment);
 
     return(list(select=FALSE));
 }
