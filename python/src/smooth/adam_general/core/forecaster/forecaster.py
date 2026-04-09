@@ -230,6 +230,23 @@ def _generate_point_forecasts(
         model_prepared, observations_dict, lags_dict, general_dict
     )
 
+    # Inject new_xreg values into the forecast measurement matrix.
+    # The xreg columns of mat_wt must contain X values for the *forecast* period,
+    # not the last h rows of the in-sample X (which _prepare_matrices_for_forecast
+    # would have copied).  If the caller passed new_xreg, overwrite those columns.
+    new_xreg = explanatory_checked.get("new_xreg") if explanatory_checked else None
+    if (
+        explanatory_checked
+        and explanatory_checked.get("xreg_model")
+        and new_xreg is not None
+    ):
+        xreg_start = (
+            components_dict["components_number_ets"]
+            + components_dict["components_number_arima"]
+        )
+        xreg_end = xreg_start + explanatory_checked["xreg_number"]
+        mat_wt[:, xreg_start:xreg_end] = new_xreg
+
     # Prepare data for adam_forecaster
     profiles_recent_table = np.asfortranarray(
         model_prepared["profiles_recent_table"], dtype=np.float64

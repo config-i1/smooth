@@ -784,7 +784,7 @@ class ADAM:
         # instance attributes
 
         # Check parameters and prepare data
-        self._check_parameters(y)
+        self._check_parameters(y, X)
         # Execute model estimation or selection based on model_do
         if self._model_type["model_do"] == "estimate":
             self._execute_estimation()
@@ -2153,6 +2153,15 @@ class ADAM:
         if occurrence is not None:
             self._occurrence["occurrence"] = occurrence
 
+        # Store new_xreg for forecast period (used in _generate_point_forecasts)
+        if X is not None and self._explanatory.get("xreg_model"):
+            new_xreg = np.asarray(X, dtype=float)
+            if new_xreg.ndim == 1:
+                new_xreg = new_xreg.reshape(-1, 1)
+            self._explanatory["new_xreg"] = new_xreg
+        else:
+            self._explanatory.pop("new_xreg", None)
+
         # Validate prediction inputs and prepare data for forecasting
         self._validate_prediction_inputs()
         self._prepare_prediction_data()
@@ -2210,7 +2219,7 @@ class ADAM:
             nsim=nsim,
         )
 
-    def _check_parameters(self, ts):
+    def _check_parameters(self, ts, X=None):
         """
         Check parameters using parameters_checker and store results.
 
@@ -2218,6 +2227,8 @@ class ADAM:
         ----------
         ts : NDArray or pd.Series
             Time series data (numpy array or pandas Series).
+        X : NDArray or pd.DataFrame, optional
+            External regressors, shape (len(ts), n_features).
         """
         # Convert ar_order, i_order, ma_order to orders format expected by
         # parameters_checker
@@ -2267,6 +2278,8 @@ class ADAM:
             fast=self.fast,
             lambda_param=self.lambda_param,
             frequency=self.frequency,
+            X=X,
+            regressors=self.regressors,
         )
 
     def _handle_lasso_ridge_special_case(self):

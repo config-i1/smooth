@@ -59,6 +59,8 @@ def parameters_checker(
     nsim=10000,
     scenarios=False,
     ellipsis=None,
+    X=None,
+    regressors="use",
 ):
     """
     Validate and process all ADAM model parameters before estimation.
@@ -529,6 +531,14 @@ def parameters_checker(
     obs_in_sample = occ_info["obs_in_sample"]
     obs_nonzero = occ_info["obs_nonzero"]
     occurrence_model = occ_info["occurrence_model"]
+
+    #####################
+    # X validation
+    #####################
+    has_xreg, X, xreg_number, xreg_names_from_input = _validate_X(
+        X, obs_all=occ_info["obs_all"]
+    )
+
     #####################
     # 2) Check Lags
     #####################
@@ -584,7 +594,7 @@ def parameters_checker(
         trend_type=ets_info["trend_type"],
         season_type=ets_info["season_type"],
         lags_model_seasonal=lags_model_seasonal,
-        xreg_model=False,  # Will be updated when xreg is implemented
+        xreg_model=has_xreg,
         silent=silent,
     )
 
@@ -597,7 +607,7 @@ def parameters_checker(
         trend_type=ets_info["trend_type"],
         season_type=ets_info["season_type"],
         arima_model=arima_model,
-        xreg_model=False,  # Will be updated when xreg is implemented
+        xreg_model=has_xreg,
         silent=silent,
     )
 
@@ -697,10 +707,10 @@ def parameters_checker(
         ma_required=any(ma_orders) if ma_orders else False,
         ma_estimate=arima_info.get("ma_estimate", True),
         ma_orders=ma_orders,
-        xreg_model=False,  # Will be updated when xreg is implemented
-        xreg_number=0,
-        initial_xreg_estimate=False,
-        persistence_xreg_estimate=False,
+        xreg_model=has_xreg,
+        xreg_number=xreg_number,
+        initial_xreg_estimate=has_xreg,
+        persistence_xreg_estimate=(has_xreg and regressors == "adapt"),
     )
 
     # Restrict models pool based on sample size (R lines 2641-2944)
@@ -714,7 +724,7 @@ def parameters_checker(
         season_type=ets_info["season_type"],
         models_pool=ets_info.get("models_pool"),
         allow_multiplicative=allow_multiplicative,
-        xreg_number=0,  # Will be updated when xreg is implemented
+        xreg_number=xreg_number,
         silent=silent,
         n_param_max=n_param_max,
         damped=ets_info.get("damped", False),
@@ -768,7 +778,7 @@ def parameters_checker(
         init_info["initial_level_estimate"] = False
 
     # Setup model type dictionary
-    model_type_dict = _organize_model_type_info(ets_info, arima_info, xreg_model=False)
+    model_type_dict = _organize_model_type_info(ets_info, arima_info, xreg_model=has_xreg)
 
     # Apply additional sample size adjustments
     model_type_dict = _adjust_model_for_sample_size(
@@ -776,7 +786,7 @@ def parameters_checker(
         obs_nonzero=obs_nonzero,
         lags_model_max=max_lag,
         allow_multiplicative=allow_multiplicative,
-        xreg_number=0,
+        xreg_number=xreg_number,
         silent=silent,
     )
 
@@ -795,7 +805,7 @@ def parameters_checker(
         lags_model=lags_model,
         lags_model_seasonal=lags_model_seasonal,
         lags_model_arima=lags_model_arima,
-        xreg_model=False,  # Will be updated when xreg is implemented
+        xreg_model=has_xreg,
     )
 
     # Create occurrence dictionary
@@ -962,21 +972,44 @@ def parameters_checker(
         "select": arima_info.get("select", False),
     }
 
-    # Initialize explanatory variables dictionary
-    xreg_dict = {
-        "xreg_model": False,
-        "regressors": None,
-        "xreg_model_initials": None,
-        "xreg_data": None,
-        "xreg_number": 0,
-        "xreg_names": None,
-        "response_name": None,
-        "formula": None,
-        "xreg_parameters_missing": None,
-        "xreg_parameters_included": None,
-        "xreg_parameters_estimated": None,
-        "xreg_parameters_persistence": None,
-    }
+    # Build explanatory variables dictionary
+    if has_xreg:
+        xreg_dict = _process_xreg(
+            X=X,
+            regressors=regressors,
+            y_in_sample=observations_dict["y_in_sample"],
+            obs_in_sample=observations_dict["obs_in_sample"],
+            distribution=distribution,
+            ic=ic,
+            xreg_names_from_input=xreg_names_from_input,
+        )
+        # For "select": if no variables survived selection, disable xreg
+        if not xreg_dict["xreg_model"]:
+            has_xreg = False
+            model_type_dict["xreg_model"] = False
+        else:
+            # Update persistence and initials based on regressors mode
+            if regressors == "adapt":
+                persistence_dict["persistence_xreg_estimate"] = True
+                initials_dict["initial_xreg_estimate"] = True
+            else:
+                persistence_dict["persistence_xreg_estimate"] = False
+                initials_dict["initial_xreg_estimate"] = True
+    else:
+        xreg_dict = {
+            "xreg_model": False,
+            "regressors": None,
+            "xreg_model_initials": None,
+            "xreg_data": None,
+            "xreg_number": 0,
+            "xreg_names": None,
+            "response_name": None,
+            "formula": None,
+            "xreg_parameters_missing": None,
+            "xreg_parameters_included": None,
+            "xreg_parameters_estimated": None,
+            "xreg_parameters_persistence": None,
+        }
 
     # Calculate number of parameters using the new n_param table structure
     from smooth.adam_general.core.utils.n_param import build_n_param_table
@@ -1020,3 +1053,154 @@ def parameters_checker(
         xreg_dict,
         params_info,
     )
+
+
+# ---------------------------------------------------------------------------
+# Explanatory-variable helpers
+# ---------------------------------------------------------------------------
+
+def _validate_X(X, obs_all):
+    """Validate and normalise the X matrix; return (has_xreg, X, n_cols, names)."""
+    if X is None:
+        return False, None, 0, None
+
+    # Preserve column names from DataFrames before converting
+    if hasattr(X, "columns"):
+        names = list(X.columns)
+        X = X.values
+    else:
+        names = None
+
+    X = np.asarray(X, dtype=float)
+    if X.ndim == 1:
+        X = X.reshape(-1, 1)
+
+    if len(X) != obs_all:
+        raise ValueError(
+            f"X must have {obs_all} rows (same as len(data)), got {len(X)}."
+        )
+
+    return True, X, X.shape[1], names
+
+
+def _map_distribution_for_greybox(distribution):
+    """Map a smooth distribution string to the nearest greybox ALM distribution."""
+    _map = {
+        "dnorm": "dnorm",
+        "dlnorm": "dlnorm",
+        "dgamma": "dgamma",
+        "dlaplace": "dlaplace",
+        "ds": "ds",
+        "dgnorm": "dgnorm",
+        "dinvgauss": "dinvgauss",
+    }
+    return _map.get(distribution, "dnorm")
+
+
+def _process_xreg(
+    X,
+    regressors,
+    y_in_sample,
+    obs_in_sample,
+    distribution,
+    ic,
+    xreg_names_from_input=None,
+):
+    """Process explanatory variables and return a populated xreg_dict.
+
+    Parameters
+    ----------
+    X : np.ndarray, shape (obs_all, p)
+    regressors : {"use", "select", "adapt"}
+    y_in_sample : array-like, shape (obs_in_sample,)
+    obs_in_sample : int
+    distribution : str  smooth distribution name
+    ic : str  information criterion for stepwise selection
+    xreg_names_from_input : list[str] or None
+
+    Returns
+    -------
+    dict  populated xreg_dict (xreg_model may be False if selection drops all vars)
+    """
+    from greybox import ALM
+
+    n_cols = X.shape[1]
+    X_in_sample = X[:obs_in_sample]
+    y_is = np.asarray(y_in_sample, dtype=float)
+
+    # Default names
+    xreg_names = (
+        xreg_names_from_input
+        if xreg_names_from_input is not None
+        else [f"x{i + 1}" for i in range(n_cols)]
+    )
+
+    # ---------- variable selection ----------
+    selected_mask = np.ones(n_cols, dtype=bool)
+    if regressors == "select":
+        from greybox import stepwise
+        import pandas as pd
+
+        df_sw = pd.DataFrame(X_in_sample, columns=xreg_names)
+        df_sw.insert(0, "y", y_is)
+        sw_dist = _map_distribution_for_greybox(distribution)
+        try:
+            sw_model = stepwise(df_sw, ic=ic, distribution=sw_dist, silent=True)
+            sel_names = sw_model._feature_names or []
+            selected_mask = np.array([n in sel_names for n in xreg_names])
+        except Exception:
+            pass  # keep all variables on failure
+
+        if not selected_mask.any():
+            # No variables selected — return disabled xreg_dict
+            return {
+                "xreg_model": False,
+                "regressors": regressors,
+                "xreg_model_initials": None,
+                "xreg_data": None,
+                "xreg_number": 0,
+                "xreg_names": None,
+                "response_name": None,
+                "formula": None,
+                "xreg_parameters_missing": None,
+                "xreg_parameters_included": None,
+                "xreg_parameters_estimated": None,
+                "xreg_parameters_persistence": None,
+            }
+
+    # Apply selection mask
+    X_selected = X[:, selected_mask]
+    X_in_sel = X_selected[:obs_in_sample]
+    names_selected = [n for n, s in zip(xreg_names, selected_mask) if s]
+    p = X_selected.shape[1]
+
+    # ---------- initialise coefficients with ALM ----------
+    alm_dist = _map_distribution_for_greybox(distribution)
+    X_aug = np.column_stack([np.ones(obs_in_sample), X_in_sel])
+    try:
+        alm = ALM(distribution=alm_dist)
+        alm.fit(X_aug, y_is, feature_names=names_selected)
+        initial_coefs = np.asarray(alm.coef, dtype=float)
+    except Exception:
+        initial_coefs = np.zeros(p)
+
+    # Store as a 2-element list [additive_dict, multiplicative_dict_or_None].
+    # initialization.py selects [0] for additive errors and [1] for multiplicative;
+    # setting [1]=None makes it always fall back to [0].
+    # Shape must be (p, 1) so it broadcasts into the (p, lags_model_max) mat_vt slice.
+    xreg_initials = [{"initial_xreg": initial_coefs.reshape(-1, 1)}, None]
+
+    return {
+        "xreg_model": True,
+        "regressors": regressors,
+        "xreg_model_initials": xreg_initials,
+        "xreg_data": X_selected,
+        "xreg_number": p,
+        "xreg_names": names_selected,
+        "response_name": None,
+        "formula": None,
+        "xreg_parameters_missing": None,
+        "xreg_parameters_included": None,
+        "xreg_parameters_estimated": [1] * p,
+        "xreg_parameters_persistence": list(range(1, p + 1)),
+    }

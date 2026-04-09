@@ -224,10 +224,12 @@ def architector(
     # Set up lags
     lags_dict = _setup_lags(lags_dict, model_type_dict, components_dict)
 
+    # Add xreg lag=1 entries to lags_model_all (R: lagsModelAll <- c(lagsModelAll, rep(1, xregNumber)))
+    xreg_number = explanatory_checked.get("xreg_number", 0) if explanatory_checked else 0
+    if xreg_number > 0:
+        lags_dict["lags_model_all"] = lags_dict["lags_model_all"] + [1] * xreg_number
+
     # Calculate total number of components
-    # This should equal the size of lags_model_all vector OR
-    #  the sum of: components_number_ets + components_number_arima + xreg_number + (1 if
-    # constant_required)
     components_number_all = len(lags_dict["lags_model_all"])
 
     # Verify it matches the alternative calculation

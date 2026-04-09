@@ -186,7 +186,7 @@ def filler(
                     j += n_seasonal_to_estimate
                 i = components_dict["components_number_ets"] - 1
 
-        # Persistence of xreg
+        # Persistence of xreg (delta parameters for adapt mode)
         if (
             explanatory_checked["xreg_model"]
             and persistence_checked["persistence_xreg_estimate"]
@@ -194,15 +194,16 @@ def filler(
             xreg_persistence_number = max(
                 explanatory_checked["xreg_parameters_persistence"]
             )
-            xreg_indices = slice(
-                j + components_dict["components_number_arima"],
-                j
+            xreg_start = (
+                components_dict["components_number_ets"]
                 + components_dict["components_number_arima"]
-                + len(explanatory_checked["xreg_parameters_persistence"]),
             )
-            matrices_dict["vec_g"][xreg_indices] = B[j : j + xreg_persistence_number][
+            xreg_values = B[j : j + xreg_persistence_number][
                 np.array(explanatory_checked["xreg_parameters_persistence"]) - 1
             ]
+            matrices_dict["vec_g"][xreg_start : xreg_start + len(xreg_values), 0] = (
+                xreg_values
+            )
             j += xreg_persistence_number
 
     # Damping parameter
@@ -442,16 +443,19 @@ def filler(
         and initials_checked["initial_estimate"]
         and initials_checked["initial_xreg_estimate"]
     ):
-        xreg_number_to_estimate = sum(explanatory_checked["xreg_parameters_estimated"])
+        xreg_params_est = np.asarray(
+            explanatory_checked["xreg_parameters_estimated"], dtype=int
+        )
+        xreg_number_to_estimate = int(xreg_params_est.sum())
         xreg_indices = (
             components_dict["components_number_ets"]
             + components_dict["components_number_arima"]
-            + np.where(explanatory_checked["xreg_parameters_estimated"] == 1)[0]
+            + np.where(xreg_params_est == 1)[0]
         )
 
-        matrices_dict["mat_vt"][xreg_indices, : lags_dict["lags_model_max"]] = B[
-            j : j + xreg_number_to_estimate
-        ]
+        matrices_dict["mat_vt"][xreg_indices, : lags_dict["lags_model_max"]] = (
+            B[j : j + xreg_number_to_estimate, np.newaxis]
+        )
 
         j += xreg_number_to_estimate
 

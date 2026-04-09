@@ -451,8 +451,8 @@ def estimator(
         lags_dict,
         observations_dict,
         arima_dict,
-        constant_dict,
         explanatory_dict,
+        constant_dict,
         profiles_recent_table,
         profiles_recent_provided,
     )
