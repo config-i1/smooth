@@ -1,4 +1,4 @@
-# smooth (Python)
+# smooth
 
 [![PyPI version](https://img.shields.io/pypi/v/smooth.svg)](https://pypi.org/project/smooth/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/smooth.svg)](https://pypi.org/project/smooth/)
@@ -7,7 +7,22 @@
 [![License: LGPL-2.1](https://img.shields.io/badge/License-LGPL--2.1-blue.svg)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)
 
 
-Python implementation of the **smooth** package for time series forecasting using Single Source of Error (SSOE) state-space models.
+Python implementation of the **smooth** package for forecasting and time series analysis using Single Source of Error (SSOE) state-space models.
+
+The package includes the following models:
+
+- [ADAM](https://openforecast.org/adam/) - Augmented Dynamic Adaptive Model, uniting exponential smoothing, ARIMA and regression, implemented in the `ADAM` class.
+- [ETS](https://github.com/config-i1/smooth/wiki/ES) - Exponential Smoothing in the SSOE state space form, implemented in the `ES` class.
+
+All of these are implemented with the support of the following features:
+
+- Automatic components selection in ETS and forecasts combination
+- Explanatory variables
+- Multiple seasonal models (e.g. for high frequency data)
+- Advanced loss functions
+- Fine tuning of any elements of ADAM/ETS/ARIMA/Regression
+- A variety of prediction interval construction methods
+
 
 ![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
 
