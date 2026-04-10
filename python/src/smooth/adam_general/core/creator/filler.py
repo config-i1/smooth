@@ -237,15 +237,23 @@ def filler(
             arima_checked["arma_parameters"]
             if arima_checked["arma_parameters"]
             else [],
-            lags_dict["lags"],
+            lags_dict.get("lags_original", lags_dict["lags"]),
         )
-        # Alias: polynomialiser returns ari_polynomial; code uses ariPolynomial
+        # Alias: polynomialiser returns snake_case; bounds checking uses camelCase
         arima_polynomials["ariPolynomial"] = arima_polynomials["ari_polynomial"]
+        arima_polynomials["arPolynomial"] = arima_polynomials["ar_polynomial"]
+        arima_polynomials["maPolynomial"] = arima_polynomials["ma_polynomial"]
 
         # Get array views for indexing
         non_zero_ari = arima_checked["non_zero_ari"]
         non_zero_ma = arima_checked["non_zero_ma"]
         components_number_ets = components_dict["components_number_ets"]
+
+        # Reset ARIMA section of vec_g before filling.
+        # R does this implicitly via copy-on-modify; Python mutates in place,
+        # so the MA += would accumulate across CF calls without this reset.
+        arima_end = components_number_ets + components_dict["components_number_arima"]
+        matrices_dict["vec_g"][components_number_ets:arima_end] = 0
 
         # Fill in the transition matrix - R lines 1388-1391
         if len(non_zero_ari) > 0:
@@ -282,6 +290,7 @@ def filler(
                 )
 
         j += n_arma_params
+        matrices_dict["arima_polynomials"] = arima_polynomials
 
     # Initials of ETS
     if (
@@ -339,6 +348,10 @@ def filler(
 
                     j += lag - 1
 
+    # Ensure arima_polynomials is available for initials section
+    if arima_checked["arima_model"] and adam_cpp is None:
+        arima_polynomials = matrices_dict.get("arima_polynomials", {})
+
     # Initials of ARIMA
     if arima_checked["arima_model"]:
         if (
@@ -356,84 +369,53 @@ def filler(
                 arima_index, : initials_checked["initial_arima_number"]
             ] = B[j : j + initials_checked["initial_arima_number"]]
 
+            ari_indices = (
+                components_dict["components_number_ets"]
+                + arima_checked["non_zero_ari"][:, 1]
+            )
+            ari_poly_vals = arima_polynomials["ariPolynomial"][
+                arima_checked["non_zero_ari"][:, 0]
+            ].reshape(-1, 1)
+            init_vals = B[j : j + initials_checked["initial_arima_number"]]
+
             if model_type_dict["error_type"] == "A":
-                ari_indices = (
-                    components_dict["components_number_ets"]
-                    + arima_checked["non_zero_ari"][:, 1]
-                )
                 matrices_dict["mat_vt"][
                     ari_indices, : initials_checked["initial_arima_number"]
-                ] = (
-                    np.dot(
-                        arima_polynomials["ariPolynomial"][
-                            arima_checked["non_zero_ari"][:, 0]
-                        ],
-                        B[j : j + initials_checked["initial_arima_number"]].reshape(
-                            1, -1
-                        ),
-                    )
-                    / arima_polynomials["ariPolynomial"][-1]
-                )
+                ] = ari_poly_vals @ init_vals.reshape(1, -1)
             else:  # "M"
-                ari_indices = (
-                    components_dict["components_number_ets"]
-                    + arima_checked["non_zero_ari"][:, 1]
-                )
                 matrices_dict["mat_vt"][
                     ari_indices, : initials_checked["initial_arima_number"]
                 ] = np.exp(
-                    np.dot(
-                        arima_polynomials["ariPolynomial"][
-                            arima_checked["non_zero_ari"][:, 0]
-                        ],
-                        np.log(
-                            B[j : j + initials_checked["initial_arima_number"]]
-                        ).reshape(1, -1),
-                    )
-                    / arima_polynomials["ariPolynomial"][-1]
+                    ari_poly_vals @ np.log(init_vals).reshape(1, -1)
                 )
 
             j += initials_checked["initial_arima_number"]
         elif any([arima_checked["ar_estimate"], arima_checked["ma_estimate"]]):
+            ari_indices = (
+                components_dict["components_number_ets"]
+                + arima_checked["non_zero_ari"][:, 1]
+            )
+            ari_poly_vals = arima_polynomials["ariPolynomial"][
+                arima_checked["non_zero_ari"][:, 0]
+            ].reshape(-1, 1)
+            last_arima_row = matrices_dict["mat_vt"][
+                components_dict["components_number_ets"]
+                + components_dict["components_number_arima"]
+                - 1,
+                : initials_checked["initial_arima_number"],
+            ]
+
             if model_type_dict["error_type"] == "A":
                 matrices_dict["mat_vt"][
-                    components_dict["components_number_ets"]
-                    + arima_checked["non_zero_ari"][:, 1],
+                    ari_indices,
                     : initials_checked["initial_arima_number"],
-                ] = (
-                    np.dot(
-                        arima_polynomials["ariPolynomial"][
-                            arima_checked["non_zero_ari"][:, 0]
-                        ],
-                        matrices_dict["mat_vt"][
-                            components_dict["components_number_ets"]
-                            + components_dict["components_number_arima"]
-                            - 1,
-                            : initials_checked["initial_arima_number"],
-                        ].reshape(1, -1),
-                    )
-                    / arima_polynomials["ariPolynomial"][-1]
-                )
+                ] = ari_poly_vals @ last_arima_row.reshape(1, -1)
             else:  # "M"
                 matrices_dict["mat_vt"][
-                    components_dict["components_number_ets"]
-                    + arima_checked["non_zero_ari"][:, 1],
+                    ari_indices,
                     : initials_checked["initial_arima_number"],
                 ] = np.exp(
-                    np.dot(
-                        arima_polynomials["ariPolynomial"][
-                            arima_checked["non_zero_ari"][:, 0]
-                        ],
-                        np.log(
-                            matrices_dict["mat_vt"][
-                                components_dict["components_number_ets"]
-                                + components_dict["components_number_arima"]
-                                - 1,
-                                : initials_checked["initial_arima_number"],
-                            ]
-                        ).reshape(1, -1),
-                    )
-                    / arima_polynomials["ariPolynomial"][-1]
+                    ari_poly_vals @ np.log(last_arima_row).reshape(1, -1)
                 )
 
     # Xreg initial values
