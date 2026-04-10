@@ -30,7 +30,7 @@ def creator(
     # Components info
     components_dict,
     explanatory_checked=None,
-    smoother="lowess",
+    smoother="global",
 ):
     """
     Create state-space matrices for ADAM model representation.
@@ -533,12 +533,10 @@ def _setup_measurement_vector(matrices, model_params, explanatory_checked):
 
     # If xreg are provided, then fill in the respective values in Wt vector
     if explanatory_checked["xreg_model"]:
-        mat_wt[
-            :,
-            components_number_ets + components_number_arima : components_number_ets
-            + components_number_arima
-            + explanatory_checked["xreg_number"],
-        ] = explanatory_checked["xreg_data"]
+        n_xreg_rows = len(explanatory_checked["xreg_data"])
+        col_start = components_number_ets + components_number_arima
+        col_end = col_start + explanatory_checked["xreg_number"]
+        mat_wt[:n_xreg_rows, col_start:col_end] = explanatory_checked["xreg_data"]
 
     # Damping parameter value
     if ets_model and model_is_trendy:

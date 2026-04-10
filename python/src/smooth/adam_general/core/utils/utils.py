@@ -14,6 +14,9 @@ except ImportError:
 
 # Note: Custom lowess_r function is kept as reference/fallback implementation
 
+# Default smoother for ADAM/ES model initialisation (msdecompose keeps "lowess")
+SMOOTHER_DEFAULT = "global"
+
 
 def lowess_r(x, y, f=2 / 3, nsteps=3, delta=None):
     """

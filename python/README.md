@@ -1,4 +1,4 @@
-# smooth (Python)
+# smooth
 
 [![PyPI version](https://img.shields.io/pypi/v/smooth.svg)](https://pypi.org/project/smooth/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/smooth.svg)](https://pypi.org/project/smooth/)
@@ -7,7 +7,22 @@
 [![License: LGPL-2.1](https://img.shields.io/badge/License-LGPL--2.1-blue.svg)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)
 
 
-Python implementation of the **smooth** package for time series forecasting using Single Source of Error (SSOE) state-space models.
+Python implementation of the **smooth** package for forecasting and time series analysis using Single Source of Error (SSOE) state-space models.
+
+The package includes the following models:
+
+- [ADAM](https://openforecast.org/adam/) - Augmented Dynamic Adaptive Model, uniting exponential smoothing, ARIMA and regression, implemented in the `ADAM` class.
+- [ETS](https://github.com/config-i1/smooth/wiki/ES) - Exponential Smoothing in the SSOE state space form, implemented in the `ES` class.
+
+All of these are implemented with the support of the following features:
+
+- Automatic components selection in ETS and forecasts combination
+- Explanatory variables
+- Multiple seasonal models (e.g. for high frequency data)
+- Advanced loss functions
+- Fine tuning of any elements of ADAM/ETS/ARIMA/Regression
+- A variety of prediction interval construction methods
+
 
 ![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
 
@@ -56,6 +71,40 @@ model = ADAM(model="ANA", lags=[1, 12])
 model.fit(y)
 forecasts = model.predict(h=12)
 ```
+
+## ADAMX — ADAM with Explanatory Variables
+
+```python
+import numpy as np
+from smooth import ADAM
+
+# Simulate data where y depends on two external regressors
+rng = np.random.default_rng(42)
+n = 120
+X = rng.standard_normal((n, 2))
+y = 10 + 2 * X[:, 0] - 1.5 * X[:, 1] + rng.standard_normal(n)
+
+# Fit ETSX(AAN) — use all regressors with fixed coefficients
+model = ADAM(model="AAN", regressors="use")
+model.fit(y, X)
+print(model)           # shows fitted coefficients including xreg
+
+# Forecast 12 steps ahead with future regressor values
+X_future = rng.standard_normal((12, 2))
+fc = model.predict(h=12, X=X_future)
+print(fc.mean)
+
+# Automatic variable selection (drops insignificant regressors)
+model_sel = ADAM(model="AAN", regressors="select")
+model_sel.fit(y, X)
+
+# Adaptive (time-varying) regressor coefficients
+model_adp = ADAM(model="AAN", regressors="adapt")
+model_adp.fit(y, X)
+```
+
+`X` accepts a NumPy array or a pandas DataFrame (column names are preserved as regressor names).
+`regressors` controls treatment: `"use"` (fixed coefficients), `"select"` (stepwise selection via greybox), or `"adapt"` (ETS-style time-varying coefficients).
 
 ## Documentation
 

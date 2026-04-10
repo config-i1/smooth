@@ -152,7 +152,7 @@ def _estimate_model(
     ftol_rel=1e-8,
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
-    smoother="lowess",
+    smoother="global",
 ):
     """
     Estimate a single model and calculate its information criterion.
@@ -258,7 +258,7 @@ def _run_branch_and_bound(
     ftol_rel=1e-8,
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
-    smoother="lowess",
+    smoother="global",
     silent=False,
 ):
     """
@@ -580,7 +580,7 @@ def _estimate_all_models(
     # Pre-computed results from branch-and-bound
     precomputed_results=None,
     precomputed_models=None,
-    smoother="lowess",
+    smoother="global",
 ):
     """
     Estimate all models in the provided pool.
@@ -741,7 +741,7 @@ def selector(
     ftol_rel=1e-8,
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
-    smoother="lowess",
+    smoother="global",
 ):
     """
     Automatic model selection for ADAM using information criteria and Branch & Bound.

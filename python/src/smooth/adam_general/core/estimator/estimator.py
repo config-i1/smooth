@@ -44,7 +44,7 @@ def estimator(
     ftol_rel=1e-8,
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
-    smoother="lowess",
+    smoother="global",
 ):
     """
     Estimate parameters for ADAM model using non-linear optimization.
@@ -285,7 +285,7 @@ def estimator(
         - 'profile_dict': Updated profile dictionary
         - 'components_dict': Components information
 
-    smoother : str, default="lowess"
+    smoother : str, default="global"
         Smoother type for time series decomposition used in initial state estimation.
 
         - "lowess": Uses LOWESS for both trend and seasonal extraction
@@ -451,8 +451,8 @@ def estimator(
         lags_dict,
         observations_dict,
         arima_dict,
-        constant_dict,
         explanatory_dict,
+        constant_dict,
         profiles_recent_table,
         profiles_recent_provided,
     )
@@ -489,37 +489,10 @@ def estimator(
         phi_dict=phi_dict,
         profile_dict=profile_dict,
     )
-    # Get initial parameter vector and bounds
-    if B_initial is not None:
-        B = B_initial
-    else:
-        B = b_values["B"]
-    if lb is None:
-        lb = b_values["Bl"]
-    if ub is None:
-        ub = b_values["Bu"]
-
-    # Ensure bounds are compatible with B
-    if B_initial is not None:
-        # Extend bounds if necessary
-        if len(lb) != len(B):
-            # This shouldn't happen if B_initial has correct length, but safety first
-            if len(lb) < len(B):
-                lb = np.pad(
-                    lb, (0, len(B) - len(lb)), "constant", constant_values=-np.inf
-                )
-                ub = np.pad(
-                    ub, (0, len(B) - len(ub)), "constant", constant_values=np.inf
-                )
-
-        # Check compatibility
-        if np.any(B < lb) or np.any(B > ub):
-            # Adjust bounds to accommodate B
-            lb = np.minimum(lb, B)
-            ub = np.maximum(ub, B)
-            # Maybe relax bounds slightly
-            lb[B < lb] -= 1e-5
-            ub[B > ub] += 1e-5
+    # Get initial parameter vector and bounds; user-provided values are used as-is
+    B = np.asarray(B_initial, dtype=float) if B_initial is not None else b_values["B"]
+    lb = np.asarray(lb, dtype=float) if lb is not None else b_values["Bl"]
+    ub = np.asarray(ub, dtype=float) if ub is not None else b_values["Bu"]
 
     # Step 4: Set up ARIMA polynomials if needed
     ar_polynomial_matrix, ma_polynomial_matrix = _setup_arima_polynomials(
