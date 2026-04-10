@@ -903,13 +903,36 @@ class ADAM:
 
             is_arima = self._model_type.get("arima_model", False)
             if is_arima and self._arima:
-                ar_orders = self._arima.get("ar_orders", [0])
-                i_orders = self._arima.get("i_orders", [0])
-                ma_orders = self._arima.get("ma_orders", [0])
-                ar = sum(ar_orders) if ar_orders else 0
-                i = sum(i_orders) if i_orders else 0
-                ma = sum(ma_orders) if ma_orders else 0
-                model_parts.append(f"ARIMA({ar},{i},{ma})")
+                ar_orders = self._arima.get("ar_orders", [0]) or [0]
+                i_orders = self._arima.get("i_orders", [0]) or [0]
+                ma_orders = self._arima.get("ma_orders", [0]) or [0]
+                lags = self._lags_model.get("lags_original", [1]) or [1]
+                has_xreg_arima = (
+                    self._explanatory.get("xreg_model", False) and not is_ets
+                )
+                seasonal_have_orders = any(
+                    (ar_orders[j] if j < len(ar_orders) else 0) != 0
+                    or (i_orders[j] if j < len(i_orders) else 0) != 0
+                    or (ma_orders[j] if j < len(ma_orders) else 0) != 0
+                    for j, lag in enumerate(lags)
+                    if lag > 1
+                )
+                if all(lag == 1 for lag in lags) or not seasonal_have_orders:
+                    prefix = "ARIMAX" if has_xreg_arima else "ARIMA"
+                    model_parts.append(
+                        f"{prefix}({ar_orders[0]},{i_orders[0]},{ma_orders[0]})"
+                    )
+                else:
+                    prefix = "SARIMAX" if has_xreg_arima else "SARIMA"
+                    arima_str = prefix
+                    for j, lag in enumerate(lags):
+                        p = ar_orders[j] if j < len(ar_orders) else 0
+                        d = i_orders[j] if j < len(i_orders) else 0
+                        q = ma_orders[j] if j < len(ma_orders) else 0
+                        if p == 0 and d == 0 and q == 0:
+                            continue
+                        arima_str += f"({p},{d},{q})[{lag}]"
+                    model_parts.append(arima_str)
 
             if model_parts:
                 self.model = "+".join(model_parts)

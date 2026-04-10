@@ -68,15 +68,16 @@ def _get_polynomial_indices_from_cpp(ar_orders, i_orders, ma_orders, lags):
         ma_orders_arr = np.array(ma_orders, dtype=np.uint64)
         lags_arr = np.array(lags, dtype=np.uint64)
 
-        n_ar = int(np.sum(ar_orders_arr * lags_arr))
-        n_ma = int(np.sum(ma_orders_arr * lags_arr))
+        n_ar = int(np.sum(ar_orders_arr))
+        n_ma = int(np.sum(ma_orders_arr))
         n_arma = n_ar + n_ma
 
         if n_arma == 0:
             return None
 
-        # Use small non-zero values so polynomial cross-terms appear
-        dummy_B = np.array([0.1] * n_arma, dtype=np.float64)
+        # Use distinct values to prevent polynomial term cancellation
+        # (e.g. ARIMA(2,1,0) with equal phi1=phi2 makes the B² term vanish)
+        dummy_B = np.arange(1, n_arma + 1, dtype=np.float64) * 0.1
 
         # Create minimal adamCore instance for polynomialise
         # max_lag = max(lags_arr) if len(lags_arr) > 0 else 1
@@ -260,10 +261,7 @@ def _check_arima(orders, validated_lags, silent=False):
     arima_result["i_orders"] = i_orders
     arima_result["ma_orders"] = ma_orders
 
-    # Use deterministic structural expansion mirroring R's arimaChecker.
-    # The C++ helper relies on dummy parameter values and can miss terms when
-    # coefficients cancel out (e.g., ARIMA(2,1,0) with equal dummy AR values).
-    cpp_result = None
+    cpp_result = _get_polynomial_indices_from_cpp(ar_orders, i_orders, ma_orders, lags)
 
     if cpp_result is not None:
         (
