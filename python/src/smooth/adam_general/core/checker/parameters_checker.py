@@ -1065,6 +1065,7 @@ def parameters_checker(
 # Explanatory-variable helpers
 # ---------------------------------------------------------------------------
 
+
 def _validate_x(X, obs_all):
     """Validate and normalise the X matrix; return (has_xreg, X, n_cols, names)."""
     if X is None:

@@ -490,9 +490,9 @@ def estimator(
         profile_dict=profile_dict,
     )
     # Get initial parameter vector and bounds; user-provided values are used as-is
-    B  = np.asarray(B_initial, dtype=float) if B_initial is not None else b_values["B"]
-    lb = np.asarray(lb, dtype=float)        if lb        is not None else b_values["Bl"]
-    ub = np.asarray(ub, dtype=float)        if ub        is not None else b_values["Bu"]
+    B = np.asarray(B_initial, dtype=float) if B_initial is not None else b_values["B"]
+    lb = np.asarray(lb, dtype=float) if lb is not None else b_values["Bl"]
+    ub = np.asarray(ub, dtype=float) if ub is not None else b_values["Bu"]
 
     # Step 4: Set up ARIMA polynomials if needed
     ar_polynomial_matrix, ma_polynomial_matrix = _setup_arima_polynomials(

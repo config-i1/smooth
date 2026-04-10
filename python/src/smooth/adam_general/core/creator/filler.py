@@ -453,9 +453,9 @@ def filler(
             + np.where(xreg_params_est == 1)[0]
         )
 
-        matrices_dict["mat_vt"][xreg_indices, : lags_dict["lags_model_max"]] = (
-            B[j : j + xreg_number_to_estimate, np.newaxis]
-        )
+        matrices_dict["mat_vt"][xreg_indices, : lags_dict["lags_model_max"]] = B[
+            j : j + xreg_number_to_estimate, np.newaxis
+        ]
 
         j += xreg_number_to_estimate
 

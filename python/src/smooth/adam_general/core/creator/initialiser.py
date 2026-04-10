@@ -723,9 +723,7 @@ def initialiser(
         and explanatory_checked["xreg_model"]
         and initials_checked["initial_type"] != "complete"
     ):
-        xreg_number_to_estimate = sum(
-            explanatory_checked["xreg_parameters_estimated"]
-        )
+        xreg_number_to_estimate = sum(explanatory_checked["xreg_parameters_estimated"])
         if xreg_number_to_estimate > 0:
             xreg_start = (
                 components_dict["components_number_ets"]
@@ -734,9 +732,7 @@ def initialiser(
             B[j : j + xreg_number_to_estimate] = adam_created["mat_vt"][
                 xreg_start : xreg_start + xreg_number_to_estimate, 0
             ]
-            names.extend(
-                [f"xreg{idx + 1}" for idx in range(xreg_number_to_estimate)]
-            )
+            names.extend([f"xreg{idx + 1}" for idx in range(xreg_number_to_estimate)])
             Bl[j : j + xreg_number_to_estimate] = -np.inf
             Bu[j : j + xreg_number_to_estimate] = np.inf
             j += xreg_number_to_estimate
