@@ -1307,7 +1307,8 @@ def _calculate_initial_parameters_and_bounds(
             else np.array([])
         )
 
-        # Mirror R: for ARIMA-only with differencing, initialise via ACF/PACF on differenced data.
+        # Mirror R: for ARIMA-only with differencing, initialise via ACF/PACF on
+        # differenced data.
         if (not ets_model) and (not np.all(i_orders == 0)):
             y_differenced = np.asarray(y_in_sample[ot_logical], dtype=float)
             for lag_value, diff_order in zip(lags_arr, i_orders):

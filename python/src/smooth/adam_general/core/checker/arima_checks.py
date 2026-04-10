@@ -79,7 +79,7 @@ def _get_polynomial_indices_from_cpp(ar_orders, i_orders, ma_orders, lags):
         dummy_B = np.array([0.1] * n_arma, dtype=np.float64)
 
         # Create minimal adamCore instance for polynomialise
-        max_lag = max(lags_arr) if len(lags_arr) > 0 else 1
+        # max_lag = max(lags_arr) if len(lags_arr) > 0 else 1
         dummy_lags = np.array([1], dtype=np.uint64)
         adam_cpp = adamCore(
             dummy_lags,  # lags
@@ -153,7 +153,7 @@ def _get_polynomial_indices_from_cpp(ar_orders, i_orders, ma_orders, lags):
             initial_arima_number,
         )
 
-    except Exception as e:
+    except Exception:
         # Return None on any error to fall back to Python algorithm
         return None
 
