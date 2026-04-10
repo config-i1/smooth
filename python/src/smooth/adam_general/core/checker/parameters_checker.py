@@ -951,6 +951,7 @@ def parameters_checker(
         "initial_arima": init_info["initial_arima"],
         "initial_arima_estimate": init_info["initial_arima_estimate"],
         "initial_arima_number": init_info["initial_arima_number"],
+        "initial_xreg": init_info.get("initial_xreg"),
         "initial_xreg_estimate": init_info["initial_xreg_estimate"],
         "initial_xreg_provided": init_info["initial_xreg_provided"],
         "n_iterations": init_info["n_iterations"],
@@ -984,6 +985,7 @@ def parameters_checker(
             distribution=distribution,
             ic=ic,
             xreg_names_from_input=xreg_names_from_input,
+            initial_xreg=initials_dict.get("initial_xreg"),
         )
         # For "select": if no variables survived selection, disable xreg
         if not xreg_dict["xreg_model"]:
@@ -1113,6 +1115,7 @@ def _process_xreg(
     distribution,
     ic,
     xreg_names_from_input=None,
+    initial_xreg=None,
 ):
     """Process explanatory variables and return a populated xreg_dict.
 
@@ -1125,6 +1128,9 @@ def _process_xreg(
     distribution : str  smooth distribution name
     ic : str  information criterion for stepwise selection
     xreg_names_from_input : list[str] or None
+    initial_xreg : np.ndarray or None
+        User-supplied initial coefficient values, shape (p, 1). If provided,
+        skips ALM computation and uses these values as optimizer seed.
 
     Returns
     -------
@@ -1182,15 +1188,24 @@ def _process_xreg(
     names_selected = [n for n, s in zip(xreg_names, selected_mask) if s]
     p = X_selected.shape[1]
 
-    # ---------- initialise coefficients with ALM ----------
-    alm_dist = _map_distribution_for_greybox(distribution)
-    X_aug = np.column_stack([np.ones(obs_in_sample), X_in_sel])
-    try:
-        alm = ALM(distribution=alm_dist)
-        alm.fit(X_aug, y_is, feature_names=names_selected)
-        initial_coefs = np.asarray(alm.coef, dtype=float)
-    except Exception:
-        initial_coefs = np.zeros(p)
+    # ---------- initialise coefficients ----------
+    if initial_xreg is not None:
+        initial_xreg_flat = np.asarray(initial_xreg, dtype=float).ravel()
+        if len(initial_xreg_flat) != p:
+            raise ValueError(
+                f"initial['xreg'] has {len(initial_xreg_flat)} values "
+                f"but model has {p} regressors."
+            )
+        initial_coefs = initial_xreg_flat
+    else:
+        alm_dist = _map_distribution_for_greybox(distribution)
+        X_aug = np.column_stack([np.ones(obs_in_sample), X_in_sel])
+        try:
+            alm = ALM(distribution=alm_dist)
+            alm.fit(X_aug, y_is, feature_names=names_selected)
+            initial_coefs = np.asarray(alm.coef, dtype=float)
+        except Exception:
+            initial_coefs = np.zeros(p)
 
     # Store as a 2-element list [additive_dict, multiplicative_dict_or_None].
     # initialization.py selects [0] for additive errors and [1] for multiplicative;

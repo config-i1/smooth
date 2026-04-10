@@ -256,3 +256,40 @@ def test_etsx_initial_two_stage(etsx_data):
     assert abs(B[-1] - (-1.47850)) < 0.15
     assert abs(model.aic - 338.3654) < 2.0
     assert abs(model.fitted.values[0] - 14.959) < 0.5
+
+
+# --- initial={"xreg": [...]} ---
+
+def test_initial_xreg_accepted(etsx_data):
+    """initial={'xreg': [...]} is accepted and model fits without error."""
+    y, X = etsx_data
+    model = ADAM(model="AAN", regressors="use", initial={"xreg": [2.0, -1.5]})
+    model.fit(y, X)
+    assert model._explanatory["xreg_model"] is True
+
+
+def test_initial_xreg_converges_to_same_result(etsx_data):
+    """Different xreg seeds converge to the same loss value."""
+    y, X = etsx_data
+    m1 = ADAM(model="AAN", regressors="use", initial={"xreg": [0.0, 0.0]})
+    m1.fit(y, X)
+    m2 = ADAM(model="AAN", regressors="use", initial={"xreg": [2.0, -1.5]})
+    m2.fit(y, X)
+    assert abs(m1.loss_value - m2.loss_value) < 1.0
+
+
+def test_initial_xreg_wrong_length_raises(etsx_data):
+    """initial={'xreg': [...]} with wrong length raises ValueError."""
+    y, X = etsx_data  # X has 2 columns
+    model = ADAM(model="AAN", regressors="use", initial={"xreg": [1.0]})
+    with pytest.raises(ValueError, match="xreg"):
+        model.fit(y, X)
+
+
+def test_initial_xreg_combined_with_level(etsx_data):
+    """initial dict can mix 'xreg' with other keys."""
+    y, X = etsx_data
+    model = ADAM(model="AAN", regressors="use",
+                 initial={"level": 10.0, "xreg": [2.0, -1.5]})
+    model.fit(y, X)
+    assert model._explanatory["xreg_model"] is True
