@@ -15,13 +15,15 @@ R reference (adam(df, model="AAN", regressors="use", formula=y~x1+x2)):
     Forecast[1:3]=[10.91767, 7.99035, 9.92983] (using last 12 rows as X_new)
 """
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from smooth import ADAM
 
-DATA_PATH = "tests/data/etsx_data.csv"
+DATA_PATH = Path(__file__).parent / "data" / "etsx_data.csv"
 
 # R reference values (adam, smoother="global", no holdout)
 R_AIC = 339.2135
