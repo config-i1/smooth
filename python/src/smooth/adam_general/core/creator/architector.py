@@ -340,9 +340,7 @@ def _setup_components(model_type_dict, arima_checked, lags_dict):
         # lags
         components_number_arima = arima_checked.get("components_number_arima", 0)
         components_dict["components_number_arima"] = components_number_arima
-        components_dict["lags_model_arima"] = arima_checked.get(
-            "lags_model_arima", []
-        )
+        components_dict["lags_model_arima"] = arima_checked.get("lags_model_arima", [])
     else:
         components_dict["components_number_arima"] = 0
         components_dict["lags_model_arima"] = []
@@ -395,7 +393,9 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
 
     # Update lags dictionary
     lags_dict_updated = lags_dict.copy()
-    lags_dict_updated["lags_original"] = lags_dict["lags"]  # R keeps original `lags` intact
+    lags_dict_updated["lags_original"] = lags_dict[
+        "lags"
+    ]  # R keeps original `lags` intact
     lags_dict_updated["lags_model"] = lags_model
     lags_dict_updated["lags"] = lags_model
     lags_dict_updated["lags_model_arima"] = lags_model_arima

@@ -385,9 +385,7 @@ def filler(
             else:  # "M"
                 matrices_dict["mat_vt"][
                     ari_indices, : initials_checked["initial_arima_number"]
-                ] = np.exp(
-                    ari_poly_vals @ np.log(init_vals).reshape(1, -1)
-                )
+                ] = np.exp(ari_poly_vals @ np.log(init_vals).reshape(1, -1))
 
             j += initials_checked["initial_arima_number"]
         elif any([arima_checked["ar_estimate"], arima_checked["ma_estimate"]]):
@@ -414,9 +412,7 @@ def filler(
                 matrices_dict["mat_vt"][
                     ari_indices,
                     : initials_checked["initial_arima_number"],
-                ] = np.exp(
-                    ari_poly_vals @ np.log(last_arima_row).reshape(1, -1)
-                )
+                ] = np.exp(ari_poly_vals @ np.log(last_arima_row).reshape(1, -1))
 
     # Xreg initial values
     if (

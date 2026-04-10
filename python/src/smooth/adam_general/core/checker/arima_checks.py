@@ -133,21 +133,25 @@ def _get_polynomial_indices_from_cpp(ar_orders, i_orders, ma_orders, lags):
         # Handle empty indices case - must create 2D array with shape (0, 2)
         if len(ari_indices) > 0:
             non_zero_ari = np.array(
-                [[idx, ari_state_map[idx]] for idx in ari_indices],
-                dtype=int
+                [[idx, ari_state_map[idx]] for idx in ari_indices], dtype=int
             )
         else:
             non_zero_ari = np.zeros((0, 2), dtype=int)
 
         if len(ma_indices) > 0:
             non_zero_ma = np.array(
-                [[idx, ma_state_map[idx]] for idx in ma_indices],
-                dtype=int
+                [[idx, ma_state_map[idx]] for idx in ma_indices], dtype=int
             )
         else:
             non_zero_ma = np.zeros((0, 2), dtype=int)
 
-        return non_zero_ari, non_zero_ma, lags_model_arima, components_number_arima, initial_arima_number
+        return (
+            non_zero_ari,
+            non_zero_ma,
+            lags_model_arima,
+            components_number_arima,
+            initial_arima_number,
+        )
 
     except Exception as e:
         # Return None on any error to fall back to Python algorithm
@@ -262,14 +266,22 @@ def _check_arima(orders, validated_lags, silent=False):
     cpp_result = None
 
     if cpp_result is not None:
-        non_zero_ari, non_zero_ma, lags_model_arima, components_number_arima, initial_arima_number = cpp_result
+        (
+            non_zero_ari,
+            non_zero_ma,
+            lags_model_arima,
+            components_number_arima,
+            initial_arima_number,
+        ) = cpp_result
         # Component names - R lines 629-630
         if components_number_arima > 1:
             components_names_arima = [
                 f"ARIMAState{i + 1}" for i in range(components_number_arima)
             ]
         else:
-            components_names_arima = ["ARIMAState1"] if components_number_arima > 0 else []
+            components_names_arima = (
+                ["ARIMAState1"] if components_number_arima > 0 else []
+            )
     else:
         # Fall back to Python algorithm for simple cases or when C++ fails
         # Define the non-zero values via polynomial computation - R lines 580-616
@@ -290,7 +302,9 @@ def _check_arima(orders, validated_lags, silent=False):
             if ar_orders[i] > 0:
                 ari_for_lag.extend(range(1, ar_orders[i] + 1))
             if i_orders[i] > 0:
-                ari_for_lag.extend(range(ar_orders[i] + 1, ar_orders[i] + i_orders[i] + 1))
+                ari_for_lag.extend(
+                    range(ar_orders[i] + 1, ar_orders[i] + i_orders[i] + 1)
+                )
             ari_for_lag = _unique_preserve_order([v * lags[i] for v in ari_for_lag])
             ari_values.append(ari_for_lag)
 
@@ -344,7 +358,9 @@ def _check_arima(orders, validated_lags, silent=False):
             else np.zeros((0, 2), dtype=int)
         )
         non_zero_ma = (
-            np.array(non_zero_ma, dtype=int) if non_zero_ma else np.zeros((0, 2), dtype=int)
+            np.array(non_zero_ma, dtype=int)
+            if non_zero_ma
+            else np.zeros((0, 2), dtype=int)
         )
 
         components_number_arima = len(lags_model_arima)
@@ -355,7 +371,9 @@ def _check_arima(orders, validated_lags, silent=False):
                 f"ARIMAState{i + 1}" for i in range(components_number_arima)
             ]
         else:
-            components_names_arima = ["ARIMAState1"] if components_number_arima > 0 else []
+            components_names_arima = (
+                ["ARIMAState1"] if components_number_arima > 0 else []
+            )
 
     # Update result
     arima_result["non_zero_ari"] = non_zero_ari

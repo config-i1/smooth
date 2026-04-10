@@ -563,11 +563,19 @@ def initialiser(
                     ma_total = int(np.sum(ma_orders_arr * lags_arr))
                     ar_total = int(np.sum(ar_orders_arr * lags_arr))
                     if arima_checked["ma_required"] and arima_checked["ma_estimate"]:
-                        acf_vals = calculate_acf(y_differenced, nlags=max(1, ma_total))[1:]
-                        acf_values[: min(ma_total, len(y_differenced) - 1)] = acf_vals[:min(ma_total, len(y_differenced) - 1)]
+                        acf_vals = calculate_acf(y_differenced, nlags=max(1, ma_total))[
+                            1:
+                        ]
+                        acf_values[: min(ma_total, len(y_differenced) - 1)] = acf_vals[
+                            : min(ma_total, len(y_differenced) - 1)
+                        ]
                     if arima_checked["ar_required"] and arima_checked["ar_estimate"]:
-                        pacf_vals = calculate_pacf(y_differenced, nlags=max(1, ar_total))
-                        pacf_values[: min(ar_total, len(y_differenced) - 1)] = pacf_vals[1:min(ar_total+1, len(pacf_vals))]
+                        pacf_vals = calculate_pacf(
+                            y_differenced, nlags=max(1, ar_total)
+                        )
+                        pacf_values[: min(ar_total, len(y_differenced) - 1)] = (
+                            pacf_vals[1 : min(ar_total + 1, len(pacf_vals))]
+                        )
 
             arma_start_index = j
             for i, lag in enumerate(lags_dict.get("lags_original", lags_dict["lags"])):
@@ -577,7 +585,10 @@ def initialiser(
                     and arima_checked["ar_orders"][i] > 0
                 ):
                     indices = np.arange(1, arima_checked["ar_orders"][i] + 1) * lag - 1
-                    vals = [pacf_values[idx] if idx < len(pacf_values) else 0.1 for idx in indices]
+                    vals = [
+                        pacf_values[idx] if idx < len(pacf_values) else 0.1
+                        for idx in indices
+                    ]
                     if all(not np.isnan(v) for v in vals):
                         B[j : j + arima_checked["ar_orders"][i]] = vals
                     else:
@@ -604,7 +615,10 @@ def initialiser(
                     and arima_checked["ma_orders"][i] > 0
                 ):
                     indices = np.arange(1, arima_checked["ma_orders"][i] + 1) * lag - 1
-                    vals = [acf_values[idx] if idx < len(acf_values) else -0.1 for idx in indices]
+                    vals = [
+                        acf_values[idx] if idx < len(acf_values) else -0.1
+                        for idx in indices
+                    ]
                     if all(not np.isnan(v) for v in vals):
                         B[j : j + arima_checked["ma_orders"][i]] = vals
                     else:
@@ -713,14 +727,10 @@ def initialiser(
         # Normalize by ARI polynomial tail (matches R lines 1684-1686)
         if adam_cpp is not None:
             n_ar = (
-                sum(arima_checked["ar_orders"])
-                if arima_checked["ar_estimate"]
-                else 0
+                sum(arima_checked["ar_orders"]) if arima_checked["ar_estimate"] else 0
             )
             n_ma = (
-                sum(arima_checked["ma_orders"])
-                if arima_checked["ma_estimate"]
-                else 0
+                sum(arima_checked["ma_orders"]) if arima_checked["ma_estimate"] else 0
             )
             n_arma = n_ar + n_ma
             if n_arma > 0:
@@ -1282,12 +1292,20 @@ def _calculate_initial_parameters_and_bounds(
         lags_arr = np.asarray(model_params.get("lags", [1]), dtype=int)
 
         if len(lags_arr) < len(ar_orders):
-            lags_arr = np.pad(lags_arr, (0, len(ar_orders) - len(lags_arr)), constant_values=1)
+            lags_arr = np.pad(
+                lags_arr, (0, len(ar_orders) - len(lags_arr)), constant_values=1
+            )
         elif len(lags_arr) > len(ar_orders):
             lags_arr = lags_arr[: len(ar_orders)]
 
-        pacf_values = np.repeat(0.1, int(np.dot(ar_orders, lags_arr))) if est_ar else np.array([])
-        acf_values = np.repeat(-0.1, int(np.dot(ma_orders, lags_arr))) if est_ma else np.array([])
+        pacf_values = (
+            np.repeat(0.1, int(np.dot(ar_orders, lags_arr))) if est_ar else np.array([])
+        )
+        acf_values = (
+            np.repeat(-0.1, int(np.dot(ma_orders, lags_arr)))
+            if est_ma
+            else np.array([])
+        )
 
         # Mirror R: for ARIMA-only with differencing, initialise via ACF/PACF on differenced data.
         if (not ets_model) and (not np.all(i_orders == 0)):
@@ -1297,7 +1315,9 @@ def _calculate_initial_parameters_and_bounds(
                     for _ in range(int(diff_order)):
                         if y_differenced.size <= lag_value:
                             break
-                        y_differenced = y_differenced[lag_value:] - y_differenced[:-lag_value]
+                        y_differenced = (
+                            y_differenced[lag_value:] - y_differenced[:-lag_value]
+                        )
 
             if np.all(lags_arr <= 1):
                 if est_ma and acf_values.size > 0:
@@ -1327,7 +1347,9 @@ def _calculate_initial_parameters_and_bounds(
 
                 idx = (np.arange(1, order + 1) * lag_value) - 1
                 idx = idx[(idx >= 0) & (idx < pacf_values.size)]
-                values = pacf_values[idx] if idx.size == order else np.repeat(0.1, order)
+                values = (
+                    pacf_values[idx] if idx.size == order else np.repeat(0.1, order)
+                )
                 if np.any(np.isnan(values)):
                     values = np.repeat(0.1, order)
                 if np.sum(values) > 1:
