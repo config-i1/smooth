@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "smooth"
-version = "1.0.0"
+version = "1.0.1"
 description = "Python version of the smooth forecasting library"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -14,7 +14,8 @@ dependencies = [
     "pandas>=2.0",
     "nlopt",
     "scipy>=1.11.0,<1.16.0",
-    "statsmodels"
+    "statsmodels",
+    "greybox",
 ]
 
 [tool.setuptools.packages.find]

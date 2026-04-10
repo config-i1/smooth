@@ -1,0 +1,72 @@
+{% set name = "smooth" %}
+{% set version = "1.0.0" %}
+{% set carma_version = "0.6.7" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/config-i1/smooth/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: REPLACE_WITH_ACTUAL_HASH
+    folder: .
+  - url: https://github.com/RUrlus/carma/archive/v{{ carma_version }}.tar.gz
+    sha256: abc4a9cf12a177f9ad100d80f27274809b8111807911745fd6ca148ae151ecc7
+    folder: src/libs/carma
+
+build:
+  number: 0
+  skip: true  # [py<310]
+  script: bash ${RECIPE_DIR}/build.sh    # [not win]
+  script: {{ RECIPE_DIR }}\bld.bat       # [win]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cmake >=3.25
+    - ninja
+    - python                             # [build_platform != target_platform]
+    - cross-python_{{ target_platform }} # [build_platform != target_platform]
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.3.3
+    - pybind11 >=2.6.0
+    - pybind11-abi
+    - numpy
+    - libblas
+    - libcblas
+    - liblapack
+    - armadillo
+  run:
+    - python
+    - numpy >=1.14
+    - pandas >=2.0
+    - nlopt
+    - scipy >=1.11.0,<1.16.0
+    - statsmodels
+
+test:
+  imports:
+    - smooth
+    - smooth.adam_general._adamCore
+  commands:
+    - python -c "from smooth.adam_general.core.adam import ADAM; import numpy as np; y = np.array([10,12,15,13,16,18,20,19,22,25,28,30]); m = ADAM(model='ANN', lags=[1]); m.fit(y); fc = m.predict(h=3); assert len(fc.mean) == 3"
+
+about:
+  home: https://github.com/config-i1/smooth
+  license: LGPL-2.1-only
+  license_family: LGPL
+  license_file: LICENSE
+  summary: Forecasting Using State Space Models (Python)
+  description: |
+    Python implementation of the smooth forecasting package. Provides ADAM
+    (Augmented Dynamic Adaptive Model) for time series forecasting using
+    state space models, including ETS, ARIMA, and regression in a unified
+    Single Source of Error framework.
+  dev_url: https://github.com/config-i1/smooth
+
+extra:
+  recipe-maintainers:
+    - config-i1

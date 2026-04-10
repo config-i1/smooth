@@ -131,9 +131,9 @@ python/smooth/adam_general/
      - `CF()` (cost_functions.py) - Cost function evaluated during optimization
        - `filler()` (creator.py) - Fill matrices with current parameters from B
        - `adam_fitter()` (_adam_general.py) - C++ fitting routine
-3. `ADAM.predict(h, X)` - Generate forecasts
+3. `ADAM.predict(h, X)` - Generate forecasts, returns `ForecastResult`
    - `preparator()` (forecaster.py) - Prepare model for forecasting
-   - `forecaster()` (forecaster.py) - Generate point forecasts and intervals
+   - `forecaster()` (forecaster.py) - Generate point forecasts and intervals, returns `ForecastResult`
      - `adam_forecaster()` (_adam_general.py) - C++ forecasting routine
 
 **Key Functions**:
@@ -234,11 +234,15 @@ model = ADAM(model="ANN", lags=[1,12])  # Additive error, no trend, no seasonali
 # Fit the model to data
 model.fit(y_data)
 
-# Generate forecasts
-forecasts = model.predict(h=10)
+# Generate forecasts (returns ForecastResult)
+fc = model.predict(h=10)
+fc.mean              # pd.Series of point forecasts
 
 # Generate prediction intervals
-intervals = model.predict_intervals(h=10, levels=[0.8, 0.95])
+fc = model.predict(h=10, interval="prediction", level=[0.8, 0.95])
+fc.lower             # pd.DataFrame, columns are quantile values
+fc.upper             # pd.DataFrame, columns are quantile values
+fc.to_dataframe()    # flat pd.DataFrame with prefixed column names
 ```
 
 ## Reference Documentation

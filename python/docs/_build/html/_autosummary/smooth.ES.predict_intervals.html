@@ -99,26 +99,29 @@
 <h1>smooth.ES.predict_intervals<a class="headerlink" href="#smooth-es-predict-intervals" title="Link to this heading"></a></h1>
 <dl class="py method">
 <dt class="sig sig-object py" id="smooth.ES.predict_intervals">
-<span class="sig-prename descclassname"><span class="pre">ES.</span></span><span class="sig-name descname"><span class="pre">predict_intervals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0.8,</span> <span class="pre">0.95]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">side</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'both'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#smooth.ES.predict_intervals" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">ES.</span></span><span class="sig-name descname"><span class="pre">predict_intervals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0.8,</span> <span class="pre">0.95]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">side</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'both'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#smooth.ES.predict_intervals" title="Link to this definition"></a></dt>
 <dd><p>Generate prediction intervals using the fitted ADAM model.</p>
+<p>Convenience wrapper around <code class="docutils literal notranslate"><span class="pre">predict()</span></code> that defaults to
+<code class="docutils literal notranslate"><span class="pre">interval=&quot;prediction&quot;</span></code> and accepts multiple confidence levels.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>h</strong> (<em>int</em>) – Forecast horizon (number of steps to forecast).</p></li>
 <li><p><strong>X</strong> (<em>Optional</em><em>[</em><em>NDArray</em><em>]</em><em>, </em><em>default=None</em>) – Exogenous variables for the forecast period.</p></li>
-<li><p><strong>levels</strong> (<em>List</em><em>[</em><em>float</em><em>]</em><em>, </em><em>default=</em><em>[</em><em>0.8</em><em>, </em><em>0.95</em><em>]</em>) – Confidence levels for prediction intervals.</p></li>
+<li><p><strong>levels</strong> (<em>List</em><em>[</em><em>float</em><em>]</em><em>, </em><em>default=</em><em>[</em><em>0.8</em><em>, </em><em>0.95</em><em>]</em>) – Confidence levels for prediction intervals. Each level produces
+a pair of lower/upper columns in the output DataFrame. For
+example, <code class="docutils literal notranslate"><span class="pre">levels=[0.8,</span> <span class="pre">0.95]</span></code> with <code class="docutils literal notranslate"><span class="pre">side=&quot;both&quot;</span></code> yields
+columns <code class="docutils literal notranslate"><span class="pre">&quot;lower_0.1&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lower_0.025&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;upper_0.9&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;upper_0.975&quot;</span></code>.</p></li>
 <li><p><strong>side</strong> (<em>Literal</em><em>[</em><em>&quot;both&quot;</em><em>, </em><em>&quot;upper&quot;</em><em>, </em><em>&quot;lower&quot;</em><em>]</em><em>, </em><em>default=&quot;both&quot;</em>) – Which side(s) of the intervals to return.</p></li>
+<li><p><strong>nsim</strong> (<em>int</em><em>, </em><em>default=10000</em>) – Number of simulations for simulation-based intervals.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dictionary containing point forecasts and prediction intervals.
-Keys include ‘forecast’, and ‘lower’/’upper’ depending on <cite>side</cite>.</p>
+<dd class="field-even"><p>DataFrame with <code class="docutils literal notranslate"><span class="pre">&quot;mean&quot;</span></code> and lower/upper columns for each level.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Dict[str, NDArray]</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If the model has not been fitted yet.</p>
+<dd class="field-odd"><p>pd.DataFrame</p>
 </dd>
 </dl>
 </dd></dl>

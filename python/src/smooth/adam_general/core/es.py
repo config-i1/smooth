@@ -109,22 +109,11 @@ class ES(ADAM):
     **kwargs
         Additional arguments passed to ADAM.
 
-    Attributes
-    ----------
-    persistence_level_ : float
-        Estimated level smoothing parameter (alpha).
-    persistence_trend_ : float
-        Estimated trend smoothing parameter (beta).
-    persistence_seasonal_ : List[float]
-        Estimated seasonal smoothing parameter(s) (gamma).
-    phi_ : float
-        Estimated damping parameter.
-    initial_states_ : NDArray
-        Estimated initial states.
-    model_type_dict : dict
-        Complete model specification.
-    ic_selection : float
-        Information criterion value of fitted model.
+    See Also
+    --------
+    ADAM : Parent class with full attribute documentation including
+        ``persistence_vector``, ``states``, ``fitted``, ``residuals``,
+        ``phi_``, ``coef``, and all other properties.
 
     Examples
     --------
@@ -141,7 +130,7 @@ class ES(ADAM):
 
         >>> model = ES(model="ZZZ", lags=[12])
         >>> model.fit(y)
-        >>> print(f"Selected model: {model.model_type_dict['model']}")
+        >>> print(f"Selected model: {model.model_type}")
 
     Damped trend model::
 

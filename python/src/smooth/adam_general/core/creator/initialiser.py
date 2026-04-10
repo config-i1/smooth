@@ -757,27 +757,24 @@ def initialiser(
             Bu[j : j + initials_checked["initial_arima_number"]] = np.inf
         j += initials_checked["initial_arima_number"]
 
-    if initials_checked["initial_xreg_estimate"] and explanatory_checked["xreg_model"]:
-        #  For complete and backcasting, we do NOT estimate xreg initials in the main B
-        # vector
-        #  (because they are handled by the backcasting procedure itself or
-        # pre-estimated)
-        if initials_checked["initial_type"] not in ["backcasting", "complete"]:
-            xreg_number_to_estimate = sum(
-                explanatory_checked["xreg_parameters_estimated"]
+    if (
+        initials_checked["initial_xreg_estimate"]
+        and explanatory_checked["xreg_model"]
+        and initials_checked["initial_type"] != "complete"
+    ):
+        xreg_number_to_estimate = sum(explanatory_checked["xreg_parameters_estimated"])
+        if xreg_number_to_estimate > 0:
+            xreg_start = (
+                components_dict["components_number_ets"]
+                + components_dict["components_number_arima"]
             )
-            if xreg_number_to_estimate > 0:
-                B[j : j + xreg_number_to_estimate] = adam_created["mat_vt"][
-                    components_dict["components_number_ets"]
-                    + components_dict["components_number_arima"],
-                    0,
-                ]
-                names.extend(
-                    [f"xreg{idx + 1}" for idx in range(xreg_number_to_estimate)]
-                )
-                Bl[j : j + xreg_number_to_estimate] = -np.inf
-                Bu[j : j + xreg_number_to_estimate] = np.inf
-                j += xreg_number_to_estimate
+            B[j : j + xreg_number_to_estimate] = adam_created["mat_vt"][
+                xreg_start : xreg_start + xreg_number_to_estimate, 0
+            ]
+            names.extend([f"xreg{idx + 1}" for idx in range(xreg_number_to_estimate)])
+            Bl[j : j + xreg_number_to_estimate] = -np.inf
+            Bu[j : j + xreg_number_to_estimate] = np.inf
+            j += xreg_number_to_estimate
 
     if constants_checked["constant_estimate"]:
         j += 1

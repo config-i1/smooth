@@ -1,9 +1,11 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "19 January 2026"
+date: "5 February 2026"
 output: html_document
 ---
+## Update
+Fixed the link to the wiki, and changed the year from 2025 to 2026 in the DESCRIPTION file.
 
 ## Version
 This is ``smooth`` package, v4.4.0
