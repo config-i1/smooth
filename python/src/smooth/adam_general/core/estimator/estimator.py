@@ -44,7 +44,7 @@ def estimator(
     ftol_rel=1e-8,
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
-    smoother="lowess",
+    smoother="global",
 ):
     """
     Estimate parameters for ADAM model using non-linear optimization.
@@ -285,7 +285,7 @@ def estimator(
         - 'profile_dict': Updated profile dictionary
         - 'components_dict': Components information
 
-    smoother : str, default="lowess"
+    smoother : str, default="global"
         Smoother type for time series decomposition used in initial state estimation.
 
         - "lowess": Uses LOWESS for both trend and seasonal extraction

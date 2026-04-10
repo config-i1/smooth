@@ -30,7 +30,7 @@ def _run_two_stage_estimator(
     ftol_rel=1e-8,
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
-    smoother="lowess",
+    smoother="global",
 ):
     """
     Internal function to handle two-stage initialization within estimator.

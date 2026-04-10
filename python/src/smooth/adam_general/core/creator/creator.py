@@ -30,7 +30,7 @@ def creator(
     # Components info
     components_dict,
     explanatory_checked=None,
-    smoother="lowess",
+    smoother="global",
 ):
     """
     Create state-space matrices for ADAM model representation.

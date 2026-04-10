@@ -8,10 +8,11 @@ Data generated in R:
     write.csv(data.frame(y=y, x1=x1, x2=x2), "tests/data/etsx_data.csv", row.names=FALSE)
 
 R reference (adam(df, model="AAN", regressors="use", formula=y~x1+x2)):
-    alpha=0.07559, beta=0, x1=1.908, x2=-1.464
-    AIC=345.51
-    Fitted[1:5]=[15.21289, 11.39521, 10.86503, 13.07484, 11.23583]
-    Forecast[1:3]=[11.00165, 8.05857, 9.99434] (using last 12 rows as X_new)
+    smoother="global" (default since smooth v4.4.1 / Python v1.0.1)
+    alpha=0.00890, beta=0, x1=1.915, x2=-1.461
+    AIC=339.2135
+    Fitted[1:5]=[15.24117, 11.48431, 10.92935, 13.08419, 11.19438]
+    Forecast[1:3]=[10.91767, 7.99035, 9.92983] (using last 12 rows as X_new)
 """
 
 import numpy as np
@@ -22,13 +23,13 @@ from smooth import ADAM
 
 DATA_PATH = "tests/data/etsx_data.csv"
 
-# R reference values (from adam(df, model="AAN", regressors="use", formula=y~x1+x2))
-R_AIC = 345.5101
-R_FITTED_5 = [15.21289, 11.39521, 10.86503, 13.07484, 11.23583]
-R_FORECAST_3 = [11.00165, 8.05857, 9.99434]
-R_COEF_ALPHA = 0.07559
-R_COEF_X1 = 1.908
-R_COEF_X2 = -1.464
+# R reference values (adam, smoother="global", no holdout)
+R_AIC = 339.2135
+R_FITTED_5 = [15.24117, 11.48431, 10.92935, 13.08419, 11.19438]
+R_FORECAST_3 = [10.91767, 7.99035, 9.92983]
+R_COEF_ALPHA = 0.00890
+R_COEF_X1 = 1.915
+R_COEF_X2 = -1.461
 
 
 @pytest.fixture
@@ -207,12 +208,12 @@ def test_etsx_initial_backcasting(etsx_data):
     model = ADAM(model="AAN", regressors="use", initial="backcasting")
     model.fit(y, X)
     B = model.coef
-    # R: alpha=0.07559, x1=1.90847, x2=-1.46394, AIC=345.51
-    assert abs(B[0] - 0.07559) < 0.02
-    assert abs(B[2] - 1.90847) < 0.1
-    assert abs(B[3] - (-1.46394)) < 0.1
-    assert abs(model.aic - 345.5101) < 1.0
-    assert abs(model.fitted.values[0] - 15.213) < 0.5
+    # R (smoother="global"): alpha=0.00890, x1=1.91508, x2=-1.46058, AIC=339.2135
+    assert abs(B[0] - 0.00890) < 0.02
+    assert abs(B[2] - 1.91508) < 0.1
+    assert abs(B[3] - (-1.46058)) < 0.1
+    assert abs(model.aic - 339.2135) < 1.0
+    assert abs(model.fitted.values[0] - 15.241) < 0.5
 
 
 def test_etsx_initial_complete_no_xreg_in_b(etsx_data):
@@ -224,9 +225,9 @@ def test_etsx_initial_complete_no_xreg_in_b(etsx_data):
     model_co.fit(y, X)
     # "complete" B must have 2 fewer params (the 2 xreg coefs are excluded)
     assert len(model_co.coef) == len(model_bc.coef) - 2
-    # AIC and fitted[0] should be close to R reference
-    assert abs(model_co.aic - 341.5459) < 1.5
-    assert abs(model_co.fitted.values[0] - 15.238) < 0.5
+    # AIC and fitted[0] should be close to R reference (smoother="global")
+    assert abs(model_co.aic - 335.2486) < 1.5
+    assert abs(model_co.fitted.values[0] - 15.265) < 0.5
 
 
 def test_etsx_initial_optimal(etsx_data):
@@ -236,12 +237,11 @@ def test_etsx_initial_optimal(etsx_data):
     model.fit(y, X)
     B = model.coef
     # For "optimal", B = [alpha, beta, level_init, trend_init, x1, x2]
-    # xreg coefs are always the last 2 (no constant in this model)
-    # R: x1=1.91701, x2=-1.47879, AIC=338.37, fitted[0]=14.958
-    assert abs(B[-2] - 1.91701) < 0.15
-    assert abs(B[-1] - (-1.47879)) < 0.15
-    assert abs(model.aic - 338.3654) < 2.0
-    assert abs(model.fitted.values[0] - 14.958) < 0.5
+    # R (smoother="global"): x1=1.91839, x2=-1.47938, AIC=338.46, fitted[0]=14.956
+    assert abs(B[-2] - 1.91839) < 0.15
+    assert abs(B[-1] - (-1.47938)) < 0.15
+    assert abs(model.aic - 338.4623) < 2.0
+    assert abs(model.fitted.values[0] - 14.956) < 0.5
 
 
 def test_etsx_initial_two_stage(etsx_data):
@@ -251,9 +251,9 @@ def test_etsx_initial_two_stage(etsx_data):
     model.fit(y, X)
     B = model.coef
     # For "two-stage", B = [alpha, beta, level_init, trend_init, x1, x2]
-    # R: x1=1.91715, x2=-1.47850, AIC=338.37, fitted[0]=14.959
-    assert abs(B[-2] - 1.91715) < 0.15
-    assert abs(B[-1] - (-1.47850)) < 0.15
+    # R (smoother="global"): x1=1.91726, x2=-1.47840, AIC=338.37, fitted[0]=14.959
+    assert abs(B[-2] - 1.91726) < 0.15
+    assert abs(B[-1] - (-1.47840)) < 0.15
     assert abs(model.aic - 338.3654) < 2.0
     assert abs(model.fitted.values[0] - 14.959) < 0.5
 

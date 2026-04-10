@@ -15,6 +15,7 @@ from smooth.adam_general.core.estimator import (
 from smooth.adam_general.core.forecaster import forecaster, preparator
 from smooth.adam_general.core.utils.ic import calculate_ic_weights, ic_function
 from smooth.adam_general.core.utils.n_param import NParam
+from smooth.adam_general.core.utils.utils import SMOOTHER_DEFAULT
 
 # Note: adam_cpp instance is stored in self and passed to forecasting functions
 
@@ -383,7 +384,7 @@ class ADAM:
         # specific to losses or distributions
         reg_lambda: Optional[float] = None,
         gnorm_shape: Optional[float] = None,
-        smoother: Literal["lowess", "ma", "global"] = "lowess",
+        smoother: Literal["lowess", "ma", "global"] = SMOOTHER_DEFAULT,
         **kwargs,
     ) -> None:
         """
@@ -496,7 +497,7 @@ class ADAM:
             Regularization parameter specifically for LASSO/RIDGE losses.
         gnorm_shape : Optional[float], default=None
             Shape parameter 's' for the generalized normal distribution.
-        smoother : Literal["lowess", "ma", "global"], default="lowess"
+        smoother : Literal["lowess", "ma", "global"], default="global"
             Smoother type for time series decomposition in initial state estimation.
 
             - "lowess": Uses LOWESS (Locally Weighted Scatterplot Smoothing) for both
@@ -2431,9 +2432,11 @@ class ADAM:
         # Update the n_param table
         if "n_param" in self._general:
             n_param = self._general["n_param"]
-            # The n_param_estimated from optimizer is the total internal params
-            # We need to update it based on what was actually estimated
-            n_param.estimated["internal"] = n_param_estimated
+            # n_param_estimated = len(B) = internal_in_B + xreg_in_B
+            # Subtract xreg (already correctly set by build_n_param_table) to get internal
+            n_param.estimated["internal"] = (
+                n_param_estimated - n_param.estimated["xreg"]
+            )
 
             # Handle likelihood loss case - scale parameter is estimated
             if self._general["loss"] == "likelihood":
