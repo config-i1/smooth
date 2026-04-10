@@ -243,7 +243,8 @@ def count_internal_params(
     elif phi_dict.get("phi_required", False):
         n_provided += 1
 
-    # Initial states — only counted when optimised (optimal/two-stage), not backcasting/complete
+    # Initial states — only counted when optimised (optimal/two-stage),
+    # not for backcasting/complete
     initial_type = initials_checked.get("initial_type", "optimal")
     initial_optimised = initial_type in ["optimal", "two-stage"]
 

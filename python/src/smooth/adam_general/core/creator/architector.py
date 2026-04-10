@@ -224,8 +224,11 @@ def architector(
     # Set up lags
     lags_dict = _setup_lags(lags_dict, model_type_dict, components_dict)
 
-    # Add xreg lag=1 entries to lags_model_all (R: lagsModelAll <- c(lagsModelAll, rep(1, xregNumber)))
-    xreg_number = explanatory_checked.get("xreg_number", 0) if explanatory_checked else 0
+    # Add xreg lag=1 entries to lags_model_all
+    # R: lagsModelAll <- c(lagsModelAll, rep(1, xregNumber))
+    xreg_number = (
+        explanatory_checked.get("xreg_number", 0) if explanatory_checked else 0
+    )
     if xreg_number > 0:
         lags_dict["lags_model_all"] = lags_dict["lags_model_all"] + [1] * xreg_number
 

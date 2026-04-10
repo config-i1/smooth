@@ -497,7 +497,9 @@ def _check_initial(
 
         # Process xreg initial
         if "xreg" in initial:
-            result["initial_xreg"] = np.asarray(initial["xreg"], dtype=float).reshape(-1, 1)
+            result["initial_xreg"] = (
+                np.asarray(initial["xreg"], dtype=float).reshape(-1, 1)
+            )
             result["initial_xreg_provided"] = True
 
         # Mark overall initial as not estimated

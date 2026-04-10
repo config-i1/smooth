@@ -537,7 +537,7 @@ def parameters_checker(
     #####################
     # X validation
     #####################
-    has_xreg, X, xreg_number, xreg_names_from_input = _validate_X(
+    has_xreg, X, xreg_number, xreg_names_from_input = _validate_x(
         X, obs_all=occ_info["obs_in_sample"]
     )
 
@@ -780,7 +780,9 @@ def parameters_checker(
         init_info["initial_level_estimate"] = False
 
     # Setup model type dictionary
-    model_type_dict = _organize_model_type_info(ets_info, arima_info, xreg_model=has_xreg)
+    model_type_dict = _organize_model_type_info(
+        ets_info, arima_info, xreg_model=has_xreg
+    )
 
     # Apply additional sample size adjustments
     model_type_dict = _adjust_model_for_sample_size(
@@ -1063,7 +1065,7 @@ def parameters_checker(
 # Explanatory-variable helpers
 # ---------------------------------------------------------------------------
 
-def _validate_X(X, obs_all):
+def _validate_x(X, obs_all):
     """Validate and normalise the X matrix; return (has_xreg, X, n_cols, names)."""
     if X is None:
         return False, None, 0, None
@@ -1152,8 +1154,8 @@ def _process_xreg(
     # ---------- variable selection ----------
     selected_mask = np.ones(n_cols, dtype=bool)
     if regressors == "select":
-        from greybox import stepwise
         import pandas as pd
+        from greybox import stepwise
 
         df_sw = pd.DataFrame(X_in_sample, columns=xreg_names)
         df_sw.insert(0, "y", y_is)

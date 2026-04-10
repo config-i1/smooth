@@ -2433,7 +2433,7 @@ class ADAM:
         if "n_param" in self._general:
             n_param = self._general["n_param"]
             # n_param_estimated = len(B) = internal_in_B + xreg_in_B
-            # Subtract xreg (already correctly set by build_n_param_table) to get internal
+            # Subtract xreg (correctly set by build_n_param_table) to get internal
             n_param.estimated["internal"] = (
                 n_param_estimated - n_param.estimated["xreg"]
             )
