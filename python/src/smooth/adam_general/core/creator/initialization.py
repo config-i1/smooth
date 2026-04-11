@@ -557,13 +557,20 @@ def _initialize_arima_states(
             0 : initials_checked["initial_arima_number"],
         ] = 0 if e_type == "A" else 1
 
-        if any(lag > 1 for lag in lags):
+        # Use original user-specified lags (not ETS-only lags which may be empty
+        # for pure ARIMA models) — mirrors R's use of lags in adam.R:1091-1108
+        lags_original = model_params.get("lags_original", [1]) or [1]
+        obs_in_sample = model_params["obs_in_sample"]
+
+        if any(lag > 1 for lag in lags_original) and obs_in_sample > max(lags_original) * 2:
             y_decomposition = msdecompose(
                 y_in_sample,
-                [lag for lag in lags if lag != 1],
+                [lag for lag in lags_original if lag != 1],
                 type="additive" if e_type == "A" else "multiplicative",
                 smoother=model_params["smoother"],
-            )["seasonal"][-1][0]
+            )["initial"]["seasonal"][-1]
+        elif any(lag > 1 for lag in lags_original):
+            y_decomposition = y_in_sample[ot_logical][:obs_in_sample]
         else:
             y_decomposition = (
                 np.mean(np.diff(y_in_sample[ot_logical]))
@@ -571,8 +578,8 @@ def _initialize_arima_states(
                 else np.exp(np.mean(np.diff(np.log(y_in_sample[ot_logical]))))
             )
 
-        # Use ARIMA lags for tiling (R uses lagsModelARIMA, not seasonal lags)
-        max_arima_lag = max(lags_model_arima) if lags_model_arima else 1
+        # Tile using max of original lags (R: ceiling(initialArimaNumber/max(lags)))
+        max_arima_lag = max(lags_original) if any(lag > 1 for lag in lags_original) else 1
         mat_vt[
             components_number_ets + components_number_arima - 1,
             0 : initials_checked["initial_arima_number"],

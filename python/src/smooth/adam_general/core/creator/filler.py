@@ -389,6 +389,11 @@ def filler(
 
             j += initials_checked["initial_arima_number"]
         elif any([arima_checked["ar_estimate"], arima_checked["ma_estimate"]]):
+            last_arima_row_idx = (
+                components_dict["components_number_ets"]
+                + components_dict["components_number_arima"]
+                - 1
+            )
             ari_indices = (
                 components_dict["components_number_ets"]
                 + arima_checked["non_zero_ari"][:, 1]
@@ -397,21 +402,16 @@ def filler(
                 arima_checked["non_zero_ari"][:, 0]
             ].reshape(-1, 1)
             last_arima_row = matrices_dict["mat_vt"][
-                components_dict["components_number_ets"]
-                + components_dict["components_number_arima"]
-                - 1,
-                : initials_checked["initial_arima_number"],
-            ]
+                last_arima_row_idx, : initials_checked["initial_arima_number"]
+            ].copy()
 
             if model_type_dict["error_type"] == "A":
                 matrices_dict["mat_vt"][
-                    ari_indices,
-                    : initials_checked["initial_arima_number"],
+                    ari_indices, : initials_checked["initial_arima_number"]
                 ] = ari_poly_vals @ last_arima_row.reshape(1, -1)
             else:  # "M"
                 matrices_dict["mat_vt"][
-                    ari_indices,
-                    : initials_checked["initial_arima_number"],
+                    ari_indices, : initials_checked["initial_arima_number"]
                 ] = np.exp(ari_poly_vals @ np.log(last_arima_row).reshape(1, -1))
 
     # Xreg initial values
