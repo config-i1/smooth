@@ -10,8 +10,10 @@ forecast(model, h=5, newdata=tail(xreg,5))
 coef(model)
 
 
-y <- Mcomp::M1[[636]]
+y <- Mcomp::M3[[2568]]
 
-model <- adam(y, model="NNN", lags=c(1,12),
-              orders=list(ar=c(1,1), i=c(1,1), ma=c(2,2)))
+model <- adam(y, model="NNN", lags=c(12),
+              initial="back",
+              orders=list(ar=c(1,1), i=c(1,1), ma=c(1,2)),
+              print_level=3, maxeval=1)
 model
