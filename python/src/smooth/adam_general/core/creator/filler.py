@@ -446,6 +446,7 @@ def filler(
         )
 
         matrices_dict["mat_vt"][constant_index, :] = B[j]
+
     return {
         "mat_vt": matrices_dict["mat_vt"],
         "mat_wt": matrices_dict["mat_wt"],

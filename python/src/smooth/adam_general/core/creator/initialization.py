@@ -563,12 +563,17 @@ def _initialize_arima_states(
         obs_in_sample = model_params["obs_in_sample"]
 
         if any(lag > 1 for lag in lags_original) and obs_in_sample > max(lags_original) * 2:
+            # R uses the full time-varying seasonal series (T values) from msdecompose
+            # (adam.R lines 1092-1097: tail(msdecompose(...)$seasonal, 1)[[1]]).
+            # Using ["initial"]["seasonal"][-1] (12 values, static) instead of
+            # ["seasonal"][-1] (T values, time-varying) gives wrong seed row values
+            # for columns 12..initial_arima_number-1.
             y_decomposition = msdecompose(
                 y_in_sample,
                 [lag for lag in lags_original if lag != 1],
                 type="additive" if e_type == "A" else "multiplicative",
                 smoother=model_params["smoother"],
-            )["initial"]["seasonal"][-1]
+            )["seasonal"][-1]
         elif any(lag > 1 for lag in lags_original):
             y_decomposition = y_in_sample[ot_logical][:obs_in_sample]
         else:

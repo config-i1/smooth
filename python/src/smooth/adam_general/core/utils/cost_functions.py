@@ -265,6 +265,30 @@ def CF(  # noqa: N802
         >>> # If cf_value is large (1e100), constraints were violated
     """
 
+    # R passes adamCreated$matVt as a parameter to every CF call, so each call
+    # gets a fresh copy (R copy-on-modify). Python mutates matrices_dict["mat_vt"]
+    # in-place. The elif branch in filler writes ari_poly*seed to the seed row
+    # (last ARIMA state), so without restoration the seed accumulates as
+    # ari_poly^N*seed after N calls. Save it before filler; restore after the
+    # Fortran copy so C++ still receives the correctly filled value.
+    arima_seed_backup = None
+    if (
+        arima_checked["arima_model"]
+        and any([arima_checked["ar_estimate"], arima_checked["ma_estimate"]])
+        and initials_checked["initial_type"] in ["complete", "backcasting"]
+    ):
+        seed_row_idx = (
+            components_dict["components_number_ets"]
+            + components_dict["components_number_arima"]
+            - 1
+        )
+        n_init = initials_checked["initial_arima_number"]
+        arima_seed_backup = (
+            seed_row_idx,
+            n_init,
+            matrices_dict["mat_vt"][seed_row_idx, :n_init].copy(),
+        )
+
     # Fill in the matrices
     adam_elements = filler(
         B,
@@ -280,6 +304,19 @@ def CF(  # noqa: N802
         constants_checked,
         adam_cpp=adam_cpp,
     )
+
+    # Capture the filler-modified state for C++ and profiles before restoring.
+    # Profiles and the Fortran copy must capture the mutated seed row (ari_poly*seed).
+    profile_dict["profiles_recent_table"][:] = adam_elements["mat_vt"][
+        :, : lags_dict["lags_model_max"]
+    ]
+    mat_vt = np.asfortranarray(adam_elements["mat_vt"], dtype=np.float64)
+
+    # Restore seed row for next CF call (mirrors R copy-on-modify for matVt parameter).
+    if arima_seed_backup is not None:
+        idx, n, row = arima_seed_backup
+        matrices_dict["mat_vt"][idx, :n] = row
+
     # If we estimate parameters of distribution, take it from the B vector
     if otherParameterEstimate:
         other = abs(B[-1])
@@ -404,25 +441,13 @@ def CF(  # noqa: N802
             if np.any(eigenValues > 1 + 1e-50):
                 return 1e100 * np.max(eigenValues)
 
-    # Write down the initials in the recent profile
-    profile_dict["profiles_recent_table"][:] = adam_elements["mat_vt"][
-        :, : lags_dict["lags_model_max"]
-    ]
-    # Convert pandas Series/DataFrames to numpy arrays
     y_in_sample = np.asarray(observations_dict["y_in_sample"], dtype=np.float64)
     ot = np.asarray(observations_dict["ot"], dtype=np.float64)
 
-    # CRITICAL FIX: C++ adamFitter takes matrixVt by reference and modifies it!
-    # We must pass a COPY to avoid polluting adam_elements across
-    # optimization iterations
-    mat_vt = np.asfortranarray(adam_elements["mat_vt"], dtype=np.float64)
     mat_wt = np.asfortranarray(adam_elements["mat_wt"], dtype=np.float64)
-    mat_f = np.asfortranarray(
-        adam_elements["mat_f"], dtype=np.float64
-    )  # Also copy mat_f since it's passed by reference
-    vec_g = np.asfortranarray(
-        adam_elements["vec_g"], dtype=np.float64
-    )  # Make sure it's a 1D array
+    mat_f = np.asfortranarray(adam_elements["mat_f"], dtype=np.float64)
+    vec_g = np.asfortranarray(adam_elements["vec_g"], dtype=np.float64)
+
     index_lookup_table = np.asfortranarray(
         profile_dict["index_lookup_table"], dtype=np.uint64
     )

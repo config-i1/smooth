@@ -982,7 +982,7 @@ class ADAM:
         >>> level = states[0, :]  # Level component over time
         """
         self._check_is_fitted()
-        return self._prepared["mat_vt"]
+        return self._prepared["states"]
 
     @property
     def persistence_vector(self) -> Dict[str, Any]:
