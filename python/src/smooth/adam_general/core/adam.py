@@ -340,6 +340,7 @@ class ADAM:
         ar_order: Union[int, List[int]] = 0,
         i_order: Union[int, List[int]] = 0,
         ma_order: Union[int, List[int]] = 0,
+        orders: Optional[Dict[str, Any]] = None,
         arima_select: bool = False,
         # end of ARIMA specific parameters
         constant: bool = False,
@@ -404,6 +405,15 @@ class ADAM:
             Integration order(s) for ARIMA components.
         ma_order : Union[int, List[int]], default=0
             Moving average order(s) for ARIMA components.
+        orders : Optional[Dict[str, Any]], default=None
+            R-style alternative to ``ar_order``/``i_order``/``ma_order``.
+            A dict with keys ``"ar"``, ``"i"``, ``"ma"`` (each an int or list
+            of ints) and optionally ``"select"`` (bool).  Example::
+
+                orders={"ar": [1, 1], "i": [1, 1], "ma": [2, 2]}
+
+            If ``ar_order``, ``i_order``, or ``ma_order`` are non-zero they
+            take priority over ``orders``.
         arima_select : bool, default=False
             Whether to perform automatic ARIMA order selection.
         constant : bool, default=False
@@ -516,6 +526,7 @@ class ADAM:
         self.ar_order = ar_order
         self.i_order = i_order
         self.ma_order = ma_order
+        self._init_orders = orders
         self.arima_select = arima_select
         self.constant = constant
         self.regressors = regressors
@@ -828,6 +839,7 @@ class ADAM:
             "ar_order": self.ar_order,
             "i_order": self.i_order,
             "ma_order": self.ma_order,
+            "orders": self._init_orders,
             "arima_select": self.arima_select,
             "constant": self.constant,
             "regressors": self.regressors,
@@ -2254,9 +2266,8 @@ class ADAM:
         X : NDArray or pd.DataFrame, optional
             External regressors, shape (len(ts), n_features).
         """
-        # Convert ar_order, i_order, ma_order to orders format expected by
-        # parameters_checker
-        orders = None
+        # Build orders dict for parameters_checker.
+        # ar_order/i_order/ma_order take priority; fall back to orders dict.
         if any(param != 0 for param in [self.ar_order, self.i_order, self.ma_order]):
             orders = {
                 "ar": self.ar_order,
@@ -2264,6 +2275,13 @@ class ADAM:
                 "ma": self.ma_order,
                 "select": self.arima_select,
             }
+        elif self._init_orders is not None:
+            orders = {
+                **self._init_orders,
+                "select": self._init_orders.get("select", self.arima_select),
+            }
+        else:
+            orders = None
 
         (
             self._general,
