@@ -575,7 +575,8 @@ def parameters_checker(
     loss = dist_info["loss"]
     loss_function = dist_info.get("loss_function", None)
 
-    # If ETS is off (e.g. NNN), set error_type from distribution — mirrors R adamGeneral.R:1410
+    # If ETS is off (e.g. NNN), set error_type from distribution
+    # mirrors R adamGeneral.R:1410
     if not ets_model:
         _mult_dists = {"dinvgauss", "dlnorm", "dllaplace", "dls", "dlgnorm", "dgamma"}
         ets_info["error_type"] = "M" if distribution in _mult_dists else "A"

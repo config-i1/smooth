@@ -224,6 +224,10 @@ def architector(
     # Set up lags
     lags_dict = _setup_lags(lags_dict, model_type_dict, components_dict)
 
+    # Add constant lag=1 entry to lags_model_all (R: lagsModelAll <- c(lagsModelAll, 1))
+    if constants_checked and constants_checked.get("constant_required", False):
+        lags_dict["lags_model_all"] = lags_dict["lags_model_all"] + [1]
+
     # Add xreg lag=1 entries to lags_model_all
     # R: lagsModelAll <- c(lagsModelAll, rep(1, xregNumber))
     xreg_number = (
@@ -493,9 +497,9 @@ def adam_profile_creator(
         # to cover 'obsAll' observations.
         # '- 1' at the end adjusts these values to Python's zero-based indexing.
         # Fix the array size mismatch - ensure we're using the correct range
-        index_lookup_table[i, lags_model_max:(lags_model_max + obs_all)] = (
+        index_lookup_table[i, lags_model_max : (lags_model_max + obs_all)] = (
             np.tile(
-                profile_indices[i, :lags_model_all[i]],
+                profile_indices[i, : lags_model_all[i]],
                 int(np.ceil(obs_all / lags_model_all[i])),
             )[:obs_all]
             - 1
@@ -503,9 +507,9 @@ def adam_profile_creator(
 
         # Fix the head: use order-preserving unique (like R's unique()),
         # and use the full obs_all slice (not obs_all - 1)
-        vals = index_lookup_table[i, lags_model_max:(lags_model_max + obs_all)]
+        vals = index_lookup_table[i, lags_model_max : (lags_model_max + obs_all)]
         unique_indices = np.array(list(dict.fromkeys(vals.tolist())))
-        
+
         # Use [-lags_model_max:] to replicate R's tail() — take from the END
         # not the beginning (Bug 3 fix).
         index_lookup_table[i, :lags_model_max] = np.tile(

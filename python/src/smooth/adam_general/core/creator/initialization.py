@@ -546,8 +546,6 @@ def _initialize_arima_states(
     components_number_ets = model_params["components_number_ets"]
     components_number_arima = model_params["components_number_arima"]
     e_type = model_params["e_type"]
-    lags = model_params["lags"]
-    lags_model_arima = model_params.get("lags_model_arima", [1])
     y_in_sample = model_params["y_in_sample"]
     ot_logical = model_params["ot_logical"]
 
@@ -562,7 +560,8 @@ def _initialize_arima_states(
         lags_original = model_params.get("lags_original", [1]) or [1]
         obs_in_sample = model_params["obs_in_sample"]
 
-        if any(lag > 1 for lag in lags_original) and obs_in_sample > max(lags_original) * 2:
+        has_seasonal = any(lag > 1 for lag in lags_original)
+        if has_seasonal and obs_in_sample > max(lags_original) * 2:
             # R uses the full time-varying seasonal series (T values) from msdecompose
             # (adam.R lines 1092-1097: tail(msdecompose(...)$seasonal, 1)[[1]]).
             # Using ["initial"]["seasonal"][-1] (12 values, static) instead of
@@ -574,7 +573,7 @@ def _initialize_arima_states(
                 type="additive" if e_type == "A" else "multiplicative",
                 smoother=model_params["smoother"],
             )["seasonal"][-1]
-        elif any(lag > 1 for lag in lags_original):
+        elif has_seasonal:
             y_decomposition = y_in_sample[ot_logical][:obs_in_sample]
         else:
             y_decomposition = (
@@ -584,7 +583,7 @@ def _initialize_arima_states(
             )
 
         # Tile using max of original lags (R: ceiling(initialArimaNumber/max(lags)))
-        max_arima_lag = max(lags_original) if any(lag > 1 for lag in lags_original) else 1
+        max_arima_lag = max(lags_original) if has_seasonal else 1
         mat_vt[
             components_number_ets + components_number_arima - 1,
             0 : initials_checked["initial_arima_number"],
@@ -687,7 +686,7 @@ def _initialize_constant(
 
     if constants_checked["constant_estimate"]:
         # Add the mean of data
-        if sum(arima_checked["i_orders"]) == 0 and not ets_model:
+        if sum(arima_checked["i_orders"] or []) == 0 and not ets_model:
             mat_vt[
                 components_number_ets
                 + components_number_arima

@@ -294,6 +294,46 @@ class TestADAMBounds:
         )
 
 
+class TestADAMConstant:
+    """Tests for the constant/drift parameter."""
+
+    @pytest.fixture
+    def linear_series(self):
+        np.random.seed(42)
+        return np.arange(1, 61, dtype=float) + np.random.randn(60) * 0.1
+
+    def test_ets_constant_fits(self, linear_series):
+        """ETS(ANN) with constant=True fits without error."""
+        model = ADAM("ANN", constant=True)
+        model.fit(linear_series)
+        assert np.isfinite(model.constant_value)
+
+    def test_ets_constant_improves_fit(self, linear_series):
+        """constant=True gives lower AICc than no constant on a linear-trend series."""
+        m0 = ADAM("ANN").fit(linear_series)
+        m1 = ADAM("ANN", constant=True).fit(linear_series)
+        assert m1.loss_value <= m0.loss_value
+
+    def test_arima_constant_fits(self, linear_series):
+        """ARIMA(1,1,1) with constant=True fits without error."""
+        model = ADAM("NNN", ar_order=1, i_order=1, ma_order=1, constant=True)
+        model.fit(linear_series)
+        assert np.isfinite(model.constant_value)
+
+    def test_fixed_constant(self, linear_series):
+        """constant=0.5 (fixed value) is stored and accessible after fit."""
+        model = ADAM("ANN", constant=0.5)
+        model.fit(linear_series)
+        assert model.constant_value == pytest.approx(0.5)
+
+    def test_constant_shown_in_summary(self, linear_series):
+        """Model summary includes the constant value when constant=True."""
+        model = ADAM("ANN", constant=True)
+        model.fit(linear_series)
+        summary = str(model)
+        assert "Intercept" in summary or "constant" in summary.lower()
+
+
 class TestADAMARIMAOrders:
     """Tests for ARIMA orders and lags interaction."""
 
