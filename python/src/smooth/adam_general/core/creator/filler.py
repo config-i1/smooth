@@ -438,14 +438,15 @@ def filler(
         j += xreg_number_to_estimate
 
     # Constant
+    constant_index = (
+        components_dict["components_number_ets"]
+        + components_dict["components_number_arima"]
+        + explanatory_checked["xreg_number"]
+    )
     if constants_checked["constant_estimate"]:
-        constant_index = (
-            components_dict["components_number_ets"]
-            + components_dict["components_number_arima"]
-            + explanatory_checked["xreg_number"]
-        )
-
         matrices_dict["mat_vt"][constant_index, :] = B[j]
+    elif constants_checked["constant_required"]:
+        matrices_dict["mat_vt"][constant_index, :] = constants_checked["constant_value"]
 
     return {
         "mat_vt": matrices_dict["mat_vt"],

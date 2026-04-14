@@ -326,6 +326,18 @@ class TestADAMConstant:
         model.fit(linear_series)
         assert model.constant_value == pytest.approx(0.5)
 
+    def test_fixed_constant_numeric_ets(self, linear_series):
+        """constant=1.6 (numeric) is preserved exactly throughout optimisation."""
+        model = ADAM("ANN", constant=1.6)
+        model.fit(linear_series)
+        assert model.constant_value == pytest.approx(1.6)
+
+    def test_fixed_constant_numeric_arima(self, linear_series):
+        """Numeric constant is preserved for ARIMA models too."""
+        model = ADAM("NNN", ar_order=1, i_order=1, ma_order=1, constant=0.3)
+        model.fit(linear_series)
+        assert model.constant_value == pytest.approx(0.3)
+
     def test_constant_shown_in_summary(self, linear_series):
         """Model summary includes the constant value when constant=True."""
         model = ADAM("ANN", constant=True)
