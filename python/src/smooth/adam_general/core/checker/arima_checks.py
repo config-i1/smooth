@@ -159,7 +159,7 @@ def _get_polynomial_indices_from_cpp(ar_orders, i_orders, ma_orders, lags):
         return None
 
 
-def _check_arima(orders, validated_lags, silent=False):
+def _check_arima(orders, validated_lags, silent=False, arma=None):
     """
     Check and validate ARIMA model specification.
 
@@ -397,5 +397,28 @@ def _check_arima(orders, validated_lags, silent=False):
                 arima_parameters.append(0.0)
 
     arima_result["arma_parameters"] = arima_parameters if arima_parameters else None
+
+    # Apply fixed ARMA values from `arma` dict
+    if arma is not None and isinstance(arma, dict):
+        ar_fixed = arma.get("ar", None)
+        ma_fixed = arma.get("ma", None)
+        n_ar = sum(ar_orders)
+        n_ma = sum(ma_orders)
+
+        if ar_fixed is not None and ar_required:
+            ar_fixed = (
+                [ar_fixed] if isinstance(ar_fixed, (int, float)) else list(ar_fixed)
+            )
+            arima_result["ar_estimate"] = False
+            arima_parameters[:n_ar] = ar_fixed[:n_ar]
+
+        if ma_fixed is not None and ma_required:
+            ma_fixed = (
+                [ma_fixed] if isinstance(ma_fixed, (int, float)) else list(ma_fixed)
+            )
+            arima_result["ma_estimate"] = False
+            arima_parameters[n_ar : n_ar + n_ma] = ma_fixed[:n_ma]
+
+        arima_result["arma_parameters"] = arima_parameters if arima_parameters else None
 
     return arima_result

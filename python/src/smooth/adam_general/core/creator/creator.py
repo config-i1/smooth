@@ -656,9 +656,12 @@ def _handle_polynomial_setup(matrices, model_params, arima_checked):
     components_number_ets = model_params["components_number_ets"]
 
     # If the arma parameters were provided, fill in the persistence
+    # Only pre-compute when nothing is fixed — filler.py handles fixed params correctly
     arima_polynomials = None
     if arima_checked["arima_model"] and (
-        not arima_checked["ar_estimate"] and not arima_checked["ma_estimate"]
+        not arima_checked["ar_estimate"]
+        and not arima_checked["ma_estimate"]
+        and arima_checked["arma_parameters"] is None
     ):
         # Call polynomial
         arima_polynomials = {
