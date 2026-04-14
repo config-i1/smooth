@@ -841,7 +841,7 @@ def _format_loss(model: Any, digits: int) -> str:
 def _format_constant(model: Any, digits: int) -> str:
     """Format constant/drift value if present."""
     if hasattr(model, "_constant") and model._constant:
-        if model._constant.get("constant_estimate", False):
+        if model._constant.get("constant_required", False):
             constant_val = model.constant_value
             if constant_val is not None:
                 return f"Intercept/Drift value: {constant_val:.{digits}f}"

@@ -416,8 +416,22 @@ class ADAM:
             take priority over ``orders``.
         arima_select : bool, default=False
             Whether to perform automatic ARIMA order selection.
-        constant : bool, default=False
-            Whether to include a constant term.
+        constant : Union[bool, float], default=False
+            Whether to include a constant (intercept/drift) term.
+
+            - ``True``: estimate the constant as a free parameter.
+            - ``False``: no constant.
+            - A numeric value: fix the constant at that value (not estimated).
+
+            The model name reflects the role of the constant:
+
+            - **"with drift"** — when the model is ETS *or* ARIMA with any
+              integration order > 0 (e.g. ``ETS(ANN) with drift``,
+              ``ARIMA(1,1,1) with drift``).
+            - **"with constant"** — when the model is a pure non-integrated
+              ARIMA (all ``i_order = 0``), e.g. ``ARIMA(1,0,1) with constant``.
+
+            The fitted value is accessible via ``model.constant_value``.
         regressors : Literal["use", "select", "adapt"], default="use"
             How to handle external regressors.
         distribution : Optional[DISTRIBUTION_OPTIONS], default=None
