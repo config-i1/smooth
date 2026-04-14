@@ -174,7 +174,14 @@ class ES(ADAM):
         **kwargs,
     ) -> None:
         """Initialize ES model with ETS-specific parameters."""
-        _blocked = {"ar_order", "i_order", "ma_order", "orders", "arima_select", "constant"}
+        _blocked = {
+            "ar_order",
+            "i_order",
+            "ma_order",
+            "orders",
+            "arima_select",
+            "constant",
+        }
         _bad = _blocked & set(kwargs)
         if _bad:
             raise ValueError(

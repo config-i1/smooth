@@ -13,6 +13,7 @@ The package includes the following models:
 
 - [ADAM](https://openforecast.org/adam/) - Augmented Dynamic Adaptive Model, uniting exponential smoothing, ARIMA and regression, implemented in the `ADAM` class.
 - [ETS](https://github.com/config-i1/smooth/wiki/ES) - Exponential Smoothing in the SSOE state space form, implemented in the `ES` class.
+- [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) - Multiple seasonal ARIMA in state space form, implemented in the `MSARIMA` class.
 
 All of these are implemented with the support of the following features:
 
@@ -73,6 +74,8 @@ forecasts = model.predict(h=12)
 ```
 
 ## ADAMX — ADAM with Explanatory Variables
+
+This also works with the exponential smoothing (ETSX) via the `ES()` class.
 
 ```python
 import numpy as np

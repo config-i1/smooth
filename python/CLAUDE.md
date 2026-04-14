@@ -66,16 +66,17 @@ make test
 
 ### Linting and Code Quality
 
+**Always run ruff check and ruff format after every code change:**
+
 ```bash
-# Run ruff linter
-ruff check smooth/
+# Run ruff linter (must pass with zero errors)
+.venv/bin/ruff check src/
 
 # Run ruff formatter
-ruff format smooth/
-
-# Or use Makefile
-make lint  # Note: This uses flake8/pydocstyle (may be outdated)
+.venv/bin/ruff format src/
 ```
+
+These two commands must be run together after any Python source edit. Fix all errors reported by `ruff check` before considering a task complete.
 
 **Linting Config**: Defined in `pyproject.toml` under `[tool.ruff]`
 - Line length: 88 (Black-compatible)
