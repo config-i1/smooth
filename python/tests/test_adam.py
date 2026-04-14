@@ -294,6 +294,40 @@ class TestADAMBounds:
         )
 
 
+class TestADAMARIMAOrders:
+    """Tests for ARIMA orders and lags interaction."""
+
+    @pytest.fixture
+    def series60(self):
+        np.random.seed(1)
+        return np.random.randn(60)
+
+    def test_short_lags_equals_explicit_padded(self, series60):
+        """lags=[12] + ar=[1] equals lags=[1,12] + ar=[1,0] (lag=1 auto-prepended)."""
+        m1 = ADAM("NNN", lags=[12], ar_order=[1], i_order=[1], ma_order=[1]).fit(series60)
+        m2 = ADAM("NNN", lags=[1, 12], ar_order=[1, 0], i_order=[1, 0], ma_order=[1, 0]).fit(series60)
+
+        assert m1._arima["lags_model_arima"] == m2._arima["lags_model_arima"]
+        assert abs(m1.loss_value - m2.loss_value) < 1e-6
+
+    def test_nonseasonal_arima_at_lag1_only(self, series60):
+        """ar_order=[1] with lags=[12] gives non-seasonal ARIMA (at lag 1 only)."""
+        m = ADAM("NNN", lags=[12], ar_order=[1], i_order=[1], ma_order=[1]).fit(series60)
+
+        arima = m._arima
+        # After prepending lag=1, orders should be [1,0] (non-zero only at lag=1)
+        assert arima["ar_orders"] == [1, 0]
+        assert arima["ma_orders"] == [1, 0]
+
+    def test_seasonal_only_arima(self, series60):
+        """ar_order=[0,1] with lags=[1,12] gives seasonal-only ARIMA at lag=12."""
+        m = ADAM("NNN", lags=[1, 12], ar_order=[0, 1], i_order=[0, 1], ma_order=[0, 1]).fit(series60)
+
+        arima = m._arima
+        assert arima["ar_orders"] == [0, 1]
+        assert arima["ma_orders"] == [0, 1]
+
+
 class TestADAMReproducibility:
     """Tests for reproducibility."""
 

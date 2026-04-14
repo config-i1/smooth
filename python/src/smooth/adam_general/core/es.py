@@ -174,6 +174,14 @@ class ES(ADAM):
         **kwargs,
     ) -> None:
         """Initialize ES model with ETS-specific parameters."""
+        _arima_keys = {"ar_order", "i_order", "ma_order", "orders", "arima_select"}
+        _bad = _arima_keys & set(kwargs)
+        if _bad:
+            raise ValueError(
+                f"ES() does not support ARIMA parameters: {sorted(_bad)}. "
+                "Use ADAM() for models with ARIMA components."
+            )
+
         # Process initial values
         initial_value = self._process_initial_params(initial, initial_season, initial_X)
 

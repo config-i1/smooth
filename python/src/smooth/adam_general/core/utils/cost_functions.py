@@ -265,6 +265,30 @@ def CF(  # noqa: N802
         >>> # If cf_value is large (1e100), constraints were violated
     """
 
+    # R passes adamCreated$matVt as a parameter to every CF call, so each call
+    # gets a fresh copy (R copy-on-modify). Python mutates matrices_dict["mat_vt"]
+    # in-place. The elif branch in filler writes ari_poly*seed to the seed row
+    # (last ARIMA state), so without restoration the seed accumulates as
+    # ari_poly^N*seed after N calls. Save it before filler; restore after the
+    # Fortran copy so C++ still receives the correctly filled value.
+    arima_seed_backup = None
+    if (
+        arima_checked["arima_model"]
+        and any([arima_checked["ar_estimate"], arima_checked["ma_estimate"]])
+        and initials_checked["initial_type"] in ["complete", "backcasting"]
+    ):
+        seed_row_idx = (
+            components_dict["components_number_ets"]
+            + components_dict["components_number_arima"]
+            - 1
+        )
+        n_init = initials_checked["initial_arima_number"]
+        arima_seed_backup = (
+            seed_row_idx,
+            n_init,
+            matrices_dict["mat_vt"][seed_row_idx, :n_init].copy(),
+        )
+
     # Fill in the matrices
     adam_elements = filler(
         B,
@@ -278,13 +302,26 @@ def CF(  # noqa: N802
         explanatory_checked,
         phi_dict,
         constants_checked,
+        adam_cpp=adam_cpp,
     )
+
+    # Capture the filler-modified state for C++ and profiles before restoring.
+    # Profiles and the Fortran copy must capture the mutated seed row (ari_poly*seed).
+    profile_dict["profiles_recent_table"][:] = adam_elements["mat_vt"][
+        :, : lags_dict["lags_model_max"]
+    ]
+    mat_vt = np.asfortranarray(adam_elements["mat_vt"], dtype=np.float64)
+
+    # Restore seed row for next CF call (mirrors R copy-on-modify for matVt parameter).
+    if arima_seed_backup is not None:
+        idx, n, row = arima_seed_backup
+        matrices_dict["mat_vt"][idx, :n] = row
+
     # If we estimate parameters of distribution, take it from the B vector
     if otherParameterEstimate:
         other = abs(B[-1])
         if general["distribution_new"] in ["dgnorm", "dlgnorm"] and other < 0.25:
-            # MODIFIED: reduced penalty value
-            return 1e5 / other
+            return 1e10 / other
     # Check the bounds, classical restrictions
     # print(components_dict['components_number_ets_non_seasonal'])
 
@@ -294,43 +331,37 @@ def CF(  # noqa: N802
         ):
             if (
                 arima_checked["ar_estimate"]
-                and sum(-adam_elements["arimaPolynomials"]["arPolynomial"][1:]) >= 1
+                and np.all(-adam_elements["arima_polynomials"]["arPolynomial"][1:] > 0)
+                and sum(-adam_elements["arima_polynomials"]["arPolynomial"][1:]) >= 1
             ):
-                arPolynomialMatrix[:, 0] = -adam_elements["arimaPolynomials"][
+                arPolynomialMatrix[:, 0] = -adam_elements["arima_polynomials"][
                     "arPolynomial"
                 ][1:]
                 arPolyroots = np.abs(eigvals(arPolynomialMatrix))
-                # Strict constraint enforcement like in R
                 if any(arPolyroots > 1):
-                    # Return a large penalty value
-                    return 1e100
+                    return 1e100 * max(arPolyroots)
 
             if (
                 arima_checked["ma_estimate"]
-                and sum(adam_elements["arimaPolynomials"]["maPolynomial"][1:]) >= 1
+                and sum(adam_elements["arima_polynomials"]["maPolynomial"][1:]) >= 1
             ):
-                maPolynomialMatrix[:, 0] = adam_elements["arimaPolynomials"][
+                maPolynomialMatrix[:, 0] = adam_elements["arima_polynomials"][
                     "maPolynomial"
                 ][1:]
                 maPolyroots = np.abs(eigvals(maPolynomialMatrix))
-                # Strict constraint enforcement like in R
                 if any(maPolyroots > 1):
-                    # Return a large penalty value
-                    return 1e100
+                    return 1e100 * max(abs(maPolyroots))
 
         if model_type_dict["ets_model"]:
-            # Strict constraint enforcement like in R
-            # Check if any smoothing parameters are outside the [0,1] bounds
             if any(
                 adam_elements["vec_g"][: components_dict["components_number_ets"]] > 1
             ) or any(
                 adam_elements["vec_g"][: components_dict["components_number_ets"]] < 0
             ):
-                return 1e100
+                return 1e300
             if model_type_dict["model_is_trendy"]:
-                # Strict constraint enforcement like in R
                 if adam_elements["vec_g"][1] > adam_elements["vec_g"][0]:
-                    return 1e100
+                    return 1e300
                 if model_type_dict["model_is_seasonal"] and any(
                     adam_elements["vec_g"][
                         components_dict[
@@ -340,7 +371,7 @@ def CF(  # noqa: N802
                     ]
                     > (1 - adam_elements["vec_g"][0])
                 ):
-                    return 1e100
+                    return 1e300
 
             elif model_type_dict["model_is_seasonal"] and any(
                 adam_elements["vec_g"][
@@ -351,13 +382,12 @@ def CF(  # noqa: N802
                 ]
                 > (1 - adam_elements["vec_g"][0])
             ):
-                return 1e100
+                return 1e300
 
-            # Strict constraint enforcement like in R
             if phi_dict["phi_estimate"] and (
                 adam_elements["mat_f"][1, 1] > 1 or adam_elements["mat_f"][1, 1] < 0
             ):
-                return 1e100
+                return 1e300
 
         # Not supporting regression model now
         # if explanatory_checked['xreg_model'] and regressors == "adapt":
@@ -381,10 +411,10 @@ def CF(  # noqa: N802
     elif bounds == "admissible":
         if arima_checked["arima_model"]:
             if arima_checked["ar_estimate"] and (
-                sum(-adam_elements["arimaPolynomials"]["arPolynomial"][1:]) >= 1
-                or sum(-adam_elements["arimaPolynomials"]["arPolynomial"][1:]) < 0
+                sum(-adam_elements["arima_polynomials"]["arPolynomial"][1:]) >= 1
+                or sum(-adam_elements["arima_polynomials"]["arPolynomial"][1:]) < 0
             ):
-                arPolynomialMatrix[:, 0] = -adam_elements["arimaPolynomials"][
+                arPolynomialMatrix[:, 0] = -adam_elements["arima_polynomials"][
                     "arPolynomial"
                 ][1:]
                 eigenValues = np.abs(eigvals(arPolynomialMatrix))
@@ -411,24 +441,13 @@ def CF(  # noqa: N802
             if np.any(eigenValues > 1 + 1e-50):
                 return 1e100 * np.max(eigenValues)
 
-    # Write down the initials in the recent profile
-    profile_dict["profiles_recent_table"][:] = adam_elements["mat_vt"][
-        :, : lags_dict["lags_model_max"]
-    ]
-    # Convert pandas Series/DataFrames to numpy arrays
     y_in_sample = np.asarray(observations_dict["y_in_sample"], dtype=np.float64)
     ot = np.asarray(observations_dict["ot"], dtype=np.float64)
-    # CRITICAL FIX: C++ adamFitter takes matrixVt by reference and modifies it!
-    # We must pass a COPY to avoid polluting adam_elements across
-    # optimization iterations
-    mat_vt = np.asfortranarray(adam_elements["mat_vt"], dtype=np.float64)
+
     mat_wt = np.asfortranarray(adam_elements["mat_wt"], dtype=np.float64)
-    mat_f = np.asfortranarray(
-        adam_elements["mat_f"], dtype=np.float64
-    )  # Also copy mat_f since it's passed by reference
-    vec_g = np.asfortranarray(
-        adam_elements["vec_g"], dtype=np.float64
-    )  # Make sure it's a 1D array
+    mat_f = np.asfortranarray(adam_elements["mat_f"], dtype=np.float64)
+    vec_g = np.asfortranarray(adam_elements["vec_g"], dtype=np.float64)
+
     index_lookup_table = np.asfortranarray(
         profile_dict["index_lookup_table"], dtype=np.uint64
     )
@@ -493,7 +512,6 @@ def CF(  # noqa: N802
                     other,
                 )
             )
-            # print(CFValue)
             # Differential entropy for the logLik of occurrence model
             if observations_dict.get("occurrence_model", False) or any(
                 ~observations_dict["ot_logical"]
@@ -680,8 +698,8 @@ def CF(  # noqa: N802
         CFValue = calculate_multistep_loss(loss, adam_errors, obs_in_sample, h)
 
     if np.isnan(CFValue) or np.isinf(CFValue):
-        # print("CFValue is NaN")
         CFValue = 1e300
+
     return CFValue
 
 

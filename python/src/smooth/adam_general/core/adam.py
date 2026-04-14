@@ -340,6 +340,7 @@ class ADAM:
         ar_order: Union[int, List[int]] = 0,
         i_order: Union[int, List[int]] = 0,
         ma_order: Union[int, List[int]] = 0,
+        orders: Optional[Dict[str, Any]] = None,
         arima_select: bool = False,
         # end of ARIMA specific parameters
         constant: bool = False,
@@ -404,6 +405,15 @@ class ADAM:
             Integration order(s) for ARIMA components.
         ma_order : Union[int, List[int]], default=0
             Moving average order(s) for ARIMA components.
+        orders : Optional[Dict[str, Any]], default=None
+            R-style alternative to ``ar_order``/``i_order``/``ma_order``.
+            A dict with keys ``"ar"``, ``"i"``, ``"ma"`` (each an int or list
+            of ints) and optionally ``"select"`` (bool).  Example::
+
+                orders={"ar": [1, 1], "i": [1, 1], "ma": [2, 2]}
+
+            If ``ar_order``, ``i_order``, or ``ma_order`` are non-zero they
+            take priority over ``orders``.
         arima_select : bool, default=False
             Whether to perform automatic ARIMA order selection.
         constant : bool, default=False
@@ -516,6 +526,7 @@ class ADAM:
         self.ar_order = ar_order
         self.i_order = i_order
         self.ma_order = ma_order
+        self._init_orders = orders
         self.arima_select = arima_select
         self.constant = constant
         self.regressors = regressors
@@ -828,6 +839,7 @@ class ADAM:
             "ar_order": self.ar_order,
             "i_order": self.i_order,
             "ma_order": self.ma_order,
+            "orders": self._init_orders,
             "arima_select": self.arima_select,
             "constant": self.constant,
             "regressors": self.regressors,
@@ -903,13 +915,36 @@ class ADAM:
 
             is_arima = self._model_type.get("arima_model", False)
             if is_arima and self._arima:
-                ar_orders = self._arima.get("ar_orders", [0])
-                i_orders = self._arima.get("i_orders", [0])
-                ma_orders = self._arima.get("ma_orders", [0])
-                ar = sum(ar_orders) if ar_orders else 0
-                i = sum(i_orders) if i_orders else 0
-                ma = sum(ma_orders) if ma_orders else 0
-                model_parts.append(f"ARIMA({ar},{i},{ma})")
+                ar_orders = self._arima.get("ar_orders", [0]) or [0]
+                i_orders = self._arima.get("i_orders", [0]) or [0]
+                ma_orders = self._arima.get("ma_orders", [0]) or [0]
+                lags = self._lags_model.get("lags_original", [1]) or [1]
+                has_xreg_arima = (
+                    self._explanatory.get("xreg_model", False) and not is_ets
+                )
+                seasonal_have_orders = any(
+                    (ar_orders[j] if j < len(ar_orders) else 0) != 0
+                    or (i_orders[j] if j < len(i_orders) else 0) != 0
+                    or (ma_orders[j] if j < len(ma_orders) else 0) != 0
+                    for j, lag in enumerate(lags)
+                    if lag > 1
+                )
+                if all(lag == 1 for lag in lags) or not seasonal_have_orders:
+                    prefix = "ARIMAX" if has_xreg_arima else "ARIMA"
+                    model_parts.append(
+                        f"{prefix}({ar_orders[0]},{i_orders[0]},{ma_orders[0]})"
+                    )
+                else:
+                    prefix = "SARIMAX" if has_xreg_arima else "SARIMA"
+                    arima_str = prefix
+                    for j, lag in enumerate(lags):
+                        p = ar_orders[j] if j < len(ar_orders) else 0
+                        d = i_orders[j] if j < len(i_orders) else 0
+                        q = ma_orders[j] if j < len(ma_orders) else 0
+                        if p == 0 and d == 0 and q == 0:
+                            continue
+                        arima_str += f"({p},{d},{q})[{lag}]"
+                    model_parts.append(arima_str)
 
             if model_parts:
                 self.model = "+".join(model_parts)
@@ -959,7 +994,7 @@ class ADAM:
         >>> level = states[0, :]  # Level component over time
         """
         self._check_is_fitted()
-        return self._prepared["mat_vt"]
+        return self._prepared["states"]
 
     @property
     def persistence_vector(self) -> Dict[str, Any]:
@@ -2231,9 +2266,8 @@ class ADAM:
         X : NDArray or pd.DataFrame, optional
             External regressors, shape (len(ts), n_features).
         """
-        # Convert ar_order, i_order, ma_order to orders format expected by
-        # parameters_checker
-        orders = None
+        # Build orders dict for parameters_checker.
+        # ar_order/i_order/ma_order take priority; fall back to orders dict.
         if any(param != 0 for param in [self.ar_order, self.i_order, self.ma_order]):
             orders = {
                 "ar": self.ar_order,
@@ -2241,6 +2275,13 @@ class ADAM:
                 "ma": self.ma_order,
                 "select": self.arima_select,
             }
+        elif self._init_orders is not None:
+            orders = {
+                **self._init_orders,
+                "select": self._init_orders.get("select", self.arima_select),
+            }
+        else:
+            orders = None
 
         (
             self._general,

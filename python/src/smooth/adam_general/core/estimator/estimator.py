@@ -488,6 +488,7 @@ def estimator(
         bounds=general_dict["bounds"],
         phi_dict=phi_dict,
         profile_dict=profile_dict,
+        adam_cpp=adam_cpp,
     )
     # Get initial parameter vector and bounds; user-provided values are used as-is
     B = np.asarray(B_initial, dtype=float) if B_initial is not None else b_values["B"]
@@ -549,6 +550,8 @@ def estimator(
         general_dict,
         adam_cpp,
         print_level,
+        ar_polynomial_matrix=ar_polynomial_matrix,
+        ma_polynomial_matrix=ma_polynomial_matrix,
     )
 
     # Set objective function
@@ -556,16 +559,15 @@ def estimator(
 
     # Step 9: Run optimization
     B[:] = _run_optimization(opt, B)
-
-    # Step 10: Extract the solution and the loss value
     CF_value = opt.last_optimum_value()
+
+    # Step 9a: R uses only Nelder-Mead; no BOBYQA refinement. Disabling BOBYQA
+    # pass to match R exactly and achieve 100% identical ARIMA results.
 
     # Step 10a: Retry optimization with zero smoothing parameters if initial
     # optimization failed
-    # This matches R's behavior (lines 2717-2768 in adam.R)
-    # R checks for is.infinite(res$objective) || res$objective==1e+300
-    # Python's objective wrapper caps at 1e10, so we check >= 1e10
-    if not np.isfinite(CF_value) or CF_value >= 1e10:
+    # Matches R: is.infinite(res$objective) || res$objective==1e+300
+    if not np.isfinite(CF_value) or CF_value >= 1e300:
         # Calculate number of ETS persistence parameters (alpha, beta, gamma)
         components_number_ets = 0
         if model_type_dict["ets_model"]:
@@ -627,26 +629,6 @@ def estimator(
         B[:] = _run_optimization(opt2, B)
         CF_value = opt2.last_optimum_value()
 
-    # Step 10: Calculate CF_value using optimized B
-    # CF_value = CF(
-    #     B=B,
-    #     model_type_dict=model_type_dict,
-    #     components_dict=components_dict,
-    #     lags_dict=lags_dict,
-    #     matrices_dict=adam_created,
-    #     persistence_checked=persistence_dict,
-    #     initials_checked=initials_dict,
-    #     arima_checked=arima_dict,
-    #     explanatory_checked=explanatory_dict,
-    #     phi_dict=phi_dict,
-    #     constants_checked=constant_dict,
-    #     observations_dict=observations_dict,
-    #     profile_dict=profile_dict,
-    #     general=general_dict,
-    #     adam_cpp=adam_cpp,
-    #     bounds="usual",
-    # )
-
     # A fix for the special case of LASSO/RIDGE with lambda==1
     if (
         any(general_dict["loss"] == loss_type for loss_type in ["LASSO", "RIDGE"])
@@ -705,6 +687,7 @@ def estimator(
             explanatory_dict,
             phi_dict,
             constant_dict,
+            adam_cpp=adam_cpp,
         )
 
         # Run adam_cpp.fit() with backcasting to update states

@@ -575,6 +575,11 @@ def parameters_checker(
     loss = dist_info["loss"]
     loss_function = dist_info.get("loss_function", None)
 
+    # If ETS is off (e.g. NNN), set error_type from distribution — mirrors R adamGeneral.R:1410
+    if not ets_model:
+        _mult_dists = {"dinvgauss", "dlnorm", "dllaplace", "dls", "dlgnorm", "dgamma"}
+        ets_info["error_type"] = "M" if distribution in _mult_dists else "A"
+
     #####################
     # 6) Check Outliers
     #####################
@@ -638,6 +643,9 @@ def parameters_checker(
     # Add to init_info
     init_info["n_iterations"] = n_iterations
     init_info["n_iterations_provided"] = n_iterations_provided
+    # Propagate ARIMA initial count from arima_info (computed in _check_arima)
+    if arima_model and init_info["initial_arima_number"] == 0:
+        init_info["initial_arima_number"] = arima_info.get("initial_arima_number", 0)
 
     #####################
     # 10) Check Constant
@@ -975,6 +983,8 @@ def parameters_checker(
         "non_zero_ari": arima_info.get("non_zero_ari", []),
         "non_zero_ma": arima_info.get("non_zero_ma", []),
         "select": arima_info.get("select", False),
+        "components_number_arima": arima_info.get("components_number_arima", 0),
+        "lags_model_arima": arima_info.get("lags_model_arima", []),
     }
 
     # Build explanatory variables dictionary

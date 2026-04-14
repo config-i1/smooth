@@ -340,8 +340,10 @@ def _setup_components(model_type_dict, arima_checked, lags_dict):
         # lags
         components_number_arima = arima_checked.get("components_number_arima", 0)
         components_dict["components_number_arima"] = components_number_arima
+        components_dict["lags_model_arima"] = arima_checked.get("lags_model_arima", [])
     else:
         components_dict["components_number_arima"] = 0
+        components_dict["lags_model_arima"] = []
 
     return components_dict
 
@@ -381,14 +383,8 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
                     lags_model.append(lag)
                     lags_model_seasonal.append(lag)
 
-    # ARIMA components
-    lags_model_arima = []
-    if (
-        "components_number_arima" in components_dict
-        and components_dict["components_number_arima"] > 0
-    ):
-        max_lag = max(lags)
-        lags_model_arima = [max_lag] * components_dict["components_number_arima"]
+    # ARIMA components - use polynomial-derived lags from arima_checks
+    lags_model_arima = components_dict.get("lags_model_arima", [])
 
     # Combine all lags
     lags_model_all = lags_model + lags_model_arima
@@ -397,6 +393,9 @@ def _setup_lags(lags_dict, model_type_dict, components_dict):
 
     # Update lags dictionary
     lags_dict_updated = lags_dict.copy()
+    lags_dict_updated["lags_original"] = lags_dict[
+        "lags"
+    ]  # R keeps original `lags` intact
     lags_dict_updated["lags_model"] = lags_model
     lags_dict_updated["lags"] = lags_model
     lags_dict_updated["lags_model_arima"] = lags_model_arima
@@ -494,22 +493,25 @@ def adam_profile_creator(
         # to cover 'obsAll' observations.
         # '- 1' at the end adjusts these values to Python's zero-based indexing.
         # Fix the array size mismatch - ensure we're using the correct range
-        index_lookup_table[i, lags_model_max : (lags_model_max + obs_all)] = (
+        index_lookup_table[i, lags_model_max:(lags_model_max + obs_all)] = (
             np.tile(
-                profile_indices[i, : lags_model_all[i]],
-                int(np.ceil((obs_all) / lags_model_all[i])),
-            )[0:(obs_all)]
+                profile_indices[i, :lags_model_all[i]],
+                int(np.ceil(obs_all / lags_model_all[i])),
+            )[:obs_all]
             - 1
         )
 
-        # Fix the head of the data, before the sample starts
-        # (equivalent to the tail() operation in R code)
-        unique_indices = np.unique(
-            index_lookup_table[i, lags_model_max : (lags_model_max + obs_all - 1)]
-        )
+        # Fix the head: use order-preserving unique (like R's unique()),
+        # and use the full obs_all slice (not obs_all - 1)
+        vals = index_lookup_table[i, lags_model_max:(lags_model_max + obs_all)]
+        unique_indices = np.array(list(dict.fromkeys(vals.tolist())))
+        
+        # Use [-lags_model_max:] to replicate R's tail() — take from the END
+        # not the beginning (Bug 3 fix).
         index_lookup_table[i, :lags_model_max] = np.tile(
             unique_indices, lags_model_max
-        )[:lags_model_max]
+        )[-lags_model_max:]
+
     # Convert to int!
     index_lookup_table = index_lookup_table.astype(int)
 
