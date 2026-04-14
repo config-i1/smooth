@@ -75,6 +75,8 @@ forecasts = model.predict(h=12)
 
 ## ADAMX — ADAM with Explanatory Variables
 
+This also works with the exponential smoothing (ETSX) via the `ES()` class.
+
 ```python
 import numpy as np
 from smooth import ADAM
