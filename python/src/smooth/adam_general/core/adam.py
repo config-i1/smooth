@@ -2341,6 +2341,7 @@ class ADAM:
             frequency=self.frequency,
             X=X,
             regressors=self.regressors,
+            arma=self.arma,
         )
 
     def _handle_lasso_ridge_special_case(self):

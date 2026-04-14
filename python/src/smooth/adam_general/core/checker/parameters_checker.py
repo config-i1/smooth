@@ -63,6 +63,7 @@ def parameters_checker(
     ellipsis=None,
     X=None,
     regressors="use",
+    arma=None,
 ):
     """
     Validate and process all ADAM model parameters before estimation.
@@ -560,7 +561,7 @@ def parameters_checker(
     #####################
     # 4) Check ARIMA
     #####################
-    arima_info = _check_arima(orders, validated_lags, silent)
+    arima_info = _check_arima(orders, validated_lags, silent, arma=arma)
     arima_model = arima_info["arima_model"]
     ar_orders = arima_info["ar_orders"]
     i_orders = arima_info["i_orders"]
