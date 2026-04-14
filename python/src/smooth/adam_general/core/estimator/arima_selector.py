@@ -1,10 +1,10 @@
 """
 ARIMA order selection for ADAM.
 
-Implements R's three-phase arimaSelector() algorithm from autoadam.R.
+Mirrors R's three-phase arimaSelector() algorithm from autoadam.R.
 Phase 1: Select differencing (I) orders exhaustively.
-Phase 2: Greedy MA order selection using ACF of residuals.
-Phase 3: Greedy AR order selection using PACF of residuals.
+Phase 2: Greedy MA order selection using ACF of residuals (while loop).
+Phase 3: Greedy AR order selection using PACF of residuals (while loop).
 Phase 4: Check IMA(d,q) special models (MA = I).
 """
 
@@ -75,11 +75,49 @@ def _normalize_lags_and_orders(
         max_ma = [3] + list(max_ma)
 
     n = len(lags)
-    # Pad with zeros or truncate to match lag count
     max_ar = (list(max_ar) + [0] * n)[:n]
     max_i = (list(max_i) + [0] * n)[:n]
     max_ma = (list(max_ma) + [0] * n)[:n]
     return lags, max_ar, max_i, max_ma
+
+
+def _prune_orders_for_ets(
+    ets_model: str,
+    lags: List[int],
+    max_ar: List[int],
+    max_i: List[int],
+    max_ma: List[int],
+) -> Tuple[List[int], List[int], List[int]]:
+    """Reduce ARIMA search space based on ETS components.
+
+    Mirrors autoadam.R lines 498-510:
+    - ETS has non-N error (A/M):  zero out non-seasonal I and MA
+    - ETS has non-N seasonal (A/M): zero out seasonal I and MA
+    - ETS has damped trend: zero out non-seasonal AR
+    """
+    if not ets_model or ets_model == "NNN":
+        return list(max_ar), list(max_i), list(max_ma)
+
+    max_ar = list(max_ar)
+    max_i = list(max_i)
+    max_ma = list(max_ma)
+
+    error_type = ets_model[0]
+    seasonal_type = ets_model[-1] if len(ets_model) >= 3 else "N"
+    trend_part = ets_model[1:-1] if len(ets_model) >= 3 else ""
+    damped = "d" in trend_part.lower()
+
+    for k, lag in enumerate(lags):
+        if error_type in ("A", "M") and lag == 1:
+            max_i[k] = 0
+            max_ma[k] = 0
+        if seasonal_type in ("A", "M") and lag != 1:
+            max_i[k] = 0
+            max_ma[k] = 0
+        if damped and lag == 1:
+            max_ar[k] = 0
+
+    return max_ar, max_i, max_ma
 
 
 def _select_i_orders(
@@ -90,19 +128,32 @@ def _select_i_orders(
     distribution: str,
     ic_name: str,
     X=None,
+    initial_ic: float = np.inf,
+    initial_model: Any = None,
     **adam_kwargs,
 ) -> Tuple[List[int], bool, Any, float]:
-    """Phase 1: exhaustive search over all I-order combinations × constant."""
+    """Phase 1: exhaustive search over all I-order combinations × constant.
+
+    When an ETS baseline is provided via ``initial_ic`` / ``initial_model``,
+    they serve as the starting best (mirrors R's ICOriginal).
+    """
     n = len(lags)
     zeros = [0] * n
-    best_ic = np.inf
+    best_ic = initial_ic
     best_i = zeros[:]
     best_constant = False
-    best_model = None
+    best_model = initial_model
 
     for combo in itertools.product(*[range(m + 1) for m in max_i]):
         i_orders = list(combo)
         for constant in (False, True):
+            # Skip (0,..,0) + const=False when an ETS baseline already covers it
+            if (
+                all(d == 0 for d in i_orders)
+                and not constant
+                and initial_model is not None
+            ):
+                continue
             model, ic = _fit_arima_model(
                 y,
                 ets_model,
@@ -141,7 +192,11 @@ def _select_ma_orders(
     X=None,
     **adam_kwargs,
 ) -> Tuple[List[int], Any, float]:
-    """Phase 2: greedy MA selection using ACF of residuals (outermost lag first)."""
+    """Phase 2: greedy MA selection using ACF of residuals (while loop).
+
+    Mirrors R's while loop: after accepting an MA order, updates residuals
+    and tries again until no further IC improvement.
+    """
     from statsmodels.tsa.stattools import acf
 
     n = len(lags)
@@ -152,47 +207,50 @@ def _select_ma_orders(
     except Exception:
         return best_ma, best_model, best_ic
 
-    # Process lags from largest (seasonal) down to smallest
     for idx in sorted(range(n), key=lambda i: lags[i], reverse=True):
         lag, max_q = lags[idx], max_ma[idx]
         if max_q == 0:
             continue
 
-        try:
-            n_lags_acf = max_q * lag
-            acf_vals = acf(resids, nlags=n_lags_acf, fft=True)[1:]
-        except Exception:
-            continue
-
-        multiples = [
-            k * lag - 1 for k in range(1, max_q + 1) if k * lag - 1 < len(acf_vals)
-        ]
-        if not multiples:
-            continue
-
-        best_k = int(np.argmax([abs(acf_vals[m]) for m in multiples])) + 1
-
-        trial_ma = best_ma[:]
-        trial_ma[idx] = best_k
-        model, ic = _fit_arima_model(
-            y,
-            ets_model,
-            [0] * n,
-            best_i,
-            trial_ma,
-            lags,
-            constant,
-            distribution,
-            ic_name,
-            X,
-            **adam_kwargs,
-        )
-        if ic < best_ic:
-            best_ic, best_ma, best_model = ic, trial_ma, model
+        while True:
             try:
-                resids = np.array(model.residuals, dtype=float)
+                n_lags_acf = max(max_q * lag * 2, len(resids) // 2) + 1
+                acf_vals = acf(resids, nlags=n_lags_acf, fft=True)[1:]
             except Exception:
-                pass
+                break
+
+            multiples = [
+                k * lag - 1 for k in range(1, max_q + 1) if k * lag - 1 < len(acf_vals)
+            ]
+            if not multiples:
+                break
+
+            best_k = int(np.argmax([abs(acf_vals[m]) for m in multiples])) + 1
+            trial_ma = best_ma[:]
+            trial_ma[idx] = best_k
+
+            model, ic = _fit_arima_model(
+                y,
+                ets_model,
+                [0] * n,
+                best_i,
+                trial_ma,
+                lags,
+                constant,
+                distribution,
+                ic_name,
+                X,
+                **adam_kwargs,
+            )
+            if ic < best_ic:
+                best_ic, best_ma, best_model = ic, trial_ma, model
+                try:
+                    resids = np.array(model.residuals, dtype=float)
+                except Exception:
+                    pass
+                # Loop again with updated residuals and accepted order
+            else:
+                break
 
     return best_ma, best_model, best_ic
 
@@ -212,7 +270,11 @@ def _select_ar_orders(
     X=None,
     **adam_kwargs,
 ) -> Tuple[List[int], Any, float]:
-    """Phase 3: greedy AR selection using PACF of residuals (outermost lag first)."""
+    """Phase 3: greedy AR selection using PACF of residuals (while loop).
+
+    Mirrors R's while loop: after accepting an AR order, updates residuals
+    and tries again until no further IC improvement.
+    """
     from statsmodels.tsa.stattools import pacf
 
     n = len(lags)
@@ -228,41 +290,49 @@ def _select_ar_orders(
         if max_p == 0:
             continue
 
-        try:
-            n_lags_pacf = max_p * lag
-            pacf_vals = pacf(resids, nlags=n_lags_pacf)[1:]
-        except Exception:
-            continue
-
-        multiples = [
-            k * lag - 1 for k in range(1, max_p + 1) if k * lag - 1 < len(pacf_vals)
-        ]
-        if not multiples:
-            continue
-
-        best_k = int(np.argmax([abs(pacf_vals[m]) for m in multiples])) + 1
-
-        trial_ar = best_ar[:]
-        trial_ar[idx] = best_k
-        model, ic = _fit_arima_model(
-            y,
-            ets_model,
-            trial_ar,
-            best_i,
-            best_ma,
-            lags,
-            constant,
-            distribution,
-            ic_name,
-            X,
-            **adam_kwargs,
-        )
-        if ic < best_ic:
-            best_ic, best_ar, best_model = ic, trial_ar, model
+        while True:
             try:
-                resids = np.array(model.residuals, dtype=float)
+                # statsmodels requires nlags < len(resids)//2
+                n_lags_pacf = min(
+                    max(max_p * lag * 2, len(resids) // 2),
+                    len(resids) // 2 - 1,
+                )
+                pacf_vals = pacf(resids, nlags=n_lags_pacf)[1:]
             except Exception:
-                pass
+                break
+
+            multiples = [
+                k * lag - 1 for k in range(1, max_p + 1) if k * lag - 1 < len(pacf_vals)
+            ]
+            if not multiples:
+                break
+
+            best_k = int(np.argmax([abs(pacf_vals[m]) for m in multiples])) + 1
+            trial_ar = best_ar[:]
+            trial_ar[idx] = best_k
+
+            model, ic = _fit_arima_model(
+                y,
+                ets_model,
+                trial_ar,
+                best_i,
+                best_ma,
+                lags,
+                constant,
+                distribution,
+                ic_name,
+                X,
+                **adam_kwargs,
+            )
+            if ic < best_ic:
+                best_ic, best_ar, best_model = ic, trial_ar, model
+                try:
+                    resids = np.array(model.residuals, dtype=float)
+                except Exception:
+                    pass
+                # Loop again with updated residuals and accepted order
+            else:
+                break
 
     return best_ar, best_model, best_ic
 
@@ -287,7 +357,6 @@ def _check_ima_models(
 
     for combo in itertools.product(*[range(m + 1) for m in max_i]):
         i_orders = list(combo)
-        # MA = min(I, max_ma) per lag position
         ma_orders = [min(d, max_ma[k]) for k, d in enumerate(i_orders)]
 
         if all(m == 0 for m in ma_orders):
@@ -300,7 +369,7 @@ def _check_ima_models(
             i_orders,
             ma_orders,
             lags,
-            constant,
+            False,  # R always uses constant=FALSE for IMA models
             distribution,
             ic_name,
             X,
@@ -322,6 +391,7 @@ def arima_selector(
     distribution: str = "dnorm",
     ic: str = "AICc",
     X=None,
+    ets_baseline=None,
     **adam_kwargs,
 ) -> Dict:
     """
@@ -334,8 +404,7 @@ def arima_selector(
     y : array-like
         Time series data.
     ets_model : str, default="NNN"
-        ETS model string passed to each internal ADAM fit (e.g., ``"NNN"``
-        for pure ARIMA, ``"ZXZ"`` for joint ETS+ARIMA selection).
+        ETS model string passed to each internal ADAM fit.
     max_ar_orders : list of int, optional
         Maximum AR order per lag level. Defaults to ``[3]`` for each lag.
     max_i_orders : list of int, optional
@@ -351,9 +420,13 @@ def arima_selector(
         Information criterion used for model comparison.
     X : array-like, optional
         External regressor matrix passed to each internal fit.
+    ets_baseline : fitted ADAM, optional
+        Pre-fitted ETS-only model for this distribution. When provided, its
+        IC serves as the Phase-1 baseline (mirrors R's ICOriginal), and the
+        final result is compared against it — pure ETS is returned if
+        ETS+ARIMA is not an improvement.
     **adam_kwargs
-        Additional keyword arguments forwarded to every internal ADAM fit
-        (e.g., ``initial``, ``bounds``, ``loss``).
+        Additional keyword arguments forwarded to every internal ADAM fit.
 
     Returns
     -------
@@ -364,7 +437,6 @@ def arima_selector(
     lags = list(lags) if lags is not None else [1]
     n_lags = len(lags)
 
-    # Build default max orders matching R's auto.adam() defaults
     default_max_ar = [3] * n_lags
     default_max_i = [2] + [1] * (n_lags - 1)
     default_max_ma = [3] * n_lags
@@ -377,9 +449,42 @@ def arima_selector(
         lags, max_ar, max_i, max_ma
     )
 
+    # Resolve the actual selected ETS type from the fitted baseline (mirrors
+    # R's: model <- etsModelType <- modelType(testModelETS)).
+    # When the input is "ZXZ"/"ZZZ" etc., the baseline already has the
+    # auto-selected type (e.g. "ETS(AAA)"). Extract it so pruning and
+    # internal fits use the concrete model string.
+    resolved_ets = ets_model
+    if ets_baseline is not None and ets_model != "NNN":
+        import re
+
+        raw = getattr(ets_baseline, "model", "")
+        m = re.search(r"ETS\(([^)]+)\)", raw)
+        if m:
+            resolved_ets = m.group(1)  # e.g. "AAA"
+
+    # Prune ARIMA search space based on ETS model type (autoadam.R lines 498-510)
+    if resolved_ets != "NNN":
+        max_ar, max_i, max_ma = _prune_orders_for_ets(
+            resolved_ets, lags, max_ar, max_i, max_ma
+        )
+
+    # ETS baseline: use its IC and residuals as starting point for Phase 1
+    initial_ic = _get_ic(ets_baseline, ic) if ets_baseline is not None else np.inf
+    initial_model = ets_baseline
+
     # Phase 1 — differencing orders
     best_i, best_constant, best_model, best_ic = _select_i_orders(
-        y, ets_model, max_i, lags, distribution, ic, X, **adam_kwargs
+        y,
+        resolved_ets,
+        max_i,
+        lags,
+        distribution,
+        ic,
+        X,
+        initial_ic=initial_ic,
+        initial_model=initial_model,
+        **adam_kwargs,
     )
 
     if best_model is None:
@@ -402,7 +507,7 @@ def arima_selector(
     # Phase 2 — MA orders
     best_ma, best_model, best_ic = _select_ma_orders(
         y,
-        ets_model,
+        resolved_ets,
         best_i,
         max_ma,
         lags,
@@ -418,7 +523,7 @@ def arima_selector(
     # Phase 3 — AR orders
     best_ar, best_model, best_ic = _select_ar_orders(
         y,
-        ets_model,
+        resolved_ets,
         best_i,
         best_ma,
         max_ar,
@@ -435,7 +540,7 @@ def arima_selector(
     # Phase 4 — IMA(d,q) special models
     ima_i, ima_ma, ima_model, ima_ic = _check_ima_models(
         y,
-        ets_model,
+        resolved_ets,
         best_ar,
         max_i,
         max_ma,
@@ -449,6 +554,17 @@ def arima_selector(
     )
     if ima_model is not None:
         best_i, best_ma, best_model, best_ic = ima_i, ima_ma, ima_model, ima_ic
+
+    # Final check: if ETS baseline is better or equal, return it
+    # (autoadam.R lines 760-774)
+    if ets_baseline is not None and best_ic >= initial_ic:
+        best_model = ets_baseline
+        best_ic = initial_ic
+        n = len(lags)
+        best_ar = [0] * n
+        best_i = [0] * n
+        best_ma = [0] * n
+        best_constant = False
 
     return {
         "ar_orders": best_ar,

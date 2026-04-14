@@ -606,6 +606,7 @@ def _setup_persistence_vector(
                     for i in provided_indices
                 ]
                 vec_g[j + provided_indices, 0] = provided_values
+            j += model_params["components_number_ets_seasonal"]
 
     # ARIMA model, persistence
     if arima_checked["arima_model"]:

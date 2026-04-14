@@ -305,13 +305,32 @@ class AutoADAM(ADAM):
         # ------------------------------------------------------------------
         results: Dict[str, Any] = {}
 
+        ets_model = self.model if isinstance(self.model, str) else self.model[0]
+        has_ets = ets_model != "NNN"
+
         for dist in candidates:
             if self._auto_arima_select:
+                # ETS-first strategy (mirrors autoadam.R lines 392-423, 560-595):
+                # When the model has ETS components, fit ETS-only first, then
+                # use it as the baseline for ARIMA selection on its residuals.
+                ets_baseline = None
+                if has_ets:
+                    try:
+                        ets_baseline = ADAM(
+                            model=ets_model,
+                            lags=lags,
+                            ar_order=0,
+                            i_order=0,
+                            ma_order=0,
+                            distribution=dist,
+                            **adam_kw,
+                        ).fit(y_arr, X)
+                    except Exception:
+                        pass
+
                 sel = arima_selector(
                     y=y_arr,
-                    ets_model=self.model
-                    if isinstance(self.model, str)
-                    else self.model[0],
+                    ets_model=ets_model,
                     max_ar_orders=self._auto_max_ar,
                     max_i_orders=self._auto_max_i,
                     max_ma_orders=self._auto_max_ma,
@@ -319,6 +338,7 @@ class AutoADAM(ADAM):
                     distribution=dist,
                     ic=self.ic,
                     X=X,
+                    ets_baseline=ets_baseline,
                     **adam_kw,
                 )
                 fitted_model = sel["model"]
