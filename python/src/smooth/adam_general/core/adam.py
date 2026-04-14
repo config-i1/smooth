@@ -951,6 +951,11 @@ class ADAM:
             else:
                 self.model = ets_str
 
+            if self._constant and self._constant.get("constant_required", False):
+                i_orders = (self._arima or {}).get("i_orders") or []
+                has_drift = is_ets or any(d != 0 for d in i_orders)
+                self.model += " with " + ("drift" if has_drift else "constant")
+
     # =========================================================================
     # Extraction Properties - R-style accessors implemented as Python properties
     # =========================================================================
@@ -1440,7 +1445,7 @@ class ADAM:
         ...     print(f"Constant: {model.constant_value:.4f}")
         """
         self._check_is_fitted()
-        return self._prepared.get("constant_value")
+        return self._prepared.get("constant")
 
     @property
     def distribution_(self) -> str:

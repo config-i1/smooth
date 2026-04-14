@@ -276,11 +276,16 @@ def _format_arma_parameters(model: Any, digits: int = 4) -> str:
     # Get lags from lags_original (the input lags, aligned with ar/ma orders)
     lags = []
     if hasattr(model, "_lags_model") and model._lags_model:
-        lags = model._lags_model.get("lags_original") or model._lags_model.get("lags") or []
+        lags = (
+            model._lags_model.get("lags_original")
+            or model._lags_model.get("lags")
+            or []
+        )
     if not lags and hasattr(model, "_config"):
         lags = model._config.get("lags") or [1]
 
-    # Get polynomial values from _prepared (arma["ar"] = arPolynomial[1:], arma["ma"] = maPolynomial[1:])
+    # Get polynomial values from _prepared
+    # arma["ar"] = arPolynomial[1:], arma["ma"] = maPolynomial[1:]
     ar_poly = []
     ma_poly = []
     if hasattr(model, "_prepared") and model._prepared:
@@ -306,26 +311,34 @@ def _format_arma_parameters(model: Any, digits: int = 4) -> str:
 
     # AR block
     if ar_poly and any(o > 0 for o in ar_orders):
-        active = [(k, lags[k]) for k in range(min(len(ar_orders), len(lags))) if ar_orders[k] > 0]
+        n = min(len(ar_orders), len(lags))
+        active = [(k, lags[k]) for k in range(n) if ar_orders[k] > 0]
         if active:
             max_ar = max(ar_orders[k] for k, _ in active)
             col_labels = [f"Lag {lag}" for _, lag in active]
             row_labels = [f"AR({j + 1})" for j in range(max_ar)]
             matrix = [
-                [_get_ar_val(j + 1, lag) if j < ar_orders[k] else None for k, lag in active]
+                [
+                    _get_ar_val(j + 1, lag) if j < ar_orders[k] else None
+                    for k, lag in active
+                ]
                 for j in range(max_ar)
             ]
             blocks.append(_format_param_matrix(row_labels, col_labels, matrix, digits))
 
     # MA block
     if ma_poly and any(o > 0 for o in ma_orders):
-        active = [(k, lags[k]) for k in range(min(len(ma_orders), len(lags))) if ma_orders[k] > 0]
+        n = min(len(ma_orders), len(lags))
+        active = [(k, lags[k]) for k in range(n) if ma_orders[k] > 0]
         if active:
             max_ma = max(ma_orders[k] for k, _ in active)
             col_labels = [f"Lag {lag}" for _, lag in active]
             row_labels = [f"MA({j + 1})" for j in range(max_ma)]
             matrix = [
-                [_get_ma_val(j + 1, lag) if j < ma_orders[k] else None for k, lag in active]
+                [
+                    _get_ma_val(j + 1, lag) if j < ma_orders[k] else None
+                    for k, lag in active
+                ]
                 for j in range(max_ma)
             ]
             blocks.append(_format_param_matrix(row_labels, col_labels, matrix, digits))
@@ -632,7 +645,11 @@ def model_summary(model: Any, digits: int = 4) -> str:
                 and bool(model._explanatory)
                 and model._explanatory.get("xreg_model", False)
             )
-            g_label = "Persistence vector g (excluding xreg):" if has_xreg else "Persistence vector g:"
+            g_label = (
+                "Persistence vector g (excluding xreg):"
+                if has_xreg
+                else "Persistence vector g:"
+            )
             lines.append(g_label)
             lines.append(persistence_str)
 
@@ -711,7 +728,7 @@ def _build_model_name(model: Any) -> str:
         xstr = "X" if xreg_model else ""
         name = f"ETS{xstr}({model_str})"
         if n_ets_seasonal > 1:
-            seasonal_lags = [str(l) for l in lags if l != 1]
+            seasonal_lags = [str(lag) for lag in lags if lag != 1]
             name += f"[{', '.join(seasonal_lags)}]"
 
     # ARIMA part
@@ -719,15 +736,12 @@ def _build_model_name(model: Any) -> str:
         if ets_model:
             name += "+"
         # Non-seasonal: all lags == 1, or all seasonal-lag orders are zero
-        seasonal_lags_idx = [k for k, l in enumerate(lags) if l > 1]
-        is_nonseasonal = (
-            all(l == 1 for l in lags)
-            or all(
-                (k >= len(ar_orders) or ar_orders[k] == 0)
-                and (k >= len(i_orders) or i_orders[k] == 0)
-                and (k >= len(ma_orders) or ma_orders[k] == 0)
-                for k in seasonal_lags_idx
-            )
+        seasonal_lags_idx = [k for k, lag in enumerate(lags) if lag > 1]
+        is_nonseasonal = all(lag == 1 for lag in lags) or all(
+            (k >= len(ar_orders) or ar_orders[k] == 0)
+            and (k >= len(i_orders) or i_orders[k] == 0)
+            and (k >= len(ma_orders) or ma_orders[k] == 0)
+            for k in seasonal_lags_idx
         )
         xstr = "X" if (xreg_model and not ets_model) else ""
         if is_nonseasonal:
@@ -828,7 +842,7 @@ def _format_constant(model: Any, digits: int) -> str:
     """Format constant/drift value if present."""
     if hasattr(model, "_constant") and model._constant:
         if model._constant.get("constant_estimate", False):
-            constant_val = model._constant.get("constant_value")
+            constant_val = model.constant_value
             if constant_val is not None:
                 return f"Intercept/Drift value: {constant_val:.{digits}f}"
     return ""

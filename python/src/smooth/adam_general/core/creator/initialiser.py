@@ -856,7 +856,13 @@ def initialiser(
                 Bu[j - 1] = np.inf
         else:
             Bu[j - 1] = max(
-                abs(observations_dict["y_in_sample"][observations_dict["ot_logical"]]),
+                np.max(
+                    np.abs(
+                        observations_dict["y_in_sample"][
+                            observations_dict["ot_logical"]
+                        ]
+                    )
+                ),
                 abs(B[j - 1]) * 1.01,
             )
             Bl[j - 1] = -Bu[j - 1]
