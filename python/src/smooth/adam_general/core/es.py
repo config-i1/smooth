@@ -174,12 +174,12 @@ class ES(ADAM):
         **kwargs,
     ) -> None:
         """Initialize ES model with ETS-specific parameters."""
-        _arima_keys = {"ar_order", "i_order", "ma_order", "orders", "arima_select"}
-        _bad = _arima_keys & set(kwargs)
+        _blocked = {"ar_order", "i_order", "ma_order", "orders", "arima_select", "constant"}
+        _bad = _blocked & set(kwargs)
         if _bad:
             raise ValueError(
-                f"ES() does not support ARIMA parameters: {sorted(_bad)}. "
-                "Use ADAM() for models with ARIMA components."
+                f"ES() does not support these parameters: {sorted(_bad)}. "
+                "Use ADAM() for models with ARIMA components or a constant term."
             )
 
         # Process initial values
@@ -206,6 +206,7 @@ class ES(ADAM):
             h=h,
             holdout=holdout,
             bounds=bounds,
+            constant=False,
             verbose=verbose,
             regressors=regressors,
             **kwargs,
