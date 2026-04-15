@@ -566,6 +566,28 @@ def arima_selector(
         best_ma = [0] * n
         best_constant = False
 
+    # Final re-estimation: refit the selected ETS+ARIMA from scratch.
+    # Mirrors autoadam.R lines 762-774: after greedy phase selection,
+    # R always refits the complete model one more time (fresh backcasting
+    # start), giving the optimizer an independent run that can find a
+    # better local optimum (especially for distributions like dlnorm).
+    if ets_baseline is not None and best_model is not ets_baseline:
+        refit_model, refit_ic = _fit_arima_model(
+            y, resolved_ets, best_ar, best_i, best_ma,
+            lags, best_constant, distribution, ic, X, **adam_kwargs,
+        )
+        if refit_ic < best_ic:
+            best_model, best_ic = refit_model, refit_ic
+        elif refit_ic >= initial_ic:
+            # Refit worse than ETS-only baseline — fall back to ETS
+            best_model = ets_baseline
+            best_ic = initial_ic
+            n = len(lags)
+            best_ar = [0] * n
+            best_i = [0] * n
+            best_ma = [0] * n
+            best_constant = False
+
     return {
         "ar_orders": best_ar,
         "i_orders": best_i,
