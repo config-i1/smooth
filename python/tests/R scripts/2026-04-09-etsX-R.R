@@ -12,8 +12,13 @@ coef(model)
 
 y <- Mcomp::M3[[2568]]
 
-model <- adam(y, model="NNN", lags=c(12),
-              initial="back",
+model <- adam(y, model="ANN", lags=c(1,12),
+              initial="back", constant=1.6,
               orders=list(ar=c(1,1), i=c(1,1), ma=c(1,2)),
-              print_level=3, maxeval=1)
+              print_level=0, maxeval=NULL)
 model
+
+auto.adam(y, model="ANN", lags=c(1,12),
+              initial="back",
+              orders=list(ar=c(3,3), i=c(2,2), ma=c(3,3), select=T)
+            )

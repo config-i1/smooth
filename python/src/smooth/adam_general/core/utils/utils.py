@@ -789,9 +789,10 @@ def calculate_likelihood(distribution, Etype, y, y_fitted, scale, other):
         # Implement asymmetric Laplace distribution
         pass
     elif distribution == "dlnorm":
-        return stats.lognorm.logpdf(
-            y, s=scale, scale=np.exp(np.log(y_fitted) - scale**2 / 2)
-        )
+        # Use complex log to handle negative y_fitted during optimization,
+        # mirroring R's Re(log(as.complex(y_fitted))) failsafe.
+        meanlog = np.real(np.log(y_fitted.astype(complex))) - scale**2 / 2
+        return stats.lognorm.logpdf(y, s=scale, scale=np.exp(meanlog))
     elif distribution == "dllaplace":
         return stats.laplace.logpdf(
             np.log(y), loc=np.log(y_fitted), scale=scale

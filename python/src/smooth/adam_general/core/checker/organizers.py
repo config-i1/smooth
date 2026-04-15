@@ -237,7 +237,7 @@ def _calculate_parameters_number(
     # Add ARIMA parameters if present
     if arima_info["arima_model"]:
         # Add number of ARMA parameters
-        parameters_number[1][0] += len(arima_info.get("arma_parameters", []))
+        parameters_number[1][0] += len(arima_info.get("arma_parameters") or [])
 
     # Add constant if required
     if constant_required:

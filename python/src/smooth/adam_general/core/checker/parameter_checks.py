@@ -32,6 +32,8 @@ def _check_distribution_loss(distribution, loss, silent=False):
         "dlogis",
         "dt",
         "dgnorm",
+        "dlnorm",
+        "dinvgauss",
         "dgamma",
         "dpois",
     ]

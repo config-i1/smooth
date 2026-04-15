@@ -2,8 +2,6 @@ import warnings
 
 import numpy as np
 
-from smooth.adam_general.core.utils.polynomials import adam_polynomialiser
-
 from .initialization import _initialize_states
 
 # Suppress divide by zero warnings
@@ -608,6 +606,7 @@ def _setup_persistence_vector(
                     for i in provided_indices
                 ]
                 vec_g[j + provided_indices, 0] = provided_values
+            j += model_params["components_number_ets_seasonal"]
 
     # ARIMA model, persistence
     if arima_checked["arima_model"]:
@@ -651,56 +650,8 @@ def _handle_polynomial_setup(matrices, model_params, arima_checked):
     mat_f = matrices["mat_f"]
     vec_g = matrices["vec_g"]
 
-    # Get parameters
-    lags = model_params["lags"]
-    components_number_ets = model_params["components_number_ets"]
-
-    # If the arma parameters were provided, fill in the persistence
-    # Only pre-compute when nothing is fixed — filler.py handles fixed params correctly
-    arima_polynomials = None
-    if arima_checked["arima_model"] and (
-        not arima_checked["ar_estimate"]
-        and not arima_checked["ma_estimate"]
-        and arima_checked["arma_parameters"] is None
-    ):
-        # Call polynomial
-        arima_polynomials = {
-            key: np.array(value)
-            for key, value in adam_polynomialiser(
-                0,
-                arima_checked["ar_orders"],
-                arima_checked["i_orders"],
-                arima_checked["ma_orders"],
-                arima_checked["ar_estimate"],
-                arima_checked["ma_estimate"],
-                arima_checked["arma_parameters"],
-                lags,
-            ).items()
-        }
-
-        # Fill in the transition matrix
-        if len(arima_checked["non_zero_ari"]) > 0:
-            non_zero_ari = np.array(arima_checked["non_zero_ari"])
-            mat_f[
-                components_number_ets + non_zero_ari[:, 1],
-                components_number_ets + non_zero_ari[:, 1],
-            ] = -arima_polynomials["ari_polynomial"][non_zero_ari[:, 0]]
-
-        # Fill in the persistence vector
-        if len(arima_checked["non_zero_ari"]) > 0:
-            non_zero_ari = np.array(arima_checked["non_zero_ari"])
-            vec_g[components_number_ets + non_zero_ari[:, 1], 0] = -arima_polynomials[
-                "ari_polynomial"
-            ][non_zero_ari[:, 0]]
-
-        if len(arima_checked["non_zero_ma"]) > 0:
-            non_zero_ma = np.array(arima_checked["non_zero_ma"])
-            vec_g[components_number_ets + non_zero_ma[:, 1], 0] += arima_polynomials[
-                "ma_polynomial"
-            ][non_zero_ma[:, 0]]
-
     matrices["mat_f"] = mat_f
     matrices["vec_g"] = vec_g
-    matrices["arima_polynomials"] = arima_polynomials
+    matrices["arima_polynomials"] = None
 
     return matrices
