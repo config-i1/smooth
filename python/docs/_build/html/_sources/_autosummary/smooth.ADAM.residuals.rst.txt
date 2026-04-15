@@ -1,4 +1,4 @@
-smooth.ADAM.residuals
+﻿smooth.ADAM.residuals
 =====================
 
 .. currentmodule:: smooth

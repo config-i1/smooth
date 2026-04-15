@@ -15,8 +15,11 @@
    :template: method.rst
 
    ~ADAM.fit
+   ~ADAM.outlierdummy
    ~ADAM.predict
    ~ADAM.predict_intervals
+   ~ADAM.rstandard
+   ~ADAM.rstudent
    ~ADAM.select_best_model
    ~ADAM.summary
 

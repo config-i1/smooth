@@ -15,8 +15,11 @@
    :template: method.rst
 
    ~ES.fit
+   ~ES.outlierdummy
    ~ES.predict
    ~ES.predict_intervals
+   ~ES.rstandard
+   ~ES.rstudent
    ~ES.select_best_model
    ~ES.summary
 
