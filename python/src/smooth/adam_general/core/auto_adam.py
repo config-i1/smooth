@@ -52,15 +52,17 @@ class AutoADAM(ADAM):
     lags : Optional[List[int]], default=None
         Seasonal period(s). Lag 1 is prepended automatically when absent.
 
-    ar_order : Union[int, List[int]], default=3
-        Maximum AR order(s) for ARIMA selection (one per lag level).
+    ar_order : Union[int, List[int]], default=[3, 3]
+        Maximum AR order(s) per lag level for ARIMA selection.
+        Defaults to ``[3, 3]`` matching R's ``auto.adam()``.
 
-    i_order : Union[int, List[int]], default=2
-        Maximum integration order(s) for ARIMA selection.
-        Defaults match R: ``[2]`` for non-seasonal, ``[1]`` for seasonal lags.
+    i_order : Union[int, List[int]], default=[2, 1]
+        Maximum integration order(s) per lag level for ARIMA selection.
+        Defaults to ``[2, 1]`` matching R's ``auto.adam()``.
 
-    ma_order : Union[int, List[int]], default=3
-        Maximum MA order(s) for ARIMA selection.
+    ma_order : Union[int, List[int]], default=[3, 3]
+        Maximum MA order(s) per lag level for ARIMA selection.
+        Defaults to ``[3, 3]`` matching R's ``auto.adam()``.
 
     orders : Optional[Dict[str, Any]], default=None
         R-style alternative to scalar max orders. A dict with keys
@@ -153,9 +155,9 @@ class AutoADAM(ADAM):
         self,
         model: Union[str, List[str]] = "ZXZ",
         lags: Optional[List[int]] = None,
-        ar_order: Union[int, List[int]] = 3,
-        i_order: Union[int, List[int]] = 2,
-        ma_order: Union[int, List[int]] = 3,
+        ar_order: Union[int, List[int], None] = None,
+        i_order: Union[int, List[int], None] = None,
+        ma_order: Union[int, List[int], None] = None,
         orders: Optional[Dict[str, Any]] = None,
         arima_select: bool = True,
         distribution: Union[str, List[str], None] = None,
@@ -187,22 +189,21 @@ class AutoADAM(ADAM):
         self._auto_outliers: str = outliers
         self._auto_level: float = level
 
-        # Parse max ARIMA orders (scalar → list normalised in arima_selector)
-        self._auto_max_ar: List[int] = (
-            list(ar_order) if isinstance(ar_order, list) else [ar_order]
-        )
-        self._auto_max_i: List[int] = (
-            list(i_order) if isinstance(i_order, list) else [i_order]
-        )
-        self._auto_max_ma: List[int] = (
-            list(ma_order) if isinstance(ma_order, list) else [ma_order]
-        )
+        # Default orders match R's auto.adam(): ar=[3,3], i=[2,1], ma=[3,3]
+        _ar = ar_order if ar_order is not None else [3, 3]
+        _i = i_order if i_order is not None else [2, 1]
+        _ma = ma_order if ma_order is not None else [3, 3]
 
-        # Parse orders dict if provided
+        # Parse max ARIMA orders (scalar → list normalised in arima_selector)
+        self._auto_max_ar: List[int] = list(_ar) if isinstance(_ar, list) else [_ar]
+        self._auto_max_i: List[int] = list(_i) if isinstance(_i, list) else [_i]
+        self._auto_max_ma: List[int] = list(_ma) if isinstance(_ma, list) else [_ma]
+
+        # Parse orders dict if provided (overrides scalar args)
         if orders is not None:
-            ar_val = orders.get("ar", ar_order)
-            i_val = orders.get("i", i_order)
-            ma_val = orders.get("ma", ma_order)
+            ar_val = orders.get("ar", _ar)
+            i_val = orders.get("i", _i)
+            ma_val = orders.get("ma", _ma)
             self._auto_max_ar = list(ar_val) if isinstance(ar_val, list) else [ar_val]
             self._auto_max_i = list(i_val) if isinstance(i_val, list) else [i_val]
             self._auto_max_ma = list(ma_val) if isinstance(ma_val, list) else [ma_val]
