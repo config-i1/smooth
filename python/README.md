@@ -13,7 +13,7 @@ The package includes the following models:
 
 - [ADAM](https://openforecast.org/adam/) - Augmented Dynamic Adaptive Model, uniting exponential smoothing, ARIMA and regression, implemented in the `ADAM` class.
 - [ETS](https://github.com/config-i1/smooth/wiki/ES) - Exponential Smoothing in the SSOE state space form, implemented in the `ES` class.
-- [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) - Multiple seasonal ARIMA in state space form, implemented in the `MSARIMA` class.
+- [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) - Multiple seasonal ARIMA in state space form, implemented in the `MSARIMA` class (fixed orders) and `AutoMSARIMA` class (automatic order selection).
 
 All of these are implemented with the support of the following features:
 
@@ -108,6 +108,38 @@ model_adp.fit(y, X)
 
 `X` accepts a NumPy array or a pandas DataFrame (column names are preserved as regressor names).
 `regressors` controls treatment: `"use"` (fixed coefficients), `"select"` (stepwise selection via greybox), or `"adapt"` (ETS-style time-varying coefficients).
+
+## AutoMSARIMA — Automatic ARIMA Order Selection
+
+`AutoMSARIMA` selects the best ARIMA orders automatically using information criteria,
+mirroring R's `auto.msarima()`. It fixes `distribution="dnorm"` and uses pure ARIMA
+(no ETS components).
+
+```python
+import numpy as np
+from smooth import AutoMSARIMA
+
+# Monthly time series (e.g. AirPassengers, 144 observations)
+y = np.array([
+    112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118,
+    # ... remaining observations
+], dtype=float)
+
+# Automatic seasonal ARIMA — searches up to ARIMA(3,2,3)(3,1,3)[12]
+model = AutoMSARIMA(lags=[1, 12])
+model.fit(y)
+print(model)   # AutoMSARIMA: ARIMA([p,P],[d,D],[q,Q])
+
+# Reduce search space for speed
+model = AutoMSARIMA(
+    lags=[1, 12],
+    ar_order=[2, 1],   # max AR: p≤2 at lag 1, P≤1 at lag 12
+    i_order=[2, 1],    # max I:  d≤2 at lag 1, D≤1 at lag 12
+    ma_order=[2, 1],   # max MA: q≤2 at lag 1, Q≤1 at lag 12
+)
+model.fit(y)
+fc = model.predict(h=24)
+```
 
 ## Documentation
 
