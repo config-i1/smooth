@@ -362,7 +362,7 @@ class ADAM:
         loss: LOSS_OPTIONS = "likelihood",
         loss_horizon: Optional[int] = None,
         # outlier detection
-        outliers: Literal["ignore", "detect", "use"] = "ignore",
+        outliers: Literal["ignore", "use", "select"] = "ignore",
         outliers_level: float = 0.99,
         # end of outlier detection
         ic: Literal["AIC", "AICc", "BIC", "BICc"] = "AICc",
@@ -454,8 +454,11 @@ class ADAM:
             Loss function for parameter estimation.
         loss_horizon : Optional[int], default=None
             Number of steps for multi-step loss functions (e.g., MSEh).
-        outliers : Literal["ignore", "detect", "use"], default="ignore"
-            Outlier handling method.
+        outliers : Literal["ignore", "use", "select"], default="ignore"
+            Outlier handling: ``"ignore"`` skips detection; ``"use"`` detects
+            outliers and includes their dummies as fixed regressors; ``"select"``
+            also expands each dummy with lag/lead columns and lets the regressor
+            selection mechanism choose which matter.
         outliers_level : float, default=0.99
             Confidence level for outlier detection.
         ic : Literal["AIC", "AICc", "BIC", "BICc"], default="AICc"
@@ -859,6 +862,29 @@ class ADAM:
 
         # Compute elapsed time
         self.time_elapsed_ = time.time() - self._start_time
+
+        # Outlier detection and refitting
+        # "ignore" → skip; "use" → include dummies as fixed regressors;
+        # "select" → expand dummies with lag/lead and let selection prune them.
+        _outliers = self.outliers
+        if _outliers in ("use", "select"):
+            _level = self.outliers_level
+            od = self.outlierdummy(level=_level)
+            if len(od.id) > 0:
+                D = (
+                    self._expand_outlier_dummies(od.outliers)
+                    if _outliers == "select"
+                    else od.outliers
+                )
+                h_eff = len(y) - self.nobs
+                if h_eff > 0:
+                    D = np.vstack([D, np.zeros((h_eff, D.shape[1]))])
+                X_new = np.hstack([X, D]) if X is not None else D
+                self.outliers = "ignore"
+                self.regressors = "select" if _outliers == "select" else "use"
+                self.fit(y, X_new)
+                self._config["outliers"] = _outliers
+                return self  # _config already built by the recursive fit()
 
         # Consolidate init params into _config and remove individual attributes
         self._config = {
@@ -2056,6 +2082,34 @@ class ADAM:
             level=level,
             type=type,
         )
+
+    @staticmethod
+    def _expand_outlier_dummies(D: NDArray) -> NDArray:
+        """
+        Expand each outlier dummy column into three columns: lag-1, t, lead+1.
+
+        Used by ``outliers="select"`` to allow the regressor selection
+        mechanism to choose which temporal offset carries the outlier effect.
+
+        Parameters
+        ----------
+        D : NDArray of shape (n, m)
+            Binary dummy matrix from ``outlierdummy()``.
+
+        Returns
+        -------
+        NDArray of shape (n, 3*m)
+            Expanded matrix with columns ordered as
+            ``[lag_1, t, lead_1, lag_2, t_2, lead_2, ...]``.
+        """
+        n, m = D.shape
+        cols = []
+        for j in range(m):
+            col = D[:, j]
+            cols.append(np.concatenate([[0.0], col[:-1]]))  # lag -1
+            cols.append(col.copy())  # t
+            cols.append(np.concatenate([col[1:], [0.0]]))  # lead +1
+        return np.column_stack(cols)
 
     @property
     def nobs(self) -> int:

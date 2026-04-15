@@ -11,7 +11,6 @@ a warning is issued when it is requested.
 """
 
 import time
-import warnings
 from typing import Any, Dict, List, Literal, Optional, Union
 
 import numpy as np
@@ -260,14 +259,7 @@ class AutoADAM(ADAM):
         _auto_keys = [k for k in self.__dict__ if k.startswith("_auto_")]
         _auto_state = {k: self.__dict__[k] for k in _auto_keys}
 
-        # Warn if outlier detection requested (not yet implemented)
-        if self._auto_outliers != "ignore":
-            warnings.warn(
-                "Outlier detection is not yet implemented in AutoADAM. "
-                "Set outliers='ignore' to suppress this warning.",
-                UserWarning,
-                stacklevel=2,
-            )
+        # (outlier handling is applied after best-model selection below)
 
         y_arr = np.asarray(y, dtype=float).ravel()
 
@@ -389,6 +381,35 @@ class AutoADAM(ADAM):
         best_model = best_entry["model"]
 
         # ------------------------------------------------------------------
+        # Outlier handling: detect on best model, refit with dummies appended
+        # ------------------------------------------------------------------
+        if self._auto_outliers in ("use", "select"):
+            od = best_model.outlierdummy(level=self._auto_level)
+            if len(od.id) > 0:
+                D = (
+                    ADAM._expand_outlier_dummies(od.outliers)
+                    if self._auto_outliers == "select"
+                    else od.outliers
+                )
+                h_eff = len(y_arr) - best_model.nobs
+                if h_eff > 0:
+                    D = np.vstack([D, np.zeros((h_eff, D.shape[1]))])
+                X_new = np.hstack([X, D]) if X is not None else D
+                # best_model._config was built on the first fit; restore attrs
+                # so that fit() can run again (fit() expects instance attrs).
+                # Skip read-only properties (e.g. `orders`) with try/except.
+                for k, v in best_model._config.items():
+                    try:
+                        setattr(best_model, k, v)
+                    except AttributeError:
+                        pass
+                best_model.regressors = (
+                    "select" if self._auto_outliers == "select" else "use"
+                )
+                best_model.outliers = "ignore"
+                best_model.fit(y_arr, X_new)
+
+        # ------------------------------------------------------------------
         # Copy fitted state from best_model into self
         # ------------------------------------------------------------------
         self.__dict__.update(best_model.__dict__)
@@ -396,6 +417,10 @@ class AutoADAM(ADAM):
         # Restore AutoADAM-specific state
         # (overwrite any same-named keys from best_model)
         self.__dict__.update(_auto_state)
+
+        # Patch _config to reflect original outliers setting
+        if self._auto_outliers in ("use", "select") and hasattr(self, "_config"):
+            self._config["outliers"] = self._auto_outliers
 
         # Store selection metadata
         self._selected_distribution: str = best_dist
