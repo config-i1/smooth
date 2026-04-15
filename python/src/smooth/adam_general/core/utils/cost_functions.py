@@ -721,6 +721,7 @@ def log_Lik_ADAM(  # noqa: N802
     profile_dict,
     adam_cpp,
     multisteps=False,
+    otherParameterEstimate=False,
 ):
     """
     Calculate log-likelihood for the ADAM model.
@@ -985,6 +986,7 @@ def log_Lik_ADAM(  # noqa: N802
                 general_dict,
                 adam_cpp,
                 bounds=None,
+                otherParameterEstimate=otherParameterEstimate,
             )
 
             # Handle occurrence model

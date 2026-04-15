@@ -783,8 +783,11 @@ def calculate_likelihood(distribution, Etype, y, y_fitted, scale, other):
                 y, df=2, loc=y_fitted, scale=scale * np.sqrt(y_fitted)
             )
     elif distribution == "dgnorm":
-        # Implement generalized normal distribution
-        pass
+        beta = other if other is not None else 2.0
+        if Etype == "A":
+            return stats.gennorm.logpdf(y, beta, loc=y_fitted, scale=scale)
+        else:  # "M"
+            return stats.gennorm.logpdf(y, beta, loc=y_fitted, scale=scale * y_fitted)
     elif distribution == "dalaplace":
         # Implement asymmetric Laplace distribution
         pass
@@ -907,7 +910,8 @@ def scaler(distribution, Etype, errors, y_fitted, obs_in_sample, other):
         return np.sum(np.sqrt(np.abs(errors))) / (obs_in_sample * 2)
 
     elif distribution == "dgnorm":
-        return (other * np.sum(np.abs(errors) ** other) / obs_in_sample) ** (1 / other)
+        beta = other if other is not None else 2.0
+        return (beta * np.sum(np.abs(errors) ** beta) / obs_in_sample) ** (1 / beta)
 
     elif distribution == "dalaplace":
         return np.sum(errors * (other - (errors <= 0) * 1)) / obs_in_sample

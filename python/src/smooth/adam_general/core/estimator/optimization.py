@@ -252,6 +252,8 @@ def _create_objective_function(
     print_level,
     ar_polynomial_matrix=None,
     ma_polynomial_matrix=None,
+    other=None,
+    other_parameter_estimate=False,
 ):
     """
     Create objective function for optimization.
@@ -316,6 +318,8 @@ def _create_objective_function(
                 general=general_dict,
                 adam_cpp=adam_cpp,
                 bounds=general_dict["bounds"],
+                other=other,
+                otherParameterEstimate=other_parameter_estimate,
                 arPolynomialMatrix=ar_polynomial_matrix,
                 maPolynomialMatrix=ma_polynomial_matrix,
             )
@@ -387,6 +391,7 @@ def _calculate_loglik(
     adam_cpp,
     multisteps,
     n_param_estimated,
+    other_parameter_estimate=False,
 ):
     """
     Calculate log-likelihood for the estimated model.
@@ -451,6 +456,7 @@ def _calculate_loglik(
         profile_dict,
         adam_cpp,
         multisteps=multisteps,
+        otherParameterEstimate=other_parameter_estimate,
     )
 
     # In case of likelihood, we typically have one more parameter to estimate - scale.

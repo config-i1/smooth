@@ -38,6 +38,8 @@ def estimator(
     maxeval=None,
     B_initial=None,
     return_matrices=False,
+    other=None,
+    other_parameter_estimate=False,
     # NLopt parameters
     xtol_rel=1e-6,
     xtol_abs=1e-8,
@@ -489,6 +491,8 @@ def estimator(
         phi_dict=phi_dict,
         profile_dict=profile_dict,
         adam_cpp=adam_cpp,
+        other_parameter_estimate=other_parameter_estimate,
+        other_value=other if other is not None else 2.0,
     )
     # Get initial parameter vector and bounds; user-provided values are used as-is
     B = np.asarray(B_initial, dtype=float) if B_initial is not None else b_values["B"]
@@ -552,6 +556,8 @@ def estimator(
         print_level,
         ar_polynomial_matrix=ar_polynomial_matrix,
         ma_polynomial_matrix=ma_polynomial_matrix,
+        other=other,
+        other_parameter_estimate=other_parameter_estimate,
     )
 
     # Set objective function
@@ -658,11 +664,13 @@ def estimator(
         adam_cpp,
         multisteps,
         n_param_estimated,
+        other_parameter_estimate=other_parameter_estimate,
     )
 
     # Step 12: Prepare and return results
     result = {
         "B": B,
+        "other_parameter_estimate": other_parameter_estimate,
         "CF_value": CF_value,
         "n_param_estimated": n_param_estimated,
         "log_lik_adam_value": log_lik_adam_value,

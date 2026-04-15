@@ -2400,6 +2400,18 @@ class ADAM:
         # Estimate the model
         # Note: estimator() handles two-stage initialization internally
         if estimation:
+            # gnorm shape handling: estimate when not given (mirrors R)
+            dist = self._general.get("distribution_new") or self._general.get(
+                "distribution", "dnorm"
+            )
+            other_parameter_estimate = dist == "dgnorm" and self.gnorm_shape is None
+            if dist != "dgnorm":
+                other_value = None
+            elif self.gnorm_shape is None:
+                other_value = 2.0
+            else:
+                other_value = float(self.gnorm_shape)
+
             nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
             self._adam_estimated = estimator(
                 general_dict=self._general,
@@ -2418,10 +2430,16 @@ class ADAM:
                 components_dict=self._components,
                 multisteps=self._general.get("multisteps", False),
                 smoother=self.smoother,
+                other=other_value,
+                other_parameter_estimate=other_parameter_estimate,
                 **nlopt_params,
             )
             # Extract adam_cpp from estimation results
             self._adam_cpp = self._adam_estimated["adam_cpp"]
+
+            # Store back estimated gnorm shape
+            if other_parameter_estimate and "B" in self._adam_estimated:
+                self.gnorm_shape = float(abs(self._adam_estimated["B"][-1]))
 
         # Build the model structure - architector() returns 6 values including
         # adam_cpp, but we already have adam_cpp from estimation
