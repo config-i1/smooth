@@ -573,8 +573,17 @@ def arima_selector(
     # better local optimum (especially for distributions like dlnorm).
     if ets_baseline is not None and best_model is not ets_baseline:
         refit_model, refit_ic = _fit_arima_model(
-            y, resolved_ets, best_ar, best_i, best_ma,
-            lags, best_constant, distribution, ic, X, **adam_kwargs,
+            y,
+            resolved_ets,
+            best_ar,
+            best_i,
+            best_ma,
+            lags,
+            best_constant,
+            distribution,
+            ic,
+            X,
+            **adam_kwargs,
         )
         if refit_ic < best_ic:
             best_model, best_ic = refit_model, refit_ic
