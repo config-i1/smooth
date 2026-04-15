@@ -299,31 +299,33 @@ class TestAutoADAMOutliers:
             ).fit(trend_data)
         assert m is not None
 
-    def test_outliers_use_warns_not_implemented(self, trend_data):
-        with pytest.warns(UserWarning, match="not yet implemented"):
-            AutoADAM(
-                model="NNN",
-                distribution="dnorm",
-                lags=[1],
-                arima_select=False,
-                ar_order=1,
-                i_order=1,
-                ma_order=1,
-                outliers="use",
-            ).fit(trend_data)
+    def test_outliers_use_fits_without_warning(self, trend_data):
+        """outliers='use' is now implemented and fits without a warning."""
+        m = AutoADAM(
+            model="NNN",
+            distribution="dnorm",
+            lags=[1],
+            arima_select=False,
+            ar_order=1,
+            i_order=1,
+            ma_order=1,
+            outliers="use",
+        ).fit(trend_data)
+        assert m is not None
 
-    def test_outliers_select_warns_not_implemented(self, trend_data):
-        with pytest.warns(UserWarning, match="not yet implemented"):
-            AutoADAM(
-                model="NNN",
-                distribution="dnorm",
-                lags=[1],
-                arima_select=False,
-                ar_order=1,
-                i_order=1,
-                ma_order=1,
-                outliers="select",
-            ).fit(trend_data)
+    def test_outliers_select_fits_without_warning(self, trend_data):
+        """outliers='select' is now implemented and fits without a warning."""
+        m = AutoADAM(
+            model="NNN",
+            distribution="dnorm",
+            lags=[1],
+            arima_select=False,
+            ar_order=1,
+            i_order=1,
+            ma_order=1,
+            outliers="select",
+        ).fit(trend_data)
+        assert m is not None
 
 
 # ---------------------------------------------------------------------------
