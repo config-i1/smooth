@@ -27,6 +27,8 @@ def initialiser(
     observations_dict,
     bounds="usual",
     other=None,
+    other_parameter_estimate=False,
+    other_value=2.0,
     profile_dict=None,  # Added
     adam_cpp=None,
 ):
@@ -342,6 +344,7 @@ def initialiser(
         * initials_checked["initial_xreg_estimate"]
         * sum(explanatory_checked["xreg_parameters_estimated"] or [])
         + constants_checked["constant_estimate"]
+        + int(other_parameter_estimate)
     )
 
     B = np.zeros(total_params)
@@ -867,13 +870,12 @@ def initialiser(
             )
             Bl[j - 1] = -Bu[j - 1]
 
-    # assuming no other parameters for now
-    # if initials_checked['other_parameter_estimate']:
-    #    j += 1
-    #    B[j-1] = other
-    #    names.append("other")
-    #    Bl[j-1] = 1e-10
-    #    Bu[j-1] = np.inf
+    if other_parameter_estimate:
+        j += 1
+        B[j - 1] = other_value
+        names.append("other")
+        Bl[j - 1] = 0.25  # penalty kicks in below 0.25 (cost_functions.py:323)
+        Bu[j - 1] = np.inf
     return {"B": B, "Bl": Bl, "Bu": Bu, "names": names}
 
 

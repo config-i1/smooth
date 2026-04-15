@@ -11,7 +11,6 @@ a warning is issued when it is requested.
 """
 
 import time
-import warnings
 from typing import Any, Dict, List, Literal, Optional, Union
 
 import numpy as np
@@ -52,15 +51,17 @@ class AutoADAM(ADAM):
     lags : Optional[List[int]], default=None
         Seasonal period(s). Lag 1 is prepended automatically when absent.
 
-    ar_order : Union[int, List[int]], default=3
-        Maximum AR order(s) for ARIMA selection (one per lag level).
+    ar_order : Union[int, List[int]], default=[3, 3]
+        Maximum AR order(s) per lag level for ARIMA selection.
+        Defaults to ``[3, 3]`` matching R's ``auto.adam()``.
 
-    i_order : Union[int, List[int]], default=2
-        Maximum integration order(s) for ARIMA selection.
-        Defaults match R: ``[2]`` for non-seasonal, ``[1]`` for seasonal lags.
+    i_order : Union[int, List[int]], default=[2, 1]
+        Maximum integration order(s) per lag level for ARIMA selection.
+        Defaults to ``[2, 1]`` matching R's ``auto.adam()``.
 
-    ma_order : Union[int, List[int]], default=3
-        Maximum MA order(s) for ARIMA selection.
+    ma_order : Union[int, List[int]], default=[3, 3]
+        Maximum MA order(s) per lag level for ARIMA selection.
+        Defaults to ``[3, 3]`` matching R's ``auto.adam()``.
 
     orders : Optional[Dict[str, Any]], default=None
         R-style alternative to scalar max orders. A dict with keys
@@ -153,9 +154,9 @@ class AutoADAM(ADAM):
         self,
         model: Union[str, List[str]] = "ZXZ",
         lags: Optional[List[int]] = None,
-        ar_order: Union[int, List[int]] = 3,
-        i_order: Union[int, List[int]] = 2,
-        ma_order: Union[int, List[int]] = 3,
+        ar_order: Union[int, List[int], None] = None,
+        i_order: Union[int, List[int], None] = None,
+        ma_order: Union[int, List[int], None] = None,
         orders: Optional[Dict[str, Any]] = None,
         arima_select: bool = True,
         distribution: Union[str, List[str], None] = None,
@@ -187,22 +188,21 @@ class AutoADAM(ADAM):
         self._auto_outliers: str = outliers
         self._auto_level: float = level
 
-        # Parse max ARIMA orders (scalar → list normalised in arima_selector)
-        self._auto_max_ar: List[int] = (
-            list(ar_order) if isinstance(ar_order, list) else [ar_order]
-        )
-        self._auto_max_i: List[int] = (
-            list(i_order) if isinstance(i_order, list) else [i_order]
-        )
-        self._auto_max_ma: List[int] = (
-            list(ma_order) if isinstance(ma_order, list) else [ma_order]
-        )
+        # Default orders match R's auto.adam(): ar=[3,3], i=[2,1], ma=[3,3]
+        _ar = ar_order if ar_order is not None else [3, 3]
+        _i = i_order if i_order is not None else [2, 1]
+        _ma = ma_order if ma_order is not None else [3, 3]
 
-        # Parse orders dict if provided
+        # Parse max ARIMA orders (scalar → list normalised in arima_selector)
+        self._auto_max_ar: List[int] = list(_ar) if isinstance(_ar, list) else [_ar]
+        self._auto_max_i: List[int] = list(_i) if isinstance(_i, list) else [_i]
+        self._auto_max_ma: List[int] = list(_ma) if isinstance(_ma, list) else [_ma]
+
+        # Parse orders dict if provided (overrides scalar args)
         if orders is not None:
-            ar_val = orders.get("ar", ar_order)
-            i_val = orders.get("i", i_order)
-            ma_val = orders.get("ma", ma_order)
+            ar_val = orders.get("ar", _ar)
+            i_val = orders.get("i", _i)
+            ma_val = orders.get("ma", _ma)
             self._auto_max_ar = list(ar_val) if isinstance(ar_val, list) else [ar_val]
             self._auto_max_i = list(i_val) if isinstance(i_val, list) else [i_val]
             self._auto_max_ma = list(ma_val) if isinstance(ma_val, list) else [ma_val]
@@ -259,14 +259,7 @@ class AutoADAM(ADAM):
         _auto_keys = [k for k in self.__dict__ if k.startswith("_auto_")]
         _auto_state = {k: self.__dict__[k] for k in _auto_keys}
 
-        # Warn if outlier detection requested (not yet implemented)
-        if self._auto_outliers != "ignore":
-            warnings.warn(
-                "Outlier detection is not yet implemented in AutoADAM. "
-                "Set outliers='ignore' to suppress this warning.",
-                UserWarning,
-                stacklevel=2,
-            )
+        # (outlier handling is applied after best-model selection below)
 
         y_arr = np.asarray(y, dtype=float).ravel()
 
@@ -388,6 +381,35 @@ class AutoADAM(ADAM):
         best_model = best_entry["model"]
 
         # ------------------------------------------------------------------
+        # Outlier handling: detect on best model, refit with dummies appended
+        # ------------------------------------------------------------------
+        if self._auto_outliers in ("use", "select"):
+            od = best_model.outlierdummy(level=self._auto_level)
+            if len(od.id) > 0:
+                D = (
+                    ADAM._expand_outlier_dummies(od.outliers)
+                    if self._auto_outliers == "select"
+                    else od.outliers
+                )
+                h_eff = len(y_arr) - best_model.nobs
+                if h_eff > 0:
+                    D = np.vstack([D, np.zeros((h_eff, D.shape[1]))])
+                X_new = np.hstack([X, D]) if X is not None else D
+                # best_model._config was built on the first fit; restore attrs
+                # so that fit() can run again (fit() expects instance attrs).
+                # Skip read-only properties (e.g. `orders`) with try/except.
+                for k, v in best_model._config.items():
+                    try:
+                        setattr(best_model, k, v)
+                    except AttributeError:
+                        pass
+                best_model.regressors = (
+                    "select" if self._auto_outliers == "select" else "use"
+                )
+                best_model.outliers = "ignore"
+                best_model.fit(y_arr, X_new)
+
+        # ------------------------------------------------------------------
         # Copy fitted state from best_model into self
         # ------------------------------------------------------------------
         self.__dict__.update(best_model.__dict__)
@@ -395,6 +417,10 @@ class AutoADAM(ADAM):
         # Restore AutoADAM-specific state
         # (overwrite any same-named keys from best_model)
         self.__dict__.update(_auto_state)
+
+        # Patch _config to reflect original outliers setting
+        if self._auto_outliers in ("use", "select") and hasattr(self, "_config"):
+            self._config["outliers"] = self._auto_outliers
 
         # Store selection metadata
         self._selected_distribution: str = best_dist

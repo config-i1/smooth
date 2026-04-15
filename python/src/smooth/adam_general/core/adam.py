@@ -1,10 +1,12 @@
 import time
 import warnings
+from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
+from scipy import stats as scipy_stats
 
 from smooth.adam_general.core.checker import parameters_checker
 from smooth.adam_general.core.creator import architector, creator
@@ -58,6 +60,17 @@ INITIAL_OPTIONS = Optional[
         Tuple[str, ...],
     ]
 ]
+
+
+@dataclass
+class OutlierDummy:
+    """Container returned by ADAM.outlierdummy()."""
+
+    outliers: Optional[NDArray]  # (n, m) 0/1 matrix, one column per outlier, or None
+    id: NDArray  # 0-based indices of outlier observations
+    statistic: NDArray  # [lower, upper] quantile bounds
+    level: float
+    type: str  # "rstandard" or "rstudent"
 
 
 class ADAM:
@@ -349,7 +362,7 @@ class ADAM:
         loss: LOSS_OPTIONS = "likelihood",
         loss_horizon: Optional[int] = None,
         # outlier detection
-        outliers: Literal["ignore", "detect", "use"] = "ignore",
+        outliers: Literal["ignore", "use", "select"] = "ignore",
         outliers_level: float = 0.99,
         # end of outlier detection
         ic: Literal["AIC", "AICc", "BIC", "BICc"] = "AICc",
@@ -441,8 +454,11 @@ class ADAM:
             Loss function for parameter estimation.
         loss_horizon : Optional[int], default=None
             Number of steps for multi-step loss functions (e.g., MSEh).
-        outliers : Literal["ignore", "detect", "use"], default="ignore"
-            Outlier handling method.
+        outliers : Literal["ignore", "use", "select"], default="ignore"
+            Outlier handling: ``"ignore"`` skips detection; ``"use"`` detects
+            outliers and includes their dummies as fixed regressors; ``"select"``
+            also expands each dummy with lag/lead columns and lets the regressor
+            selection mechanism choose which matter.
         outliers_level : float, default=0.99
             Confidence level for outlier detection.
         ic : Literal["AIC", "AICc", "BIC", "BICc"], default="AICc"
@@ -846,6 +862,29 @@ class ADAM:
 
         # Compute elapsed time
         self.time_elapsed_ = time.time() - self._start_time
+
+        # Outlier detection and refitting
+        # "ignore" → skip; "use" → include dummies as fixed regressors;
+        # "select" → expand dummies with lag/lead and let selection prune them.
+        _outliers = self.outliers
+        if _outliers in ("use", "select"):
+            _level = self.outliers_level
+            od = self.outlierdummy(level=_level)
+            if len(od.id) > 0:
+                D = (
+                    self._expand_outlier_dummies(od.outliers)
+                    if _outliers == "select"
+                    else od.outliers
+                )
+                h_eff = len(y) - self.nobs
+                if h_eff > 0:
+                    D = np.vstack([D, np.zeros((h_eff, D.shape[1]))])
+                X_new = np.hstack([X, D]) if X is not None else D
+                self.outliers = "ignore"
+                self.regressors = "select" if _outliers == "select" else "use"
+                self.fit(y, X_new)
+                self._config["outliers"] = _outliers
+                return self  # _config already built by the recursive fit()
 
         # Consolidate init params into _config and remove individual attributes
         self._config = {
@@ -1756,6 +1795,322 @@ class ADAM:
             return self._combined_residuals
         return self._prepared["residuals"]
 
+    def rstandard(self) -> NDArray:
+        """
+        Return standardised residuals.
+
+        Residuals are scaled by distribution-specific estimates of their
+        scale, corrected for degrees of freedom ``df = nobs - nparam``.
+        The standardisation formula depends on the fitted distribution:
+
+        - **dnorm**: ``(e - ē) / (σ √(n/df))``
+        - **dlaplace**: ``e / σ · n/df``
+        - **ds**: ``(e - ē) / (σ · n/df)²``
+        - **dgnorm**: ``(e - ē) / (σ^β · n/df)^(1/β)``, β = shape
+        - **dlnorm**: ``exp((log(e) + σ²/2 - mean(·)) / (σ √(n/df)))``
+        - **dinvgauss / dgamma**: ``e / ē``
+
+        For a correctly specified model the result should be approximately
+        distributed as the standardised version of the fitted distribution.
+        Mirrors R's ``rstandard.adam()``.
+
+        Returns
+        -------
+        NDArray
+            Standardised residuals, length ``nobs``.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        rstudent : Leave-one-out studentised residuals.
+        outlierdummy : Outlier detection based on standardised residuals.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> std_res = model.rstandard()
+        >>> # For a well-specified normal model, std_res ≈ N(0, 1)
+        >>> abs(std_res.mean()) < 0.1
+        True
+        """
+        self._check_is_fitted()
+        obs = self.nobs
+        df = obs - self.nparam
+        errors = self.residuals.copy().astype(float)
+        dist = self.distribution_
+        scale = self.sigma
+
+        if dist == "dnorm":
+            mean_e = np.mean(errors)
+            return (errors - mean_e) / (scale * np.sqrt(obs / df))
+        elif dist == "ds":
+            mean_e = np.mean(errors)
+            return (errors - mean_e) / (scale * obs / df) ** 2
+        elif dist == "dgnorm":
+            beta = self.gnorm_shape if self.gnorm_shape is not None else 2.0
+            mean_e = np.mean(errors)
+            return (errors - mean_e) / (scale**beta * obs / df) ** (1.0 / beta)
+        elif dist in ("dinvgauss", "dgamma"):
+            return errors / np.mean(errors)
+        elif dist == "dlnorm":
+            log_e = np.log(errors) + scale**2 / 2
+            return np.exp((log_e - np.mean(log_e)) / (scale * np.sqrt(obs / df)))
+        else:  # dlaplace and other additive distributions
+            return errors / scale * obs / df
+
+    def rstudent(self) -> NDArray:
+        """
+        Return studentised (leave-one-out) residuals.
+
+        Each residual is scaled by the distribution-specific scale estimate
+        recomputed *without that observation* (leave-one-out). Compared to
+        ``rstandard()``, the result is more sensitive to individual outliers
+        because no single point inflates the global scale estimate it is
+        judged against.
+
+        The leave-one-out sums are computed in O(n) using identities such as
+        ``Σ e[-i]² = Σ e² − e[i]²``, avoiding an explicit loop.
+        Degrees of freedom: ``df = nobs - nparam - 1``.
+
+        Standardisation by distribution:
+
+        - **dnorm**: ``(e[i] - ē) / √(Σe[-i]² / df)``
+        - **dlaplace**: ``(e[i] - ē) / (Σ|e[-i]| / df)``
+        - **ds**: ``(e[i] - ē) / (Σ√|e[-i]| / (2 df))²``
+        - **dgnorm**: ``(e[i] - ē) / (Σ|e[-i]|^β · β/df)^(1/β)``
+        - **dlnorm**: ``exp(log_e[i] / √(Σlog_e[-i]² / df))``,
+          where ``log_e = log(e) - mean(log e) - σ²/2``
+        - **dinvgauss / dgamma**: ``e[i] / mean(e[-i])``
+
+        Mirrors R's ``rstudent.adam()``.
+
+        Returns
+        -------
+        NDArray
+            Studentised residuals, length ``nobs``.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        rstandard : Simpler standardised residuals (faster).
+        outlierdummy : Outlier detection based on studentised residuals.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> stu_res = model.rstudent()
+        >>> # Studentised residuals are slightly more spread than rstandard
+        >>> stu_res.std() >= model.rstandard().std()
+        True
+        """
+        self._check_is_fitted()
+        obs = self.nobs
+        df = obs - self.nparam - 1
+        errors = self.residuals.copy().astype(float)
+        dist = self.distribution_
+
+        if dist == "dnorm":
+            errors -= np.mean(errors)
+            total_sq = np.sum(errors**2)
+            denom = np.sqrt((total_sq - errors**2) / df)
+            return errors / denom
+
+        elif dist == "dlaplace":
+            errors -= np.mean(errors)
+            total_abs = np.sum(np.abs(errors))
+            denom = (total_abs - np.abs(errors)) / df
+            return errors / denom
+
+        elif dist == "ds":
+            errors -= np.mean(errors)
+            total_sqrt_abs = np.sum(np.sqrt(np.abs(errors)))
+            denom = ((total_sqrt_abs - np.sqrt(np.abs(errors))) / (2 * df)) ** 2
+            return errors / denom
+
+        elif dist == "dgnorm":
+            beta = self.gnorm_shape if self.gnorm_shape is not None else 2.0
+            errors -= np.mean(errors)
+            total_pow = np.sum(np.abs(errors) ** beta)
+            denom = ((total_pow - np.abs(errors) ** beta) * (beta / df)) ** (1.0 / beta)
+            return errors / denom
+
+        elif dist in ("dinvgauss", "dgamma"):
+            total = np.sum(errors)
+            mean_loo = (total - errors) / (obs - 1)
+            return errors / mean_loo
+
+        elif dist == "dlnorm":
+            scale = self.sigma
+            log_e = np.log(errors) - np.mean(np.log(errors)) - scale**2 / 2
+            total_sq = np.sum(log_e**2)
+            denom = np.sqrt((total_sq - log_e**2) / df)
+            return np.exp(log_e / denom)
+
+        else:  # default: treat like normal
+            errors -= np.mean(errors)
+            total_sq = np.sum(errors**2)
+            denom = np.sqrt((total_sq - errors**2) / df)
+            return errors / denom
+
+    def outlierdummy(
+        self,
+        level: float = 0.999,
+        type: str = "rstandard",  # noqa: A002
+    ) -> OutlierDummy:
+        """
+        Detect outliers and return a matrix of indicator dummy variables.
+
+        Computes standardised residuals (via ``rstandard()`` or ``rstudent()``),
+        then derives two-sided quantile bounds ``[q_lo, q_hi]`` for the fitted
+        distribution at the given confidence ``level``. Observations whose
+        standardised residual falls outside these bounds are labelled outliers.
+
+        The quantile bounds are distribution-specific:
+
+        - **dnorm / dlnorm** (log-space): ``scipy.stats.norm.ppf``
+        - **dlaplace**: ``scipy.stats.laplace.ppf``
+        - **ds**: ``scipy.stats.gennorm.ppf(..., beta=0.5)``
+        - **dgnorm**: ``scipy.stats.gennorm.ppf(..., beta=shape)``
+        - **dgamma**: ``scipy.stats.gamma.ppf(..., a=1/σ, scale=σ)``
+        - **dinvgauss**: ``scipy.stats.invgauss.ppf`` with df-corrected dispersion
+
+        Mirrors R's ``outlierdummy.adam()`` from the **greybox** package.
+
+        Parameters
+        ----------
+        level : float, default 0.999
+            Two-sided confidence level for outlier detection.
+            0.99 flags observations in the outer 1 % of the distribution.
+        type : {"rstandard", "rstudent"}, default "rstandard"
+            Which standardised residuals to use. ``"rstudent"`` is more
+            sensitive to individual outliers in small samples.
+
+        Returns
+        -------
+        OutlierDummy
+            Dataclass with fields:
+
+            ``outliers`` : ndarray of shape (n, m) or None
+                Binary dummy matrix, one column per detected outlier.
+                ``None`` when no outliers are found.
+            ``id`` : ndarray of int
+                0-based indices of outlier observations.
+            ``statistic`` : ndarray of shape (2,)
+                ``[lower, upper]`` quantile bounds used for detection.
+            ``level`` : float
+                The confidence level used.
+            ``type`` : str
+                The residual type used (``"rstandard"`` or ``"rstudent"``).
+
+        Raises
+        ------
+        ValueError
+            If ``type`` is not ``"rstandard"`` or ``"rstudent"``.
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        rstandard : Standardised residuals.
+        rstudent : Studentised residuals.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> od = model.outlierdummy(level=0.99)
+        >>> od.id          # 0-based indices of detected outliers
+        >>> od.statistic   # [lower, upper] bounds, e.g. [-2.576, 2.576]
+        >>> if od.outliers is not None:
+        ...     # Refit with outlier dummies as exogenous regressors
+        ...     model2 = ADAM(model="AAN")
+        ...     model2.fit(y, X=od.outliers)
+        """
+        self._check_is_fitted()
+        if type not in ("rstandard", "rstudent"):
+            raise ValueError("type must be 'rstandard' or 'rstudent'")
+
+        errors = self.rstandard() if type == "rstandard" else self.rstudent()
+        dist = self.distribution_
+        p = np.array([(1 - level) / 2, (1 + level) / 2])
+
+        if dist == "dnorm":
+            stat = scipy_stats.norm.ppf(p)
+        elif dist == "dlaplace":
+            stat = scipy_stats.laplace.ppf(p)
+        elif dist == "ds":
+            stat = scipy_stats.gennorm.ppf(p, beta=0.5)
+        elif dist == "dgnorm":
+            beta = self.gnorm_shape if self.gnorm_shape is not None else 2.0
+            stat = scipy_stats.gennorm.ppf(p, beta=beta)
+        elif dist == "dlnorm":
+            errors = np.log(errors)
+            stat = scipy_stats.norm.ppf(p)
+        elif dist == "dgamma":
+            scale = self.sigma
+            stat = scipy_stats.gamma.ppf(p, a=1.0 / scale, scale=scale)
+        elif dist == "dinvgauss":
+            nobs, npar = self.nobs, self.nparam
+            disp = float(self.sigma) * nobs / (nobs - npar)
+            stat = scipy_stats.invgauss.ppf(p, mu=disp, scale=1.0 / disp)
+        else:
+            stat = scipy_stats.norm.ppf(p)
+
+        outlier_ids = np.where((errors > stat[1]) | (errors < stat[0]))[0]
+        n_out = len(outlier_ids)
+
+        if n_out > 0:
+            dummy_mat = np.zeros((self.nobs, n_out), dtype=float)
+            dummy_mat[outlier_ids, np.arange(n_out)] = 1.0
+        else:
+            dummy_mat = None
+
+        return OutlierDummy(
+            outliers=dummy_mat,
+            id=outlier_ids,
+            statistic=stat,
+            level=level,
+            type=type,
+        )
+
+    @staticmethod
+    def _expand_outlier_dummies(D: NDArray) -> NDArray:
+        """
+        Expand each outlier dummy column into three columns: lag-1, t, lead+1.
+
+        Used by ``outliers="select"`` to allow the regressor selection
+        mechanism to choose which temporal offset carries the outlier effect.
+
+        Parameters
+        ----------
+        D : NDArray of shape (n, m)
+            Binary dummy matrix from ``outlierdummy()``.
+
+        Returns
+        -------
+        NDArray of shape (n, 3*m)
+            Expanded matrix with columns ordered as
+            ``[lag_1, t, lead_1, lag_2, t_2, lead_2, ...]``.
+        """
+        n, m = D.shape
+        cols = []
+        for j in range(m):
+            col = D[:, j]
+            cols.append(np.concatenate([[0.0], col[:-1]]))  # lag -1
+            cols.append(col.copy())  # t
+            cols.append(np.concatenate([col[1:], [0.0]]))  # lead +1
+        return np.column_stack(cols)
+
     @property
     def nobs(self) -> int:
         """
@@ -2400,6 +2755,18 @@ class ADAM:
         # Estimate the model
         # Note: estimator() handles two-stage initialization internally
         if estimation:
+            # gnorm shape handling: estimate when not given (mirrors R)
+            dist = self._general.get("distribution_new") or self._general.get(
+                "distribution", "dnorm"
+            )
+            other_parameter_estimate = dist == "dgnorm" and self.gnorm_shape is None
+            if dist != "dgnorm":
+                other_value = None
+            elif self.gnorm_shape is None:
+                other_value = 2.0
+            else:
+                other_value = float(self.gnorm_shape)
+
             nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
             self._adam_estimated = estimator(
                 general_dict=self._general,
@@ -2418,10 +2785,16 @@ class ADAM:
                 components_dict=self._components,
                 multisteps=self._general.get("multisteps", False),
                 smoother=self.smoother,
+                other=other_value,
+                other_parameter_estimate=other_parameter_estimate,
                 **nlopt_params,
             )
             # Extract adam_cpp from estimation results
             self._adam_cpp = self._adam_estimated["adam_cpp"]
+
+            # Store back estimated gnorm shape
+            if other_parameter_estimate and "B" in self._adam_estimated:
+                self.gnorm_shape = float(abs(self._adam_estimated["B"][-1]))
 
         # Build the model structure - architector() returns 6 values including
         # adam_cpp, but we already have adam_cpp from estimation
