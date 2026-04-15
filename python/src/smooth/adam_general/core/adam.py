@@ -1774,13 +1774,43 @@ class ADAM:
         Return standardised residuals.
 
         Residuals are scaled by distribution-specific estimates of their
-        standard deviation, correcting for degrees of freedom. Mirrors
-        R's ``rstandard.adam()``.
+        scale, corrected for degrees of freedom ``df = nobs - nparam``.
+        The standardisation formula depends on the fitted distribution:
+
+        - **dnorm**: ``(e - ē) / (σ √(n/df))``
+        - **dlaplace**: ``e / σ · n/df``
+        - **ds**: ``(e - ē) / (σ · n/df)²``
+        - **dgnorm**: ``(e - ē) / (σ^β · n/df)^(1/β)``, β = shape
+        - **dlnorm**: ``exp((log(e) + σ²/2 - mean(·)) / (σ √(n/df)))``
+        - **dinvgauss / dgamma**: ``e / ē``
+
+        For a correctly specified model the result should be approximately
+        distributed as the standardised version of the fitted distribution.
+        Mirrors R's ``rstandard.adam()``.
 
         Returns
         -------
         NDArray
-            Array of standardised residuals, length ``nobs``.
+            Standardised residuals, length ``nobs``.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        rstudent : Leave-one-out studentised residuals.
+        outlierdummy : Outlier detection based on standardised residuals.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> std_res = model.rstandard()
+        >>> # For a well-specified normal model, std_res ≈ N(0, 1)
+        >>> abs(std_res.mean()) < 0.1
+        True
         """
         self._check_is_fitted()
         obs = self.nobs
@@ -1811,14 +1841,51 @@ class ADAM:
         """
         Return studentised (leave-one-out) residuals.
 
-        Each residual is normalised by a scale estimate computed without
-        that observation, giving a more outlier-sensitive diagnostic.
+        Each residual is scaled by the distribution-specific scale estimate
+        recomputed *without that observation* (leave-one-out). Compared to
+        ``rstandard()``, the result is more sensitive to individual outliers
+        because no single point inflates the global scale estimate it is
+        judged against.
+
+        The leave-one-out sums are computed in O(n) using identities such as
+        ``Σ e[-i]² = Σ e² − e[i]²``, avoiding an explicit loop.
+        Degrees of freedom: ``df = nobs - nparam - 1``.
+
+        Standardisation by distribution:
+
+        - **dnorm**: ``(e[i] - ē) / √(Σe[-i]² / df)``
+        - **dlaplace**: ``(e[i] - ē) / (Σ|e[-i]| / df)``
+        - **ds**: ``(e[i] - ē) / (Σ√|e[-i]| / (2 df))²``
+        - **dgnorm**: ``(e[i] - ē) / (Σ|e[-i]|^β · β/df)^(1/β)``
+        - **dlnorm**: ``exp(log_e[i] / √(Σlog_e[-i]² / df))``,
+          where ``log_e = log(e) - mean(log e) - σ²/2``
+        - **dinvgauss / dgamma**: ``e[i] / mean(e[-i])``
+
         Mirrors R's ``rstudent.adam()``.
 
         Returns
         -------
         NDArray
-            Array of studentised residuals, length ``nobs``.
+            Studentised residuals, length ``nobs``.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        rstandard : Simpler standardised residuals (faster).
+        outlierdummy : Outlier detection based on studentised residuals.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> stu_res = model.rstudent()
+        >>> # Studentised residuals are slightly more spread than rstandard
+        >>> stu_res.std() >= model.rstandard().std()
+        True
         """
         self._check_is_fitted()
         obs = self.nobs
@@ -1875,31 +1942,73 @@ class ADAM:
         type: str = "rstandard",  # noqa: A002
     ) -> OutlierDummy:
         """
-        Detect outliers and return indicator dummy variables.
+        Detect outliers and return a matrix of indicator dummy variables.
 
-        Standardises residuals via ``rstandard()`` or ``rstudent()``, then
-        computes distribution-specific quantile bounds at the given confidence
-        level and flags observations that fall outside them. Mirrors R's
-        ``outlierdummy.adam()``.
+        Computes standardised residuals (via ``rstandard()`` or ``rstudent()``),
+        then derives two-sided quantile bounds ``[q_lo, q_hi]`` for the fitted
+        distribution at the given confidence ``level``. Observations whose
+        standardised residual falls outside these bounds are labelled outliers.
+
+        The quantile bounds are distribution-specific:
+
+        - **dnorm / dlnorm** (log-space): ``scipy.stats.norm.ppf``
+        - **dlaplace**: ``scipy.stats.laplace.ppf``
+        - **ds**: ``scipy.stats.gennorm.ppf(..., beta=0.5)``
+        - **dgnorm**: ``scipy.stats.gennorm.ppf(..., beta=shape)``
+        - **dgamma**: ``scipy.stats.gamma.ppf(..., a=1/σ, scale=σ)``
+        - **dinvgauss**: ``scipy.stats.invgauss.ppf`` with df-corrected dispersion
+
+        Mirrors R's ``outlierdummy.adam()`` from the **greybox** package.
 
         Parameters
         ----------
         level : float, default 0.999
-            Confidence level for outlier detection (e.g. 0.99 = 99%).
-        type : str, default "rstandard"
-            Residual type: ``"rstandard"`` or ``"rstudent"``.
+            Two-sided confidence level for outlier detection.
+            0.99 flags observations in the outer 1 % of the distribution.
+        type : {"rstandard", "rstudent"}, default "rstandard"
+            Which standardised residuals to use. ``"rstudent"`` is more
+            sensitive to individual outliers in small samples.
 
         Returns
         -------
         OutlierDummy
             Dataclass with fields:
 
-            - ``outliers``: ``(n, m)`` 0/1 ndarray (one column per outlier)
-              or ``None`` if none detected.
-            - ``id``: 0-based indices of outlier observations.
-            - ``statistic``: ``[lower, upper]`` quantile bounds.
-            - ``level``: the level used.
-            - ``type``: residual type used.
+            ``outliers`` : ndarray of shape (n, m) or None
+                Binary dummy matrix, one column per detected outlier.
+                ``None`` when no outliers are found.
+            ``id`` : ndarray of int
+                0-based indices of outlier observations.
+            ``statistic`` : ndarray of shape (2,)
+                ``[lower, upper]`` quantile bounds used for detection.
+            ``level`` : float
+                The confidence level used.
+            ``type`` : str
+                The residual type used (``"rstandard"`` or ``"rstudent"``).
+
+        Raises
+        ------
+        ValueError
+            If ``type`` is not ``"rstandard"`` or ``"rstudent"``.
+        ValueError
+            If the model has not been fitted yet.
+
+        See Also
+        --------
+        rstandard : Standardised residuals.
+        rstudent : Studentised residuals.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAN")
+        >>> model.fit(y)
+        >>> od = model.outlierdummy(level=0.99)
+        >>> od.id          # 0-based indices of detected outliers
+        >>> od.statistic   # [lower, upper] bounds, e.g. [-2.576, 2.576]
+        >>> if od.outliers is not None:
+        ...     # Refit with outlier dummies as exogenous regressors
+        ...     model2 = ADAM(model="AAN")
+        ...     model2.fit(y, X=od.outliers)
         """
         self._check_is_fitted()
         if type not in ("rstandard", "rstudent"):
