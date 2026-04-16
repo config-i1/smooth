@@ -860,6 +860,9 @@ class ADAM:
         # Store fitted parameters with trailing underscores
         self._set_fitted_attributes()
 
+        # Auto-forecast if h > 0 (before _config consolidation so holdout is accessible)
+        self._auto_predict()
+
         # Compute elapsed time
         self.time_elapsed_ = time.time() - self._start_time
 
@@ -3446,6 +3449,53 @@ class ADAM:
             adam_cpp=self._adam_cpp,
             bounds="usual",
             other=None,
+        )
+
+    def _auto_predict(self):
+        """Run point forecasts automatically if h > 0; compute accuracy if holdout."""
+        h = getattr(self, "h", None)
+        if not h or h <= 0:
+            return
+
+        self._general["h"] = h
+        self._prepare_prediction_data()
+
+        auto_fc = forecaster(
+            model_prepared=self._prepared,
+            observations_dict=self._observations,
+            general_dict=self._general,
+            occurrence_dict=self._occurrence,
+            lags_dict=self._lags_model,
+            model_type_dict=self._model_type,
+            explanatory_checked=self._explanatory,
+            components_dict=self._components,
+            constants_checked=self._constant,
+            params_info=self._params_info,
+            adam_cpp=self._adam_cpp,
+            interval="none",
+            level=0.95,
+            side="both",
+        )
+        self._auto_forecast = auto_fc
+
+        if not getattr(self, "holdout", False):
+            return
+        y_holdout = self._observations.get("y_holdout")
+        y_in_sample = self._observations.get("y_in_sample")
+        if y_holdout is None or len(y_holdout) == 0:
+            return
+
+        from smooth.adam_general.core.utils.printing import _compute_forecast_errors
+
+        fc_values = np.asarray(auto_fc.mean, dtype=float).ravel()
+        y_holdout_arr = np.asarray(y_holdout, dtype=float).ravel()
+        n = min(len(fc_values), len(y_holdout_arr))
+        period = max(self._lags_model.get("lags", [1])) if self._lags_model else 1
+        self.accuracy = _compute_forecast_errors(
+            y_holdout_arr[:n],
+            fc_values[:n],
+            np.asarray(y_in_sample, dtype=float),
+            period,
         )
 
     def _validate_prediction_inputs(self):

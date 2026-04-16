@@ -342,8 +342,10 @@ def _plot5(model, ax, legend, **kw):
     # Horizontal line at the last in-sample observation
     ax.axvline(n - 1, color="#FF0000", lw=0.8)
 
-    # Forecast mean (only available if predict() has been called)
-    fc = getattr(model, "_forecast_results", None)
+    # Forecast mean: prefer manual predict() result, fall back to auto-forecast
+    fc = getattr(model, "_forecast_results", None) or getattr(
+        model, "_auto_forecast", None
+    )
     if fc is not None and hasattr(fc, "mean") and fc.mean is not None:
         fc_mean = np.asarray(fc.mean, dtype=float).ravel()
         t_f = np.arange(n, n + len(fc_mean))

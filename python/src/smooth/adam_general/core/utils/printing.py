@@ -393,7 +393,7 @@ def _compute_forecast_errors(
     period: int = 1,
 ) -> Dict[str, float]:
     """
-    Compute forecast error metrics.
+    Compute forecast error metrics using greybox.measures().
 
     Parameters
     ----------
@@ -404,70 +404,18 @@ def _compute_forecast_errors(
     y_in_sample : np.ndarray
         In-sample actual values (for scaling)
     period : int
-        Seasonal period for MASE calculation
+        Unused; kept for API compatibility.
 
     Returns
     -------
     Dict[str, float]
         Dictionary of error metrics
     """
-    errors = y_holdout - y_fitted_holdout
+    from greybox.point_measures import measures
 
-    # Basic errors
-    me = np.mean(errors)
-    mae = np.mean(np.abs(errors))
-    mse = np.mean(errors**2)
-    rmse = np.sqrt(mse)
-
-    # Scaled errors
-    y_mean = np.mean(y_in_sample)
-    sce = np.sum(errors) / np.sum(y_in_sample) if np.sum(y_in_sample) != 0 else np.nan
-    smae = mae / y_mean if y_mean != 0 else np.nan
-    smse = mse / (y_mean**2) if y_mean != 0 else np.nan
-
-    # Asymmetry
-    pos_errors = np.sum(errors[errors > 0])
-    neg_errors = np.abs(np.sum(errors[errors < 0]))
-    asymmetry = (
-        (pos_errors - neg_errors) / (pos_errors + neg_errors)
-        if (pos_errors + neg_errors) != 0
-        else 0
-    )
-
-    # MASE and RMSSE (using naive seasonal forecast as benchmark)
-    if len(y_in_sample) > period:
-        naive_errors = y_in_sample[period:] - y_in_sample[:-period]
-        scale = np.mean(np.abs(naive_errors))
-        mase = mae / scale if scale != 0 else np.nan
-        rmsse = (
-            rmse / np.sqrt(np.mean(naive_errors**2))
-            if np.mean(naive_errors**2) != 0
-            else np.nan
-        )
-    else:
-        mase = np.nan
-        rmsse = np.nan
-
-    # Relative errors (vs naive)
-    naive_forecast = y_in_sample[-1] if len(y_in_sample) > 0 else 0
-    naive_mae = np.mean(np.abs(y_holdout - naive_forecast))
-    naive_rmse = np.sqrt(np.mean((y_holdout - naive_forecast) ** 2))
-    rmae = mae / naive_mae if naive_mae != 0 else np.nan
-    rrmse = rmse / naive_rmse if naive_rmse != 0 else np.nan
-
-    return {
-        "ME": me,
-        "MAE": mae,
-        "RMSE": rmse,
-        "sCE": sce,
-        "asymmetry": asymmetry,
-        "sMAE": smae,
-        "sMSE": smse,
-        "MASE": mase,
-        "RMSSE": rmsse,
-        "rMAE": rmae,
-        "rRMSE": rrmse,
-    }
+    m = measures(y_holdout, y_fitted_holdout, y_in_sample)
+    m["RMSE"] = np.sqrt(m["MSE"])
+    return m
 
 
 def _format_forecast_errors(errors: Dict[str, float], digits: int = 3) -> str:
@@ -685,6 +633,7 @@ def model_summary(model: Any, digits: int = 4) -> str:
     # Forecast errors (if holdout)
     errors_str = _format_holdout_errors(model, digits)
     if errors_str:
+        lines.append("")
         lines.append("Forecast errors:")
         lines.append(errors_str)
 
@@ -985,17 +934,24 @@ def _format_holdout_errors(model: Any, digits: int) -> str:
     if y_holdout is None or len(y_holdout) == 0:
         return ""
 
-    # Get forecasts for holdout period
+    # Fast path: accuracy already computed by _auto_predict()
+    if hasattr(model, "accuracy") and model.accuracy:
+        return _format_forecast_errors(model.accuracy, digits)
+
+    # Fallback: compute from forecast results (manual predict or auto-forecast)
+    fc = None
     if hasattr(model, "_forecast_results") and model._forecast_results is not None:
-        y_forecast = model._forecast_results.mean.values
-        if len(y_forecast) >= len(y_holdout):
-            y_forecast = y_forecast[: len(y_holdout)]
-        else:
-            return ""
-    else:
+        fc = model._forecast_results
+    elif hasattr(model, "_auto_forecast") and model._auto_forecast is not None:
+        fc = model._auto_forecast
+    if fc is None:
         return ""
 
-    # Get period for MASE calculation
+    y_forecast = np.asarray(fc.mean, dtype=float).ravel()
+    if len(y_forecast) < len(y_holdout):
+        return ""
+    y_forecast = y_forecast[: len(y_holdout)]
+
     period = 1
     if hasattr(model, "_lags_model") and model._lags_model:
         lags = model._lags_model.get("lags", [1])
