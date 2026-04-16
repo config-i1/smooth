@@ -325,22 +325,29 @@ def _plot5(model, ax, legend, **kw):
     n = len(actuals)
     t_in = np.arange(n)
 
-    ax.plot(t_in, actuals, color="black", lw=1.5, label="Actuals")
-    ax.plot(t_in, fitted, color="#800080", lw=1.5, label="Fitted")
-
-    # Holdout actuals
+    # Continuous actuals line: training + holdout joined
     holdout = model.holdout_data
     if holdout is not None:
         holdout = np.asarray(holdout, dtype=float).ravel()
         t_h = np.arange(n, n + len(holdout))
-        ax.plot(t_h, holdout, color="black", lw=1.5, linestyle="--", label="Holdout")
+        full_t = np.concatenate([t_in, t_h])
+        full_y = np.concatenate([actuals, holdout])
+    else:
+        full_t, full_y = t_in, actuals
+    ax.plot(full_t, full_y, color="#000000", lw=1.5, label="Actuals")
+
+    # Fitted values — dashed purple on top (#A020F0 matches R's "purple")
+    ax.plot(t_in, fitted, color="#A020F0", lw=1.5, linestyle="--", label="Fitted")
+
+    # Horizontal line at the last in-sample observation
+    ax.axvline(n - 1, color="#FF0000", lw=0.8)
 
     # Forecast mean (only available if predict() has been called)
     fc = getattr(model, "_forecast_results", None)
     if fc is not None and hasattr(fc, "mean") and fc.mean is not None:
         fc_mean = np.asarray(fc.mean, dtype=float).ravel()
         t_f = np.arange(n, n + len(fc_mean))
-        ax.plot(t_f, fc_mean, color="blue", lw=1.5, label="Forecast")
+        ax.plot(t_f, fc_mean, color="#0000FF", lw=1.5, label="Forecast")
 
     ax.set_title(kw.get("main", model.model_name))
     ax.set_xlabel(kw.get("xlab", "Time"))
