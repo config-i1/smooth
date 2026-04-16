@@ -2920,8 +2920,6 @@ class ADAM:
 
         This handles model selection and creation of the selected model.
         """
-        # Get nlopt parameters from nlopt_kargs if provided
-        nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
         # Run model selection
         self._adam_selected = selector(
             model_type_dict=self._model_type,
@@ -2940,8 +2938,8 @@ class ADAM:
             initials_results=self._initials,
             criterion=self._general["ic"],
             silent=self.verbose == 0,
+            nlopt_kargs=self.nlopt_kargs,
             smoother=self.smoother,
-            **nlopt_params,
         )
         # print(self._adam_selected)
         # print(self._adam_selected["ic_selection"])
@@ -3669,3 +3667,79 @@ class ADAM:
             return "Model has not been fitted yet. Call fit() first."
 
         return model_summary(self, digits=digits)
+
+    def plot(  # noqa: B006
+        self,
+        which=[1, 2, 4, 6],
+        level: float = 0.95,
+        legend: bool = False,
+        lowess: bool = True,
+        **kwargs,
+    ):
+        """
+        Diagnostic plots for the fitted ADAM model (R: ``plot.adam``).
+
+        Parameters
+        ----------
+        which : int or list of int, optional
+            Plot type(s) to produce. Default ``[1, 2, 4, 6]``.
+
+            1  — Actuals vs Fitted
+
+            2  — Standardised Residuals vs Fitted
+
+            3  — Studentised Residuals vs Fitted
+
+            4  — |Residuals| vs Fitted
+
+            5  — Residuals² vs Fitted
+
+            6  — Q-Q plot (distribution-specific)
+
+            7  — Actuals and Fitted over time
+
+            8  — Standardised Residuals vs Time
+
+            9  — Studentised Residuals vs Time
+
+            10 — ACF of Residuals
+
+            11 — PACF of Residuals
+
+            12 — Model states over time
+
+            13 — |Standardised Residuals| vs Fitted
+
+            14 — Standardised Residuals² vs Fitted
+
+            15 — ACF of Squared Residuals
+
+            16 — PACF of Squared Residuals
+
+        level : float, optional
+            Confidence level for bounds and bands. Default 0.95.
+        legend : bool, optional
+            Show legend on applicable plots (2, 3, 7, 8, 9). Default False.
+        lowess : bool, optional
+            Add LOWESS smoothing line to scatter plots. Default True.
+        **kwargs
+            Passed to matplotlib (e.g. ``figsize``).
+
+        Returns
+        -------
+        matplotlib.figure.Figure or list[matplotlib.figure.Figure]
+            Single figure when ``which`` has one element, list otherwise.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=[1, 12])
+        >>> model.fit(y)
+        >>> figs = model.plot()                   # default: which=[1,2,4,6]
+        >>> fig  = model.plot(which=7)            # single time-series plot
+        >>> figs = model.plot(which=[10, 11])     # ACF and PACF
+        """
+        from smooth.adam_general.core.plotting import plot_adam
+
+        return plot_adam(
+            self, which=which, level=level, legend=legend, lowess=lowess, **kwargs
+        )

@@ -22,3 +22,5 @@ auto.adam(y, model="ANN", lags=c(1,12),
               initial="back",
               orders=list(ar=c(3,3), i=c(2,2), ma=c(3,3), select=T)
             )
+
+plot(model,7)

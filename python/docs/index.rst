@@ -33,6 +33,7 @@ ADAM Methods
    ADAM.predict_intervals
    ADAM.select_best_model
    ADAM.summary
+   ADAM.plot
 
 ADAM Diagnostics
 ----------------
