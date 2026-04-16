@@ -2993,38 +2993,41 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
 adamSpecificChecker <- function(data, model, lags, formulaToUse, orders, constant=FALSE, arma,
                                 outliers=c("ignore","use","select"), level=0.99,
                                 persistence, phi, initial,
-                                distribution=c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
-                                               "dlnorm","dinvgauss","dgamma"),
+                                distribution=c("default","dnorm","dlaplace","dalaplace",
+                                               "ds","dgnorm","dlnorm","dinvgauss","dgamma"),
                                 loss, h, holdout, occurrence,
-                                ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
+                                ic=c("AICc","AIC","BIC","BICc"),
+                                bounds=c("usual","admissible","none"),
                                 regressors, yName,
                                 silent, modelDo,
                                 ellipsis, fast=FALSE){
-    outliers <- match.arg(outliers);
+    outliers <- match.arg(outliers)
     if(!fast){
         distribution <- match.arg(distribution[1],
-                                   c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
-                                     "dlnorm","dinvgauss","dgamma"));
+                                   c("default","dnorm","dlaplace","dalaplace",
+                                     "ds","dgnorm","dlnorm","dinvgauss","dgamma"))
     }
 
     if(outliers != "ignore"){
-        return(list(select=TRUE, distribution=distribution, outliers=outliers));
+        return(list(select=TRUE, distribution=distribution, outliers=outliers))
     }
 
-    result <- commonParametersChecker(data=data, model=model, lags=lags, formulaToUse=formulaToUse,
+    result <- commonParametersChecker(data=data, model=model, lags=lags,
+                                      formulaToUse=formulaToUse,
                                       orders=orders, constant=constant, arma=arma,
                                       persistence=persistence, phi=phi, initial=initial,
-                                      distribution=distribution, loss=loss, h=h, holdout=holdout,
+                                      distribution=distribution, loss=loss,
+                                      h=h, holdout=holdout,
                                       occurrence=occurrence, ic=ic, bounds=bounds,
                                       regressors=regressors, yName=yName,
                                       silent=silent, modelDo=modelDo,
-                                      ellipsis=ellipsis, fast=fast);
+                                      ellipsis=ellipsis, fast=fast)
 
     if(is.alm(result)){
-        return(result);
+        return(result)
     }
 
-    return(c(result, list(outliers=outliers)));
+    return(c(result, list(outliers=outliers)))
 }
 
 #### Backward-compatible alias ####
