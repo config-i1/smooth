@@ -16,7 +16,10 @@ Classes
    :template: class.rst
 
    ADAM
+   AutoADAM
    ES
+   MSARIMA
+   AutoMSARIMA
 
 ADAM Methods
 ------------
@@ -30,6 +33,28 @@ ADAM Methods
    ADAM.predict_intervals
    ADAM.select_best_model
    ADAM.summary
+   ADAM.plot
+
+ADAM Diagnostics
+----------------
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: method.rst
+
+   ADAM.rstandard
+   ADAM.rstudent
+   ADAM.outlierdummy
+
+AutoADAM Methods
+----------------
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: method.rst
+
+   AutoADAM.fit
+   AutoADAM.predict
 
 ES Methods
 ----------
@@ -43,6 +68,26 @@ ES Methods
    ES.predict_intervals
    ES.select_best_model
    ES.summary
+
+MSARIMA Methods
+---------------
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: method.rst
+
+   MSARIMA.fit
+   MSARIMA.predict
+
+AutoMSARIMA Methods
+-------------------
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: method.rst
+
+   AutoMSARIMA.fit
+   AutoMSARIMA.predict
 
 Utility Functions
 -----------------
@@ -101,5 +146,7 @@ customize the optimization behavior via the ``nlopt_kargs`` parameter:
    :hidden:
 
    api
+   autoadam
+   msarima
    msdecompose
    lowess

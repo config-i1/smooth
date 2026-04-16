@@ -860,6 +860,9 @@ class ADAM:
         # Store fitted parameters with trailing underscores
         self._set_fitted_attributes()
 
+        # Auto-forecast if h > 0 (before _config consolidation so holdout is accessible)
+        self._auto_predict()
+
         # Compute elapsed time
         self.time_elapsed_ = time.time() - self._start_time
 
@@ -2920,8 +2923,6 @@ class ADAM:
 
         This handles model selection and creation of the selected model.
         """
-        # Get nlopt parameters from nlopt_kargs if provided
-        nlopt_params = self.nlopt_kargs if self.nlopt_kargs else {}
         # Run model selection
         self._adam_selected = selector(
             model_type_dict=self._model_type,
@@ -2940,8 +2941,8 @@ class ADAM:
             initials_results=self._initials,
             criterion=self._general["ic"],
             silent=self.verbose == 0,
+            nlopt_kargs=self.nlopt_kargs,
             smoother=self.smoother,
-            **nlopt_params,
         )
         # print(self._adam_selected)
         # print(self._adam_selected["ic_selection"])
@@ -3450,6 +3451,53 @@ class ADAM:
             other=None,
         )
 
+    def _auto_predict(self):
+        """Run point forecasts automatically if h > 0; compute accuracy if holdout."""
+        h = getattr(self, "h", None)
+        if not h or h <= 0:
+            return
+
+        self._general["h"] = h
+        self._prepare_prediction_data()
+
+        auto_fc = forecaster(
+            model_prepared=self._prepared,
+            observations_dict=self._observations,
+            general_dict=self._general,
+            occurrence_dict=self._occurrence,
+            lags_dict=self._lags_model,
+            model_type_dict=self._model_type,
+            explanatory_checked=self._explanatory,
+            components_dict=self._components,
+            constants_checked=self._constant,
+            params_info=self._params_info,
+            adam_cpp=self._adam_cpp,
+            interval="none",
+            level=0.95,
+            side="both",
+        )
+        self._auto_forecast = auto_fc
+
+        if not getattr(self, "holdout", False):
+            return
+        y_holdout = self._observations.get("y_holdout")
+        y_in_sample = self._observations.get("y_in_sample")
+        if y_holdout is None or len(y_holdout) == 0:
+            return
+
+        from smooth.adam_general.core.utils.printing import _compute_forecast_errors
+
+        fc_values = np.asarray(auto_fc.mean, dtype=float).ravel()
+        y_holdout_arr = np.asarray(y_holdout, dtype=float).ravel()
+        n = min(len(fc_values), len(y_holdout_arr))
+        period = max(self._lags_model.get("lags", [1])) if self._lags_model else 1
+        self.accuracy = _compute_forecast_errors(
+            y_holdout_arr[:n],
+            fc_values[:n],
+            np.asarray(y_in_sample, dtype=float),
+            period,
+        )
+
     def _validate_prediction_inputs(self):
         """
         Validate that the model is properly fitted before prediction.
@@ -3669,3 +3717,79 @@ class ADAM:
             return "Model has not been fitted yet. Call fit() first."
 
         return model_summary(self, digits=digits)
+
+    def plot(  # noqa: B006
+        self,
+        which=[1, 2, 4, 6],
+        level: float = 0.95,
+        legend: bool = False,
+        lowess: bool = True,
+        **kwargs,
+    ):
+        """
+        Diagnostic plots for the fitted ADAM model (R: ``plot.adam``).
+
+        Parameters
+        ----------
+        which : int or list of int, optional
+            Plot type(s) to produce. Default ``[1, 2, 4, 6]``.
+
+            1  — Actuals vs Fitted
+
+            2  — Standardised Residuals vs Fitted
+
+            3  — Studentised Residuals vs Fitted
+
+            4  — |Residuals| vs Fitted
+
+            5  — Residuals² vs Fitted
+
+            6  — Q-Q plot (distribution-specific)
+
+            7  — Actuals and Fitted over time
+
+            8  — Standardised Residuals vs Time
+
+            9  — Studentised Residuals vs Time
+
+            10 — ACF of Residuals
+
+            11 — PACF of Residuals
+
+            12 — Model states over time
+
+            13 — |Standardised Residuals| vs Fitted
+
+            14 — Standardised Residuals² vs Fitted
+
+            15 — ACF of Squared Residuals
+
+            16 — PACF of Squared Residuals
+
+        level : float, optional
+            Confidence level for bounds and bands. Default 0.95.
+        legend : bool, optional
+            Show legend on applicable plots (2, 3, 7, 8, 9). Default False.
+        lowess : bool, optional
+            Add LOWESS smoothing line to scatter plots. Default True.
+        **kwargs
+            Passed to matplotlib (e.g. ``figsize``).
+
+        Returns
+        -------
+        matplotlib.figure.Figure or list[matplotlib.figure.Figure]
+            Single figure when ``which`` has one element, list otherwise.
+
+        Examples
+        --------
+        >>> model = ADAM(model="AAA", lags=[1, 12])
+        >>> model.fit(y)
+        >>> figs = model.plot()                   # default: which=[1,2,4,6]
+        >>> fig  = model.plot(which=7)            # single time-series plot
+        >>> figs = model.plot(which=[10, 11])     # ACF and PACF
+        """
+        from smooth.adam_general.core.plotting import plot_adam
+
+        return plot_adam(
+            self, which=which, level=level, legend=legend, lowess=lowess, **kwargs
+        )
