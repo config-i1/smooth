@@ -327,3 +327,462 @@ adam_checkOptimizer <- function(ellipsis, loss, distribution, initialType, lags,
         dfForBack = dfForBack
     ));
 }
+
+#### Model architecture and initial matrix creation ####
+#' @keywords internal
+adam_architector <- function(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal,
+                             xregNumber, obsInSample, initialType,
+                             arimaModel, lagsModelARIMA, xregModel, constantRequired,
+                             componentsNumberARIMA,
+                             obsAll, yIndexAll, yClasses, adamETS,
+                             profilesRecentTable=NULL, profilesRecentProvided=FALSE){
+    if(etsModel){
+        modelIsTrendy <- Ttype != "N";
+        if(modelIsTrendy){
+            lagsModel <- matrix(c(1, 1), ncol=1);
+            componentsNamesETS <- c("level", "trend");
+        }
+        else{
+            lagsModel <- matrix(c(1), ncol=1);
+            componentsNamesETS <- c("level");
+        }
+        modelIsSeasonal <- Stype != "N";
+        if(modelIsSeasonal){
+            lagsModel <- matrix(c(lagsModel, lagsModelSeasonal), ncol=1);
+            componentsNumberETSSeasonal <- length(lagsModelSeasonal);
+            if(componentsNumberETSSeasonal > 1){
+                componentsNamesETS <- c(componentsNamesETS,
+                                        paste0("seasonal", c(1:componentsNumberETSSeasonal)));
+            }
+            else{
+                componentsNamesETS <- c(componentsNamesETS, "seasonal");
+            }
+        }
+        else{
+            componentsNumberETSSeasonal <- 0;
+        }
+        lagsModelAll <- lagsModel;
+        componentsNumberETS <- length(lagsModel);
+    }
+    else{
+        modelIsTrendy <- modelIsSeasonal <- FALSE;
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNamesETS <- NULL;
+        lagsModelAll <- lagsModel <- NULL;
+    }
+
+    if(arimaModel){
+        lagsModelAll <- matrix(c(lagsModel, lagsModelARIMA), ncol=1);
+    }
+
+    if(constantRequired){
+        lagsModelAll <- matrix(c(lagsModelAll, 1), ncol=1);
+    }
+
+    if(xregModel){
+        lagsModelAll <- matrix(c(lagsModelAll, rep(1, xregNumber)), ncol=1);
+    }
+
+    lagsModelMax <- max(lagsModelAll);
+    obsStates <- obsInSample + lagsModelMax;
+
+    adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
+                                       lags=lags, yIndex=yIndexAll, yClasses=yClasses);
+    if(profilesRecentProvided){
+        profilesRecentTable <- profilesRecentTable[, 1:lagsModelMax, drop=FALSE];
+    }
+    else{
+        profilesRecentTable <- adamProfiles$recent;
+    }
+    indexLookupTable <- adamProfiles$lookup;
+
+    componentsNumberETSNonSeasonal <- componentsNumberETS - componentsNumberETSSeasonal;
+    adamCpp <- new(adamCore,
+                   lagsModelAll, Etype, Ttype, Stype,
+                   componentsNumberETSNonSeasonal,
+                   componentsNumberETSSeasonal,
+                   componentsNumberETS, componentsNumberARIMA,
+                   xregNumber, length(lagsModelAll),
+                   constantRequired, adamETS);
+
+    return(list(
+        lagsModel = lagsModel,
+        lagsModelAll = lagsModelAll,
+        lagsModelMax = lagsModelMax,
+        componentsNumberETS = componentsNumberETS,
+        componentsNumberETSSeasonal = componentsNumberETSSeasonal,
+        componentsNumberETSNonSeasonal = componentsNumberETSNonSeasonal,
+        componentsNamesETS = componentsNamesETS,
+        obsStates = obsStates,
+        modelIsTrendy = modelIsTrendy,
+        modelIsSeasonal = modelIsSeasonal,
+        indexLookupTable = indexLookupTable,
+        profilesRecentTable = profilesRecentTable,
+        adamCpp = adamCpp
+    ));
+}
+
+#' @keywords internal
+adam_creator <- function(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+                         lags, lagsModel, lagsModelARIMA, lagsModelAll, lagsModelMax,
+                         profilesRecentTable=NULL, profilesRecentProvided=FALSE,
+                         obsStates, obsInSample, obsAll, componentsNumberETS, componentsNumberETSSeasonal,
+                         componentsNamesETS, otLogical, yInSample,
+                         persistence, persistenceEstimate,
+                         persistenceLevel, persistenceLevelEstimate, persistenceTrend, persistenceTrendEstimate,
+                         persistenceSeasonal, persistenceSeasonalEstimate,
+                         persistenceXreg, persistenceXregEstimate, persistenceXregProvided,
+                         phi,
+                         initialType, initialEstimate,
+                         initialLevel, initialLevelEstimate, initialTrend, initialTrendEstimate,
+                         initialSeasonal, initialSeasonalEstimate,
+                         initialArima, initialArimaEstimate, initialArimaNumber,
+                         initialXregEstimate, initialXregProvided,
+                         arimaModel, arRequired, iRequired, maRequired, armaParameters,
+                         arOrders, iOrders, maOrders,
+                         componentsNumberARIMA, componentsNamesARIMA,
+                         xregModel, xregModelInitials, xregData, xregNumber, xregNames,
+                         xregParametersPersistence,
+                         constantRequired, constantEstimate, constantValue, constantName,
+                         adamCpp,
+                         arEstimate, maEstimate, smoother, nonZeroARI, nonZeroMA){
+
+    matVt <- matrix(NA, componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, obsStates,
+                    dimnames=list(c(componentsNamesETS,componentsNamesARIMA,xregNames,constantName),NULL));
+
+    matWt <- matrix(1, obsAll, componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired,
+                    dimnames=list(NULL,c(componentsNamesETS,componentsNamesARIMA,xregNames,constantName)));
+
+    if(xregModel){
+        matWt[,componentsNumberETS+componentsNumberARIMA+1:xregNumber] <- xregData;
+    }
+
+    matF <- diag(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired);
+
+    vecG <- matrix(0, componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, 1,
+                   dimnames=list(c(componentsNamesETS,componentsNamesARIMA,xregNames,constantName),NULL));
+
+    j <- 0;
+    if(etsModel){
+        j <- j+1;
+        rownames(vecG)[j] <- "alpha";
+        if(!persistenceLevelEstimate){
+            vecG[j,] <- persistenceLevel;
+        }
+        if(modelIsTrendy){
+            j <- j+1;
+            rownames(vecG)[j] <- "beta";
+            if(!persistenceTrendEstimate){
+                vecG[j,] <- persistenceTrend;
+            }
+        }
+        if(modelIsSeasonal){
+            if(!all(persistenceSeasonalEstimate)){
+                vecG[j+which(!persistenceSeasonalEstimate),] <- persistenceSeasonal;
+            }
+            if(componentsNumberETSSeasonal>1){
+                rownames(vecG)[j+c(1:componentsNumberETSSeasonal)] <- paste0("gamma",c(1:componentsNumberETSSeasonal));
+            }
+            else{
+                rownames(vecG)[j+1] <- "gamma";
+            }
+            j <- j+componentsNumberETSSeasonal;
+        }
+    }
+
+    if(arimaModel){
+        matF[j+1:componentsNumberARIMA,j+1:componentsNumberARIMA] <- 0;
+        if(componentsNumberARIMA>1){
+            rownames(vecG)[j+1:componentsNumberARIMA] <- paste0("psi",c(1:componentsNumberARIMA));
+        }
+        else{
+            rownames(vecG)[j+1:componentsNumberARIMA] <- "psi";
+        }
+        j <- j+componentsNumberARIMA;
+    }
+
+    if(!arimaModel && constantRequired){
+        matF[1,ncol(matF)] <- 1;
+    }
+
+    if(xregModel){
+        if(persistenceXregProvided && !persistenceXregEstimate){
+            vecG[j+1:xregNumber,] <- persistenceXreg;
+        }
+        rownames(vecG)[j+1:xregNumber] <- paste0("delta",xregParametersPersistence);
+    }
+
+    if(etsModel && modelIsTrendy){
+        matF[1,2] <- phi;
+        matF[2,2] <- phi;
+        matWt[,2] <- phi;
+    }
+
+    if(arimaModel && (!arEstimate && !maEstimate)){
+        arimaPolynomials <- lapply(adamCpp$polynomialise(0, arOrders, iOrders, maOrders,
+                                                         arEstimate, maEstimate, armaParameters, lags), as.vector);
+        if(nrow(nonZeroARI)>0){
+            matF[componentsNumberETS+nonZeroARI[,2],componentsNumberETS+nonZeroARI[,2]] <-
+                -arimaPolynomials$ariPolynomial[nonZeroARI[,1]];
+        }
+        if(nrow(nonZeroARI)>0){
+            vecG[componentsNumberETS+nonZeroARI[,2]] <- -arimaPolynomials$ariPolynomial[nonZeroARI[,1]];
+        }
+        if(nrow(nonZeroMA)>0){
+            vecG[componentsNumberETS+nonZeroMA[,2]] <- vecG[componentsNumberETS+nonZeroMA[,2]] +
+                arimaPolynomials$maPolynomial[nonZeroMA[,1]];
+        }
+    }
+    else{
+        arimaPolynomials <- NULL;
+    }
+
+    if(!profilesRecentProvided){
+        if(etsModel){
+            if(initialEstimate){
+                if(modelIsSeasonal){
+                    yDecompositionAdditive <- msdecompose(yInSample, lags=lags[lags!=1],
+                                                          type="additive", smoother=smoother);
+                    if(any(c(Etype,Ttype,Stype)=="M")){
+                        yDecompositionMultiplicative <- msdecompose(yInSample, lags=lags[lags!=1],
+                                                                    type="multiplicative", smoother=smoother);
+                    }
+                    decompositionType <- c("additive","multiplicative")[any(c(Etype,Stype)=="M")+1];
+                    yDecomposition <- switch(decompositionType,
+                                             "additive"=yDecompositionAdditive,
+                                             "multiplicative"=yDecompositionMultiplicative);
+                    j <- 1;
+                    if(initialLevelEstimate){
+                        if(modelIsTrendy){
+                            matVt[j,1:lagsModelMax] <- switch(Ttype,
+                                                              "M"=yDecompositionMultiplicative$initial$nonseasonal[1],
+                                                              yDecompositionAdditive$initial$nonseasonal[1]);
+                        }
+                        else{
+                            matVt[j,1:lagsModelMax] <- mean(yInSample[otLogical]);
+                        }
+                        if(xregModel){
+                            if(Etype=="A"){
+                                matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
+                                    as.vector(xregModelInitials[[1]]$initialXreg %*% xregData[1,]);
+                            }
+                            else{
+                                matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] /
+                                    as.vector(exp(xregModelInitials[[2]]$initialXreg %*% xregData[1,]));
+                            }
+                        }
+                    }
+                    else{
+                        matVt[j,1:lagsModelMax] <- initialLevel;
+                    }
+                    j <- j+1;
+                    if(modelIsTrendy){
+                        if(initialTrendEstimate){
+                            if(Ttype=="A"){
+                                matVt[j,1:lagsModelMax] <- yDecompositionAdditive$initial$nonseasonal[2];
+                                if(Stype=="M"){
+                                    if(matVt[j,1]<0 && abs(matVt[j,1])>min(abs(yInSample[otLogical]))){
+                                        matVt[j,1:lagsModelMax] <- 0;
+                                    }
+                                }
+                            }
+                            else if(Ttype=="M"){
+                                matVt[j,1:lagsModelMax] <- yDecompositionMultiplicative$initial$nonseasonal[2];
+                                if(any(matVt[1,1:lagsModelMax]<0)){
+                                    matVt[1,1:lagsModelMax] <- yInSample[otLogical][1];
+                                }
+                            }
+                        }
+                        else{
+                            matVt[j,1:lagsModelMax] <- initialTrend;
+                        }
+                        j <- j+1;
+                    }
+                    if(all(c(Etype,Stype)=="A") || all(c(Etype,Stype)=="M") ||
+                       (Etype=="A" & Stype=="M")){
+                        for(i in 1:componentsNumberETSSeasonal){
+                            if(initialSeasonalEstimate[i]){
+                                matVt[i+j-1,1:lagsModel[i+j-1]] <- yDecomposition$initial$seasonal[[i]];
+                                if(Stype=="A"){
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <-
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] -
+                                        mean(matVt[i+j-1,1:lagsModel[i+j-1]]);
+                                }
+                                else{
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <-
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] /
+                                        exp(mean(log(matVt[i+j-1,1:lagsModel[i+j-1]])));
+                                }
+                            }
+                            else{
+                                matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
+                            }
+                        }
+                    }
+                    else if(Etype=="M" && Stype=="A"){
+                        for(i in 1:componentsNumberETSSeasonal){
+                            if(initialSeasonalEstimate[i]){
+                                matVt[i+j-1,1:lagsModel[i+j-1]] <-
+                                    log(yDecomposition$initial$seasonal[[i]])*min(yInSample[otLogical]);
+                                if(Stype=="A"){
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] -
+                                        mean(matVt[i+j-1,1:lagsModel[i+j-1]]);
+                                }
+                                else{
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] /
+                                        exp(mean(log(matVt[i+j-1,1:lagsModel[i+j-1]])));
+                                }
+                            }
+                            else{
+                                matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
+                            }
+                        }
+                    }
+                    if(Etype=="M" && matVt[1,1]<=0){
+                        matVt[1,1:lagsModelMax] <- yInSample[1];
+                    }
+                }
+                else{
+                    yDecompositionAdditive <- msdecompose(yInSample, lags=1,
+                                                          type="additive", smoother=smoother);
+                    if(any(c(Etype,Ttype)=="M")){
+                        yDecompositionMultiplicative <- msdecompose(yInSample, lags=1,
+                                                                    type="multiplicative", smoother=smoother);
+                    }
+                    if(initialLevelEstimate){
+                        if(modelIsTrendy){
+                            matVt[1,1:lagsModelMax] <- switch(Ttype,
+                                                              "M"=yDecompositionMultiplicative$initial$nonseasonal[1],
+                                                              yDecompositionAdditive$initial$nonseasonal[1]);
+                        }
+                        else{
+                            matVt[1,1:lagsModelMax] <- mean(yInSample[otLogical]);
+                        }
+                    }
+                    else{
+                        matVt[1,1:lagsModelMax] <- initialLevel;
+                    }
+                    if(modelIsTrendy){
+                        if(initialTrendEstimate){
+                            matVt[2,1:lagsModelMax] <- switch(Ttype,
+                                                              "A"=yDecompositionAdditive$initial$nonseasonal[2],
+                                                              "M"=yDecompositionMultiplicative$initial$nonseasonal[2]);
+                        }
+                        else{
+                            matVt[2,1:lagsModelMax] <- initialTrend;
+                        }
+                    }
+                    if(Etype=="M" && matVt[1,1]<=0){
+                        matVt[1,1:lagsModelMax] <- yInSample[1];
+                    }
+                }
+                if(initialLevelEstimate && Etype=="M" && matVt[1,lagsModelMax]==0){
+                    matVt[1,1:lagsModelMax] <- mean(yInSample);
+                }
+            }
+            else if(!initialEstimate && initialType=="provided"){
+                j <- 1;
+                matVt[j,1:lagsModelMax] <- initialLevel;
+                if(modelIsTrendy){
+                    j <- j+1;
+                    matVt[j,1:lagsModelMax] <- initialTrend;
+                }
+                if(modelIsSeasonal){
+                    for(i in 1:componentsNumberETSSeasonal){
+                        matVt[j+i,1:lagsModel[j+i]] <- initialSeasonal[[i]];
+                    }
+                }
+                j <- j+componentsNumberETSSeasonal;
+            }
+        }
+
+        if(arimaModel){
+            if(initialArimaEstimate){
+                matVt[componentsNumberETS+1:componentsNumberARIMA, 1:initialArimaNumber] <-
+                    switch(Etype, "A"=0, "M"=1);
+                if(any(lags>1) && obsInSample > max(lags)*2){
+                    yDecomposition <- tail(msdecompose(yInSample,
+                                                       lags=lags[lags!=1],
+                                                       type=switch(Etype,
+                                                                   "A"="additive",
+                                                                   "M"="multiplicative"),
+                                                       smoother=smoother)$seasonal, 1)[[1]];
+                }
+                else if(any(lags>1) && obsInSample <= max(lags)*2){
+                    yDecomposition <- yInSample[otLogical][1:obsInSample];
+                }
+                else{
+                    yDecomposition <- switch(Etype,
+                                             "A"=mean(diff(yInSample[otLogical])),
+                                             "M"=exp(mean(diff(log(yInSample[otLogical])))));
+                }
+                matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <-
+                    rep(yDecomposition, ceiling(initialArimaNumber/max(lags)))[1:initialArimaNumber];
+            }
+            else{
+                matVt[componentsNumberETS+1:componentsNumberARIMA, 1:initialArimaNumber] <-
+                    switch(Etype, "A"=0, "M"=1);
+                matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <-
+                    initialArima[1:initialArimaNumber];
+            }
+        }
+
+        if(xregModel){
+            if(Etype=="A" || initialXregProvided || is.null(xregModelInitials[[2]])){
+                matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber, 1:lagsModelMax] <- 0;
+                matVt[names(xregModelInitials[[1]]$initialXreg), 1:lagsModelMax] <-
+                    xregModelInitials[[1]]$initialXreg;
+            }
+            else{
+                matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber, 1:lagsModelMax] <- 0;
+                matVt[names(xregModelInitials[[2]]$initialXreg), 1:lagsModelMax] <-
+                    xregModelInitials[[2]]$initialXreg;
+            }
+        }
+
+        if(constantRequired){
+            if(constantEstimate){
+                if(sum(iOrders)==0 && !etsModel){
+                    matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,] <-
+                        mean(yInSample[otLogical]);
+                }
+                else{
+                    matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,] <-
+                        switch(Etype,
+                               "A"=mean(diff(yInSample[otLogical])),
+                               "M"=exp(mean(diff(log(yInSample[otLogical])))));
+                }
+            }
+            else{
+                matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,] <- constantValue;
+            }
+            if(etsModel && initialLevelEstimate){
+                if(Etype=="A"){
+                    matVt[1,1:lagsModelMax] <- matVt[1,1:lagsModelMax] -
+                        matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,1];
+                }
+                else{
+                    matVt[1,1:lagsModelMax] <- matVt[1,1:lagsModelMax] /
+                        matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,1];
+                }
+            }
+            if(arimaModel && initialArimaEstimate){
+                if(Etype=="A"){
+                    matVt[componentsNumberETS+nonZeroARI[,2],1:initialArimaNumber] <-
+                        matVt[componentsNumberETS+nonZeroARI[,2],1:initialArimaNumber] -
+                        matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,1];
+                }
+                else{
+                    matVt[componentsNumberETS+nonZeroARI[,2],1:initialArimaNumber] <-
+                        matVt[componentsNumberETS+nonZeroARI[,2],1:initialArimaNumber] /
+                        matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,1];
+                }
+            }
+        }
+    }
+    else{
+        matVt[,1:lagsModelMax] <- profilesRecentTable;
+    }
+
+    return(list(matVt=matVt, matWt=matWt, matF=matF, vecG=vecG, arimaPolynomials=arimaPolynomials));
+}
