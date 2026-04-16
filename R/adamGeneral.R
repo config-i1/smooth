@@ -1,215 +1,16 @@
-parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=FALSE, arma,
-                              outliers=c("ignore","use","select"), level=0.99,
-                              persistence, phi, initial,
-                              distribution=c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
-                                             "dlnorm","dinvgauss","dgamma"),
-                              loss, h, holdout, occurrence,
-                              ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
-                              regressors, yName,
-                              silent, modelDo,
-                              ellipsis, fast=FALSE){
+commonParametersChecker <- function(data, model, lags, formulaToUse, orders, constant=FALSE, arma,
+                                    persistence, phi, initial,
+                                    distribution=c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
+                                                   "dlnorm","dinvgauss","dgamma"),
+                                    loss, h, holdout, occurrence,
+                                    ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
+                                    regressors, yName,
+                                    silent, modelDo,
+                                    ellipsis, fast=FALSE){
 
-    # The function checks the provided parameters of adam and/or oes
-    ##### data #####
-    # yName is the name of the object. It might differ from response if matrix is provided
-    responseName <- yName;
-
-    # If this is simulated, extract the actuals
-    if(is.adam.sim(data) || is.smooth.sim(data)){
-        data <- data$data;
-        lags <- frequency(data);
-    }
-    # If this is Mdata, use all the available stuff
-    else if(inherits(data,"Mdata")){
-        h <- data$h;
-        holdout <- TRUE;
-        if(modelDo!="use"){
-            lags <- frequency(data$x);
-        }
-        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
-    }
-
-    # Extract index from the object in order to use it later
-    ### tsibble has its own index function, so shit happens because of it...
-    if(inherits(data,"tbl_ts")){
-        yIndex <- data[[1]];
-        if(any(duplicated(yIndex))){
-            warning(paste0("You have duplicated time stamps in the variable ",yName,
-                           ". I will refactor this."),call.=FALSE);
-            yIndex <- yIndex[1] + c(1:length(data[[1]])) * diff(tail(yIndex,2));
-        }
-    }
-    else{
-        yIndex <- try(time(data),silent=TRUE);
-        # If we cannot extract time, do something
-        if(inherits(yIndex,"try-error")){
-            if(!is.data.frame(data) && !is.null(dim(data))){
-                yIndex <- as.POSIXct(rownames(data));
-            }
-            else if(is.data.frame(data)){
-                yIndex <- c(1:nrow(data));
-            }
-            else{
-                yIndex <- c(1:length(data));
-            }
-        }
-    }
-    yClasses <- class(data);
-
-    # If this is something like a matrix
-    if(!is.null(ncol(data)) && ncol(data)>1){
-        xregData <- data;
-        # Get rid of the bloody tibble class. Gives me headaches!
-        if(inherits(data,"tbl_df") || inherits(data,"tbl")){
-            data <- as.data.frame(data);
-        }
-
-        if(!is.null(formulaToUse)){
-            responseName <- all.vars(formulaToUse)[1];
-            y <- data[,responseName];
-        }
-        else{
-            responseName <- colnames(xregData)[1];
-            # If we deal with data.table / tibble / data.frame, the syntax is different.
-            # We don't want to import specific classes, so just use inherits()
-            if(inherits(data,"tbl_ts")){
-                # With tsibble we cannot extract explanatory variables easily...
-                y <- data$value;
-            }
-            else if(inherits(data,"data.table") || inherits(data,"data.frame")){
-                y <- data[[1]];
-            }
-            else if(inherits(data,"zoo")){
-                if(ncol(data)>1){
-                    xregData <- as.data.frame(data);
-                }
-                y <- zoo(data[,1],order.by=time(data));
-            }
-            else{
-                y <- data[,1];
-            }
-        }
-        # Give the indeces another try
-        yIndex <- try(time(y),silent=TRUE);
-        # If we cannot extract time, do something
-        if(inherits(yIndex,"try-error")){
-            if(!is.null(dim(data))){
-                yIndex <- try(as.POSIXct(rownames(data)),silent=TRUE);
-                if(inherits(yIndex,"try-error")){
-                    yIndex <- c(1:nrow(data));
-                }
-            }
-            else{
-                yIndex <- c(1:length(y));
-            }
-        }
-        else{
-            yClasses <- class(y);
-        }
-    }
-    else{
-        xregData <- NULL;
-        if(!is.null(ncol(data)) && !is.null(colnames(data)[1])){
-            responseName <- colnames(data)[1];
-            y <- data[,1];
-        }
-        else{
-            y <- data;
-        }
-    }
-
-    # Make the response a secure name
-    responseName <- make.names(responseName);
-
-    # Define obs, the number of observations of in-sample
-    obsAll <- length(y) + (1 - holdout)*h;
-    obsInSample <- length(y) - holdout*h;
-
-
-    if(obsInSample<=0){
-        stop("The number of in-sample observations is not positive. Cannot do anything.",
-             call.=FALSE);
-    }
-
-    # Interpolate NAs using fourier + polynomials
-    yNAValues <- is.na(y);
-    if(any(yNAValues)){
-        warning("Data contains NAs. The values will be ignored during the model construction.",call.=FALSE);
-        X <- cbind(1,poly(c(1:obsAll),degree=min(max(trunc(obsAll/10),1),5)),
-                   sinpi(matrix(c(1:obsAll)*rep(c(1:max(max(lags),10)),each=obsAll)/max(max(lags),10), ncol=max(max(lags),10))));
-        # If we deal with purely positive data, take logarithms to deal with multiplicative seasonality
-        if(any(y[!yNAValues]<=0)){
-            lmFit <- .lm.fit(X[!yNAValues,,drop=FALSE], matrix(y[!yNAValues],ncol=1));
-            y[yNAValues] <- (X %*% coef(lmFit))[yNAValues];
-        }
-        else{
-            lmFit <- .lm.fit(X[!yNAValues,,drop=FALSE], matrix(log(y[!yNAValues]),ncol=1));
-            y[yNAValues] <- exp(X %*% coef(lmFit))[yNAValues];
-        }
-        if(!is.null(xregData)){
-            xregData[yNAValues,responseName] <- y[yNAValues];
-        }
-        rm(X);
-        # Clean memory if have a big object
-        if(obsInSample>10000){
-            gc(verbose=FALSE);
-        }
-    }
-
-    # If this is just a numeric variable, use ts class
-    if(all(yClasses=="integer") || all(yClasses=="numeric") ||
-       all(yClasses=="data.frame") || all(yClasses=="matrix")){
-        if(any(class(yIndex) %in% c("POSIXct","Date"))){
-            yClasses <- "zoo";
-        }
-        else{
-            yClasses <- "ts";
-        }
-    }
-    yFrequency <- frequency(y);
-    yStart <- yIndex[1];
-    yInSample <- matrix(y[1:obsInSample],ncol=1);
-    if(holdout){
-        yForecastStart <- yIndex[obsInSample+1];
-        yHoldout <- matrix(y[-c(1:obsInSample)],ncol=1);
-        yForecastIndex <- yIndex[-c(1:obsInSample)];
-        yInSampleIndex <- yIndex[c(1:obsInSample)];
-        yIndexAll <- yIndex;
-    }
-    else{
-        yInSampleIndex <- yIndex;
-        if(any(yClasses=="ts")){
-            yIndexDiff <- deltat(yIndex);
-            yForecastIndex <- yIndex[obsInSample]+yIndexDiff*c(1:max(h,1));
-        }
-        else{
-            yIndexDiff <- diff(tail(yIndex,2));
-            yForecastIndex <- yIndex[obsInSample]+yIndexDiff*c(1:max(h,1));
-        }
-        yForecastStart <- yIndex[obsInSample]+yIndexDiff;
-        yHoldout <- NULL;
-        yIndexAll <- c(yIndex,yForecastIndex);
-    }
-
-    if(!is.numeric(yInSample)){
-        stop("The provided data is not numeric! Can't construct any model!", call.=FALSE);
-    }
-
-    # If the user asked for trend, but it's not in the data, add it
-    if(!is.null(formulaToUse) &&
-       any(all.vars(formulaToUse)=="trend") && all(colnames(xregData)!="trend")){
-        if(!is.null(xregData)){
-            xregData <- cbind(xregData,trend=c(1:obsAll));
-        }
-        else{
-            xregData <- cbind(y=y,trend=c(1:obsAll));
-        }
-    }
-
-    # Number of parameters to estimate / provided
-    parametersNumber <- matrix(0,2,5,
-                               dimnames=list(c("Estimated","Provided"),
-                                             c("nParamInternal","nParamXreg","nParamOccurrence","nParamScale","nParamAll")));
+    #### Data ####
+    list2env(adam_checkData(data, lags, h, holdout, yName, modelDo, formulaToUse),
+             envir=environment());
 
     #### Check what is used for the model ####
     if(!is.character(model)){
@@ -759,19 +560,14 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         componentsNumberETSSeasonal <- 0;
     }
 
-    outliers <- match.arg(outliers);
-    if(outliers!="ignore"){
-        select <- TRUE;
-    }
-
     if(!fast){
         #### Distribution selected ####
         distribution <- match.arg(distribution[1], c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
-                                                  "dlnorm","dinvgauss","dgamma"));
+                                                      "dlnorm","dinvgauss","dgamma"));
     }
 
     if(select){
-        return(list(select=select, distribution=distribution, outliers=outliers));
+        return(list(select=TRUE, distribution=distribution));
     }
 
     #### Loss function type ####
@@ -2941,171 +2737,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     lagsModelMax[] <- max(lagsModelAll);
 
     #### Process ellipsis ####
-    # Parameters for the optimiser
-    if(is.null(ellipsis$maxeval)){
-        maxeval <- NULL;
-        # Make a warning if this is a big computational task
-        if(any(lags>24) && arimaModel && any(initialType==c("optimal","two-stage"))){
-            warning(paste0("The estimation of ARIMA model with initial='optimal' on high frequency data might ",
-                           "take more time to converge to the optimum. Consider either setting maxeval parameter ",
-                           "to a higher value (e.g. maxeval=10000, which will take ~25 times more than this) ",
-                           "or using initial='backcasting'."),
-                    call.=FALSE, immediate.=TRUE);
-        }
-    }
-    else{
-        maxeval <- ellipsis$maxeval;
-    }
-    if(is.null(ellipsis$maxtime)){
-        maxtime <- -1;
-    }
-    else{
-        maxtime <- ellipsis$maxtime;
-    }
-    if(is.null(ellipsis$xtol_rel)){
-        xtol_rel <- 1E-6;
-    }
-    else{
-        xtol_rel <- ellipsis$xtol_rel;
-    }
-    if(is.null(ellipsis$xtol_abs)){
-        xtol_abs <- 1E-8;
-    }
-    else{
-        xtol_abs <- ellipsis$xtol_abs;
-    }
-    if(is.null(ellipsis$ftol_rel)){
-        ftol_rel <- 1E-8;
-    }
-    else{
-        ftol_rel <- ellipsis$ftol_rel;
-    }
-    if(is.null(ellipsis$ftol_abs)){
-        ftol_abs <- 0;
-    }
-    else{
-        ftol_abs <- ellipsis$ftol_abs;
-    }
-    if(is.null(ellipsis$algorithm)){
-        algorithm <- "NLOPT_LN_NELDERMEAD";
-    }
-    else{
-        algorithm <- ellipsis$algorithm;
-    }
-    if(is.null(ellipsis$print_level)){
-        print_level <- 0;
-    }
-    else{
-        print_level <- ellipsis$print_level;
-    }
-    # The following three arguments are used for the function itself, not the options
-    if(is.null(ellipsis$lb)){
-        lb <- NULL;
-    }
-    else{
-        lb <- ellipsis$lb;
-    }
-    if(is.null(ellipsis$ub)){
-        ub <- NULL;
-    }
-    else{
-        ub <- ellipsis$ub;
-    }
-    if(is.null(ellipsis$B)){
-        B <- NULL;
-    }
-    else{
-        B <- ellipsis$B;
-    }
-    # Initialise parameters
-    lambda <- other <- NULL;
-    otherParameterEstimate <- FALSE
-    # lambda for LASSO
-    if(any(loss==c("LASSO","RIDGE"))){
-        if(is.null(ellipsis$lambda)){
-            warning(paste0("You have not provided lambda parameter. I will set it to zero."), call.=FALSE);
-            lambda <- 0;
-        }
-        else{
-            lambda <- ellipsis$lambda;
-        }
-    }
-    # Parameters for distributions
-    if(distribution=="dalaplace"){
-        if(is.null(ellipsis$alpha)){
-            other <- 0.5
-            otherParameterEstimate <- TRUE;
-        }
-        else{
-            other <- ellipsis$alpha;
-            otherParameterEstimate <- FALSE;
-        }
-        names(other) <- "alpha";
-    }
-    else if(any(distribution==c("dgnorm","dlgnorm"))){
-        if(is.null(ellipsis$shape)){
-            other <- 2
-            otherParameterEstimate <- TRUE;
-        }
-        else{
-            other <- ellipsis$shape;
-            otherParameterEstimate <- FALSE;
-        }
-        names(other) <- "shape";
-    }
-    else if(distribution=="dt"){
-        if(is.null(ellipsis$nu)){
-            other <- 2
-            otherParameterEstimate <- TRUE;
-        }
-        else{
-            other <- ellipsis$nu;
-            otherParameterEstimate <- FALSE;
-        }
-        names(other) <- "nu";
-    }
-    # Number of iterations for backcasting
-    if(is.null(ellipsis$nIterations)){
-        # 1 iteration in case of optimal/provided initials
-        nIterations <- 1;
-        # 2 iterations otherwise
-        if(any(initialType==c("complete","backcasting"))){
-            nIterations[] <- 2;
-        }
-    }
-    else{
-        nIterations <- ellipsis$nIterations;
-    }
-    # Smoother used in msdecompose
-    if(is.null(ellipsis$smoother)){
-        smoother <- "global";
-    }
-    else{
-        smoother <- ellipsis$smoother;
-    }
-    # Fisher Information
-    if(is.null(ellipsis$FI)){
-        FI <- FALSE;
-    }
-    else{
-        FI <- ellipsis$FI;
-    }
-    # Step size for the hessian
-    if(is.null(ellipsis$stepSize)){
-        stepSize <- .Machine$double.eps^(1/4);
-    }
-    else{
-        stepSize <- ellipsis$stepSize;
-    }
-
-    #### Temporary hidden parameter to switch the df calculation in case of backcasting ####
-    if(is.null(ellipsis$dfForBack)){
-        dfForBack <- FALSE;
-    }
-    else{
-        dfForBack <- ellipsis$dfForBack;
-    }
-
+    list2env(adam_checkOptimizer(ellipsis, loss, distribution, initialType, lags, arimaModel),
+             envir=environment());
 
     # Add constant in the model
     if(is.numeric(constant)){
@@ -3290,8 +2923,6 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         pForecast = pForecast,
         ot = ot,
         otLogical = otLogical,
-        # Outliers detection
-        outliers = outliers,
         # Distribution, loss, bounds and IC
         distribution = distribution,
         loss = loss,
@@ -3356,3 +2987,45 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         dfForBack = dfForBack
     ));
 }
+
+#### adamSpecificChecker: thin wrapper adding outliers/distribution early-exit ####
+#' @keywords internal
+adamSpecificChecker <- function(data, model, lags, formulaToUse, orders, constant=FALSE, arma,
+                                outliers=c("ignore","use","select"), level=0.99,
+                                persistence, phi, initial,
+                                distribution=c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
+                                               "dlnorm","dinvgauss","dgamma"),
+                                loss, h, holdout, occurrence,
+                                ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
+                                regressors, yName,
+                                silent, modelDo,
+                                ellipsis, fast=FALSE){
+    outliers <- match.arg(outliers);
+    if(!fast){
+        distribution <- match.arg(distribution[1],
+                                   c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
+                                     "dlnorm","dinvgauss","dgamma"));
+    }
+
+    if(outliers != "ignore"){
+        return(list(select=TRUE, distribution=distribution, outliers=outliers));
+    }
+
+    result <- commonParametersChecker(data=data, model=model, lags=lags, formulaToUse=formulaToUse,
+                                      orders=orders, constant=constant, arma=arma,
+                                      persistence=persistence, phi=phi, initial=initial,
+                                      distribution=distribution, loss=loss, h=h, holdout=holdout,
+                                      occurrence=occurrence, ic=ic, bounds=bounds,
+                                      regressors=regressors, yName=yName,
+                                      silent=silent, modelDo=modelDo,
+                                      ellipsis=ellipsis, fast=fast);
+
+    if(is.alm(result)){
+        return(result);
+    }
+
+    return(c(result, list(outliers=outliers)));
+}
+
+#### Backward-compatible alias ####
+parametersChecker <- adamSpecificChecker;
