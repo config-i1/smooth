@@ -154,7 +154,8 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
                                        occurrence=occurrence, ic=ic, bounds=bounds,
                                        regressors=regressors, yName=yName,
                                        silent=silent, modelDo=modelDo,
-                                       ParentEnvironment=environment(), ellipsis=ellipsis, fast=FALSE);
+                                       ellipsis=ellipsis, fast=FALSE);
+    list2env(checkerReturn, envir=environment());
 
     # Reset the parameters. This is to address the trick to the checker
     armaParameters <- arma;

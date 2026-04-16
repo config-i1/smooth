@@ -27,3 +27,5 @@ plot(model,7)
 
 
 devtools::test(filter="adam_baseline") 
+
+devtools::test()

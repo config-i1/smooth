@@ -266,7 +266,8 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
                                        # This is not needed by the gum() function
                                        ic=ic, bounds=bounds[1],
                                        regressors=regressors, yName=yName,
-                                       silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
+                                       silent, modelDo, ellipsis, fast=FALSE);
+    list2env(checkerReturn, envir=environment());
 
     # Return to the original ones. The parametersChecker will force "admissible"
     bounds <- boundsOriginal

@@ -6,7 +6,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                               loss, h, holdout, occurrence,
                               ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
                               regressors, yName,
-                              silent, modelDo, ParentEnvironment,
+                              silent, modelDo,
                               ellipsis, fast=FALSE){
 
     # The function checks the provided parameters of adam and/or oes
@@ -771,10 +771,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
 
     if(select){
-        assign("distribution",distribution,ParentEnvironment);
-        assign("outliers",outliers,ParentEnvironment);
-        # This stuff is needed for switch to auto.adam.
-        return(list(select=select));
+        return(list(select=select, distribution=distribution, outliers=outliers));
     }
 
     #### Loss function type ####
@@ -3202,193 +3199,160 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         colnames(yHoldout) <- responseName;
     }
 
-    #### Return the values to the previous environment ####
-    ### Actuals
-    assign("y",y,ParentEnvironment);
-    assign("yHoldout",yHoldout,ParentEnvironment);
-    assign("yInSample",yInSample,ParentEnvironment);
-    assign("yNAValues",yNAValues,ParentEnvironment);
-
-    ### Index and all related structure variables
-    assign("yClasses",yClasses,ParentEnvironment);
-    assign("yIndex",yIndex,ParentEnvironment);
-    assign("yInSampleIndex",yInSampleIndex,ParentEnvironment);
-    assign("yForecastIndex",yForecastIndex,ParentEnvironment);
-    assign("yIndexAll",yIndexAll,ParentEnvironment);
-    assign("yFrequency",yFrequency,ParentEnvironment);
-    assign("yStart",yStart,ParentEnvironment);
-    assign("yForecastStart",yForecastStart,ParentEnvironment);
-
-    # The rename of the variable is needed for the hessian to work
-    assign("horizon",h,ParentEnvironment);
-    assign("h",h,ParentEnvironment);
-    assign("holdout",holdout,ParentEnvironment);
-
-    ### Number of observations and parameters
-    assign("obsInSample",obsInSample,ParentEnvironment);
-    assign("obsAll",obsAll,ParentEnvironment);
-    assign("obsStates",obsStates,ParentEnvironment);
-    assign("obsNonzero",obsNonzero,ParentEnvironment);
-    assign("obsZero",obsZero,ParentEnvironment);
-    assign("parametersNumber",parametersNumber,ParentEnvironment);
-
-    ### Model type
-    assign("etsModel",etsModel,ParentEnvironment);
-    assign("model",model,ParentEnvironment);
-    assign("Etype",Etype,ParentEnvironment);
-    assign("Ttype",Ttype,ParentEnvironment);
-    assign("Stype",Stype,ParentEnvironment);
-    assign("modelIsTrendy",modelIsTrendy,ParentEnvironment);
-    assign("modelIsSeasonal",modelIsSeasonal,ParentEnvironment);
-    assign("modelsPool",modelsPool,ParentEnvironment);
-    assign("damped",damped,ParentEnvironment);
-    assign("modelDo",modelDo,ParentEnvironment);
-    assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
-
-    ### Numbers and names of components
-    assign("componentsNumberETS",componentsNumberETS,ParentEnvironment);
-    assign("componentsNamesETS",componentsNamesETS,ParentEnvironment);
-    assign("componentsNumberETSNonSeasonal",componentsNumberETS-componentsNumberETSSeasonal,ParentEnvironment);
-    assign("componentsNumberETSSeasonal",componentsNumberETSSeasonal,ParentEnvironment);
-    # The number and names of ARIMA components
-    assign("componentsNumberARIMA",componentsNumberARIMA,ParentEnvironment);
-    assign("componentsNamesARIMA",componentsNamesARIMA,ParentEnvironment);
-
-    ### Lags
-    # This is the original vector of lags, modified for the level components.
-    # This can be used in ARIMA
-    assign("lags",lags,ParentEnvironment);
-    # This is the vector of lags of ETS components
-    assign("lagsModel",lagsModel,ParentEnvironment);
-    # This is the vector of seasonal lags
-    assign("lagsModelSeasonal",lagsModelSeasonal,ParentEnvironment);
-    # This is the vector of lags for ARIMA components (not lags of ARIMA)
-    assign("lagsModelARIMA",lagsModelARIMA,ParentEnvironment);
-    # This is the vector of all the lags of model (ETS + ARIMA + X)
-    assign("lagsModelAll",lagsModelAll,ParentEnvironment);
-    # This is the maximum lag
-    assign("lagsModelMax",lagsModelMax,ParentEnvironment);
-
-    ### Persistence
-    assign("persistence",persistence,ParentEnvironment);
-    assign("persistenceEstimate",persistenceEstimate,ParentEnvironment);
-    assign("persistenceLevel",persistenceLevel,ParentEnvironment);
-    assign("persistenceLevelEstimate",persistenceLevelEstimate,ParentEnvironment);
-    assign("persistenceTrend",persistenceTrend,ParentEnvironment);
-    assign("persistenceTrendEstimate",persistenceTrendEstimate,ParentEnvironment);
-    assign("persistenceSeasonal",persistenceSeasonal,ParentEnvironment);
-    assign("persistenceSeasonalEstimate",persistenceSeasonalEstimate,ParentEnvironment);
-    assign("persistenceXreg",persistenceXreg,ParentEnvironment);
-    assign("persistenceXregEstimate",persistenceXregEstimate,ParentEnvironment);
-    assign("persistenceXregProvided",persistenceXregProvided,ParentEnvironment);
-
-    ### phi
-    assign("phi",phi,ParentEnvironment);
-    assign("phiEstimate",phiEstimate,ParentEnvironment);
-
-    ### Initials
-    assign("initial",initial,ParentEnvironment);
-    assign("initialType",initialType,ParentEnvironment);
-    assign("initialEstimate",initialEstimate,ParentEnvironment);
-    assign("initialLevel",initialLevel,ParentEnvironment);
-    assign("initialLevelEstimate",initialLevelEstimate,ParentEnvironment);
-    assign("initialTrend",initialTrend,ParentEnvironment);
-    assign("initialTrendEstimate",initialTrendEstimate,ParentEnvironment);
-    assign("initialSeasonal",initialSeasonal,ParentEnvironment);
-    assign("initialSeasonalEstimate",initialSeasonalEstimate,ParentEnvironment);
-    assign("initialArima",initialArima,ParentEnvironment);
-    assign("initialArimaEstimate",initialArimaEstimate,ParentEnvironment);
-    # Number of initials that the ARIMA has (either provided or to estimate)
-    assign("initialArimaNumber",initialArimaNumber,ParentEnvironment);
-    assign("initialXregEstimate",initialXregEstimate,ParentEnvironment);
-    assign("initialXregProvided",initialXregProvided,ParentEnvironment);
-
-    ### Occurrence model
-    assign("oesModel",oesModel,ParentEnvironment);
-    assign("occurrenceModel",occurrenceModel,ParentEnvironment);
-    assign("occurrenceModelProvided",occurrenceModelProvided,ParentEnvironment);
-    assign("occurrence",occurrence,ParentEnvironment);
-    assign("pFitted",pFitted,ParentEnvironment);
-    assign("pForecast",pForecast,ParentEnvironment);
-    assign("ot",ot,ParentEnvironment);
-    assign("otLogical",otLogical,ParentEnvironment);
-
-    ### Outliers detection
-    assign("outliers",outliers,ParentEnvironment);
-
-    ### Distribution, loss, bounds and IC
-    assign("distribution",distribution,ParentEnvironment);
-    assign("loss",loss,ParentEnvironment);
-    assign("lossFunction",lossFunction,ParentEnvironment);
-    assign("multisteps",multisteps,ParentEnvironment);
-    assign("ic",ic,ParentEnvironment);
-    assign("icFunction",icFunction,ParentEnvironment);
-    assign("bounds",bounds,ParentEnvironment);
-
-    ### ARIMA components
-    assign("arimaModel",arimaModel,ParentEnvironment);
-    assign("arOrders",arOrders,ParentEnvironment);
-    assign("iOrders",iOrders,ParentEnvironment);
-    assign("maOrders",maOrders,ParentEnvironment);
-    assign("arRequired",arRequired,ParentEnvironment);
-    assign("iRequired",iRequired,ParentEnvironment);
-    assign("maRequired",maRequired,ParentEnvironment);
-    assign("arEstimate",arEstimate,ParentEnvironment);
-    assign("maEstimate",maEstimate,ParentEnvironment);
-    assign("armaParameters",armaParameters,ParentEnvironment);
-    assign("nonZeroARI",nonZeroARI,ParentEnvironment);
-    assign("nonZeroMA",nonZeroMA,ParentEnvironment);
-    assign("select",select,ParentEnvironment);
-
-    ### Explanatory variables
-    assign("xregModel",xregModel,ParentEnvironment);
-    assign("regressors",regressors,ParentEnvironment);
-    assign("xregModelInitials",xregModelInitials,ParentEnvironment);
-    assign("xregData",xregData,ParentEnvironment);
-    assign("xregNumber",xregNumber,ParentEnvironment);
-    assign("xregNames",xregNames,ParentEnvironment);
-    assign("responseName",responseName,ParentEnvironment);
-    assign("formula",formulaToUse,ParentEnvironment);
-    assign("xregParametersMissing",xregParametersMissing,ParentEnvironment);
-    assign("xregParametersIncluded",xregParametersIncluded,ParentEnvironment);
-    assign("xregParametersEstimated",xregParametersEstimated,ParentEnvironment);
-    assign("xregParametersPersistence",xregParametersPersistence,ParentEnvironment);
-
-    ### Constant
-    assign("constantRequired",constantRequired,ParentEnvironment);
-    assign("constantEstimate",constantEstimate,ParentEnvironment);
-    assign("constantValue",constantValue,ParentEnvironment);
-    assign("constantName",constantName,ParentEnvironment);
-
-    ### Ellipsis thingies
-    # Optimisation related
-    assign("maxeval",maxeval,ParentEnvironment);
-    assign("maxtime",maxtime,ParentEnvironment);
-    assign("xtol_rel",xtol_rel,ParentEnvironment);
-    assign("xtol_abs",xtol_abs,ParentEnvironment);
-    assign("ftol_rel",ftol_rel,ParentEnvironment);
-    assign("ftol_abs",ftol_abs,ParentEnvironment);
-    assign("algorithm",algorithm,ParentEnvironment);
-    assign("print_level",print_level,ParentEnvironment);
-    assign("B",B,ParentEnvironment);
-    assign("lb",lb,ParentEnvironment);
-    assign("ub",ub,ParentEnvironment);
-    # Parameters for distributions
-    assign("other",other,ParentEnvironment);
-    assign("otherParameterEstimate",otherParameterEstimate,ParentEnvironment);
-    # LASSO / RIDGE
-    assign("lambda",lambda,ParentEnvironment);
-    # Number of iterations in backcasting
-    assign("nIterations",nIterations,ParentEnvironment);
-    # Smoother used in the msdecompose
-    assign("smoother",smoother,ParentEnvironment);
-    # Fisher Information
-    assign("FI",FI,ParentEnvironment);
-    # Step size for the hessian
-    assign("stepSize",stepSize,ParentEnvironment);
-
-    # Temporary parameter to switch on/off the backcasting df
-    assign("dfForBack",dfForBack,ParentEnvironment);
-
-    return(list(select=FALSE));
+    #### Return the validated parameters as a named list ####
+    return(list(
+        # Actuals
+        y = y,
+        yHoldout = yHoldout,
+        yInSample = yInSample,
+        yNAValues = yNAValues,
+        # Index and structure
+        yClasses = yClasses,
+        yIndex = yIndex,
+        yInSampleIndex = yInSampleIndex,
+        yForecastIndex = yForecastIndex,
+        yIndexAll = yIndexAll,
+        yFrequency = yFrequency,
+        yStart = yStart,
+        yForecastStart = yForecastStart,
+        horizon = h,
+        h = h,
+        holdout = holdout,
+        # Observation counts
+        obsInSample = obsInSample,
+        obsAll = obsAll,
+        obsStates = obsStates,
+        obsNonzero = obsNonzero,
+        obsZero = obsZero,
+        parametersNumber = parametersNumber,
+        # Model type
+        etsModel = etsModel,
+        model = model,
+        Etype = Etype,
+        Ttype = Ttype,
+        Stype = Stype,
+        modelIsTrendy = modelIsTrendy,
+        modelIsSeasonal = modelIsSeasonal,
+        modelsPool = modelsPool,
+        damped = damped,
+        modelDo = modelDo,
+        allowMultiplicative = allowMultiplicative,
+        # Component counts and names
+        componentsNumberETS = componentsNumberETS,
+        componentsNamesETS = componentsNamesETS,
+        componentsNumberETSNonSeasonal = componentsNumberETS - componentsNumberETSSeasonal,
+        componentsNumberETSSeasonal = componentsNumberETSSeasonal,
+        componentsNumberARIMA = componentsNumberARIMA,
+        componentsNamesARIMA = componentsNamesARIMA,
+        # Lags
+        lags = lags,
+        lagsModel = lagsModel,
+        lagsModelSeasonal = lagsModelSeasonal,
+        lagsModelARIMA = lagsModelARIMA,
+        lagsModelAll = lagsModelAll,
+        lagsModelMax = lagsModelMax,
+        # Persistence
+        persistence = persistence,
+        persistenceEstimate = persistenceEstimate,
+        persistenceLevel = persistenceLevel,
+        persistenceLevelEstimate = persistenceLevelEstimate,
+        persistenceTrend = persistenceTrend,
+        persistenceTrendEstimate = persistenceTrendEstimate,
+        persistenceSeasonal = persistenceSeasonal,
+        persistenceSeasonalEstimate = persistenceSeasonalEstimate,
+        persistenceXreg = persistenceXreg,
+        persistenceXregEstimate = persistenceXregEstimate,
+        persistenceXregProvided = persistenceXregProvided,
+        # phi
+        phi = phi,
+        phiEstimate = phiEstimate,
+        # Initials
+        initial = initial,
+        initialType = initialType,
+        initialEstimate = initialEstimate,
+        initialLevel = initialLevel,
+        initialLevelEstimate = initialLevelEstimate,
+        initialTrend = initialTrend,
+        initialTrendEstimate = initialTrendEstimate,
+        initialSeasonal = initialSeasonal,
+        initialSeasonalEstimate = initialSeasonalEstimate,
+        initialArima = initialArima,
+        initialArimaEstimate = initialArimaEstimate,
+        initialArimaNumber = initialArimaNumber,
+        initialXregEstimate = initialXregEstimate,
+        initialXregProvided = initialXregProvided,
+        # Occurrence model
+        oesModel = oesModel,
+        occurrenceModel = occurrenceModel,
+        occurrenceModelProvided = occurrenceModelProvided,
+        occurrence = occurrence,
+        pFitted = pFitted,
+        pForecast = pForecast,
+        ot = ot,
+        otLogical = otLogical,
+        # Outliers detection
+        outliers = outliers,
+        # Distribution, loss, bounds and IC
+        distribution = distribution,
+        loss = loss,
+        lossFunction = lossFunction,
+        multisteps = multisteps,
+        ic = ic,
+        icFunction = icFunction,
+        bounds = bounds,
+        # ARIMA components
+        arimaModel = arimaModel,
+        arOrders = arOrders,
+        iOrders = iOrders,
+        maOrders = maOrders,
+        arRequired = arRequired,
+        iRequired = iRequired,
+        maRequired = maRequired,
+        arEstimate = arEstimate,
+        maEstimate = maEstimate,
+        armaParameters = armaParameters,
+        nonZeroARI = nonZeroARI,
+        nonZeroMA = nonZeroMA,
+        select = select,
+        # Explanatory variables
+        xregModel = xregModel,
+        regressors = regressors,
+        xregModelInitials = xregModelInitials,
+        xregData = xregData,
+        xregNumber = xregNumber,
+        xregNames = xregNames,
+        responseName = responseName,
+        formula = formulaToUse,
+        xregParametersMissing = xregParametersMissing,
+        xregParametersIncluded = xregParametersIncluded,
+        xregParametersEstimated = xregParametersEstimated,
+        xregParametersPersistence = xregParametersPersistence,
+        # Constant
+        constantRequired = constantRequired,
+        constantEstimate = constantEstimate,
+        constantValue = constantValue,
+        constantName = constantName,
+        # Optimisation
+        maxeval = maxeval,
+        maxtime = maxtime,
+        xtol_rel = xtol_rel,
+        xtol_abs = xtol_abs,
+        ftol_rel = ftol_rel,
+        ftol_abs = ftol_abs,
+        algorithm = algorithm,
+        print_level = print_level,
+        B = B,
+        lb = lb,
+        ub = ub,
+        # Distribution shape and regularisation
+        other = other,
+        otherParameterEstimate = otherParameterEstimate,
+        lambda = lambda,
+        # Misc
+        nIterations = nIterations,
+        smoother = smoother,
+        FI = FI,
+        stepSize = stepSize,
+        dfForBack = dfForBack
+    ));
 }

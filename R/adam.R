@@ -492,7 +492,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                        persistence, phi, initial,
                                        distribution, loss, h, holdout, occurrence, ic, bounds,
                                        regressors, yName,
-                                       silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
+                                       silent, modelDo, ellipsis, fast=FALSE);
 
     #### Return regression if it is pure ####
     if(is.alm(checkerReturn)){
@@ -628,8 +628,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         return(modelReturned);
     }
 
+    #### Unpack the validated parameters into the local environment ####
+    list2env(checkerReturn, envir=environment());
+
     #### If select was provided in the model, do auto.adam selection ####
-    if(!is.null(checkerReturn$select) && checkerReturn$select){
+    if(select){
         return(do.call("auto.adam",list(data=substitute(data), model=model, lags=lags, orders=orders,
                                         formula=formula, regressors=regressors,
                                         distribution=distribution, loss=loss,
