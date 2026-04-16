@@ -845,11 +845,13 @@ def calculate_entropy(distribution, scale, other, obsZero, y_fitted):
 
 def calculate_multistep_loss(loss, adam_errors, obs_in_sample, h):
     if loss == "MSEh":
-        return np.sum(adam_errors[:, h - 1] ** 2) / (obs_in_sample - h)
+        return np.linalg.norm(adam_errors[:, h - 1]) ** 2 / (obs_in_sample - h)
     elif loss == "TMSE":
-        return np.sum(np.sum(adam_errors**2, axis=0) / (obs_in_sample - h))
+        return np.sum(np.linalg.norm(adam_errors, axis=0) ** 2 / (obs_in_sample - h))
     elif loss == "GTMSE":
-        return np.sum(np.log(np.sum(adam_errors**2, axis=0) / (obs_in_sample - h)))
+        return np.sum(
+            np.log(np.linalg.norm(adam_errors, axis=0) ** 2 / (obs_in_sample - h))
+        )
     elif loss == "MSCE":
         return np.sum(np.sum(adam_errors, axis=1) ** 2) / (obs_in_sample - h)
     elif loss == "MAEh":
@@ -921,12 +923,13 @@ def scaler(distribution, Etype, errors, y_fitted, obs_in_sample, other):
             temp = 1 - np.sqrt(
                 np.abs(
                     1
-                    - np.sum(np.log(np.abs(1 + errors / y_fitted)) ** 2) / obs_in_sample
+                    - np.linalg.norm(np.log(np.abs(1 + errors / y_fitted))) ** 2
+                    / obs_in_sample
                 )
             )
         else:  # "M"
             temp = 1 - np.sqrt(
-                np.abs(1 - np.sum(np.log(1 + errors) ** 2) / obs_in_sample)
+                np.abs(1 - np.linalg.norm(np.log(1 + errors)) ** 2 / obs_in_sample)
             )
         return np.sqrt(2 * np.abs(temp))
 
@@ -972,9 +975,9 @@ def scaler(distribution, Etype, errors, y_fitted, obs_in_sample, other):
 
     elif distribution == "dgamma":
         if Etype == "A":
-            return np.sum((errors / y_fitted) ** 2) / obs_in_sample
+            return np.linalg.norm(errors / y_fitted) ** 2 / obs_in_sample
         else:  # "M"
-            return np.sum(errors**2) / obs_in_sample
+            return np.linalg.norm(errors) ** 2 / obs_in_sample
 
     else:
         raise ValueError(f"Unknown distribution: {distribution}")

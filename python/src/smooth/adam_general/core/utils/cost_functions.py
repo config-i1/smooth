@@ -648,8 +648,10 @@ def CF(  # noqa: N802
                 y_denom = general.get("y_denominator", 1)
                 if y_denom is None or y_denom <= 0:
                     y_denom = 1  # Fallback to 1
-                error_term = (1 - lambda_val) * np.sqrt(
-                    np.sum((errors_flat / y_denom) ** 2) / obs_in_sample
+                error_term = (
+                    (1 - lambda_val)
+                    * np.linalg.norm(errors_flat / y_denom)
+                    / np.sqrt(obs_in_sample)
                 )
                 CFValue = error_term
             else:  # "M"
@@ -658,8 +660,10 @@ def CF(  # noqa: N802
                 if np.any(log_arg <= 0):
                     CFValue = 1e100
                 else:
-                    error_term = (1 - lambda_val) * np.sqrt(
-                        np.sum(np.log(log_arg) ** 2) / obs_in_sample
+                    error_term = (
+                        (1 - lambda_val)
+                        * np.linalg.norm(np.log(log_arg))
+                        / np.sqrt(obs_in_sample)
                     )
                     CFValue = error_term
 
@@ -667,7 +671,7 @@ def CF(  # noqa: N802
             if general["loss"] == "LASSO":
                 CFValue += lambda_val * np.sum(np.abs(B_penalty))
             else:  # "RIDGE"
-                CFValue += lambda_val * np.sqrt(np.sum(B_penalty**2))
+                CFValue += lambda_val * np.linalg.norm(B_penalty)
 
         elif general["loss"] == "custom":
             # Ensure arrays are 1D to avoid broadcasting issues
