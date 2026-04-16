@@ -901,7 +901,7 @@ def scaler(distribution, Etype, errors, y_fitted, obs_in_sample, other):
         return np.log(np.abs(x) + 1j * (x.imag - x.real))
 
     if distribution == "dnorm":
-        return np.sqrt(np.sum(errors**2) / obs_in_sample)
+        return np.linalg.norm(errors) / np.sqrt(obs_in_sample)
 
     elif distribution == "dlaplace":
         return np.sum(np.abs(errors)) / obs_in_sample
