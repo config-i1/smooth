@@ -6,6 +6,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/smooth.svg)](https://pypi.org/project/smooth/)
 [![License: LGPL-2.1](https://img.shields.io/badge/License-LGPL--2.1-blue.svg)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)
 
+![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
 
 Python implementation of the **smooth** package for forecasting and time series analysis using Single Source of Error (SSOE) state-space models.
 
@@ -23,9 +24,6 @@ All of these are implemented with the support of the following features:
 - Advanced loss functions
 - Fine tuning of any elements of ADAM/ETS/ARIMA/Regression
 - A variety of prediction interval construction methods
-
-
-![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
 
 
 ## Installation
