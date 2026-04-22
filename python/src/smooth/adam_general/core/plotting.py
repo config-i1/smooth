@@ -351,6 +351,26 @@ def _plot5(model, ax, legend, **kw):
         t_f = np.arange(n, n + len(fc_mean))
         ax.plot(t_f, fc_mean, color="#0000FF", lw=1.5, label="Forecast")
 
+        lower = getattr(fc, "lower", None)
+        upper = getattr(fc, "upper", None)
+        if lower is not None or upper is not None:
+            lower_arr = np.asarray(lower, dtype=float) if lower is not None else None
+            upper_arr = np.asarray(upper, dtype=float) if upper is not None else None
+            ref = lower_arr if lower_arr is not None else upper_arr
+            k = ref.shape[1] if ref.ndim > 1 else 1
+            shades = np.linspace(0.35, 0.70, k)
+            for i in range(k):
+                grey = str(shades[i])
+                lbl = "Bounds" if i == 0 else None
+                if lower_arr is not None:
+                    col = lower_arr[:, i] if lower_arr.ndim > 1 else lower_arr.ravel()
+                    ax.plot(t_f, col, color=grey, lw=1, linestyle="--", label=lbl)
+                    lbl = None
+                if upper_arr is not None:
+                    j = -(i + 1)
+                    col = upper_arr[:, j] if upper_arr.ndim > 1 else upper_arr.ravel()
+                    ax.plot(t_f, col, color=grey, lw=1, linestyle="--", label=lbl)
+
     ax.set_title(kw.get("main", model.model_name))
     ax.set_xlabel(kw.get("xlab", "Time"))
     ax.set_ylabel(kw.get("ylab", "Value"))
