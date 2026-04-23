@@ -29,3 +29,10 @@ plot(model,7)
 devtools::test(filter="adam_baseline") 
 
 devtools::test()
+
+
+model <- adam(Mcomp::M3[[2568]]$x, model="CXC", h=18, holdout=T)
+model
+plot(forecast(model, h=18, interval="pred"))
+
+forecast(model, h=18, interval="pred")
