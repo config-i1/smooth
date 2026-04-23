@@ -33,6 +33,21 @@ namespace Rcpp {
         );
     }
 
+    // Wrapper for OmFitGeneralResult
+    template <> SEXP wrap(const OmFitGeneralResult& result) {
+        return List::create(
+            Named("statesA")  = result.statesA,
+            Named("fittedA")  = result.fittedA,
+            Named("errorsA")  = result.errorsA,
+            Named("profileA") = result.profileA,
+            Named("statesB")  = result.statesB,
+            Named("fittedB")  = result.fittedB,
+            Named("errorsB")  = result.errorsB,
+            Named("profileB") = result.profileB,
+            Named("pfit")     = result.pfit
+        );
+    }
+
     // Wrapper for ForecastResult
     template <> SEXP wrap(const ForecastResult& result) {
         return List::create(
@@ -82,6 +97,7 @@ RCPP_MODULE(adamCore_module) {
     .constructor<arma::uvec, char, char, char, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, bool>()
     .method("polynomialise", &adamCore::polynomialise)
     .method("fit", &adamCore::fit)
+    .method("omfitGeneral", &adamCore::omfitGeneral)
     .method("forecast", &adamCore::forecast)
     .method("ferrors", &adamCore::ferrors)
     .method("simulate", &adamCore::simulate)

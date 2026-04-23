@@ -1047,6 +1047,7 @@ def preparator(
         backcast=backcast_value_prep,
         nIterations=initials_checked["n_iterations"],
         refineHead=refine_head,
+        O='n',
     )
     # 5. Correct negative or NaN values in multiplicative components
     matrices_dict, profiles_dict = _correct_multiplicative_components(

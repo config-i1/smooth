@@ -843,7 +843,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                   indexLookupTable, profilesRecentTable,
                                   yInSample, ot,
                                   any(initialType==c("complete","backcasting")), nIterations,
-                                  refineHead);
+                                  refineHead, "n");
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -1217,7 +1217,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                           indexLookupTable, profilesRecentTable,
                                           yInSample, ot,
                                           any(initialType==c("complete","backcasting")), nIterations,
-                                          refineHead);
+                                          refineHead, "n");
                 logLikReturn[] <- logLikReturn - sum(log(abs(adamFitted$fitted)));
             }
 
@@ -1740,7 +1740,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                       indexLookupTable, profilesRecentTable,
                                       yInSample, ot,
                                       any(initialType==c("complete","backcasting")), nIterations,
-                                      refineHead);
+                                      refineHead, "n");
 
             # Extract the errors correctly
             errors <- switch(distributionNew,
@@ -2371,7 +2371,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                   indexLookupTable, profilesRecentTable,
                                   yInSample, ot,
                                   any(initialType==c("complete","backcasting")), nIterations,
-                                  refineHead);
+                                  refineHead, "n");
 
         matVt[] <- adamFitted$states;
 

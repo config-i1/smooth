@@ -506,7 +506,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                                   indexLookupTable, profilesRecentTable,
                                   yInSample, ot,
                                   any(initialType==c("complete","backcasting")), nIterations,
-                                  refineHead);
+                                  refineHead, "n");
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -988,7 +988,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                               indexLookupTable, profilesRecentTable,
                               yInSample, ot,
                               any(initialType==c("complete","backcasting")), nIterations,
-                              refineHead);
+                              refineHead, "n");
 
     errors[] <- adamFitted$errors;
     yFitted[] <- adamFitted$fitted;

@@ -727,6 +727,7 @@ def estimator(
                 backcast=True,
                 nIterations=initials_dict.get("n_iterations", 2) or 2,
                 refineHead=True,  # Always True (fixed backcasting issue)
+                O='n',
             )
 
             # Update original matrices

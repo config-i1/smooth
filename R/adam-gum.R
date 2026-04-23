@@ -359,7 +359,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
                                   indexLookupTable, profilesRecentTable,
                                   yInSample, ot,
                                   any(initialType==c("complete","backcasting")), nIterations,
-                                  refineHead);
+                                  refineHead, "n");
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -836,7 +836,7 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
                               indexLookupTable, profilesRecentTable,
                               yInSample, ot,
                               any(initialType==c("complete","backcasting")), nIterations,
-                              refineHead);
+                              refineHead, "n");
 
     errors[] <- adamFitted$errors;
     yFitted[] <- adamFitted$fitted;
