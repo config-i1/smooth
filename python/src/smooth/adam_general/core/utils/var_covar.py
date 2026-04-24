@@ -171,7 +171,7 @@ def sigma(observations_dict, params_info, general, prepared_model):
     params_number = params_info[0][-1]
 
     # In case of likelihood, scale is not calculated towards parameters for variance
-    if general["loss"] == "likelihood":
+    if general["loss"] == "likelihood" and len(params_info[0]) > 1:
         params_number = params_number - params_info[0][1]
 
     vals = observations_dict["obs_in_sample"] - params_number
