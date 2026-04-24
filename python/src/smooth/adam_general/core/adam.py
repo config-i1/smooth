@@ -3130,6 +3130,7 @@ class ADAM:
                     "prepared": prepared,
                     "explanatory_dict": self._explanatory,
                     "constants_dict": self._constant,
+                    "n_param_estimated": result["adam_estimated"]["n_param_estimated"],
                 }
             )
 
