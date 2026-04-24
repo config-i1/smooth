@@ -6901,12 +6901,20 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     if(interval=="simulated"){
         arrVt <- array(NA, c(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, h+lagsModelMax, nsim));
         arrVt[,1:lagsModelMax,] <- rep(matVt,nsim);
-        # Number of degrees of freedom to de-bias scales
-        df <- (nobs(object, all=FALSE)-nparam(object));
+
+        #### This is scale, not sigma, which is why we use the one from the model!
+        # Number of degrees of freedom to de-bias scales.
+        # Scale parameter is not needed for de-bias itself.
+        nParam <- nparam(object);
+        if(!is.null(object$loss) && object$loss=="likelihood"){
+            nParam <- nParam - object$nParam[1,4];
+        }
+        df <- nobs(object, all=FALSE) - nParam;
         # If the sample is too small, then use biased estimator
         if(df<=0){
             df[] <- nobs(object, all=FALSE);
         }
+
         # If scale model is included, produce forecasts
         if(is.scale(object$scale)){
             # as.vector is needed to declass the mean.
