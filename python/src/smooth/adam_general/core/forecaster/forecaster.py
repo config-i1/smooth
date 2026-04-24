@@ -250,8 +250,10 @@ def _generate_point_forecasts(
         mat_wt[:, xreg_start:xreg_end] = new_xreg
 
     # Prepare data for adam_forecaster
+    # Must copy: adam_cpp.forecast() modifies profilesRecent in-place via carma memory
+    # sharing, advancing the profile from T to T+h. Copy prevents corruption.
     profiles_recent_table = np.asfortranarray(
-        model_prepared["profiles_recent_table"], dtype=np.float64
+        model_prepared["profiles_recent_table"].copy(), dtype=np.float64
     )
     index_lookup_table = np.asfortranarray(lookup, dtype=np.uint64)
 
