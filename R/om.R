@@ -1,3 +1,107 @@
+# Transform initial state values for occurrence models.
+# Overwrites matVt level, trend, and seasonal rows with values on the
+# correct occurrence-model scale.  Only touches components whose
+# corresponding *Estimate flag is TRUE (i.e. not user-provided).
+# Follows the pattern of oesInitialiser in oes.R lines 288-368.
+om_initial_transform <- function(matVt, occurrence, Etype, Ttype, Stype,
+                                 modelIsTrendy, modelIsSeasonal,
+                                 initialLevelEstimate, initialTrendEstimate,
+                                 initialSeasonalEstimate,
+                                 componentsNumberETSNonSeasonal,
+                                 componentsNumberETSSeasonal,
+                                 lagsModel, lagsModelMax,
+                                 obsInSample, ot,
+                                 arimaModel, componentsNumberARIMA,
+                                 initialArimaEstimate, initialArimaNumber,
+                                 xregModel, xregNumber, initialXregEstimate,
+                                 constantRequired, constantEstimate){
+
+    occurrenceTransformer <- function(value){
+        value <- switch(occurrence,
+            "odds-ratio"         = value / (1 - value),
+            "inverse-odds-ratio" = (1 - value) / value,
+            "direct"             = value,
+            value);
+        if(Etype == "A" && occurrence %in% c("odds-ratio","inverse-odds-ratio")){
+            value <- log(value);
+        }
+        return(value);
+    }
+
+    levelOriginal <- matVt[1, 1];
+
+    j <- 1;
+    #### Level ####
+    if(initialLevelEstimate){
+        # Failsafe in case of negative level
+        if(matVt[1, 1]<0 || matVt[1, 1]>1){
+            levelOriginal <- mean(ot);
+            matVt[1, 1:lagsModelMax] <- levelOriginal;
+        }
+        matVt[1, 1:lagsModelMax] <- occurrenceTransformer(matVt[1, 1:lagsModelMax]);
+    }
+  
+    #### Trend ####
+    if(modelIsTrendy){
+        if(initialTrendEstimate){
+            levels <- levelOriginal + c(0, matVt[j+1, 1]);
+            levels[] <- occurrenceTransformer(levels);
+            if(Ttype=="A"){
+                matVt[2, 1:lagsModelMax] <- diff(levels);
+            }
+            else{
+                matVt[2, 1:lagsModelMax] <- levels[2]/levels[1];
+            }
+        }
+        j[] <- j + 1;
+    }
+
+    #### Seasonal ####
+    if(modelIsSeasonal){
+        if(any(initialSeasonalEstimate)){
+            for(i in 1:componentsNumberETSNonSeasonal){
+                seasonalOcc <- matVt[1, j+i];
+                # Transform this into the "multiplicative" seasonality
+                seasonalOcc[] <- seasonalOcc / levelOriginal + 1;
+                # If additive, transform via logs and normalise
+                if(Stype=="A"){
+                    seasonalOcc[] <- log(seasonalOcc);
+                    seasonalOcc[] <- seasonalOcc - mean(seasonalOcc);
+                }
+                matVt[1, j+i] <- seasonalOcc;
+            }
+        }
+        j[] <- j + componentsNumberETSSeasonal;
+    }
+
+    #### ARIMA ####
+    if(arimaModel){
+        if(initialArimaEstimate){
+            matVt[j + componentsNumberARIMA, 1:initialArimaNumber] <-
+                occurrenceTransformer(matVt[j + componentsNumberARIMA, 1:initialArimaNumber]);
+        }
+        j[] <- j + componentsNumberARIMA;
+    }
+
+    #### Xreg ####
+    if(xregModel){
+        if(initialXregEstimate){
+            for(k in seq_len(xregNumber)){
+                matVt[j + k, 1:lagsModelMax] <-
+                    occurrenceTransformer(matVt[j + k, 1:lagsModelMax]);
+            }
+        }
+        j[] <- j + xregNumber;
+    }
+
+    #### Constant ####
+    if(constantRequired && constantEstimate){
+        matVt[j + 1, ] <- occurrenceTransformer(matVt[j + 1, 1]);
+    }
+
+    return(matVt);
+}
+
 #' Occurrence Model
 #'
 #' Fits a state-space occurrence (probability) model to binary time series
@@ -123,7 +227,7 @@ om <- function(data,
             occurrenceType = occurrenceType,
             occurrence = NULL,
             loss = loss,
-            distribution = "dbinom",
+            distribution = "plogis",
             timeElapsed = Sys.time() - startTime,
             fitted = fittedTS,
             residuals = residualsTS,
@@ -236,7 +340,8 @@ om <- function(data,
         componentsNumberETSNonSeasonal <- adamArchitect$componentsNumberETSNonSeasonal;
         componentsNamesETS            <- adamArchitect$componentsNamesETS;
 
-        adamCreated <- adam_creator(etsModel, Etype, Ttype, Stype,
+        # Etype="A" is needed for the decomposition to work in case of 0/1 data
+        adamCreated <- adam_creator(etsModel, Etype="A", Ttype, Stype,
                                     modelIsTrendy, modelIsSeasonal,
                                     lags, lagsModel, lagsModelARIMA, lagsModelAll,
                                     lagsModelMax,
@@ -272,6 +377,17 @@ om <- function(data,
                                     arEstimate, maEstimate, smoother,
                                     nonZeroARI, nonZeroMA);
 
+        adamCreated$matVt <- om_initial_transform(
+            adamCreated$matVt, occurrence, Etype, Ttype, Stype,
+            modelIsTrendy, modelIsSeasonal,
+            initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+            componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
+            lagsModel, lagsModelMax, obsInSample, ot,
+            arimaModel, componentsNumberARIMA,
+            initialArimaEstimate, initialArimaNumber,
+            xregModel, xregNumber, initialXregEstimate,
+            constantRequired, constantEstimate);
+
         BValues <- adam_initialiser(etsModel, Etype, Ttype, Stype,
                                     modelIsTrendy, modelIsSeasonal,
                                     componentsNumberETSNonSeasonal,
@@ -302,20 +418,6 @@ om <- function(data,
                                     iOrders, armaParameters, other);
 
         B_used <- BValues$B;
-
-        # Override initial level with oes-style transform
-        p0 <- max(1e-4, min(1 - 1e-4, mean(as.numeric(ot))));
-        levelInitIdx <- which(names(B_used) %in% c("level","l"));
-        if(length(levelInitIdx) > 0){
-            B_used[levelInitIdx[1]] <- switch(occurrence,
-                "odds-ratio"         = p0 / (1 - p0),
-                "inverse-odds-ratio" = (1 - p0) / p0,
-                "direct"             = p0,
-                p0);
-            if(Etype == "A" && occurrence %in% c("odds-ratio","inverse-odds-ratio")){
-                B_used[levelInitIdx[1]] <- log(max(1e-4, B_used[levelInitIdx[1]]));
-            }
-        }
 
         lb <- BValues$Bl;
         ub <- BValues$Bu;
@@ -407,6 +509,7 @@ om <- function(data,
         }
 
         B_used <- res$solution;
+        names(B_used) <- names(BValues$B);
         CFValue <- res$objective;
         nParamEstimated <- length(B_used);
         logLikValue <- -CFValue;
@@ -810,7 +913,8 @@ om <- function(data,
 
     #### Persistence vector ####
     vecGFinal <- adamFilledFinal$vecG;
-    persistenceVec <- vecGFinal[1:componentsNumberETS];
+    persistenceVec <- as.vector(vecGFinal)[1:componentsNumberETS];
+    names(persistenceVec) <- rownames(vecGFinal)[1:componentsNumberETS];
 
     #### Construct return object ####
     modelReturned <- list(
@@ -837,7 +941,7 @@ om <- function(data,
         nParam = parametersNumber,
         scale = NA,
         iprob = mean(as.numeric(oInSample)),
-        distribution = "dbinom",
+        distribution = "plogis",
         occurrence = NULL,
         occurrenceType = occurrenceType,
         B = B,
