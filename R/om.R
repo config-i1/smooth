@@ -916,6 +916,20 @@ om <- function(data,
     persistenceVec <- as.vector(vecGFinal)[1:componentsNumberETS];
     names(persistenceVec) <- rownames(vecGFinal)[1:componentsNumberETS];
 
+    #### Initial values to return ####
+    initialCollected <- adam_initial_collector(
+        adamFittedFinal$states[, 1:lagsModelMax, drop=FALSE],
+        etsModel, modelIsTrendy, modelIsSeasonal,
+        lagsModel, lagsModelMax,
+        initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+        componentsNumberETSSeasonal,
+        arimaModel, initialArimaEstimate, initialArima, initialArimaNumber,
+        componentsNumberETS, componentsNumberARIMA,
+        adamFilledFinal$arimaPolynomials, Etype,
+        xregModel, initialXregEstimate, xregNumber);
+    initialValue <- initialCollected$initialValue;
+    initialEstimated <- initialCollected$initialEstimated;
+
     #### Construct return object ####
     modelReturned <- list(
         model = modelName,
@@ -928,8 +942,9 @@ om <- function(data,
         phi = if(phiEstimate) B[names(B)=="phi"] else phi,
         transition = adamFilledFinal$matF,
         measurement = adamFilledFinal$matWt,
-        initial = list(level=adamFittedFinal$states[1, lagsModelMax]),
+        initial = initialValue,
         initialType = initialType,
+        initialEstimated = initialEstimated,
         lags = lags,
         lagsAll = lagsModelAll,
         orders = list(ar=arOrders, i=iOrders, ma=maOrders),

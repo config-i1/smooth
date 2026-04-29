@@ -2047,92 +2047,17 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         #### Initial values to return ####
-        initialValue <- vector("list", etsModel*(1+modelIsTrendy+modelIsSeasonal)+arimaModel+xregModel);
-        initialValueETS <- vector("list", etsModel*length(lagsModel));
-        initialValueNames <- vector("character", etsModel*(1+modelIsTrendy+modelIsSeasonal)+arimaModel+xregModel);
-        # The vector that defines what was estimated in the model
-        initialEstimated <- vector("logical", etsModel*(1+modelIsTrendy+modelIsSeasonal*componentsNumberETSSeasonal)+
-                                       arimaModel+xregModel);
-
-        # Write down the initials of ETS
-        j <- 0;
-        if(etsModel){
-            # Write down level, trend and seasonal
-            for(i in 1:length(lagsModel)){
-                # In case of level / trend, we want to get the very first value
-                if(lagsModel[i]==1){
-                    initialValueETS[[i]] <- head(matVt[i,1:lagsModelMax],1);
-                }
-                # In cases of seasonal components, they should be at the end of the pre-heat period
-                else{
-                    initialValueETS[[i]] <- tail(matVt[i,1:lagsModelMax],lagsModel[i]);
-                }
-            }
-            j[] <- j+1;
-            # Write down level in the final list
-            initialEstimated[j] <- initialLevelEstimate;
-            initialValue[[j]] <- initialValueETS[[j]];
-            initialValueNames[j] <- c("level");
-            names(initialEstimated)[j] <- initialValueNames[j];
-            if(modelIsTrendy){
-                j[] <- 2;
-                initialEstimated[j] <- initialTrendEstimate;
-                # Write down trend in the final list
-                initialValue[[j]] <- initialValueETS[[j]];
-                # Remove the trend from ETS list
-                initialValueETS[[j]] <- NULL;
-                initialValueNames[j] <- c("trend");
-                names(initialEstimated)[j] <- initialValueNames[j];
-            }
-            # Write down the initial seasonals
-            if(modelIsSeasonal){
-                initialEstimated[j+c(1:componentsNumberETSSeasonal)] <- initialSeasonalEstimate;
-                # Remove the level from ETS list
-                initialValueETS[[1]] <- NULL;
-                j[] <- j+1;
-                if(length(initialSeasonalEstimate)>1){
-                    initialValue[[j]] <- initialValueETS;
-                    initialValueNames[[j]] <- "seasonal";
-                    names(initialEstimated)[j+0:(componentsNumberETSSeasonal-1)] <-
-                        paste0(initialValueNames[j],c(1:componentsNumberETSSeasonal));
-                }
-                else{
-                    initialValue[[j]] <- initialValueETS[[1]];
-                    initialValueNames[[j]] <- "seasonal";
-                    names(initialEstimated)[j] <- initialValueNames[j];
-                }
-            }
-        }
-
-        # Write down the ARIMA initials
-        if(arimaModel){
-            j[] <- j+1;
-            initialEstimated[j] <- initialArimaEstimate;
-            if(initialArimaEstimate){
-                initialValue[[j]] <- head(matVt[componentsNumberETS+componentsNumberARIMA,],initialArimaNumber);
-                # Fix the values to get proper initials, not just the values of states
-                if(tail(arimaPolynomials$ariPolynomial,1)!=0){
-                    initialValue[[j]] <- switch(Etype,
-                                                "A"=initialValue[[j]] / tail(arimaPolynomials$ariPolynomial,1),
-                                                "M"=exp(log(initialValue[[j]]) / tail(arimaPolynomials$ariPolynomial,1)));
-                    # initialValue[[j]] <- initialValue[[j]] / tail(arimaPolynomials$ariPolynomial,1);
-                }
-            }
-            else{
-                initialValue[[j]] <- initialArima;
-            }
-            initialValueNames[j] <- "arima";
-            names(initialEstimated)[j] <- initialValueNames[j];
-        }
-        # Write down the xreg initials
-        if(xregModel){
-            j[] <- j+1;
-            initialEstimated[j] <- initialXregEstimate;
-            initialValue[[j]] <- matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,lagsModelMax];
-            initialValueNames[j] <- "xreg";
-            names(initialEstimated)[j] <- initialValueNames[j];
-        }
-        names(initialValue) <- initialValueNames;
+        initialCollected <- adam_initial_collector(
+            matVt, etsModel, modelIsTrendy, modelIsSeasonal,
+            lagsModel, lagsModelMax,
+            initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+            componentsNumberETSSeasonal,
+            arimaModel, initialArimaEstimate, initialArima, initialArimaNumber,
+            componentsNumberETS, componentsNumberARIMA,
+            arimaPolynomials, Etype,
+            xregModel, initialXregEstimate, xregNumber);
+        initialValue <- initialCollected$initialValue;
+        initialEstimated <- initialCollected$initialEstimated;
 
         #### Persistence to return ####
         persistence <- as.vector(vecG);
@@ -2150,7 +2075,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         if(arimaModel){
             armaParametersList <- vector("list",arRequired+maRequired);
-            j[] <- 1;
+            j <- 1;
             if(arRequired && arEstimate){
                 # Avoid damping parameter phi
                 armaParametersList[[j]] <- B[nchar(names(B))>3 & substr(names(B),1,3)=="phi"];

@@ -31,8 +31,16 @@ devtools::test(filter="adam_baseline")
 devtools::test()
 
 
-model <- adam(Mcomp::M3[[2568]]$x, model="CXC", h=18, holdout=T)
+model <- adam(Mcomp::M3[[2568]]$x, model="ZXZ", h=18, holdout=T)
 model
 plot(forecast(model, h=18, interval="pred"))
 
 forecast(model, h=18, interval="pred")
+
+y <- rpois(100, 0.5)
+test <- om(y, occurrence="odds")
+test$persistence
+
+test <- msdecompose(y, lags=12, smoother="global")
+test$states
+plot(test,12)
