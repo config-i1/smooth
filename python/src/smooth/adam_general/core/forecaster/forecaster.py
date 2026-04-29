@@ -5,6 +5,8 @@ import pandas as pd
 
 # Note: adam_cpp instance is passed to functions that need C++ integration
 # The adamCore object is created in architector() and passed through the pipeline
+from smooth.adam_general.core.utils.n_param import NParam
+
 from ._helpers import (
     _prepare_lookup_table,
     _prepare_matrices_for_forecast,
@@ -248,8 +250,10 @@ def _generate_point_forecasts(
         mat_wt[:, xreg_start:xreg_end] = new_xreg
 
     # Prepare data for adam_forecaster
+    # Must copy: adam_cpp.forecast() modifies profilesRecent in-place via carma memory
+    # sharing, advancing the profile from T to T+h. Copy prevents corruption.
     profiles_recent_table = np.asfortranarray(
-        model_prepared["profiles_recent_table"], dtype=np.float64
+        model_prepared["profiles_recent_table"].copy(), dtype=np.float64
     )
     index_lookup_table = np.asfortranarray(lookup, dtype=np.uint64)
 
@@ -926,6 +930,27 @@ def forecaster_combined(
 
         general_dict_copy = copy.deepcopy(general_dict)
 
+        # Use the sub-model's own distribution (stored by preparator at fit time).
+        # Without this, A-error sub-models would inherit the best (M-error) model's
+        # "dgamma" distribution, causing wrong error generation and wider intervals.
+        sub_dist = prepared.get("distribution")
+        if sub_dist:
+            general_dict_copy["distribution"] = sub_dist
+
+        # Build per-sub-model NParam so simulation uses df = T - k_i, not weighted_k.
+        n_est_i = model_info.get("n_param_estimated", 0)
+        n_param_sub = NParam()
+        n_param_sub.estimated["internal"] = n_est_i
+        if general_dict_copy.get("loss") == "likelihood":
+            n_param_sub.estimated["scale"] = 1
+        n_param_sub.update_totals()
+        general_dict_copy["n_param"] = n_param_sub
+
+        # Build per-sub-model params_info for sigma() in approximate intervals.
+        # Combined model stores [[0],[0]] which would cause IndexError in sigma().
+        n_scale = 1 if general_dict_copy.get("loss") == "likelihood" else 0
+        sub_params_info = [[n_est_i, n_scale, n_est_i + n_scale], [0]]
+
         model_forecast = forecaster(
             model_prepared=prepared,
             observations_dict=observations_dict,
@@ -942,7 +967,7 @@ def forecaster_combined(
                 "constants_dict",
                 {"constant_required": False},
             ),
-            params_info=params_info,
+            params_info=sub_params_info,
             adam_cpp=adam_cpp,
             interval=interval,
             level=level,

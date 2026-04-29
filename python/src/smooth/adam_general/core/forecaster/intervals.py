@@ -604,8 +604,8 @@ def generate_simulation_interval(
     if general_dict.get("cumulative", False):
         y_forecast_sim = np.mean(np.sum(y_simulated, axis=0))
         cum_sums = np.sum(y_simulated, axis=0)
-        y_lower = np.quantile(cum_sums, level_low).reshape(1, n_levels)
-        y_upper = np.quantile(cum_sums, level_up).reshape(1, n_levels)
+        y_lower = np.nanquantile(cum_sums, level_low).reshape(1, n_levels)
+        y_upper = np.nanquantile(cum_sums, level_up).reshape(1, n_levels)
     else:
         # 10. Calculate quantiles for each horizon
         y_lower = np.zeros((h, n_levels))
@@ -617,8 +617,8 @@ def generate_simulation_interval(
             # (matches R commit 7d4d3736)
             y_forecast_sim[i] = np.mean(y_simulated[i, :])
 
-            y_lower[i, :] = np.quantile(y_simulated[i, :], level_low)
-            y_upper[i, :] = np.quantile(y_simulated[i, :], level_up)
+            y_lower[i, :] = np.nanquantile(y_simulated[i, :], level_low)
+            y_upper[i, :] = np.nanquantile(y_simulated[i, :], level_up)
 
     # 11. Convert to relative form (like parametric intervals)
     # Use (h, 1) broadcasting for 2D y_lower/y_upper
@@ -627,23 +627,22 @@ def generate_simulation_interval(
         y_lower = y_lower - pred_col
         y_upper = y_upper - pred_col
     else:
-        sim_col = y_forecast_sim.reshape(-1, 1)
-        y_lower = np.where(sim_col != 0, y_lower / sim_col, 0)
-        y_upper = np.where(sim_col != 0, y_upper / sim_col, 0)
+        pred_col = predictions.reshape(-1, 1)
+        y_lower = np.where(pred_col != 0, y_lower / pred_col, 0)
+        y_upper = np.where(pred_col != 0, y_upper / pred_col, 0)
 
     # 12. Final combination with forecasts (same as parametric)
-    replace_val = 0.0 if e_type == "A" else 1.0
+    replace_val = 0.0  # both A and M: R sets NaN to 0 (yLower[is.nan(yLower)] <- 0)
     y_lower_final = np.where(np.isnan(y_lower), replace_val, y_lower)
     y_upper_final = np.where(np.isnan(y_upper), replace_val, y_upper)
 
+    pred_col = predictions.reshape(-1, 1)
     if e_type == "A":
-        pred_col = predictions.reshape(-1, 1)
         y_lower_final = pred_col + y_lower_final
         y_upper_final = pred_col + y_upper_final
     else:
-        sim_col = y_forecast_sim.reshape(-1, 1)
-        y_lower_final = sim_col * y_lower_final
-        y_upper_final = sim_col * y_upper_final
+        y_lower_final = pred_col * y_lower_final
+        y_upper_final = pred_col * y_upper_final
 
     scenarios_out = y_simulated if general_dict.get("scenarios", False) else None
     return y_lower_final, y_upper_final, scenarios_out, y_forecast_sim
