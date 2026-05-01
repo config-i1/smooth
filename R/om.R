@@ -248,6 +248,7 @@ om <- function(data,
             constant = NULL,
             ets = FALSE,
             ICs = NULL,
+            FI = NULL,
             logLik = logLikValue,
             nParam = parametersNumber,
             scale = NA,
@@ -512,6 +513,34 @@ om <- function(data,
         nParamEstimated <- length(B_used);
         logLikValue <- -CFValue;
 
+        #### Fisher Information ####
+        # Negative log-likelihood Hessian at the optimum gives FI directly
+        # because omCF_local already returns -logLik. Wrap omCF_local in a
+        # try() so numerical perturbations that violate bounds get a finite
+        # large penalty instead of a hard error.
+        if(isTRUE(FI)){
+            CFAtOptimum <- omCF_local(B_used);
+            omCF_FI <- function(B){
+                names(B) <- names(B_used);
+                val <- tryCatch(suppressWarnings(omCF_local(B)),
+                                error = function(e) CFAtOptimum + 1e6);
+                if(!is.finite(val)){
+                    val <- CFAtOptimum + 1e6;
+                }
+                return(val);
+            }
+            FIMatrix <- try(suppressWarnings(pracma::hessian(omCF_FI, B_used, h=stepSize)),
+                            silent=TRUE);
+            if(inherits(FIMatrix, "try-error") || any(!is.finite(FIMatrix))){
+                FIMatrix <- NULL;
+            } else {
+                colnames(FIMatrix) <- names(B_used);
+                rownames(FIMatrix) <- names(B_used);
+            }
+        } else {
+            FIMatrix <- NULL;
+        }
+
         return(list(B=B_used, CFValue=CFValue, nParamEstimated=nParamEstimated,
                     logLikADAMValue=logLikValue,
                     xregModel=xregModel, xregData=xregData, xregNumber=xregNumber,
@@ -524,7 +553,7 @@ om <- function(data,
                     xregParametersEstimated=xregParametersEstimated,
                     xregParametersPersistence=xregParametersPersistence,
                     arimaPolynomials=adamCreated$arimaPolynomials,
-                    res=res, adamCpp=adamCpp,
+                    res=res, FI=FIMatrix, adamCpp=adamCpp,
                     etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype,
                     arOrders=arOrders, iOrders=iOrders, maOrders=maOrders,
                     modelIsTrendy=modelIsTrendy, modelIsSeasonal=modelIsSeasonal));
@@ -549,7 +578,7 @@ om <- function(data,
     };
 
     #### Helper: re-run final fit for a given estimator result (used in combination) ####
-    omFinalFit <- function(res){
+    omFinalFit <- function(res, hLocal=0){
         arch <- adam_architector(res$etsModel, res$Etype, res$Ttype, res$Stype,
                                   lags, lagsModelSeasonal,
                                   xregNumber, obsInSample, initialType,
@@ -609,19 +638,31 @@ om <- function(data,
                             arimaModel, arEstimate, maEstimate,
                             arOrders, iOrders, maOrders,
                             arRequired, maRequired, armaParameters,
-                            nonZeroARI, nonZeroMA, res$arimaPolynomials,
+                            nonZeroARI, nonZeroMA, cr$arimaPolynomials,
                             xregModel, xregNumber,
                             xregParametersMissing, xregParametersIncluded,
                             xregParametersEstimated, xregParametersPersistence,
                             constantEstimate, arch$adamCpp,
                             constantRequired, initialArimaNumber);
-        prof <- fill$matVt[, 1:arch$lagsModelMax];
+        prof <- fill$matVt[, 1:arch$lagsModelMax, drop=FALSE];
         fit <- arch$adamCpp$fit(fill$matVt, fill$matWt, fill$matF, fill$vecG,
                                 arch$indexLookupTable, prof,
                                 as.numeric(ot), as.numeric(ot),
                                 any(initialType == c("complete","backcasting")),
                                 nIterations, refineHead, occurrenceChar);
-        return(pmin(pmax(fit$fitted, 1e-10), 1 - 1e-10));
+        fitted <- pmin(pmax(fit$fitted, 1e-10), 1 - 1e-10);
+        if(hLocal == 0){
+            return(fitted);
+        }
+        # Compute forecast on the occurrence-probability scale
+        profForecast <- fit$profile;
+        fc <- arch$adamCpp$forecast(tail(fill$matWt, hLocal), fill$matF,
+                                    arch$indexLookupTable[, arch$lagsModelMax + obsInSample + 1:hLocal,
+                                                          drop=FALSE],
+                                    profForecast, hLocal)$forecast;
+        fc[is.nan(fc)] <- 0;
+        fc <- pmin(pmax(fc, 1e-10), 1 - 1e-10);
+        return(list(fitted=fitted, forecast=as.vector(fc)));
     };
 
     #### Model selection or combination ####
@@ -727,13 +768,43 @@ om <- function(data,
         if(modelDo == "combine"){
             icWeights <- adam_ic_weights(icSelection);
             pFittedCombined <- matrix(0, obsInSample, 1);
+            pForecastCombined <- if(h > 0) numeric(h) else NULL;
+            individualModels <- vector("list", length(icWeights));
             for(i in seq_along(icWeights)){
-                if(icWeights[i] < 1e-5) next;
-                pFittedCombined <- pFittedCombined +
-                    icWeights[i] * omFinalFit(adamSelected$results[[i]]);
+                individualModels[[i]] <- adamSelected$results[[i]];
+                if(icWeights[i] < 1e-5){
+                    next;
+                }
+                fitOut <- tryCatch(omFinalFit(adamSelected$results[[i]], hLocal=h),
+                                   error=function(e){
+                                       message("om(): combine: model ", i, " fitter failed (",
+                                               conditionMessage(e), "), dropping from average.");
+                                       icWeights[i] <<- 0;
+                                       NULL;
+                                   });
+                if(is.null(fitOut)){
+                    next;
+                }
+                if(h > 0){
+                    pFittedCombined <- pFittedCombined + icWeights[i] * fitOut$fitted;
+                    pForecastCombined <- pForecastCombined + icWeights[i] * fitOut$forecast;
+                } else {
+                    pFittedCombined <- pFittedCombined + icWeights[i] * fitOut;
+                }
+            }
+            wSum <- sum(icWeights);
+            if(wSum > 0 && abs(wSum - 1) > 1e-10){
+                # Renormalise after dropping failed models
+                icWeights <- icWeights / wSum;
+                pFittedCombined <- pFittedCombined / wSum;
+                if(h > 0 && !is.null(pForecastCombined)){
+                    pForecastCombined <- pForecastCombined / wSum;
+                }
             }
             nParamEstimated <- round(sum(icWeights *
                 sapply(adamSelected$results, function(x) x$nParamEstimated)));
+            names(individualModels) <- if(!is.null(names(icSelection))) names(icSelection) else
+                paste0("model", seq_along(individualModels));
         }
 
         adamArchitect <- adam_architector(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal,
@@ -948,13 +1019,18 @@ om <- function(data,
         } else {
             forecastTS <- zoo(rep(NA, h), order.by=yForecastIndex);
         }
-        forecastValues <- adamCpp$forecast(
-            tail(adamFilledFinal$matWt, h),
-            adamFilledFinal$matF,
-            indexLookupTable[, lagsModelMax + obsInSample + 1:h, drop=FALSE],
-            profilesRecentTable, h)$forecast;
-        forecastValues[is.nan(forecastValues)] <- 0;
-        forecastTS[] <- pmin(pmax(forecastValues, 1e-10), 1 - 1e-10);
+        if(modelDo == "combine" && exists("pForecastCombined", inherits=FALSE) &&
+           !is.null(pForecastCombined)){
+            forecastTS[] <- pForecastCombined;
+        } else {
+            forecastValues <- adamCpp$forecast(
+                tail(adamFilledFinal$matWt, h),
+                adamFilledFinal$matF,
+                indexLookupTable[, lagsModelMax + obsInSample + 1:h, drop=FALSE],
+                profilesRecentTable, h)$forecast;
+            forecastValues[is.nan(forecastValues)] <- 0;
+            forecastTS[] <- pmin(pmax(forecastValues, 1e-10), 1 - 1e-10);
+        }
     } else {
         forecastTS <- if(any(yClasses=="ts")){
             ts(NA, start=yForecastStart, frequency=yFrequency);
@@ -1014,7 +1090,13 @@ om <- function(data,
                                            as.vector(oInSample));
     }
 
-    class(modelReturned) <- c("om","adam","smooth");
+    if(modelDo == "combine"){
+        modelReturned$models <- individualModels;
+        modelReturned$ICw <- icWeights;
+        class(modelReturned) <- c("omCombined","om","adam","smooth");
+    } else {
+        class(modelReturned) <- c("om","adam","smooth");
+    }
 
     if(!silent){
         plot(modelReturned, 7);

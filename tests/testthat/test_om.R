@@ -216,3 +216,43 @@ test_that("loss='MSE' on ETS(AAN) + ARIMA(1,0,0)", {
     expect_match(testModel$model, "^iETS")
     expect_equal(testModel$orders$ar, 1)
 })
+
+
+#### Group E: combined forecasts and Fisher Information ####
+
+# 21. Combined forecast (model="CCN")
+test_that("Combined forecast with model='CCN'", {
+    skip_on_cran()
+    testModel <- om(yIntermittent, occurrence="o", model="CCN")
+    expect_s3_class(testModel, "omCombined")
+    expect_s3_class(testModel, "om")
+    expect_false(is.null(testModel$models))
+    expect_false(is.null(testModel$ICw))
+    expect_equal(sum(testModel$ICw), 1, tolerance=1e-8)
+    expect_true(all(testModel$fitted >= 0 & testModel$fitted <= 1))
+})
+
+# 22. Combined forecast with holdout
+test_that("Combined forecast with holdout populates accuracy", {
+    skip_on_cran()
+    testModel <- om(yIntermittent, occurrence="o", model="CCN", h=10, holdout=TRUE)
+    expect_length(testModel$forecast, 10)
+    expect_false(is.null(testModel$accuracy))
+})
+
+# 23. Fisher Information when FI=TRUE
+test_that("FI=TRUE returns a Hessian matrix on the full path", {
+    skip_on_cran()
+    testModel <- om(yIntermittent, occurrence="o", model="AAN",
+                    initial="optimal", FI=TRUE)
+    expect_false(is.null(testModel$FI))
+    expect_true(is.matrix(testModel$FI))
+    expect_equal(nrow(testModel$FI), length(testModel$B))
+    expect_equal(rownames(testModel$FI), names(testModel$B))
+})
+
+# 24. FI default (FALSE) returns NULL
+test_that("FI defaults to NULL", {
+    testModel <- om(yIntermittent, occurrence="o", model="MNN")
+    expect_null(testModel$FI)
+})
