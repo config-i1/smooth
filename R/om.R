@@ -326,19 +326,7 @@ om <- function(data,
                                           constantRequired,
                                           componentsNumberARIMA,
                                           obsAll, yIndexAll, yClasses, adamETS);
-        modelIsTrendy                 <- adamArchitect$modelIsTrendy;
-        modelIsSeasonal               <- adamArchitect$modelIsSeasonal;
-        lagsModel                     <- adamArchitect$lagsModel;
-        lagsModelMax                  <- adamArchitect$lagsModelMax;
-        lagsModelAll                  <- adamArchitect$lagsModelAll;
-        obsStates                     <- adamArchitect$obsStates;
-        indexLookupTable              <- adamArchitect$indexLookupTable;
-        profilesRecentTable           <- adamArchitect$profilesRecentTable;
-        adamCpp                       <- adamArchitect$adamCpp;
-        componentsNumberETS           <- adamArchitect$componentsNumberETS;
-        componentsNumberETSSeasonal   <- adamArchitect$componentsNumberETSSeasonal;
-        componentsNumberETSNonSeasonal <- adamArchitect$componentsNumberETSNonSeasonal;
-        componentsNamesETS            <- adamArchitect$componentsNamesETS;
+        list2env(adamArchitect, environment());
 
         # Etype="A" is needed for the decomposition to work in case of 0/1 data
         adamCreated <- adam_creator(etsModel, Etype="A", Ttype, Stype,
