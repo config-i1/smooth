@@ -4,9 +4,11 @@
 # corresponding *Estimate flag is TRUE (i.e. not user-provided).
 # Follows the pattern of oesInitialiser in oes.R lines 288-368.
 om_initial_transform <- function(matVt, occurrence, Etype, Ttype, Stype,
+                                 etsModel,
                                  modelIsTrendy, modelIsSeasonal,
                                  initialLevelEstimate, initialTrendEstimate,
                                  initialSeasonalEstimate,
+                                 componentsNumberETS,
                                  componentsNumberETSNonSeasonal,
                                  componentsNumberETSSeasonal,
                                  lagsModel, lagsModelMax,
@@ -28,57 +30,63 @@ om_initial_transform <- function(matVt, occurrence, Etype, Ttype, Stype,
         return(value);
     }
 
-    levelOriginal <- matVt[1, 1];
+    # j tracks the number of ETS rows already consumed in matVt.
+    # When etsModel is FALSE (e.g. pure ARIMA), there is no level row at index 1.
+    j <- 0;
+    levelOriginal <- if(etsModel) matVt[1, 1] else NA_real_;
 
-    j <- 1;
-    #### Level ####
-    if(initialLevelEstimate){
-        # Failsafe in case of negative level
-        if(matVt[1, 1]<0 || matVt[1, 1]>1){
-            levelOriginal <- mean(ot);
-            matVt[1, 1:lagsModelMax] <- levelOriginal;
-        }
-        matVt[1, 1:lagsModelMax] <- occurrenceTransformer(matVt[1, 1:lagsModelMax]);
-    }
-  
-    #### Trend ####
-    if(modelIsTrendy){
-        if(initialTrendEstimate){
-            levels <- levelOriginal + c(0, matVt[j+1, 1]);
-            levels[] <- occurrenceTransformer(levels);
-            if(Ttype=="A"){
-                matVt[2, 1:lagsModelMax] <- diff(levels);
+    if(etsModel){
+        #### Level ####
+        if(initialLevelEstimate){
+            # Failsafe in case of negative level
+            if(matVt[1, 1]<0 || matVt[1, 1]>1){
+                levelOriginal <- mean(ot);
+                matVt[1, 1:lagsModelMax] <- levelOriginal;
             }
-            else{
-                matVt[2, 1:lagsModelMax] <- levels[2]/levels[1];
-            }
+            matVt[1, 1:lagsModelMax] <- occurrenceTransformer(matVt[1, 1:lagsModelMax]);
         }
-        j[] <- j + 1;
-    }
+        j <- 1;
 
-    #### Seasonal ####
-    if(modelIsSeasonal){
-        if(any(initialSeasonalEstimate)){
-            for(i in 1:componentsNumberETSNonSeasonal){
-                seasonalOcc <- matVt[1, j+i];
-                # Transform this into the "multiplicative" seasonality
-                seasonalOcc[] <- seasonalOcc / levelOriginal + 1;
-                # If additive, transform via logs and normalise
-                if(Stype=="A"){
-                    seasonalOcc[] <- log(seasonalOcc);
-                    seasonalOcc[] <- seasonalOcc - mean(seasonalOcc);
+        #### Trend ####
+        if(modelIsTrendy){
+            if(initialTrendEstimate){
+                levels <- levelOriginal + c(0, matVt[j+1, 1]);
+                levels[] <- occurrenceTransformer(levels);
+                if(Ttype=="A"){
+                    matVt[j+1, 1:lagsModelMax] <- diff(levels);
                 }
-                matVt[1, j+i] <- seasonalOcc;
+                else{
+                    matVt[j+1, 1:lagsModelMax] <- levels[2]/levels[1];
+                }
             }
+            j[] <- j + 1;
         }
-        j[] <- j + componentsNumberETSSeasonal;
+
+        #### Seasonal ####
+        if(modelIsSeasonal){
+            if(any(initialSeasonalEstimate)){
+                for(i in 1:componentsNumberETSNonSeasonal){
+                    seasonalOcc <- matVt[1, j+i];
+                    # Transform this into the "multiplicative" seasonality
+                    seasonalOcc[] <- seasonalOcc / levelOriginal + 1;
+                    # If additive, transform via logs and normalise
+                    if(Stype=="A"){
+                        seasonalOcc[] <- log(seasonalOcc);
+                        seasonalOcc[] <- seasonalOcc - mean(seasonalOcc);
+                    }
+                    matVt[1, j+i] <- seasonalOcc;
+                }
+            }
+            j[] <- j + componentsNumberETSSeasonal;
+        }
     }
 
     #### ARIMA ####
     if(arimaModel){
-        if(initialArimaEstimate){
-            matVt[j + componentsNumberARIMA, 1:initialArimaNumber] <-
-                occurrenceTransformer(matVt[j + componentsNumberARIMA, 1:initialArimaNumber]);
+        if(initialArimaEstimate && componentsNumberARIMA > 0){
+            arimaRows <- (j+1):(j+componentsNumberARIMA);
+            matVt[arimaRows, 1:initialArimaNumber] <-
+                occurrenceTransformer(matVt[arimaRows, 1:initialArimaNumber, drop=FALSE]);
         }
         j[] <- j + componentsNumberARIMA;
     }
@@ -223,9 +231,8 @@ om <- function(data,
         parametersNumber[1,3] <- 1;
         parametersNumber[1,5] <- 1;
         modelReturned <- list(
-            model = "iConstant[F]",
-            occurrenceType = occurrenceType,
-            occurrence = NULL,
+            model = "oETS[F](MNN)",
+            occurrence = occurrenceType,
             loss = loss,
             distribution = "plogis",
             timeElapsed = Sys.time() - startTime,
@@ -238,11 +245,12 @@ om <- function(data,
             phi = 1,
             lags = lags, lagsAll = lags,
             orders = orders,
+            constant = NULL,
+            ets = FALSE,
+            ICs = NULL,
             logLik = logLikValue,
             nParam = parametersNumber,
             scale = NA,
-            iprob = iprob,
-            y = oInSample,
             call = cl
         );
         if(holdout){
@@ -335,7 +343,7 @@ om <- function(data,
                                     lagsModelMax,
                                     profilesRecentTable, FALSE,
                                     obsStates, obsInSample,
-                                    obsInSample + lagsModelMax,
+                                    obsAll,
                                     componentsNumberETS, componentsNumberETSSeasonal,
                                     componentsNamesETS, otLogical, yInSample,
                                     persistence, persistenceEstimate,
@@ -367,8 +375,10 @@ om <- function(data,
 
         adamCreated$matVt <- om_initial_transform(
             adamCreated$matVt, occurrence, Etype, Ttype, Stype,
+            etsModel,
             modelIsTrendy, modelIsSeasonal,
             initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+            componentsNumberETS,
             componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
             lagsModel, lagsModelMax, obsInSample, ot,
             arimaModel, componentsNumberARIMA,
@@ -553,7 +563,7 @@ om <- function(data,
                            arch$lagsModelAll, arch$lagsModelMax,
                            arch$profilesRecentTable, FALSE,
                            arch$obsStates, obsInSample,
-                           obsInSample + arch$lagsModelMax,
+                           obsAll,
                            arch$componentsNumberETS, arch$componentsNumberETSSeasonal,
                            arch$componentsNamesETS, otLogical, yInSample,
                            persistence, persistenceEstimate,
@@ -777,7 +787,7 @@ om <- function(data,
                                      lags, lagsModel, lagsModelARIMA, lagsModelAll, lagsModelMax,
                                      profilesRecentTable, FALSE,
                                      obsStates, obsInSample,
-                                     obsInSample + lagsModelMax,
+                                     obsAll,
                                      componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNamesETS, otLogical, yInSample,
                                      persistence, persistenceEstimate,
@@ -901,8 +911,12 @@ om <- function(data,
 
     #### Persistence vector ####
     vecGFinal <- adamFilledFinal$vecG;
-    persistenceVec <- as.vector(vecGFinal)[1:componentsNumberETS];
-    names(persistenceVec) <- rownames(vecGFinal)[1:componentsNumberETS];
+    if(componentsNumberETS > 0){
+        persistenceVec <- as.vector(vecGFinal)[1:componentsNumberETS];
+        names(persistenceVec) <- rownames(vecGFinal)[1:componentsNumberETS];
+    } else {
+        persistenceVec <- numeric(0);
+    }
 
     #### Initial values to return ####
     initialCollected <- adam_initial_collector(
@@ -918,14 +932,48 @@ om <- function(data,
     initialValue <- initialCollected$initialValue;
     initialEstimated <- initialCollected$initialEstimated;
 
+    #### Placeholders for fields filled in later layers ####
+    if(!exists("profilesRecentInitial", inherits=FALSE)){
+        profilesRecentInitial <- NULL;
+    }
+    if(!exists("otherReturned", inherits=FALSE)){
+        otherReturned <- NULL;
+    }
+    if(!exists("FI", inherits=FALSE)){
+        FI <- NULL;
+    }
+    if(h > 0){
+        if(any(yClasses == "ts")){
+            forecastTS <- ts(rep(NA, h), start=yForecastStart, frequency=yFrequency);
+        } else {
+            forecastTS <- zoo(rep(NA, h), order.by=yForecastIndex);
+        }
+        forecastValues <- adamCpp$forecast(
+            tail(adamFilledFinal$matWt, h),
+            adamFilledFinal$matF,
+            indexLookupTable[, lagsModelMax + obsInSample + 1:h, drop=FALSE],
+            profilesRecentTable, h)$forecast;
+        forecastValues[is.nan(forecastValues)] <- 0;
+        forecastTS[] <- pmin(pmax(forecastValues, 1e-10), 1 - 1e-10);
+    } else {
+        forecastTS <- if(any(yClasses=="ts")){
+            ts(NA, start=yForecastStart, frequency=yFrequency);
+        } else {
+            zoo(NA, order.by=yForecastIndex[1]);
+        }
+    }
+
     #### Construct return object ####
     modelReturned <- list(
         model = modelName,
         timeElapsed = Sys.time() - startTime,
+        data = yInSample,
         fitted = fittedTS,
         residuals = residualsTS,
-        forecast = if(h > 0) ts(rep(NA, h), start=yForecastStart, frequency=yFrequency) else ts(NA),
+        forecast = forecastTS,
         states = statesTS,
+        profile = profilesRecentTable,
+        profileInitial = profilesRecentInitial,
         persistence = persistenceVec,
         phi = if(phiEstimate) B[names(B)=="phi"] else phi,
         transition = adamFilledFinal$matF,
@@ -933,29 +981,31 @@ om <- function(data,
         initial = initialValue,
         initialType = initialType,
         initialEstimated = initialEstimated,
-        lags = lags,
-        lagsAll = lagsModelAll,
         orders = list(ar=arOrders, i=iOrders, ma=maOrders),
         arma = armaParametersList,
+        constant = if(constantRequired) {
+            if(constantEstimate) B[names(B)==constantName] else constantValue
+        } else NULL,
+        nParam = parametersNumber,
+        occurrence = occurrenceType,
+        formula = formula,
+        regressors = regressors,
         loss = loss,
         lossValue = -logLikValue,
         lossFunction = lossFunction,
         logLik = logLikValue,
-        nParam = parametersNumber,
-        scale = NA,
-        iprob = mean(as.numeric(oInSample)),
         distribution = "plogis",
-        occurrence = NULL,
-        occurrenceType = occurrenceType,
+        scale = NA,
+        other = otherReturned,
         B = B,
+        lags = lags,
+        lagsAll = lagsModelAll,
+        ets = etsModel,
+        res = res,
+        FI = FI,
+        adamCpp = adamCpp,
         bounds = bounds,
-        formula = formula,
-        profile = profilesRecentTable,
-        data = yInSample,
-        y = oInSample,
-        call = cl,
-        regressors = regressors,
-        adamCpp = adamCpp
+        call = cl
     );
 
     if(holdout){
@@ -987,8 +1037,8 @@ om <- function(data,
 #'
 #' @export
 forecast.om <- function(object, h=NULL, interval="none", ...){
-    if(object$occurrenceType == "fixed"){
-        iprob <- object$iprob;
+    if(object$occurrence == "fixed"){
+        iprob <- as.numeric(object$fitted)[1];
         fc <- list(mean = ts(rep(iprob, if(is.null(h)) 1 else h),
                              start=tsp(object$fitted)[2] + 1/tsp(object$fitted)[3],
                              frequency=tsp(object$fitted)[3]),
@@ -1001,7 +1051,7 @@ forecast.om <- function(object, h=NULL, interval="none", ...){
 
     fc <- forecast.adam(object, h=h, interval=interval, ...);
     Etype <- substr(object$model, regexpr("\\(",object$model)+1, regexpr("\\(",object$model)+1);
-    occurrence <- object$occurrenceType;
+    occurrence <- object$occurrence;
 
     .link <- function(x){
         switch(occurrence,
@@ -1033,7 +1083,11 @@ forecast.om <- function(object, h=NULL, interval="none", ...){
 
 #' @export
 actuals.om <- function(object, ...){
-    return(object$y);
+    if(is.null(object$data)){
+        return(NULL);
+    }
+    yObs <- if(is.data.frame(object$data) || is.matrix(object$data)) object$data[,1] else object$data;
+    return(as.numeric(yObs != 0));
 }
 
 #' @export
