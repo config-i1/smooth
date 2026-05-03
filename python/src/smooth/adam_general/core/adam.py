@@ -2591,6 +2591,29 @@ class ADAM:
             level=level,
             side=side,
         )
+
+        # Recompute accuracy measures against holdout if available
+        if self._general.get("holdout", False):
+            y_holdout = self._observations.get("y_holdout")
+            y_in_sample = self._observations.get("y_in_sample")
+            if y_holdout is not None and len(y_holdout) > 0:
+                from smooth.adam_general.core.utils.printing import (
+                    _compute_forecast_errors,
+                )
+
+                fc_values = np.asarray(predictions.mean, dtype=float).ravel()
+                y_holdout_arr = np.asarray(y_holdout, dtype=float).ravel()
+                n = min(len(fc_values), len(y_holdout_arr))
+                period = (
+                    max(self._lags_model.get("lags", [1])) if self._lags_model else 1
+                )
+                self.accuracy = _compute_forecast_errors(
+                    y_holdout_arr[:n],
+                    fc_values[:n],
+                    np.asarray(y_in_sample, dtype=float),
+                    period,
+                )
+
         return predictions
 
     def predict_intervals(
