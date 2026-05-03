@@ -997,6 +997,7 @@ def parameters_checker(
             y_in_sample=observations_dict["y_in_sample"],
             obs_in_sample=observations_dict["obs_in_sample"],
             distribution=distribution,
+            e_type=ets_info["error_type"],
             ic=ic,
             xreg_names_from_input=xreg_names_from_input,
             initial_xreg=initials_dict.get("initial_xreg"),
@@ -1089,7 +1090,14 @@ def _validate_x(X, obs_all):
     else:
         names = None
 
-    X = np.asarray(X, dtype=float)
+    X = np.asarray(X)
+    # Structured / record arrays (e.g. from R data frames via rpy2)
+    if X.dtype.names is not None:
+        if names is None:
+            names = list(X.dtype.names)
+        X = np.column_stack([X[f].astype(float) for f in X.dtype.names])
+    else:
+        X = X.astype(float)
     if X.ndim == 1:
         X = X.reshape(-1, 1)
 
@@ -1128,6 +1136,7 @@ def _process_xreg(
     y_in_sample,
     obs_in_sample,
     distribution,
+    e_type,
     ic,
     xreg_names_from_input=None,
     initial_xreg=None,
@@ -1211,22 +1220,63 @@ def _process_xreg(
                 f"initial['xreg'] has {len(initial_xreg_flat)} values "
                 f"but model has {p} regressors."
             )
-        initial_coefs = initial_xreg_flat
+        xreg_initials = [
+            {"initial_xreg": initial_xreg_flat.reshape(-1, 1)},
+            {"initial_xreg": initial_xreg_flat.reshape(-1, 1)},
+        ]
     else:
-        alm_dist = _map_distribution_for_greybox(distribution)
         X_aug = np.column_stack([np.ones(obs_in_sample), X_in_sel])
-        try:
-            alm = ALM(distribution=alm_dist)
-            alm.fit(X_aug, y_is, feature_names=names_selected)
-            initial_coefs = np.asarray(alm.coef, dtype=float)
-        except Exception:
-            initial_coefs = np.zeros(p)
+        # R log-transforms y for multiplicative models with these distributions
+        # (adamGeneral.R:1400). For dlnorm/dgamma/dinvgauss the distribution
+        # itself handles the multiplicative structure, so no log-transform.
+        _log_dists = {
+            "dnorm",
+            "dlaplace",
+            "ds",
+            "dgnorm",
+            "dlogis",
+            "dt",
+            "dalaplace",
+        }
 
-    # Store as a 2-element list [additive_dict, multiplicative_dict_or_None].
-    # initialization.py selects [0] for additive errors and [1] for multiplicative;
-    # setting [1]=None makes it always fall back to [0].
-    # Shape must be (p, 1) so it broadcasts into the (p, lags_model_max) mat_vt slice.
-    xreg_initials = [{"initial_xreg": initial_coefs.reshape(-1, 1)}, None]
+        def _resolve_dist_for_alm(etype, dist):
+            """Resolve distribution for ALM, matching R's xregInitialiser."""
+            if dist == "default":
+                return "dnorm" if etype == "A" else "dlnorm"
+            return _map_distribution_for_greybox(dist)
+
+        def _fit_alm(y_response, etype):
+            alm_dist = _resolve_dist_for_alm(etype, distribution)
+            try:
+                alm = ALM(distribution=alm_dist)
+                alm.fit(X_aug, y_response, feature_names=names_selected)
+                return np.asarray(alm.coef, dtype=float)
+            except Exception:
+                return np.zeros(p)
+
+        def _mult_response():
+            """Get response for multiplicative ALM: log(y) if needed."""
+            resolved = distribution if distribution != "default" else "dlnorm"
+            if resolved in _log_dists:
+                return np.log(np.maximum(y_is, 1e-10))
+            return y_is
+
+        if e_type == "A":
+            xreg_initials = [
+                {"initial_xreg": _fit_alm(y_is, "A").reshape(-1, 1)},
+                None,
+            ]
+        elif e_type == "M":
+            xreg_initials = [
+                None,
+                {"initial_xreg": _fit_alm(_mult_response(), "M").reshape(-1, 1)},
+            ]
+        else:
+            # "Z" — error type selection, need both additive and multiplicative
+            xreg_initials = [
+                {"initial_xreg": _fit_alm(y_is, "A").reshape(-1, 1)},
+                {"initial_xreg": _fit_alm(_mult_response(), "M").reshape(-1, 1)},
+            ]
 
     return {
         "xreg_model": True,
