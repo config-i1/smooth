@@ -1703,6 +1703,7 @@ adam_initial_collector <- function(matVt, etsModel, modelIsTrendy, modelIsSeason
 #### ETS model selector (branch-and-bound + full pool) ####
 #' @keywords internal
 adam_selector <- function(estimator_fn, model, modelsPool, allowMultiplicative,
+                           modelDo="estimate",
                            etsModel, Etype, Ttype, Stype, damped, lags,
                            lagsModelSeasonal, lagsModelARIMA,
                            obsStates, obsInSample,
@@ -1728,10 +1729,6 @@ adam_selector <- function(estimator_fn, model, modelsPool, allowMultiplicative,
                            horizon, multisteps, other, otherParameterEstimate, lambda,
                            silent, B){
     if(is.null(modelsPool)){
-        if(!silent){
-            cat("Forming the pool of models based on... ");
-        }
-
         if(!allowMultiplicative){
             poolErrors <- c("A");
             poolTrends <- c("N","A","Ad");
@@ -1797,6 +1794,18 @@ adam_selector <- function(estimator_fn, model, modelsPool, allowMultiplicative,
             checkSeasonal <- TRUE;
         }
 
+        # For combination, use the full pool — no branch-and-bound
+        if(modelDo == "combine"){
+            modelsPool <- paste0(rep(poolErrors, each=length(poolTrends)*length(poolSeasonals)),
+                                 rep(poolTrends, each=length(poolSeasonals)),
+                                 rep(poolSeasonals, length(poolErrors)*length(poolTrends)));
+            j <- 0;
+            results <- vector("list", length(modelsPool));
+        }
+        else{
+        if(!silent){
+            cat("Forming the pool of models based on... ");
+        }
         poolSmall <- paste0(rep(poolErrorsSmall, length(poolTrendsSmall)*length(poolSeasonalsSmall)),
                             rep(poolTrendsSmall, each=length(poolSeasonalsSmall)),
                             rep(poolSeasonalsSmall, length(poolTrendsSmall)));
@@ -1933,6 +1942,7 @@ adam_selector <- function(estimator_fn, model, modelsPool, allowMultiplicative,
                                       poolTrends,
                                       rep(poolSeasonals, each=length(poolTrends)))));
         j <- length(modelsTested);
+        }
     }
     else{
         j <- 0;

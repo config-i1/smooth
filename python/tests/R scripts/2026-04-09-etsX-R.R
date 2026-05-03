@@ -37,8 +37,12 @@ plot(forecast(model, h=18, interval="pred"))
 
 forecast(model, h=18, interval="pred")
 
+set.seed(41)
 y <- rpois(100, 0.5)
-test <- om(y, occurrence="odds")
+om(y, "AMN", occurrence="odds")
+om(y, "MAN", occurrence="odds")
+
+test <- om(y, "CCN", occurrence="odds")
 test$persistence
 
 test <- msdecompose(y, lags=12, smoother="global")

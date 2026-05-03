@@ -2367,6 +2367,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
     #### Selection of the best model ####
     else if(modelDo=="select"){
         adamSelected <- adam_selector(estimator, model, modelsPool, allowMultiplicative,
+                                      modelDo=modelDo,
                                       etsModel, Etype, Ttype, Stype, damped, lags,
                                       lagsModelSeasonal, lagsModelARIMA,
                                       obsStates, obsInSample,
@@ -2494,6 +2495,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         adamSelected <- adam_selector(estimator, model, modelsPool, allowMultiplicative,
+                                      modelDo=modelDo,
                                       etsModel, Etype, Ttype, Stype, damped, lags,
                                       lagsModelSeasonal, lagsModelARIMA,
                                       obsStates, obsInSample,
@@ -6174,7 +6176,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         else{
             occurrenceModel[] <- FALSE;
             # If this was provided occurrence, then use provided values
-            if(!is.null(object$occurrence) && !is.null(object$occurrence$occurrence) &&
+            if(!is.null(object$occurrence) && is.list(object$occurrence) &&
+               !is.null(object$occurrence$occurrence) &&
                (object$occurrence$occurrence=="provided") && !is.na(object$occurrence$forecast)){
                 pForecast <- object$occurrence$forecast;
             }
@@ -7149,7 +7152,8 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
         }
         else{
             # If this was provided occurrence, then use provided values
-            if(!is.null(object$occurrence) && !is.null(object$occurrence$occurrence) &&
+            if(!is.null(object$occurrence) && is.list(object$occurrence) &&
+               !is.null(object$occurrence$occurrence) &&
                (object$occurrence$occurrence=="provided")){
                 pForecast <- object$occurrence$forecast;
             }
