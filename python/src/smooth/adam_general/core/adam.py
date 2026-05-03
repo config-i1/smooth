@@ -2568,7 +2568,13 @@ class ADAM:
 
         # Store new_xreg for forecast period (used in _generate_point_forecasts)
         if X is not None and self._explanatory.get("xreg_model"):
-            new_xreg = np.asarray(X, dtype=float)
+            new_xreg = np.asarray(X)
+            if new_xreg.dtype.names is not None:
+                new_xreg = np.column_stack(
+                    [new_xreg[f].astype(float) for f in new_xreg.dtype.names]
+                )
+            else:
+                new_xreg = new_xreg.astype(float)
             if new_xreg.ndim == 1:
                 new_xreg = new_xreg.reshape(-1, 1)
             self._explanatory["new_xreg"] = new_xreg
