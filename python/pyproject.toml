@@ -16,6 +16,7 @@ dependencies = [
     "scipy>=1.11.0,<1.16.0",
     "statsmodels",
     "greybox",
+    "matplotlib",
 ]
 
 [tool.setuptools.packages.find]
@@ -30,7 +31,6 @@ dev = [
     "pre-commit",
     "ipykernel",
     "tqdm",
-    "matplotlib",  
     "ipython>=8.0.0"
 ]
 r = ["rpy2>=3.5.0"]
