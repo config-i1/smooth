@@ -2568,7 +2568,13 @@ class ADAM:
 
         # Store new_xreg for forecast period (used in _generate_point_forecasts)
         if X is not None and self._explanatory.get("xreg_model"):
-            new_xreg = np.asarray(X, dtype=float)
+            new_xreg = np.asarray(X)
+            if new_xreg.dtype.names is not None:
+                new_xreg = np.column_stack(
+                    [new_xreg[f].astype(float) for f in new_xreg.dtype.names]
+                )
+            else:
+                new_xreg = new_xreg.astype(float)
             if new_xreg.ndim == 1:
                 new_xreg = new_xreg.reshape(-1, 1)
             self._explanatory["new_xreg"] = new_xreg
@@ -2585,6 +2591,29 @@ class ADAM:
             level=level,
             side=side,
         )
+
+        # Recompute accuracy measures against holdout if available
+        if self._general.get("holdout", False):
+            y_holdout = self._observations.get("y_holdout")
+            y_in_sample = self._observations.get("y_in_sample")
+            if y_holdout is not None and len(y_holdout) > 0:
+                from smooth.adam_general.core.utils.printing import (
+                    _compute_forecast_errors,
+                )
+
+                fc_values = np.asarray(predictions.mean, dtype=float).ravel()
+                y_holdout_arr = np.asarray(y_holdout, dtype=float).ravel()
+                n = min(len(fc_values), len(y_holdout_arr))
+                period = (
+                    max(self._lags_model.get("lags", [1])) if self._lags_model else 1
+                )
+                self.accuracy = _compute_forecast_errors(
+                    y_holdout_arr[:n],
+                    fc_values[:n],
+                    np.asarray(y_in_sample, dtype=float),
+                    period,
+                )
+
         return predictions
 
     def predict_intervals(
