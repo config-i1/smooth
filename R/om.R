@@ -146,7 +146,7 @@ om <- function(data,
     # Override occurrence-related flags set by checker
     occurrenceModel <- FALSE;
     oesModel <- NULL;
-    pFitted <- matrix(rep(mean(oInSample), obsInSample), ncol=1);
+    yFitted <- matrix(rep(mean(oInSample), obsInSample), ncol=1);
     refineHead <- TRUE;
     adamETS <- (ets == "adam");
 
@@ -186,7 +186,7 @@ om <- function(data,
                             xregParametersEstimated, xregParametersPersistence,
                             constantRequired, constantEstimate, constantValue,
                             constantName,
-                            ot, otLogical, occurrenceModel, pFitted,
+                            ot, otLogical, occurrenceModel, yFitted,
                             bounds, loss, lossFunction, distribution,
                             horizon, multisteps, other, otherParameterEstimate,
                             lambda, B){
@@ -347,6 +347,17 @@ om <- function(data,
         lb <- BValues$Bl;
         ub <- BValues$Bu;
 
+        # Treat the dangerous mixed models
+        if((Etype=="A" && Ttype=="A" && Stype=="M") ||
+           (Etype=="A" && Ttype=="M" && Stype=="A") ||
+           (Etype=="M" && Ttype=="A" && Stype=="A") ||
+           (Etype=="A" && Ttype=="M" && Stype=="N") ||
+           (Etype=="M" && Ttype=="M" && Stype=="A") ||
+           (Etype=="M" && Ttype=="N" && Stype=="A") ||
+           (Etype=="A" && Ttype=="N" && Stype=="M")){
+            B_used[] <- 0;
+        }
+
         # ARIMA companion matrices for bounds checking
         if(arimaModel){
             arPolynomialMatrix <- matrix(0, arOrders %*% lags, arOrders %*% lags);
@@ -448,7 +459,7 @@ om <- function(data,
 
     #### Helper: build a full om object from an estimator result ####
     omFinalFit <- function(res, hLocal=0, fullObject=FALSE,
-                           pFittedOverride=NULL, pForecastOverride=NULL){
+                           yFittedOverride=NULL, yForecastOverride=NULL){
         otLogicalInternal <- otLogical;
         otLogicalInternal[] <- TRUE;
 
@@ -544,12 +555,6 @@ om <- function(data,
             return(list(fitted=yFitted, forecast=as.vector(yForecast)));
         }
 
-        # Use overrides for combination, otherwise use model-fitted values
-        pFitted <- if(!is.null(pFittedOverride)) pFittedOverride else yFitted;
-        pForecast <- if(!is.null(pForecastOverride)) pForecastOverride else {
-            if(hLocal > 0) yForecast else NULL
-        };
-
         # States
         statesRaw <- adamFitted$states[, (adamArchitect$lagsModelMax+1):ncol(adamFitted$states), drop=FALSE];
         compNames <- rownames(adamCreated$matVt);
@@ -559,36 +564,43 @@ om <- function(data,
 
         # Wrap as ts/zoo
         if(any(yClasses == "ts")){
-            fittedTS    <- ts(pFitted, start=yStart, frequency=yFrequency);
-            residualsTS <- ts(as.numeric(oInSample) - pFitted, start=yStart, frequency=yFrequency);
-            statesTS    <- ts(t(statesRaw), start=yStart, frequency=yFrequency);
+            yFitted    <- ts(yFitted, start=yStart, frequency=yFrequency);
+            errors <- ts(as.numeric(oInSample) - yFitted, start=yStart, frequency=yFrequency);
+            matVt    <- ts(t(statesRaw), start=yStart, frequency=yFrequency);
         } else {
-            fittedTS    <- zoo(pFitted, order.by=yInSampleIndex);
-            residualsTS <- zoo(as.numeric(oInSample) - pFitted, order.by=yInSampleIndex);
-            statesTS    <- zoo(t(statesRaw), order.by=yInSampleIndex);
+            yFitted    <- zoo(yFitted, order.by=yInSampleIndex);
+            errors <- zoo(as.numeric(oInSample) - yFitted, order.by=yInSampleIndex);
+            matVt    <- zoo(t(statesRaw), order.by=yInSampleIndex);
         }
 
         # Forecast ts
-        if(hLocal > 0 && !is.null(pForecast)){
+        if(hLocal > 0 && !is.null(yForecast)){
             if(any(yClasses == "ts")){
-                forecastTS <- ts(pForecast, start=yForecastStart, frequency=yFrequency);
+                yForecast <- ts(yForecast, start=yForecastStart, frequency=yFrequency);
             } else {
-                forecastTS <- zoo(pForecast, order.by=yForecastIndex);
+                yForecast <- zoo(yForecast, order.by=yForecastIndex);
             }
         } else {
-            forecastTS <- if(any(yClasses=="ts")){
+            yForecast <- if(any(yClasses=="ts")){
                 ts(NA, start=yForecastStart, frequency=yFrequency);
             } else {
                 zoo(NA, order.by=yForecastIndex[1]);
             }
         }
 
+        # Use overrides for combination, otherwise use model-fitted values
+        yFitted[] <- if(!is.null(yFittedOverride)) yFittedOverride else yFitted;
+        yForecast[] <- if(!is.null(yForecastOverride)) yForecastOverride else {
+            if(hLocal > 0) yForecast else NULL
+        };
+
         # Model name
-        modelStr <- paste0(res$Etype, res$Ttype, res$Stype);
+        modelStr <- paste0(res$Etype, res$Ttype, "d"[phiEstimate], res$Stype);
         modelName <- adam_model_name(res$etsModel, modelStr, xregModel, arimaModel,
                                      arOrders, iOrders, maOrders, lags,
                                      regressors, constantRequired, constantName,
-                                     occurrenceType, adamArchitect$componentsNumberETSSeasonal);
+                                     occurrenceType, adamArchitect$componentsNumberETSSeasonal,
+                                     prefix = "o");
 
         # Persistence vector
         vecGFinal <- adamFilled$vecG;
@@ -646,10 +658,10 @@ om <- function(data,
             model = modelName,
             timeElapsed = Sys.time() - startTime,
             data = yInSample,
-            fitted = fittedTS,
-            residuals = residualsTS,
-            forecast = forecastTS,
-            states = statesTS,
+            fitted = yFitted,
+            residuals = errors,
+            forecast = yForecast,
+            states = matVt,
             profile = adamFitted$profile,
             profileInitial = if(exists("profilesRecentInitial", inherits=FALSE)) {
                 profilesRecentInitial
@@ -690,7 +702,7 @@ om <- function(data,
 
         if(holdout){
             subModel$holdout <- oHoldout;
-            subModel$accuracy <- measures(as.vector(oHoldout), forecastTS,
+            subModel$accuracy <- measures(as.vector(oHoldout), yForecast,
                                           as.vector(oInSample));
         }
 
@@ -724,7 +736,7 @@ om <- function(data,
                                        xregParametersEstimated, xregParametersPersistence,
                                        constantRequired, constantEstimate, constantValue,
                                        constantName,
-                                       ot, otLogical, occurrenceModel, pFitted,
+                                       ot, otLogical, occurrenceModel, yFitted,
                                        bounds, loss, lossFunction, distribution,
                                        horizon, multisteps, other, otherParameterEstimate,
                                        lambda, B){
@@ -752,7 +764,7 @@ om <- function(data,
                                xregParametersEstimated, xregParametersPersistence,
                                constantRequired, constantEstimate, constantValue,
                                constantName,
-                               ot, otLogical, occurrenceModel, pFitted,
+                               ot, otLogical, occurrenceModel, yFitted,
                                bounds, loss, lossFunction, "dnorm",
                                horizon, multisteps, other, otherParameterEstimate,
                                lambda, B);
@@ -789,7 +801,7 @@ om <- function(data,
                                       xregParametersEstimated, xregParametersPersistence,
                                       constantRequired, constantEstimate, constantValue,
                                       constantName,
-                                      ot, otLogical, occurrenceModel, pFitted,
+                                      ot, otLogical, occurrenceModel, yFitted,
                                       icFunction,
                                       bounds, loss, lossFunction, "dnorm",
                                       horizon, multisteps, other, otherParameterEstimate,
@@ -885,7 +897,7 @@ om <- function(data,
                                        xregParametersEstimated, xregParametersPersistence,
                                        constantRequired, constantEstimate, constantValue,
                                        constantName,
-                                       ot, otLogical, occurrenceModel, pFitted,
+                                       ot, otLogical, occurrenceModel, yFitted,
                                        bounds, loss, lossFunction, "dnorm",
                                        horizon, multisteps, other, otherParameterEstimate,
                                        lambda, B);
@@ -895,12 +907,13 @@ om <- function(data,
     #### Build return object via omFinalFit ####
     if(modelDo == "combine"){
         modelReturned <- omFinalFit(estimatorResult, hLocal=h, fullObject=TRUE,
-                                    pFittedOverride=pFittedCombined,
-                                    pForecastOverride=pForecastCombined);
+                                    yFittedOverride=pFittedCombined,
+                                    yForecastOverride=pForecastCombined);
         modelReturned$model <- adam_model_name(etsModel, modelOriginal, xregModel, arimaModel,
                                                arOrders, iOrders, maOrders, lags,
                                                regressors, constantRequired, constantName,
-                                               occurrenceType, componentsNumberETSSeasonal);
+                                               occurrenceType, componentsNumberETSSeasonal,
+                                               prefix = "o");
         modelReturned$models <- individualModels;
         modelReturned$ICw <- icWeights;
         modelReturned$ICs <- icSelection;
@@ -997,11 +1010,12 @@ om_initial_transform <- function(matVt, occurrence, Etype, Ttype, Stype,
             if(any(initialSeasonalEstimate)){
                 for(i in 1:componentsNumberETSSeasonal){
                     seasonalOcc <- matVt[j+i, 1:lagsModelSeasonal[i]];
-                    # Transform this into the "multiplicative" seasonality
-                    seasonalOcc[] <- seasonalOcc / levelOriginal + 1;
-                    # If additive, transform via logs and normalise
-                    if(Stype=="A"){
-                        seasonalOcc[] <- log(seasonalOcc);
+                    if(Stype=="M"){
+                        # Transform this into the "multiplicative" seasonality
+                        seasonalOcc[] <- seasonalOcc / levelOriginal + 1;
+                    }
+                    else{
+                        # If additive, normalise
                         seasonalOcc[] <- seasonalOcc - mean(seasonalOcc);
                     }
                     matVt[j+i, 1:lagsModelSeasonal[i]] <- seasonalOcc;

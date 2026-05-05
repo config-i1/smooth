@@ -1525,7 +1525,8 @@ adam_xreg_selector <- function(errors, xregData, obsInSample, ic, df, distributi
 adam_model_name <- function(etsModel, model, xregModel, arimaModel,
                              arOrders, iOrders, maOrders, lags,
                              regressors, constantRequired, constantName,
-                             occurrence, componentsNumberETSSeasonal){
+                             occurrence, componentsNumberETSSeasonal,
+                             prefix = "i"){
     modelName <- "";
     if(etsModel){
         if(model!="NNN"){
@@ -1587,7 +1588,7 @@ adam_model_name <- function(etsModel, model, xregModel, arimaModel,
         }
     }
     if(all(occurrence!=c("n","none"))){
-        modelName <- paste0("i",modelName,
+        modelName <- paste0(prefix,modelName,
                             switch(occurrence,
                                    "f"=,"fixed"="[F]",
                                    "d"=,"direct"="[D]",

@@ -19,7 +19,7 @@ test_that("Fixed occurrence produces constant probability model", {
     testModel <- om(yIntermittent, occurrence="f")
     expect_s3_class(testModel, "om")
     expect_s3_class(testModel, "adam")
-    expect_equal(testModel$model, "iETS(ANN)[F]")
+    expect_equal(testModel$model, "oETS(ANN)[F]")
     expect_equal(testModel$occurrence, "fixed")
     expect_false(is.null(testModel$states))
     expect_equal(as.numeric(testModel$persistence), 0)
@@ -30,7 +30,7 @@ test_that("Fixed occurrence produces constant probability model", {
 # 2. Fixed occurrence with holdout populates accuracy and forecast
 test_that("Fixed occurrence with holdout populates accuracy", {
     testModel <- om(yIntermittent, occurrence="fixed", h=10, holdout=TRUE)
-    expect_equal(testModel$model, "iETS(ANN)[F]")
+    expect_equal(testModel$model, "oETS(ANN)[F]")
     expect_length(testModel$forecast, 10)
     expect_false(is.null(testModel$accuracy))
     expect_false(is.null(testModel$holdout))
@@ -40,7 +40,7 @@ test_that("Fixed occurrence with holdout populates accuracy", {
 test_that("Odds-ratio with ETS(MNN)", {
     testModel <- om(yIntermittent, occurrence="o", model="MNN")
     expect_s3_class(testModel, "om")
-    expect_match(testModel$model, "^iETS")
+    expect_match(testModel$model, "^oETS")
     expect_equal(testModel$occurrence, "odds-ratio")
     expect_false(is.null(testModel$states))
     expect_true(length(testModel$persistence) >= 1)
@@ -50,7 +50,7 @@ test_that("Odds-ratio with ETS(MNN)", {
 # 4. Inverse-odds-ratio with additive trend ETS(AAN)
 test_that("Inverse-odds-ratio with ETS(AAN)", {
     testModel <- om(yIntermittent, occurrence="i", model="AAN")
-    expect_match(testModel$model, "^iETS")
+    expect_match(testModel$model, "^oETS")
     expect_equal(testModel$occurrence, "inverse-odds-ratio")
     expect_true(length(testModel$persistence) >= 2)
 })
@@ -59,7 +59,7 @@ test_that("Inverse-odds-ratio with ETS(AAN)", {
 test_that("Direct link with ETS(MNN)", {
     testModel <- om(yIntermittent, occurrence="d", model="MNN")
     expect_equal(testModel$occurrence, "direct")
-    expect_match(testModel$model, "^iETS")
+    expect_match(testModel$model, "^oETS")
     expect_true(all(testModel$fitted >= 0 & testModel$fitted <= 1))
 })
 
@@ -75,7 +75,7 @@ test_that("Holdout on full path produces forecast and accuracy", {
 test_that("Odds-ratio with multiple seasonalities", {
     skip_on_cran()
     testModel <- om(yIntermittentTS, occurrence="o", model="MNM", lags=c(1,12))
-    expect_match(testModel$model, "^iETS")
+    expect_match(testModel$model, "^oETS")
     expect_true(length(testModel$persistence) >= 1)
     expect_false(is.null(testModel$states))
 })
@@ -84,7 +84,7 @@ test_that("Odds-ratio with multiple seasonalities", {
 test_that("Automatic ETS selection (model=ZZN)", {
     skip_on_cran()
     testModel <- om(yIntermittent, occurrence="o", model="ZZN")
-    expect_match(testModel$model, "^iETS")
+    expect_match(testModel$model, "^oETS")
     expect_s3_class(testModel, "om")
 })
 
@@ -92,7 +92,7 @@ test_that("Automatic ETS selection (model=ZZN)", {
 test_that("Damped trend with phi provided", {
     skip_on_cran()
     testModel <- om(yIntermittent, occurrence="o", model="AAdN", phi=0.95)
-    expect_match(testModel$model, "^iETS")
+    expect_match(testModel$model, "^oETS")
     expect_equal(testModel$phi, 0.95)
 })
 
@@ -103,7 +103,7 @@ test_that("Damped trend with phi provided", {
 test_that("Pure ARIMA(1,0,0)", {
     testModel <- om(yIntermittent, occurrence="o", model="NNN",
                     orders=list(ar=1, i=0, ma=0))
-    expect_match(testModel$model, "^iARIMA")
+    expect_match(testModel$model, "^oARIMA")
     expect_equal(testModel$orders$ar, 1)
     expect_equal(testModel$orders$i, 0)
     expect_equal(testModel$orders$ma, 0)
@@ -114,7 +114,7 @@ test_that("Pure ARIMA(1,0,0)", {
 test_that("Pure ARIMA(0,1,1)", {
     testModel <- om(yIntermittent, occurrence="o", model="NNN",
                     orders=list(ar=0, i=1, ma=1))
-    expect_match(testModel$model, "^iARIMA")
+    expect_match(testModel$model, "^oARIMA")
     expect_equal(testModel$orders$i, 1)
     expect_equal(testModel$orders$ma, 1)
 })
@@ -125,7 +125,7 @@ test_that("Seasonal ARIMA(1,0,0)(1,0,0)[12]", {
     testModel <- om(yIntermittentTS, occurrence="o", model="NNN",
                     lags=c(1,12),
                     orders=list(ar=c(1,1), i=c(0,0), ma=c(0,0)))
-    expect_match(testModel$model, "^iSARIMA|^iARIMA")
+    expect_match(testModel$model, "^oSARIMA|^oARIMA")
     expect_equal(testModel$orders$ar, c(1,1))
 })
 
@@ -134,7 +134,7 @@ test_that("ARIMA order selection", {
     skip_on_cran()
     testModel <- om(yIntermittent, occurrence="o", model="NNN",
                     orders=list(ar=2, i=0, ma=2, select=TRUE))
-    expect_match(testModel$model, "^iARIMA")
+    expect_match(testModel$model, "^oARIMA")
     expect_s3_class(testModel, "om")
 })
 
@@ -145,7 +145,7 @@ test_that("ARIMA order selection", {
 test_that("Regressors via formula, regressors='use'", {
     testModel <- om(dfIntermittent, occurrence="o", model="MNN",
                     formula=y~x1+x2, regressors="use")
-    expect_match(testModel$model, "^iETSX")
+    expect_match(testModel$model, "^oETSX")
     expect_false(is.null(testModel$formula))
     expect_false(is.null(testModel$regressors))
 })
@@ -155,7 +155,7 @@ test_that("Regressors via formula, regressors='select'", {
     skip_on_cran()
     testModel <- om(dfIntermittent, occurrence="o", model="MNN",
                     formula=y~x1+x2+x3, regressors="select")
-    expect_match(testModel$model, "^iETS")
+    expect_match(testModel$model, "^oETS")
     expect_s3_class(testModel, "om")
 })
 
@@ -176,7 +176,7 @@ test_that("ETS(MNN) + ARIMA(1,0,0)", {
     skip_on_cran()
     testModel <- om(yIntermittent, occurrence="o", model="MNN",
                     orders=list(ar=1, i=0, ma=0))
-    expect_match(testModel$model, "^iETS\\(MNN\\)\\+ARIMA")
+    expect_match(testModel$model, "^oETS\\(MNN\\)\\+ARIMA")
     expect_true(length(testModel$persistence) >= 1)
     expect_equal(testModel$orders$ar, 1)
 })
@@ -187,7 +187,7 @@ test_that("ETS(MNN) + ARIMA(1,0,1) + regression", {
     testModel <- om(dfIntermittent, occurrence="o", model="MNN",
                     orders=list(ar=1, i=0, ma=1),
                     formula=y~x1+x2)
-    expect_match(testModel$model, "^iETSX")
+    expect_match(testModel$model, "^oETSX")
     expect_match(testModel$model, "ARIMA")
     expect_equal(testModel$orders$ar, 1)
     expect_equal(testModel$orders$ma, 1)
@@ -203,7 +203,7 @@ test_that("ETS(AAN) + seasonal ARIMA + regression", {
                     orders=list(ar=c(0,1), i=c(0,0), ma=c(0,0)),
                     formula=y~x1)
     expect_s3_class(testModel, "om")
-    expect_match(testModel$model, "^iETSX")
+    expect_match(testModel$model, "^oETSX")
     expect_true(length(testModel$persistence) >= 1)
 })
 
@@ -213,7 +213,7 @@ test_that("loss='MSE' on ETS(AAN) + ARIMA(1,0,0)", {
     testModel <- om(yIntermittent, occurrence="o", model="AAN",
                     orders=list(ar=1, i=0, ma=0), loss="MSE")
     expect_equal(testModel$loss, "MSE")
-    expect_match(testModel$model, "^iETS")
+    expect_match(testModel$model, "^oETS")
     expect_equal(testModel$orders$ar, 1)
 })
 
