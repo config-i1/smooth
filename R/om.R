@@ -514,7 +514,7 @@ om <- function(data,
                                   adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
                                   persistenceEstimate, persistenceLevelEstimate,
                                   persistenceTrendEstimate, persistenceSeasonalEstimate,
-                                  persistenceXregEstimate, phiEstimate,
+                                  persistenceXregEstimate, res$phiEstimate,
                                   initialType, initialEstimate,
                                   initialLevelEstimate, initialTrendEstimate,
                                   initialSeasonalEstimate, initialArimaEstimate,
@@ -595,7 +595,7 @@ om <- function(data,
         };
 
         # Model name
-        modelStr <- paste0(res$Etype, res$Ttype, "d"[phiEstimate], res$Stype);
+        modelStr <- paste0(res$Etype, res$Ttype, "d"[res$phiEstimate], res$Stype);
         modelName <- adam_model_name(res$etsModel, modelStr, xregModel, arimaModel,
                                      arOrders, iOrders, maOrders, lags,
                                      regressors, constantRequired, constantName,
@@ -667,7 +667,7 @@ om <- function(data,
                 profilesRecentInitial
             } else NULL,
             persistence = persistenceVec,
-            phi = if(phiEstimate) res$B[names(res$B)=="phi"] else phi,
+            phi = if(res$phiEstimate) res$B["phi"] else phi,
             transition = adamFilled$matF,
             measurement = adamFilled$matWt,
             initial = initialCollected$initialValue,
@@ -676,7 +676,7 @@ om <- function(data,
             orders = list(ar=arOrders, i=iOrders, ma=maOrders),
             arma = armaParametersList,
             constant = if(constantRequired) {
-                if(constantEstimate) res$B[names(res$B)==constantName] else constantValue
+                if(constantEstimate) res$B[constantName] else constantValue
             } else NULL,
             nParam = parNum,
             occurrence = occurrenceType,
@@ -815,8 +815,18 @@ om <- function(data,
 
         if(modelDo == "combine"){
             icWeights <- adam_ic_weights(icSelection);
-            pFittedCombined <- matrix(0, obsInSample, 1);
-            pForecastCombined <- if(h > 0) numeric(h) else NULL;
+            # temporary weights, dropping the very small ones
+            icWeightsTemp <- icWeights
+            icWeightsTemp[icWeightsTemp<1e-5] <- 0;
+            # Calculate sensible weights
+            wSum <- sum(icWeightsTemp);
+            # Amend the weights if they don't add up to 1
+            if(wSum > 0 && wSum!=1){
+                icWeights <- icWeights / wSum;
+            }
+
+            yFittedCombined <- matrix(0, obsInSample, 1);
+            yForecastCombined <- if(h > 0) numeric(h) else NULL;
             individualModels <- vector("list", length(icWeights));
             for(i in seq_along(icWeights)){
                 subModel <- tryCatch(omFinalFit(adamSelected$results[[i]],
@@ -831,22 +841,14 @@ om <- function(data,
                     next;
                 }
                 individualModels[[i]] <- subModel;
-                if(icWeights[i] >= 1e-5){
-                    Etype_i <- errorType(subModel);
-                    pFittedCombined[] <- pFittedCombined +
+                # Don't add thingy if the weight is low or there are NaNs
+                if(icWeights[i] >= 1e-5 && !any(is.nan(subModel$fitted))){
+                    yFittedCombined[] <- yFittedCombined +
                         icWeights[i] * subModel$fitted;
                     if(h > 0){
-                        pForecastCombined[] <- pForecastCombined +
+                        yForecastCombined[] <- yForecastCombined +
                             icWeights[i] * subModel$forecast;
                     }
-                }
-            }
-            wSum <- sum(icWeights);
-            if(wSum > 0 && abs(wSum - 1) > 1e-10){
-                icWeights <- icWeights / wSum;
-                pFittedCombined <- pFittedCombined / wSum;
-                if(h > 0 && !is.null(pForecastCombined)){
-                    pForecastCombined <- pForecastCombined / wSum;
                 }
             }
             nParamEstimated <- round(sum(icWeights *
@@ -907,8 +909,8 @@ om <- function(data,
     #### Build return object via omFinalFit ####
     if(modelDo == "combine"){
         modelReturned <- omFinalFit(estimatorResult, hLocal=h, fullObject=TRUE,
-                                    yFittedOverride=pFittedCombined,
-                                    yForecastOverride=pForecastCombined);
+                                    yFittedOverride=yFittedCombined,
+                                    yForecastOverride=yForecastCombined);
         modelReturned$model <- adam_model_name(etsModel, modelOriginal, xregModel, arimaModel,
                                                arOrders, iOrders, maOrders, lags,
                                                regressors, constantRequired, constantName,
