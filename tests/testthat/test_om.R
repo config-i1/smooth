@@ -14,15 +14,15 @@ dfIntermittent <- data.frame(y=yIntermittent,
 
 #### Group A: occurrence types and ETS variants ####
 
-# 1. Fixed occurrence -> early return path
-test_that("Fixed occurrence triggers early return", {
+# 1. Fixed occurrence uses ETS(ANN) with persistence=0
+test_that("Fixed occurrence produces constant probability model", {
     testModel <- om(yIntermittent, occurrence="f")
     expect_s3_class(testModel, "om")
     expect_s3_class(testModel, "adam")
-    expect_equal(testModel$model, "oETS[F](MNN)")
+    expect_equal(testModel$model, "iETS(ANN)[F]")
     expect_equal(testModel$occurrence, "fixed")
-    expect_null(testModel$states)
-    expect_length(testModel$persistence, 0)
+    expect_false(is.null(testModel$states))
+    expect_equal(as.numeric(testModel$persistence), 0)
     expect_equal(testModel$distribution, "plogis")
     expect_true(is.na(testModel$scale))
 })
@@ -30,7 +30,7 @@ test_that("Fixed occurrence triggers early return", {
 # 2. Fixed occurrence with holdout populates accuracy and forecast
 test_that("Fixed occurrence with holdout populates accuracy", {
     testModel <- om(yIntermittent, occurrence="fixed", h=10, holdout=TRUE)
-    expect_equal(testModel$model, "oETS[F](MNN)")
+    expect_equal(testModel$model, "iETS(ANN)[F]")
     expect_length(testModel$forecast, 10)
     expect_false(is.null(testModel$accuracy))
     expect_false(is.null(testModel$holdout))

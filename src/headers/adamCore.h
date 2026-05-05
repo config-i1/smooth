@@ -357,24 +357,24 @@ public:
 
         // Post-loop probability transform for occurrence models (O != 'n')
         arma::vec vecFitted = vecYfit;
-        if(O != 'n') {
-            switch(O) {
-                case 'o':
-                    if(E == 'A') { vecFitted = arma::exp(vecFitted) / (1 + arma::exp(vecFitted)); }
-                    else         { vecFitted = vecFitted / (1 + vecFitted); }
-                    vecFitted.replace(arma::datum::nan, 1.0 - 1e-10);
-                    break;
-                case 'i':
-                    if(E == 'A') { vecFitted = 1 / (1 + arma::exp(vecFitted)); }
-                    else         { vecFitted = 1 / (1 + vecFitted); }
-                    vecFitted.replace(arma::datum::nan, 1.0 - 1e-10);
-                    break;
-                case 'd':
-                    vecFitted.elem(arma::find(vecFitted > 1)).fill(1.0 - 1e-10);
-                    vecFitted.elem(arma::find(vecFitted < 0)).fill(1e-10);
-                    break;
-            }
-        }
+        // if(O != 'n') {
+        //     switch(O) {
+        //         case 'o':
+        //             if(E == 'A') { vecFitted = arma::exp(vecFitted) / (1 + arma::exp(vecFitted)); }
+        //             else         { vecFitted = vecFitted / (1 + vecFitted); }
+        //             vecFitted.replace(arma::datum::nan, 1.0 - 1e-10);
+        //             break;
+        //         case 'i':
+        //             if(E == 'A') { vecFitted = 1 / (1 + arma::exp(vecFitted)); }
+        //             else         { vecFitted = 1 / (1 + vecFitted); }
+        //             vecFitted.replace(arma::datum::nan, 1.0 - 1e-10);
+        //             break;
+        //         case 'd':
+        //             vecFitted.elem(arma::find(vecFitted > 1)).fill(1.0 - 1e-10);
+        //             vecFitted.elem(arma::find(vecFitted < 0)).fill(1e-10);
+        //             break;
+        //     }
+        // }
 
         FitResult result;
         result.states = matrixVt;
