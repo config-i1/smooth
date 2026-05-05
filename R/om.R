@@ -191,6 +191,68 @@ om <- function(data,
                             horizon, multisteps, other, otherParameterEstimate,
                             lambda, B){
 
+        omCF_local <- function(B){
+            adamElems <- adam_filler(B,
+                                     etsModel, Etype, Ttype, Stype,
+                                     modelIsTrendy, modelIsSeasonal,
+                                     componentsNumberETS, componentsNumberETSNonSeasonal,
+                                     componentsNumberETSSeasonal, componentsNumberARIMA,
+                                     lags, lagsModel, lagsModelMax,
+                                     adamCreated$matVt, adamCreated$matWt,
+                                     adamCreated$matF, adamCreated$vecG,
+                                     persistenceEstimate, persistenceLevelEstimate,
+                                     persistenceTrendEstimate, persistenceSeasonalEstimate,
+                                     persistenceXregEstimate, phiEstimate,
+                                     initialType, initialEstimate,
+                                     initialLevelEstimate, initialTrendEstimate,
+                                     initialSeasonalEstimate, initialArimaEstimate,
+                                     initialXregEstimate,
+                                     arimaModel, arEstimate, maEstimate,
+                                     arOrders, iOrders, maOrders,
+                                     arRequired, maRequired, armaParameters,
+                                     nonZeroARI,
+                                     nonZeroMA,
+                                     adamCreated$arimaPolynomials,
+                                     xregModel, xregNumber,
+                                     xregParametersMissing, xregParametersIncluded,
+                                     xregParametersEstimated, xregParametersPersistence,
+                                     constantEstimate,
+                                     adamCpp,
+                                     constantRequired, initialArimaNumber);
+            penalty <- adam_bounds_checker(adamElems, adamElems$arimaPolynomials,
+                                           bounds,
+                                           etsModel, modelIsTrendy, modelIsSeasonal,
+                                           componentsNumberETS, componentsNumberETSNonSeasonal,
+                                           componentsNumberETSSeasonal,
+                                           arimaModel, arEstimate, maEstimate,
+                                           xregModel, regressors, xregNumber,
+                                           componentsNumberARIMA,
+                                           lagsModelAll, obsInSample,
+                                           arPolynomialMatrix, maPolynomialMatrix,
+                                           phiEstimate);
+            if(penalty != 0){
+                return(penalty);
+            }
+            profilesRecentTable[] <- adamElems$matVt[, 1:lagsModelMax];
+            adamFitted <- adamCpp$fit(adamElems$matVt, adamElems$matWt,
+                                      adamElems$matF, adamElems$vecG,
+                                      indexLookupTable, profilesRecentTable,
+                                      as.numeric(ot), as.numeric(ot),
+                                      any(initialType == c("complete","backcasting")),
+                                      nIterations, refineHead, occurrenceChar);
+            yFitted <- omLinkFunction(adamFitted$fitted, Etype, occurrence);
+            if(any(is.nan(yFitted)) || any(yFitted<0) || any(yFitted>1)){
+                return(1e+300);
+            }
+            if(loss == "likelihood"){
+                CFValue <- -(sum(log(yFitted[otLogical])) + sum(log(1 - yFitted[!otLogical])));
+            }
+            else{
+                CFValue <- mean((as.numeric(ot) - yFitted)^2);
+            }
+            return(CFValue)
+        }
+
         adamArchitect <- adam_architector(etsModel, Etype, Ttype, Stype, lags,
                                           lagsModelSeasonal,
                                           xregNumber, obsInSample, initialType,
@@ -201,7 +263,7 @@ om <- function(data,
         list2env(adamArchitect, environment());
 
         # Etype="A" is needed for the decomposition to work in case of 0/1 data
-        adamCreated <- adam_creator(etsModel, Etype="A", Ttype, Stype,
+        adamCreated <- adam_creator(etsModel, Etype="A", Ttype=switch(Ttype, "N"="N", "A"), Stype="A",
                                     modelIsTrendy, modelIsSeasonal,
                                     lags, lagsModel, lagsModelARIMA, lagsModelAll,
                                     lagsModelMax,
@@ -244,7 +306,8 @@ om <- function(data,
             initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
             componentsNumberETS,
             componentsNumberETSNonSeasonal, componentsNumberETSSeasonal,
-            lagsModel, lagsModelMax, obsInSample, ot,
+            lagsModel, lagsModelMax, lagsModelSeasonal,
+            obsInSample, ot,
             arimaModel, componentsNumberARIMA,
             initialArimaEstimate, initialArimaNumber,
             xregModel, xregNumber, initialXregEstimate,
@@ -300,63 +363,6 @@ om <- function(data,
             arPolynomialMatrix <- maPolynomialMatrix <- NULL;
         }
 
-        omCF_local <- function(B){
-            adamElems <- adam_filler(B,
-                                     etsModel, Etype, Ttype, Stype,
-                                     modelIsTrendy, modelIsSeasonal,
-                                     componentsNumberETS, componentsNumberETSNonSeasonal,
-                                     componentsNumberETSSeasonal, componentsNumberARIMA,
-                                     lags, lagsModel, lagsModelMax,
-                                     adamCreated$matVt, adamCreated$matWt,
-                                     adamCreated$matF, adamCreated$vecG,
-                                     persistenceEstimate, persistenceLevelEstimate,
-                                     persistenceTrendEstimate, persistenceSeasonalEstimate,
-                                     persistenceXregEstimate, phiEstimate,
-                                     initialType, initialEstimate,
-                                     initialLevelEstimate, initialTrendEstimate,
-                                     initialSeasonalEstimate, initialArimaEstimate,
-                                     initialXregEstimate,
-                                     arimaModel, arEstimate, maEstimate,
-                                     arOrders, iOrders, maOrders,
-                                     arRequired, maRequired, armaParameters,
-                                     nonZeroARI,
-                                     nonZeroMA,
-                                     adamCreated$arimaPolynomials,
-                                     xregModel, xregNumber,
-                                     xregParametersMissing, xregParametersIncluded,
-                                     xregParametersEstimated, xregParametersPersistence,
-                                     constantEstimate,
-                                     adamCpp,
-                                     constantRequired, initialArimaNumber);
-            penalty <- adam_bounds_checker(adamElems, adamElems$arimaPolynomials,
-                                           bounds,
-                                           etsModel, modelIsTrendy, modelIsSeasonal,
-                                           componentsNumberETS, componentsNumberETSNonSeasonal,
-                                           componentsNumberETSSeasonal,
-                                           arimaModel, arEstimate, maEstimate,
-                                           xregModel, regressors, xregNumber,
-                                           componentsNumberARIMA,
-                                           lagsModelAll, obsInSample,
-                                           arPolynomialMatrix, maPolynomialMatrix,
-                                           phiEstimate);
-            if(penalty != 0){
-                return(penalty);
-            }
-            profilesRecentTable[] <- adamElems$matVt[, 1:lagsModelMax];
-            adamFitted <- adamCpp$fit(adamElems$matVt, adamElems$matWt,
-                                      adamElems$matF, adamElems$vecG,
-                                      indexLookupTable, profilesRecentTable,
-                                      as.numeric(ot), as.numeric(ot),
-                                      any(initialType == c("complete","backcasting")),
-                                      nIterations, refineHead, occurrenceChar);
-            yFitted <- omLinkFunction(adamFitted$fitted, Etype, occurrence);
-            if(loss == "likelihood"){
-                return(-(sum(log(yFitted[otLogical])) + sum(log(1 - yFitted[!otLogical]))));
-            }
-            return(mean((as.numeric(ot) - yFitted)^2));
-        }
-
-        maxeval <- if(is.null(ellipsis$maxeval)) length(B_used)*40 else ellipsis$maxeval;
         res <- suppressWarnings(nloptr(B_used, omCF_local, lb=lb, ub=ub,
                                        opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
                                                  maxeval=maxeval,
@@ -544,8 +550,6 @@ om <- function(data,
             if(hLocal > 0) yForecast else NULL
         };
 
-        logLikVal <- sum(log(pFitted[otLogical])) + sum(log(1 - pFitted[!otLogical]));
-
         # States
         statesRaw <- adamFitted$states[, (adamArchitect$lagsModelMax+1):ncol(adamFitted$states), drop=FALSE];
         compNames <- rownames(adamCreated$matVt);
@@ -667,9 +671,9 @@ om <- function(data,
             formula = formula,
             regressors = regressors,
             loss = loss,
-            lossValue = -logLikVal,
+            lossValue = res$CFValue,
             lossFunction = lossFunction,
-            logLik = logLikVal,
+            logLik = res$logLikADAMValue,
             distribution = "plogis",
             scale = NA,
             other = if(exists("otherReturned", inherits=FALSE)) otherReturned else NULL,
@@ -845,7 +849,8 @@ om <- function(data,
                                           componentsNumberARIMA,
                                           obsAll, yIndexAll, yClasses, adamETS);
         list2env(adamArchitect, environment());
-    } else if(modelDo == "use"){
+    }
+    else if(modelDo == "use"){
         # No estimation needed — parameters fully specified (e.g. "fixed" occurrence)
         estimatorResult <- list(
             B=numeric(0), nParamEstimated=nParamEstimated,
@@ -853,7 +858,8 @@ om <- function(data,
             modelIsTrendy=modelIsTrendy, modelIsSeasonal=modelIsSeasonal,
             res=list(objective=0), FI=NULL,
             arOrders=arOrders, iOrders=iOrders, maOrders=maOrders);
-    } else {
+    }
+    else{
         estimatorResult <- omEstimator(etsModel, Etype, Ttype, Stype, lags,
                                        lagsModelSeasonal, lagsModelARIMA,
                                        obsStates, obsInSample,
@@ -926,7 +932,7 @@ om_initial_transform <- function(matVt, occurrence, Etype, Ttype, Stype,
                                  componentsNumberETS,
                                  componentsNumberETSNonSeasonal,
                                  componentsNumberETSSeasonal,
-                                 lagsModel, lagsModelMax,
+                                 lagsModel, lagsModelMax, lagsModelSeasonal,
                                  obsInSample, ot,
                                  arimaModel, componentsNumberARIMA,
                                  initialArimaEstimate, initialArimaNumber,
@@ -966,15 +972,21 @@ om_initial_transform <- function(matVt, occurrence, Etype, Ttype, Stype,
         #### Trend ####
         if(modelIsTrendy){
             if(initialTrendEstimate){
-                levels <- switch(Ttype,
-                                 "A"=levelOriginal + c(0, matVt[j+1, 1]),
-                                 "M"=levelOriginal * c(1, matVt[j+1, 1]));
-                levels[] <- occurrenceTransformer(levels);
+                # levels <- switch(Ttype,
+                #                  "A"=levelOriginal + c(0, matVt[j+1, 1]),
+                #                  "M"=levelOriginal * c(1, matVt[j+1, 1]));
+                # levels[] <- occurrenceTransformer(levels);
+                # if(Ttype=="A"){
+                #     matVt[j+1, 1:lagsModelMax] <- diff(levels);
+                # }
+                # else{
+                #     matVt[j+1, 1:lagsModelMax] <- levels[2]/levels[1];
+                # }
                 if(Ttype=="A"){
-                    matVt[j+1, 1:lagsModelMax] <- diff(levels);
+                    matVt[j+1, 1:lagsModelMax] <- 0;
                 }
                 else{
-                    matVt[j+1, 1:lagsModelMax] <- levels[2]/levels[1];
+                    matVt[j+1, 1:lagsModelMax] <- 1;
                 }
             }
             j[] <- j + 1;
@@ -983,8 +995,8 @@ om_initial_transform <- function(matVt, occurrence, Etype, Ttype, Stype,
         #### Seasonal ####
         if(modelIsSeasonal){
             if(any(initialSeasonalEstimate)){
-                for(i in 1:componentsNumberETSNonSeasonal){
-                    seasonalOcc <- matVt[1, j+i];
+                for(i in 1:componentsNumberETSSeasonal){
+                    seasonalOcc <- matVt[j+i, 1:lagsModelSeasonal[i]];
                     # Transform this into the "multiplicative" seasonality
                     seasonalOcc[] <- seasonalOcc / levelOriginal + 1;
                     # If additive, transform via logs and normalise
@@ -992,7 +1004,7 @@ om_initial_transform <- function(matVt, occurrence, Etype, Ttype, Stype,
                         seasonalOcc[] <- log(seasonalOcc);
                         seasonalOcc[] <- seasonalOcc - mean(seasonalOcc);
                     }
-                    matVt[1, j+i] <- seasonalOcc;
+                    matVt[j+i, 1:lagsModelSeasonal[i]] <- seasonalOcc;
                 }
             }
             j[] <- j + componentsNumberETSSeasonal;
