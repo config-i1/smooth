@@ -665,6 +665,17 @@ om <- function(data,
                                                 nIterations, refineHead, occurrenceChar);
         yFitted <- omLinkFunction(adamFitted$fitted, res$Etype, occurrence);
 
+        # For "fixed" occurrence the optimizer never ran, so logLikADAMValue is absent.
+        # Compute the Bernoulli log-likelihood from the constant fitted probability.
+        if(is.null(res$logLikADAMValue)){
+            ot_vec   <- as.numeric(oInSample);
+            yfit_vec <- as.numeric(yFitted);
+            ll <- sum(ot_vec   * log(pmax(yfit_vec,     1e-15)) +
+                      (1 - ot_vec) * log(pmax(1 - yfit_vec, 1e-15)));
+            res$logLikADAMValue <- ll;
+            res$CFValue <- -ll;
+        }
+
         # Forecast
         if(hLocal > 0){
             yForecast <- adamArchitect$adamCpp$forecast(tail(adamFilled$matWt, hLocal),
