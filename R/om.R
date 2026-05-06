@@ -1,7 +1,15 @@
 #' Occurrence Model
 #'
-#' Fits a state-space occurrence (probability) model to binary time series
-#' data using ADAM's C++ infrastructure with Bernoulli log-likelihood.
+#' Function returns the occurrence part of the ADAM model with the specified
+#' probability update and model types.
+#'
+#' The function estimates probability of demand occurrence, using the selected
+#' ADAM state space model. It supports ETS, ARIMA and explanatory variables,
+#' also allowing to have multiple frequencies and doing variables selection.
+#' It is an ADAM analogue for the binary occurrence variable modelling.
+#'
+#' For the details about the model and its implementation, see the respective
+#' vignette: \code{vignette("om","smooth")}
 #'
 #' @param data Numeric vector, time series, or data frame. Non-binary input is
 #'   automatically binarised: any non-zero value becomes 1.
@@ -42,6 +50,7 @@
 #' m <- om(y, model="MNN", occurrence="odds-ratio")
 #' forecast(m, h=12)
 #'
+#' @rdname om
 #' @export
 om <- function(data,
                model = "ZXZ",

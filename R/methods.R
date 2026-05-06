@@ -714,7 +714,7 @@ forecast.oes <- function(object, h=10,
                          h=h,silent="all",...);
     }
     else{
-        newModel <- oes(actuals(object),model=object,h=h,silent="all",...);
+        newModel <- oes_old(actuals(object),model=object,h=h,silent="all",...);
     }
 
     # Remove the redundant values, if they were produced

@@ -4,16 +4,16 @@
 \alias{forecast.om}
 \title{Forecast from an occurrence model}
 \usage{
-\method{forecast}{om}(object, h = NULL, interval = "none", ...)
+\method{forecast}{om}(object, h = NULL, ...)
 }
 \arguments{
 \item{object}{An object of class \code{om}.}
 
 \item{h}{Forecast horizon. If \code{NULL}, uses \code{object$h}.}
 
-\item{interval}{Type of prediction interval.}
-
 \item{...}{Additional arguments passed to \code{forecast.adam()}.}
+
+\item{interval}{Type of prediction interval.}
 }
 \value{
 An object of class \code{forecast.smooth} with probability forecasts.

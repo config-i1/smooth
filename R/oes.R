@@ -1,7 +1,9 @@
-#' Occurrence ETS model
+#' Occurrence ETS model (legacy implementation)
 #'
 #' Function returns the occurrence part of iETS model with the specified
-#' probability update and model types.
+#' probability update and model types. This is the original \code{oes()}
+#' implementation, kept under the name \code{oes_old()} as a fallback after
+#' the new wrapper around \link[smooth]{om} took over the \code{oes()} name.
 #'
 #' The function estimates probability of demand occurrence, using the selected
 #' ETS state space models.
@@ -95,16 +97,17 @@
 #' \item \code{B} - the vector of all the estimated parameters (in case of "odds-ratio",
 #' "inverse-odds-ratio" and "direct" models).
 #' }
-#' @seealso \code{\link[smooth]{adam}, \link[smooth]{oesg}, \link[smooth]{es}}
+#' @seealso \code{\link[smooth]{adam}, \link[smooth]{oesg}, \link[smooth]{es},
+#' \link[smooth]{oes}, \link[smooth]{om}}
 #' @examples
 #'
 #' y <- rpois(100,0.1)
-#' oes(y, occurrence="auto")
+#' oes_old(y, occurrence="auto")
 #'
-#' oes(y, occurrence="f")
+#' oes_old(y, occurrence="f")
 #'
 #' @export
-oes <- function(y, model="MNN", persistence=NULL, initial="optimal", initialSeason=NULL, phi=NULL,
+oes_old <- function(y, model="MNN", persistence=NULL, initial="optimal", initialSeason=NULL, phi=NULL,
                 occurrence=c("fixed","general","odds-ratio","inverse-odds-ratio","direct","auto","none"),
                 ic=c("AICc","AIC","BIC","BICc"), h=0, holdout=FALSE,
                 # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
@@ -938,7 +941,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="optimal", initialSeas
             occurrencePoolLength <- length(occurrencePool);
             occurrenceModels <- vector("list",occurrencePoolLength);
             for(i in 1:occurrencePoolLength){
-                occurrenceModels[[i]] <- oes(y=y,model=model,occurrence=occurrencePool[i],
+                occurrenceModels[[i]] <- oes_old(y=y,model=model,occurrence=occurrencePool[i],
                                              ic=ic, h=h, holdout=holdout,
                                              interval=interval, level=level,
                                              bounds=bounds,
@@ -1080,7 +1083,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="optimal", initialSeas
                         cat(paste0(modelCurrent,", "));
                     }
 
-                    results[[i]] <- oes(y, model=modelCurrent, occurrence=occurrence, h=h, holdout=holdout,
+                    results[[i]] <- oes_old(y, model=modelCurrent, occurrence=occurrence, h=h, holdout=holdout,
                                         bounds=bounds, silent=TRUE, xreg=xreg, regressors=regressors);
 
                     modelTested <- c(modelTested,modelCurrent);
@@ -1201,7 +1204,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="optimal", initialSeas
 
             modelCurrent <- modelsPool[j];
 
-            results[[j]] <- oes(y, model=modelCurrent, occurrence=occurrence, h=h, holdout=holdout,
+            results[[j]] <- oes_old(y, model=modelCurrent, occurrence=occurrence, h=h, holdout=holdout,
                                 bounds=bounds, silent=TRUE, xreg=xreg, regressors=regressors);
         }
 
