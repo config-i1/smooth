@@ -436,7 +436,24 @@ om <- function(data,
                     res=res, FI=FIMatrix, adamCpp=adamCpp,
                     etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype,
                     arOrders=arOrders, iOrders=iOrders, maOrders=maOrders,
-                    modelIsTrendy=modelIsTrendy, modelIsSeasonal=modelIsSeasonal));
+                    modelIsTrendy=modelIsTrendy, modelIsSeasonal=modelIsSeasonal,
+                    # Per-submodel "Estimate" flags so omFinalFit() never
+                    # falls back to outer om()'s lexical scope (which
+                    # carries the originally-requested model's flags, not
+                    # the variant currently being assembled).
+                    phiEstimate=phiEstimate,
+                    persistenceEstimate=persistenceEstimate,
+                    persistenceLevelEstimate=persistenceLevelEstimate,
+                    persistenceTrendEstimate=persistenceTrendEstimate,
+                    persistenceSeasonalEstimate=persistenceSeasonalEstimate,
+                    initialEstimate=initialEstimate,
+                    initialLevelEstimate=initialLevelEstimate,
+                    initialTrendEstimate=initialTrendEstimate,
+                    initialSeasonalEstimate=initialSeasonalEstimate,
+                    initialArimaEstimate=initialArimaEstimate,
+                    arimaModel=arimaModel,
+                    arRequired=arRequired, iRequired=iRequired, maRequired=maRequired,
+                    arEstimate=arEstimate, maEstimate=maEstimate));
     }
 
     #### IC function with shared environment for nParam ####
@@ -466,7 +483,7 @@ om <- function(data,
         adamArchitect <- adam_architector(res$etsModel, res$Etype, res$Ttype, res$Stype,
                                           lags, lagsModelSeasonal,
                                           xregNumber, obsInSample, initialType,
-                                          arimaModel, lagsModelARIMA,
+                                          res$arimaModel, lagsModelARIMA,
                                           xregModel, constantRequired,
                                           componentsNumberARIMA,
                                           obsAll, yIndexAll, yClasses, adamETS);
@@ -479,23 +496,23 @@ om <- function(data,
                                     obsAll,
                                     adamArchitect$componentsNumberETS, adamArchitect$componentsNumberETSSeasonal,
                                     adamArchitect$componentsNamesETS, otLogicalInternal, ot,
-                                    persistence, persistenceEstimate,
-                                    persistenceLevel, persistenceLevelEstimate,
-                                    persistenceTrend, persistenceTrendEstimate,
-                                    persistenceSeasonal, persistenceSeasonalEstimate,
-                                    persistenceXreg, persistenceXregEstimate,
+                                    persistence, res$persistenceEstimate,
+                                    persistenceLevel, res$persistenceLevelEstimate,
+                                    persistenceTrend, res$persistenceTrendEstimate,
+                                    persistenceSeasonal, res$persistenceSeasonalEstimate,
+                                    persistenceXreg, res$persistenceXregEstimate,
                                     persistenceXregProvided,
                                     phi,
-                                    initialType, initialEstimate,
-                                    initialLevel, initialLevelEstimate,
-                                    initialTrend, initialTrendEstimate,
-                                    initialSeasonal, initialSeasonalEstimate,
-                                    initialArima, initialArimaEstimate,
+                                    initialType, res$initialEstimate,
+                                    initialLevel, res$initialLevelEstimate,
+                                    initialTrend, res$initialTrendEstimate,
+                                    initialSeasonal, res$initialSeasonalEstimate,
+                                    initialArima, res$initialArimaEstimate,
                                     initialArimaNumber,
-                                    initialXregEstimate, initialXregProvided,
-                                    arimaModel, arRequired, iRequired, maRequired,
+                                    res$initialXregEstimate, initialXregProvided,
+                                    res$arimaModel, res$arRequired, res$iRequired, res$maRequired,
                                     armaParameters,
-                                    arOrders, iOrders, maOrders,
+                                    res$arOrders, res$iOrders, res$maOrders,
                                     componentsNumberARIMA, componentsNamesARIMA,
                                     xregModel, xregModelInitials, xregData,
                                     xregNumber, xregNames,
@@ -503,7 +520,7 @@ om <- function(data,
                                     constantRequired, constantEstimate,
                                     constantValue, constantName,
                                     adamArchitect$adamCpp,
-                                    arEstimate, maEstimate, smoother,
+                                    res$arEstimate, res$maEstimate, smoother,
                                     nonZeroARI, nonZeroMA);
         adamFilled <- adam_filler(res$B,
                                   res$etsModel, res$Etype, res$Ttype, res$Stype,
@@ -512,16 +529,16 @@ om <- function(data,
                                   adamArchitect$componentsNumberETSSeasonal, componentsNumberARIMA,
                                   lags, adamArchitect$lagsModel, adamArchitect$lagsModelMax,
                                   adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-                                  persistenceEstimate, persistenceLevelEstimate,
-                                  persistenceTrendEstimate, persistenceSeasonalEstimate,
-                                  persistenceXregEstimate, res$phiEstimate,
-                                  initialType, initialEstimate,
-                                  initialLevelEstimate, initialTrendEstimate,
-                                  initialSeasonalEstimate, initialArimaEstimate,
-                                  initialXregEstimate,
-                                  arimaModel, arEstimate, maEstimate,
-                                  arOrders, iOrders, maOrders,
-                                  arRequired, maRequired, armaParameters,
+                                  res$persistenceEstimate, res$persistenceLevelEstimate,
+                                  res$persistenceTrendEstimate, res$persistenceSeasonalEstimate,
+                                  res$persistenceXregEstimate, res$phiEstimate,
+                                  initialType, res$initialEstimate,
+                                  res$initialLevelEstimate, res$initialTrendEstimate,
+                                  res$initialSeasonalEstimate, res$initialArimaEstimate,
+                                  res$initialXregEstimate,
+                                  res$arimaModel, res$arEstimate, res$maEstimate,
+                                  res$arOrders, res$iOrders, res$maOrders,
+                                  res$arRequired, res$maRequired, armaParameters,
                                   nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
                                   xregModel, xregNumber,
                                   xregParametersMissing, xregParametersIncluded,
@@ -534,7 +551,7 @@ om <- function(data,
                                                 as.numeric(ot), as.numeric(ot),
                                                 any(initialType == c("complete","backcasting")),
                                                 nIterations, refineHead, occurrenceChar);
-        yFitted <- omLinkFunction(adamFitted$fitted, Etype, occurrence);
+        yFitted <- omLinkFunction(adamFitted$fitted, res$Etype, occurrence);
 
         # Forecast
         if(hLocal > 0){
@@ -544,7 +561,7 @@ om <- function(data,
                                                                                            obsInSample + 1:hLocal,
                                                                                        drop=FALSE],
                                                         adamFitted$profile, hLocal)$forecast;
-            yForecast <- omLinkFunction(yForecast, Etype, occurrence);
+            yForecast <- omLinkFunction(yForecast, res$Etype, occurrence);
             yForecast[is.nan(yForecast)] <- 0;
         }
 
@@ -588,16 +605,18 @@ om <- function(data,
             }
         }
 
-        # Use overrides for combination, otherwise use model-fitted values
-        yFitted[] <- if(!is.null(yFittedOverride)) yFittedOverride else yFitted;
-        yForecast[] <- if(!is.null(yForecastOverride)) yForecastOverride else {
-            if(hLocal > 0) yForecast else NULL
-        };
+        # Use overrides for combination, otherwise leave model-fitted values in place
+        if(!is.null(yFittedOverride)){
+            yFitted[] <- yFittedOverride;
+        }
+        if(!is.null(yForecastOverride)){
+            yForecast[] <- yForecastOverride;
+        }
 
         # Model name
         modelStr <- paste0(res$Etype, res$Ttype, "d"[res$phiEstimate], res$Stype);
-        modelName <- adam_model_name(res$etsModel, modelStr, xregModel, arimaModel,
-                                     arOrders, iOrders, maOrders, lags,
+        modelName <- adam_model_name(res$etsModel, modelStr, xregModel, res$arimaModel,
+                                     res$arOrders, res$iOrders, res$maOrders, lags,
                                      regressors, constantRequired, constantName,
                                      occurrenceType, adamArchitect$componentsNumberETSSeasonal,
                                      prefix = "o");
@@ -616,31 +635,31 @@ om <- function(data,
             adamFitted$states[, 1:adamArchitect$lagsModelMax, drop=FALSE],
             res$etsModel, res$modelIsTrendy, res$modelIsSeasonal,
             adamArchitect$lagsModel, adamArchitect$lagsModelMax,
-            initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+            res$initialLevelEstimate, res$initialTrendEstimate, res$initialSeasonalEstimate,
             adamArchitect$componentsNumberETSSeasonal,
-            arimaModel, initialArimaEstimate, initialArima, initialArimaNumber,
+            res$arimaModel, res$initialArimaEstimate, initialArima, initialArimaNumber,
             adamArchitect$componentsNumberETS, componentsNumberARIMA,
             adamFilled$arimaPolynomials, res$Etype,
-            xregModel, initialXregEstimate, xregNumber);
+            xregModel, res$initialXregEstimate, xregNumber);
 
         # ARMA parameters
-        if(arimaModel && (arRequired || maRequired)){
-            armaParametersList <- vector("list", arRequired + maRequired);
+        if(res$arimaModel && (res$arRequired || res$maRequired)){
+            armaParametersList <- vector("list", res$arRequired + res$maRequired);
             j <- 1L;
-            if(arRequired && arEstimate){
+            if(res$arRequired && res$arEstimate){
                 armaParametersList[[j]] <- res$B[nchar(names(res$B))>3 &
                                                      substr(names(res$B),1,3)=="phi"];
                 names(armaParametersList)[j] <- "ar";
                 j <- j + 1L;
-            } else if(arRequired){
+            } else if(res$arRequired){
                 armaParametersList[[j]] <- armaParameters[substr(names(armaParameters),1,3)=="phi"];
                 names(armaParametersList)[j] <- "ar";
                 j <- j + 1L;
             }
-            if(maRequired && maEstimate){
+            if(res$maRequired && res$maEstimate){
                 armaParametersList[[j]] <- res$B[substr(names(res$B),1,5)=="theta"];
                 names(armaParametersList)[j] <- "ma";
-            } else if(maRequired){
+            } else if(res$maRequired){
                 armaParametersList[[j]] <- armaParameters[substr(names(armaParameters),1,5)=="theta"];
                 names(armaParametersList)[j] <- "ma";
             }
@@ -673,7 +692,7 @@ om <- function(data,
             initial = initialCollected$initialValue,
             initialType = initialType,
             initialEstimated = initialCollected$initialEstimated,
-            orders = list(ar=arOrders, i=iOrders, ma=maOrders),
+            orders = list(ar=res$arOrders, i=res$iOrders, ma=res$maOrders),
             arma = armaParametersList,
             constant = if(constantRequired) {
                 if(constantEstimate) res$B[constantName] else constantValue
@@ -851,8 +870,6 @@ om <- function(data,
                     }
                 }
             }
-            nParamEstimated <- round(sum(icWeights *
-                                             sapply(individualModels, function(x) if(!is.null(x)) nparam(x) else 0)));
             names(individualModels) <- if(!is.null(names(icSelection))) names(icSelection) else
                 paste0("model", seq_along(individualModels));
         }
@@ -871,7 +888,23 @@ om <- function(data,
             etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype,
             modelIsTrendy=modelIsTrendy, modelIsSeasonal=modelIsSeasonal,
             res=list(objective=0), FI=NULL,
-            arOrders=arOrders, iOrders=iOrders, maOrders=maOrders);
+            arOrders=arOrders, iOrders=iOrders, maOrders=maOrders,
+            # Per-submodel "Estimate" flags expected by omFinalFit()
+            phiEstimate=phiEstimate,
+            persistenceEstimate=persistenceEstimate,
+            persistenceLevelEstimate=persistenceLevelEstimate,
+            persistenceTrendEstimate=persistenceTrendEstimate,
+            persistenceSeasonalEstimate=persistenceSeasonalEstimate,
+            persistenceXregEstimate=persistenceXregEstimate,
+            initialEstimate=initialEstimate,
+            initialLevelEstimate=initialLevelEstimate,
+            initialTrendEstimate=initialTrendEstimate,
+            initialSeasonalEstimate=initialSeasonalEstimate,
+            initialArimaEstimate=initialArimaEstimate,
+            initialXregEstimate=initialXregEstimate,
+            arimaModel=arimaModel,
+            arRequired=arRequired, iRequired=iRequired, maRequired=maRequired,
+            arEstimate=arEstimate, maEstimate=maEstimate);
     }
     else{
         estimatorResult <- omEstimator(etsModel, Etype, Ttype, Stype, lags,
@@ -919,6 +952,14 @@ om <- function(data,
         modelReturned$models <- individualModels;
         modelReturned$ICw <- icWeights;
         modelReturned$ICs <- icSelection;
+        # Weighted estimated parameters across the combined pool (mirrors adam())
+        nParamMat <- modelReturned$nParam;
+        nParamMat[1,1] <- sum(sapply(individualModels,
+                                     function(x) if(is.null(x)) 0 else nparam(x)) *
+                              icWeights);
+        nParamMat[1,5] <- sum(nParamMat[1,1:4]);
+        nParamMat[2,5] <- sum(nParamMat[2,1:4]);
+        modelReturned$nParam <- nParamMat;
         class(modelReturned) <- c("omCombined","om","adam","smooth");
     } else {
         modelReturned <- omFinalFit(estimatorResult, hLocal=h, fullObject=TRUE);
@@ -1085,21 +1126,20 @@ omLinkFunction <- function(x, Etype, occurrence){
 #' @return An object of class \code{forecast.smooth} with probability forecasts.
 #'
 #' @export
-forecast.om <- function(object, h=NULL, interval="none", ...){
-    fc <- forecast.adam(object, h=h, interval=interval, ...);
+forecast.om <- function(object, h=NULL, ...){
+    # Intervals on the probability scale are not implemented yet, so the
+    # underlying forecast.adam() call is forced to interval="none". The
+    # remaining slots (level, side, cumulative) are set to their defaults so
+    # the returned structure is shape-compatible with forecast.adam().
+    fc <- forecast.adam(object, h=h, interval="none",
+                        level=0.95, side="both", cumulative=FALSE, ...);
+
     Etype <- errorType(object);
     occurrence <- object$occurrence;
-
     fc$mean[] <- omLinkFunction(fc$mean, Etype, occurrence);
-
     if(occurrence %in% c("odds-ratio","inverse-odds-ratio") && Etype == "A"){
         fc$mean[is.nan(fc$mean)] <- 1;
     }
-
-    # TODO: implement intervals for om()
-    fc$lower <- NULL;
-    fc$upper <- NULL;
-    fc$level <- NULL;
 
     return(fc);
 }
@@ -1138,21 +1178,34 @@ summary.omCombined <- function(object, ...){
 }
 
 #' @export
-forecast.omCombined <- function(object, h=NULL, interval="none", ...){
+forecast.omCombined <- function(object, h=NULL, ...){
+    # Interval-related slots are fixed internally so the returned structure
+    # matches forecast.adamCombined's field set; intervals on the probability
+    # scale are not implemented yet.
+    interval   <- "none";
+    level      <- 0.95;
+    side       <- "both";
+    cumulative <- FALSE;
+
     obsInSample <- nobs(object);
     yClasses <- class(actuals(object));
     if(is.null(h)){
         h <- length(object$forecast);
     }
+    nLevels <- length(level);
 
     if(any(yClasses == "ts")){
         yForecastStart <- time(actuals(object))[obsInSample] + deltat(actuals(object));
         yFrequency <- frequency(actuals(object));
         yForecast <- ts(rep(0, h), start=yForecastStart, frequency=yFrequency);
+        yLower <- yUpper <- ts(matrix(NA_real_, h, nLevels),
+                               start=yForecastStart, frequency=yFrequency);
     } else {
         yIndex <- time(actuals(object));
         yForecastIndex <- yIndex[obsInSample] + diff(tail(yIndex, 2)) * (1:h);
         yForecast <- zoo(rep(0, h), order.by=yForecastIndex);
+        yLower <- yUpper <- zoo(matrix(NA_real_, h, nLevels),
+                                order.by=yForecastIndex);
     }
 
     object$ICw[object$ICw < 1e-2] <- 0;
@@ -1162,14 +1215,18 @@ forecast.omCombined <- function(object, h=NULL, interval="none", ...){
         if(object$ICw[i] == 0){
             next;
         }
-        fc_i <- forecast.adam(object$models[[i]], h=h, interval="none", ...);
+        fc_i <- forecast.adam(object$models[[i]], h=h, interval=interval,
+                              level=level, side=side, cumulative=cumulative, ...);
         Etype_i <- errorType(object$models[[i]]);
         fc_i$mean[] <- omLinkFunction(fc_i$mean, Etype_i, object$occurrence);
         yForecast[] <- yForecast + fc_i$mean * object$ICw[i];
     }
 
     object$models <- NULL;
-    return(structure(list(mean=yForecast, lower=NULL, upper=NULL,
-                          model=object, level=NULL, interval=interval, h=h),
+    return(structure(list(mean=yForecast,
+                          lower=yLower, upper=yUpper,
+                          model=object,
+                          level=level, interval=interval,
+                          side=side, cumulative=cumulative, h=h),
                      class=c("adam.forecast","smooth.forecast","forecast")));
 }
