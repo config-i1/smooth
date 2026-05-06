@@ -2034,3 +2034,346 @@ adam_selector <- function(estimator_fn, model, modelsPool, allowMultiplicative,
 
     return(list(results=results, icSelection=icSelection));
 }
+
+#### Parallel setup / teardown ####
+#' @keywords internal
+adam_setupParallel <- function(parallel, nModels){
+    if(is.numeric(parallel)){
+        nCores <- parallel;
+        parallel <- TRUE;
+    }
+    else{
+        nCores <- min(parallel::detectCores() - 1, nModels);
+    }
+
+    if(parallel){
+        if(!requireNamespace("foreach", quietly=TRUE)){
+            stop("In order to run the function in parallel, 'foreach' package must be installed.", call.=FALSE);
+        }
+        if(!requireNamespace("parallel", quietly=TRUE)){
+            stop("In order to run the function in parallel, 'parallel' package must be installed.", call.=FALSE);
+        }
+
+        if(Sys.info()['sysname']=="Windows"){
+            if(requireNamespace("doParallel", quietly=TRUE)){
+                cat("Setting up", nCores, "clusters using 'doParallel'...\n");
+                cluster <- parallel::makeCluster(nCores);
+                doParallel::registerDoParallel(cluster);
+            }
+            else{
+                stop("Sorry, but in order to run the function in parallel, you need 'doParallel' package.", call.=FALSE);
+            }
+        }
+        else{
+            if(requireNamespace("doMC", quietly=TRUE)){
+                doMC::registerDoMC(nCores);
+                cluster <- NULL;
+            }
+            else if(requireNamespace("doParallel", quietly=TRUE)){
+                cat("Setting up", nCores, "clusters using 'doParallel'...\n");
+                cluster <- parallel::makeCluster(nCores);
+                doParallel::registerDoParallel(cluster);
+            }
+            else{
+                stop(paste0("Sorry, but in order to run the function in parallel, you need either ",
+                            "'doMC' (prefered) or 'doParallel' package."), call.=FALSE);
+            }
+        }
+    }
+    else{
+        cluster <- NULL;
+    }
+
+    return(list(parallel=parallel, cluster=cluster, nCores=nCores));
+}
+
+#' @keywords internal
+adam_teardownParallel <- function(cluster){
+    if(!is.null(cluster)){
+        parallel::stopCluster(cluster);
+    }
+}
+
+#### ARIMA order selector ####
+#' @keywords internal
+adam_arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
+                                h, holdout,
+                                persistence, phi, initial,
+                                ic, bounds, silent, regressors,
+                                testModelETS,
+                                fitter = adam,
+                                fitter_args = list(),
+                                IC = AICc,
+                                formula = NULL,
+                                ets = "conventional",
+                                responseName = "y",
+                                obsInSample, ...){
+    silentDebug <- FALSE;
+    env <- environment();
+
+    modelOriginal <- model;
+    etsModelType <- model;
+
+    if(is.adam(testModelETS)){
+        model <- etsModelType <- modelType(testModelETS);
+        ic_val <- tryCatch(IC(testModelETS),
+                           warning = function(w) numeric(0),
+                           error   = function(e) numeric(0));
+        ICOriginal <- if(length(ic_val) > 0) ic_val else Inf;
+    }
+    else{
+        ICOriginal <- Inf;
+    }
+
+    if(!silent){
+        cat(" Selecting ARIMA orders... ");
+    }
+
+    # Kick off IMA elements if ETS was fitted
+    if(any(substr(etsModelType,1,1) %in% c("A","M"))){
+        iMax[lags==1] <- 0;
+        maMax[lags==1] <- 0;
+    }
+    if(any(substr(etsModelType,3,3)=="d")){
+        arMax[lags==1] <- 0;
+    }
+    if(any(substr(etsModelType,nchar(etsModelType),nchar(etsModelType)) %in% c("A","M"))){
+        iMax[lags!=1] <- 0;
+        maMax[lags!=1] <- 0;
+    }
+
+    if(all(maMax==0)){
+        nModelsARIMA <- prod(iMax + 1) * (1 + sum(arMax));
+    }
+    else{
+        nModelsARIMA <- prod(iMax + 1) * (1 + sum(maMax*(1 + sum(arMax))));
+    }
+
+    ordersLength <- length(lags);
+    lagsMax <- max(lags);
+    lagsTest <- maTest <- arTest <- rep(0,ordersLength);
+    arBest <- maBest <- iBest <- rep(0,ordersLength);
+    arBestLocal <- maBestLocal <- arBest;
+
+    iCombinations <- prod(iMax+1);
+    iOrders <- matrix(0,iCombinations*2,ncol=ordersLength+1);
+
+    if(any(iMax!=0)){
+        iOrders[,1] <- rep(c(0:iMax[1]),times=prod(iMax[-1]+1));
+        if(ordersLength>1){
+            for(seasLag in 2:ordersLength){
+                iOrders[,seasLag] <- rep(c(0:iMax[seasLag]),each=prod(iMax[1:(seasLag-1)]+1));
+            }
+        }
+    }
+    iOrders[1:iCombinations+iCombinations,] <- iOrders[1:iCombinations,];
+    iOrders[,ordersLength+1] <- rep(c(0,1),each=iCombinations);
+
+    iOrdersICs <- vector("numeric",iCombinations*2);
+    iOrdersICs[1] <- ICOriginal;
+    BValues <- vector("list",iCombinations*2);
+
+    if(!silent){
+        cat("\nSelecting differences... ");
+    }
+
+    # Base call arguments shared by every fitter call
+    base_call <- c(list(data=data, model=model, lags=lags,
+                        formula=formula, h=h, holdout=holdout,
+                        persistence=persistence, phi=phi, initial=initial,
+                        ic=ic, bounds=bounds, regressors=regressors,
+                        silent=TRUE, ets=ets, environment=env),
+                   fitter_args);
+
+    for(d in 2:(iCombinations*2)){
+        testModel <- try(do.call(fitter,
+                                 c(base_call,
+                                   list(orders=list(ar=0, i=iOrders[d,1:ordersLength], ma=0),
+                                        constant=(iOrders[d,ordersLength+1]==1)),
+                                   list(...))),
+                         silent=TRUE);
+        if(!inherits(testModel,"try-error")){
+            iOrdersICs[d] <- IC(testModel);
+            if(!is.null(testModel$B)){
+                BValues[[d]] <- testModel$B;
+            }
+        }
+        else{
+            iOrdersICs[d] <- Inf;
+        }
+    }
+    d <- which.min(iOrdersICs);
+    iBest <- iOrders[d,1:ordersLength];
+    constantValue <- iOrders[d,ordersLength+1]==1;
+
+    bestModel <- testModel <- do.call(fitter,
+                                      c(base_call,
+                                        list(orders=list(ar=0, i=iBest, ma=0),
+                                             constant=constantValue,
+                                             B=BValues[[d]]),
+                                        list(...)));
+    bestIC <- iOrdersICs[d];
+
+    if(silentDebug){
+        cat("Best IC:",bestIC,"\n");
+    }
+    maTest <- rep(0,ordersLength);
+    arTest <- rep(0,ordersLength);
+
+    if(!silent){
+        cat("\nSelecting ARMA... |");
+        mSymbols <- c("/","-","\\","|","/","-","\\","|","/","-","\\","|","/","-","\\","|");
+    }
+
+    for(i in ordersLength:1){
+        if(!silent){
+            m <- 1;
+        }
+        if(maMax[i]!=0){
+            maBestNotFound <- TRUE;
+            while(maBestNotFound){
+                if(!silent){
+                    m <- m+1;
+                    cat("\b");
+                    cat(mSymbols[m]);
+                }
+                acfValues <- acf(residuals(bestModel), lag.max=max((maMax*lags)[i]*2,obsInSample/2)+1, plot=FALSE)$acf[-1];
+                maTest[i] <- which.max(abs(acfValues[c(1:maMax[i])*lags[i]]));
+
+                testModel <- try(do.call(fitter,
+                                         c(base_call,
+                                           list(orders=list(ar=arBest, i=iBest, ma=maTest),
+                                                constant=constantValue),
+                                           list(...))),
+                                 silent=TRUE);
+                ICValue <- if(inherits(testModel,"try-error")) Inf else IC(testModel);
+
+                if(silentDebug){
+                    cat("\nTested MA:", maTest, "IC:", ICValue);
+                }
+                if(!is.na(ICValue) && ICValue < bestIC){
+                    maBest[i] <- maTest[i];
+                    bestIC <- ICValue;
+                    bestModel <- testModel;
+                }
+                else{
+                    maTest[i] <- maBest[i];
+                    maBestNotFound[] <- FALSE;
+                }
+            }
+        }
+
+        if(arMax[i]!=0){
+            arBestNotFound <- TRUE;
+            while(arBestNotFound){
+                if(!silent){
+                    m <- m+1;
+                    cat("\b");
+                    cat(mSymbols[m]);
+                }
+                pacfValues <- pacf(residuals(bestModel), lag.max=max((arMax*lags)[i]*2,obsInSample/2)+1, plot=FALSE)$acf;
+                arTest[i] <- which.max(abs(pacfValues[c(1:arMax[i])*lags[i]]));
+
+                testModel <- try(do.call(fitter,
+                                         c(base_call,
+                                           list(orders=list(ar=arTest, i=iBest, ma=maBest),
+                                                constant=constantValue),
+                                           list(...))),
+                                 silent=TRUE);
+                ICValue <- if(inherits(testModel,"try-error")) Inf else IC(testModel);
+                if(silentDebug){
+                    cat("\nTested AR:", arTest, "IC:", ICValue);
+                }
+
+                if(!is.na(ICValue) && ICValue < bestIC){
+                    arBest[i] <- arTest[i];
+                    bestIC <- ICValue;
+                    bestModel <- testModel;
+                }
+                else{
+                    arTest[i] <- arBest[i];
+                    arBestNotFound[] <- FALSE;
+                }
+            }
+        }
+    }
+
+    # Additional checks for ARIMA(0,d,d) models
+    additionalModels <- NULL;
+    if(any(maMax!=0) && any(iMax!=0)){
+        additionalModels <- iOrders[1:iCombinations,1:ordersLength,drop=FALSE];
+        modelsLeft <- rep(TRUE,iCombinations);
+        for(i in 1:ordersLength){
+            modelsLeft[] <- (additionalModels[,i] <= maMax[i]);
+        }
+        additionalModels <- additionalModels[modelsLeft,,drop=FALSE];
+    }
+
+    if(!is.null(additionalModels)){
+        BValues <- vector("list",iCombinations);
+        imaOrdersICs <- vector("numeric",iCombinations);
+        imaOrdersICs[] <- Inf;
+        for(d in 2:nrow(additionalModels)){
+            testModel <- try(do.call(fitter,
+                                     c(base_call,
+                                       list(orders=list(ar=0,
+                                                        i=additionalModels[d,1:ordersLength],
+                                                        ma=additionalModels[d,1:ordersLength]),
+                                            constant=FALSE),
+                                       list(...))),
+                             silent=TRUE);
+
+            if(!inherits(testModel,"try-error")){
+                imaOrdersICs[d] <- IC(testModel);
+                if(!is.null(testModel$B)){
+                    BValues[[d]] <- testModel$B;
+                }
+            }
+            else{
+                imaOrdersICs[d] <- Inf;
+            }
+            if(silentDebug){
+                cat("\nAdditional Model:", additionalModels[d,1:ordersLength], "IC:", imaOrdersICs[d]);
+            }
+        }
+
+        d <- which.min(imaOrdersICs);
+        imaBest <- additionalModels[d,1:ordersLength];
+        if(imaOrdersICs[d]<bestIC){
+            arBest <- 0;
+            iBest <- maBest <- imaBest;
+            constantValue <- FALSE;
+            bestModel <- do.call(fitter,
+                                 c(base_call,
+                                   list(orders=list(ar=0, i=iBest, ma=maBest),
+                                        constant=constantValue,
+                                        B=BValues[[d]]),
+                                   list(...)));
+        }
+    }
+
+    # Refit full model if ARIMA was selected on ETS residuals
+    if(is.adam(testModelETS)){
+        bestModel <- do.call(fitter,
+                             c(base_call,
+                               list(orders=list(ar=arBest, i=iBest, ma=maBest),
+                                    constant=constantValue),
+                               list(...)));
+
+        if(IC(bestModel) >= ICOriginal){
+            bestModel <- testModelETS;
+        }
+    }
+
+    if(!silent){
+        cat("\nThe best ARIMA is selected. ");
+    }
+
+    bestModel$formula[[2]] <- as.name(responseName);
+    colnames(bestModel$data)[1] <- responseName;
+    if(holdout){
+        colnames(bestModel$holdout)[1] <- responseName;
+    }
+
+    return(bestModel);
+}
