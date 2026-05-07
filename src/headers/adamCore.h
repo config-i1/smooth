@@ -32,7 +32,6 @@ struct OmFitGeneralResult {
     arma::vec fittedB;
     arma::vec errorsB;
     arma::mat profileB;
-    arma::vec pfit;
 };
 
 // Result structure for forecaster
@@ -494,26 +493,6 @@ public:
         fitLoopImpl(obs, lagsModelMaxA, backcast, nIterations, refineHead,
                     forwardStep, backwardStep, headFillFwd, headFillBwd, trendReversal);
 
-        // Post-loop probability: pfit = aFit / (aFit + bFit) with E-type transforms
-        // (mirrors occurenceGeneralFitter() lines 625-649)
-        if(E == 'M' && arma::any(vecAfit < 0)) {
-            vecAfit.elem(arma::find(vecAfit < 0)).fill(1e-10);
-        }
-        if(EB == 'M' && arma::any(vecBfit < 0)) {
-            vecBfit.elem(arma::find(vecBfit < 0)).fill(1e-10);
-        }
-        arma::vec vecPfit(obs, arma::fill::zeros);
-        if(E == 'A' && EB == 'A') {
-            vecPfit = arma::exp(vecAfit) / (arma::exp(vecAfit) + arma::exp(vecBfit));
-        } else if(E == 'A' && EB == 'M') {
-            vecPfit = arma::exp(vecAfit) / (arma::exp(vecAfit) + vecBfit);
-        } else if(E == 'M' && EB == 'A') {
-            vecPfit = vecAfit / (vecAfit + arma::exp(vecBfit));
-        } else {
-            vecPfit = vecAfit / (vecAfit + vecBfit);
-        }
-        vecPfit.replace(arma::datum::nan, 1.0 - 1e-10);
-
         OmFitGeneralResult result;
         result.statesA   = matrixVtA;
         result.fittedA   = vecAfit;
@@ -523,7 +502,6 @@ public:
         result.fittedB   = vecBfit;
         result.errorsB   = vecErrorsB;
         result.profileB  = profilesRecentB;
-        result.pfit      = vecPfit;
         return result;
     }
 
