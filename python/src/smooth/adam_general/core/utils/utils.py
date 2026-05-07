@@ -532,12 +532,23 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         return result
 
     def smoothing_function_global(y, order=None):
-        """Global linear regression smoother"""
+        """Global linear regression smoother with block dummies"""
         y = y.astype(float)
         n = len(y)
-        X = np.column_stack([np.ones(n), np.arange(1, n + 1)])
+        if order is None or order <= 1:
+            X = np.column_stack([np.ones(n), np.arange(1, n + 1)])
+        else:
+            n_groups = int(np.ceil(int(lags[-1]) / order))
+            if n_groups <= 1:
+                X = np.column_stack([np.ones(n), np.arange(1, n + 1)])
+            else:
+                block_idx = np.resize(np.repeat(np.arange(n_groups), order), n)
+                dummies = (
+                    block_idx[:, None] == np.arange(n_groups - 1)[None, :]
+                ).astype(float)
+                X = np.column_stack([np.ones(n), dummies, np.arange(1, n + 1)])
         coef = np.linalg.lstsq(X, y, rcond=None)[0]
-        return y - (y - X @ coef)  # Returns fitted values: X @ coef
+        return X @ coef
 
     # Initial data processing
     # obs_in_sample is already defined above

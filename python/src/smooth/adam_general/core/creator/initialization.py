@@ -239,17 +239,20 @@ def _initialize_ets_seasonal_states_with_decomp(
             mat_vt[j, 0:lags_model_max] = np.mean(y_in_sample[ot_logical])
 
         if explanatory_checked["xreg_model"]:
+            xreg_init = (
+                explanatory_checked["xreg_model_initials"][0]
+                if e_type == "A"
+                or explanatory_checked["xreg_model_initials"][1] is None
+                else explanatory_checked["xreg_model_initials"][1]
+            )
+            xreg_coefs = xreg_init["initial_xreg"].ravel()
             if e_type == "A":
                 mat_vt[j, 0:lags_model_max] -= np.dot(
-                    explanatory_checked["xreg_model_initials"][0]["initial_xreg"],
-                    explanatory_checked["xreg_data"][0],
+                    xreg_coefs, explanatory_checked["xreg_data"][0]
                 )
             else:
                 mat_vt[j, 0:lags_model_max] /= np.exp(
-                    np.dot(
-                        explanatory_checked["xreg_model_initials"][1]["initial_xreg"],
-                        explanatory_checked["xreg_data"][0],
-                    )
+                    np.dot(xreg_coefs, explanatory_checked["xreg_data"][0])
                 )
     else:
         mat_vt[j, 0:lags_model_max] = initials_checked["initial_level"]
@@ -374,17 +377,20 @@ def _initialize_ets_seasonal_states_small_sample(
     if initials_checked["initial_level_estimate"]:
         mat_vt[j, 0:lags_model_max] = np.mean(y_in_sample[0:lags_model_max])
         if explanatory_checked["xreg_model"]:
+            xreg_init = (
+                explanatory_checked["xreg_model_initials"][0]
+                if e_type == "A"
+                or explanatory_checked["xreg_model_initials"][1] is None
+                else explanatory_checked["xreg_model_initials"][1]
+            )
+            xreg_coefs = xreg_init["initial_xreg"].ravel()
             if e_type == "A":
                 mat_vt[j, 0:lags_model_max] -= np.dot(
-                    explanatory_checked["xreg_model_initials"][0]["initial_xreg"],
-                    explanatory_checked["xreg_data"][0],
+                    xreg_coefs, explanatory_checked["xreg_data"][0]
                 )
             else:
                 mat_vt[j, 0:lags_model_max] /= np.exp(
-                    np.dot(
-                        explanatory_checked["xreg_model_initials"][1]["initial_xreg"],
-                        explanatory_checked["xreg_data"][0],
-                    )
+                    np.dot(xreg_coefs, explanatory_checked["xreg_data"][0])
                 )
     else:
         mat_vt[j, 0:lags_model_max] = initials_checked["initial_level"]
