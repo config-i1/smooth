@@ -484,7 +484,7 @@ def CF(  # noqa: N802
         backcast=backcast_value,
         nIterations=initials_checked["n_iterations"],
         refineHead=refine_head,
-        O='n',
+        O="n",
     )
 
     # adam_fitted.errors = np.repeat()
@@ -1175,7 +1175,7 @@ def log_Lik_ADAM(  # noqa: N802
                 backcast=backcast_value_log,
                 nIterations=initials_dict["n_iterations"],
                 refineHead=refine_head,
-                O='n',
+                O="n",
             )
 
             logLikReturn -= np.sum(np.log(np.abs(adam_fitted.fitted)))
