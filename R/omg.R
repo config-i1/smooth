@@ -111,6 +111,24 @@ omg <- function(data,
 
     lossArg <- if(loss == "likelihood") "likelihood" else loss
 
+    # Pre-select ETS model when wildcard characters (Z/X/Y) are present
+    if(grepl("[ZXY]", modelA)) {
+        preA  <- om(data=data, model=modelA, lags=lags, orders=ordersA,
+                    constant=constantA, formula=formulaA, regressors=regressorsA,
+                    occurrence="odds-ratio", loss=loss, h=0, holdout=FALSE,
+                    persistence=persistenceA, phi=phiA, initial=initial,
+                    arma=armaA, ic=ic, bounds=bounds, ets=etsA, silent=TRUE, ...)
+        modelA <- modelType(preA)
+    }
+    if(grepl("[ZXY]", modelB)) {
+        preB  <- om(data=data, model=modelB, lags=lags, orders=ordersB,
+                    constant=constantB, formula=formulaB, regressors=regressorsB,
+                    occurrence="inverse-odds-ratio", loss=loss, h=0, holdout=FALSE,
+                    persistence=persistenceB, phi=phiB, initial=initial,
+                    arma=armaB, ic=ic, bounds=bounds, ets=etsB, silent=TRUE, ...)
+        modelB <- modelType(preB)
+    }
+
     #### parametersChecker for A and B ####
     checkerA <- parametersChecker(data=data, model=modelA, lags=lags,
                                   formulaToUse=formulaA, orders=ordersA,
@@ -841,13 +859,13 @@ omg <- function(data,
             any(checkerA$initialType == c("complete","backcasting")),
             nIterations, refineHead, "o")
 
-        yFitted <- omLinkFunction(adamFitted$fitted, resA$Etype, "odds-ratio")
+        yFitted <- adamFitted$fitted
 
         if(is.null(resA$logLikADAMValue)) {
+            pFitted  <- omLinkFunction(as.numeric(yFitted), resA$Etype, "odds-ratio")
             ot_vec   <- as.numeric(oInSample)
-            yfit_vec <- as.numeric(yFitted)
-            ll <- sum(ot_vec * log(pmax(yfit_vec, 1e-15)) +
-                      (1 - ot_vec) * log(pmax(1 - yfit_vec, 1e-15)))
+            ll <- sum(ot_vec * log(pmax(pFitted, 1e-15)) +
+                      (1 - ot_vec) * log(pmax(1 - pFitted, 1e-15)))
             resA$logLikADAMValue <- ll
             resA$CFValue <- -ll
         }
@@ -859,8 +877,6 @@ omg <- function(data,
                 adamArchitect$indexLookupTable[,
                     adamArchitect$lagsModelMax + obsInSample + seq_len(hLocal), drop=FALSE],
                 adamFitted$profile, hLocal)$forecast
-            yForecast <- omLinkFunction(yForecast, resA$Etype, "odds-ratio")
-            yForecast[is.nan(yForecast)] <- 0
         }
 
         # States
@@ -870,23 +886,23 @@ omg <- function(data,
         if(!is.null(compNames)) rownames(statesRaw) <- compNames
 
         if(any(yClasses == "ts")) {
-            yFittedTS <- ts(yFitted, start=yStart, frequency=yFrequency)
-            errors    <- ts(as.numeric(oInSample) - yFittedTS, start=yStart, frequency=yFrequency)
-            matVt     <- ts(t(statesRaw), start=yStart, frequency=yFrequency)
+            yFitted <- ts(yFitted, start=yStart, frequency=yFrequency)
+            errors  <- ts(as.numeric(oInSample) - yFitted, start=yStart, frequency=yFrequency)
+            matVt   <- ts(t(statesRaw), start=yStart, frequency=yFrequency)
         } else {
-            yFittedTS <- zoo(yFitted, order.by=yInSampleIndex)
-            errors    <- zoo(as.numeric(oInSample) - yFittedTS, order.by=yInSampleIndex)
-            matVt     <- zoo(t(statesRaw), order.by=yInSampleIndex)
+            yFitted <- zoo(yFitted, order.by=yInSampleIndex)
+            errors  <- zoo(as.numeric(oInSample) - yFitted, order.by=yInSampleIndex)
+            matVt   <- zoo(t(statesRaw), order.by=yInSampleIndex)
         }
 
         if(hLocal > 0 && !is.null(yForecast)) {
             if(any(yClasses == "ts")) {
-                yForecastTS <- ts(yForecast, start=yForecastStart, frequency=yFrequency)
+                yForecast <- ts(yForecast, start=yForecastStart, frequency=yFrequency)
             } else {
-                yForecastTS <- zoo(yForecast, order.by=yForecastIndex)
+                yForecast <- zoo(yForecast, order.by=yForecastIndex)
             }
         } else {
-            yForecastTS <- if(any(yClasses=="ts")) {
+            yForecast <- if(any(yClasses=="ts")) {
                 ts(NA, start=yForecastStart, frequency=yFrequency)
             } else {
                 zoo(NA, order.by=yForecastIndex[1])
@@ -957,9 +973,9 @@ omg <- function(data,
             model       = modelName,
             timeElapsed = Sys.time() - startTime,
             data        = yInSample,
-            fitted      = yFittedTS,
+            fitted      = yFitted,
             residuals   = errors,
-            forecast    = yForecastTS,
+            forecast    = yForecast,
             states      = matVt,
             profile     = adamFitted$profile,
             profileInitial = NULL,
@@ -998,7 +1014,7 @@ omg <- function(data,
 
         if(holdout) {
             subModel$holdout  <- oHoldout
-            subModel$accuracy <- measures(as.vector(oHoldout), yForecastTS,
+            subModel$accuracy <- measures(as.vector(oHoldout), yForecast,
                                           as.vector(oInSample))
         }
 
@@ -1104,13 +1120,13 @@ omg <- function(data,
             any(checkerB$initialType == c("complete","backcasting")),
             nIterations, refineHead, "i")
 
-        yFitted <- omLinkFunction(adamFitted$fitted, resB$Etype, "inverse-odds-ratio")
+        yFitted <- adamFitted$fitted
 
         if(is.null(resB$logLikADAMValue)) {
+            pFitted  <- omLinkFunction(as.numeric(yFitted), resB$Etype, "inverse-odds-ratio")
             ot_vec   <- as.numeric(oInSample)
-            yfit_vec <- as.numeric(yFitted)
-            ll <- sum(ot_vec * log(pmax(yfit_vec, 1e-15)) +
-                      (1 - ot_vec) * log(pmax(1 - yfit_vec, 1e-15)))
+            ll <- sum(ot_vec * log(pmax(pFitted, 1e-15)) +
+                      (1 - ot_vec) * log(pmax(1 - pFitted, 1e-15)))
             resB$logLikADAMValue <- ll
             resB$CFValue <- -ll
         }
@@ -1122,8 +1138,6 @@ omg <- function(data,
                 adamArchitect$indexLookupTable[,
                     adamArchitect$lagsModelMax + obsInSample + seq_len(hLocal), drop=FALSE],
                 adamFitted$profile, hLocal)$forecast
-            yForecast <- omLinkFunction(yForecast, resB$Etype, "inverse-odds-ratio")
-            yForecast[is.nan(yForecast)] <- 0
         }
 
         statesRaw <- adamFitted$states[,
@@ -1132,23 +1146,23 @@ omg <- function(data,
         if(!is.null(compNames)) rownames(statesRaw) <- compNames
 
         if(any(yClasses == "ts")) {
-            yFittedTS <- ts(yFitted, start=yStart, frequency=yFrequency)
-            errors    <- ts(as.numeric(oInSample) - yFittedTS, start=yStart, frequency=yFrequency)
-            matVt     <- ts(t(statesRaw), start=yStart, frequency=yFrequency)
+            yFitted <- ts(yFitted, start=yStart, frequency=yFrequency)
+            errors  <- ts(as.numeric(oInSample) - yFitted, start=yStart, frequency=yFrequency)
+            matVt   <- ts(t(statesRaw), start=yStart, frequency=yFrequency)
         } else {
-            yFittedTS <- zoo(yFitted, order.by=yInSampleIndex)
-            errors    <- zoo(as.numeric(oInSample) - yFittedTS, order.by=yInSampleIndex)
-            matVt     <- zoo(t(statesRaw), order.by=yInSampleIndex)
+            yFitted <- zoo(yFitted, order.by=yInSampleIndex)
+            errors  <- zoo(as.numeric(oInSample) - yFitted, order.by=yInSampleIndex)
+            matVt   <- zoo(t(statesRaw), order.by=yInSampleIndex)
         }
 
         if(hLocal > 0 && !is.null(yForecast)) {
             if(any(yClasses == "ts")) {
-                yForecastTS <- ts(yForecast, start=yForecastStart, frequency=yFrequency)
+                yForecast <- ts(yForecast, start=yForecastStart, frequency=yFrequency)
             } else {
-                yForecastTS <- zoo(yForecast, order.by=yForecastIndex)
+                yForecast <- zoo(yForecast, order.by=yForecastIndex)
             }
         } else {
-            yForecastTS <- if(any(yClasses=="ts")) {
+            yForecast <- if(any(yClasses=="ts")) {
                 ts(NA, start=yForecastStart, frequency=yFrequency)
             } else {
                 zoo(NA, order.by=yForecastIndex[1])
@@ -1219,9 +1233,9 @@ omg <- function(data,
             model       = modelName,
             timeElapsed = Sys.time() - startTime,
             data        = yInSample,
-            fitted      = yFittedTS,
+            fitted      = yFitted,
             residuals   = errors,
-            forecast    = yForecastTS,
+            forecast    = yForecast,
             states      = matVt,
             profile     = adamFitted$profile,
             profileInitial = NULL,
@@ -1260,7 +1274,7 @@ omg <- function(data,
 
         if(holdout) {
             subModel$holdout  <- oHoldout
-            subModel$accuracy <- measures(as.vector(oHoldout), yForecastTS,
+            subModel$accuracy <- measures(as.vector(oHoldout), yForecast,
                                           as.vector(oInSample))
         }
 
@@ -1344,18 +1358,21 @@ omg <- function(data,
     modelA <- omgFinalFitA(resA, hLocal=h)
     modelB <- omgFinalFitB(resB, hLocal=h)
 
-    # Combined fitted and forecast from sub-model probabilities
-    pA <- as.vector(modelA$fitted)
-    pB <- as.vector(modelB$fitted)
-    yFitted <- modelA$fitted
-    yFitted[] <- pA / (pA + pB)
+    # Combined fitted and forecast using raw sub-model values via omgLinkFunction
+    EtypeA <- errorType(modelA)
+    EtypeB <- errorType(modelB)
+
+    yFittedA  <- as.vector(modelA$fitted)
+    yFittedB  <- as.vector(modelB$fitted)
+    yFitted   <- modelA$fitted
+    yFitted[] <- omgLinkFunction(yFittedA, yFittedB, EtypeA, EtypeB)
 
     yForecast <- NULL
     if(h > 0) {
-        fA <- as.vector(modelA$forecast)
-        fB <- as.vector(modelB$forecast)
-        yForecast <- modelA$forecast
-        yForecast[] <- fA / (fA + fB)
+        yForecastA  <- as.vector(modelA$forecast)
+        yForecastB  <- as.vector(modelB$forecast)
+        yForecast   <- modelA$forecast
+        yForecast[] <- omgLinkFunction(yForecastA, yForecastB, EtypeA, EtypeB)
     }
 
     modelName <- paste0("oETS[G](", modelType(modelA), ")(", modelType(modelB), ")")
@@ -1399,14 +1416,18 @@ omg <- function(data,
 #' @export
 forecast.omg <- function(object, h=NULL, ...) {
     if(is.null(h)) { h <- length(object$forecast) }
-    fcA <- forecast.om(object$modelA, h=h, ...)
-    fcB <- forecast.om(object$modelB, h=h, ...)
-    fA  <- as.vector(fcA$mean)
-    fB  <- as.vector(fcB$mean)
-    combined    <- fcA$mean
-    combined[]  <- fA / (fA + fB)
+    fcA <- forecast.adam(object$modelA, h=h, interval="none",
+                         level=0.95, side="both", cumulative=FALSE, ...)
+    fcB <- forecast.adam(object$modelB, h=h, interval="none",
+                         level=0.95, side="both", cumulative=FALSE, ...)
+    EtypeA      <- errorType(object$modelA)
+    EtypeB      <- errorType(object$modelB)
+    yForecastA  <- as.vector(fcA$mean)
+    yForecastB  <- as.vector(fcB$mean)
+    yForecast   <- fcA$mean
+    yForecast[] <- omgLinkFunction(yForecastA, yForecastB, EtypeA, EtypeB)
     return(structure(
-        list(mean=combined, lower=fcA$lower, upper=fcA$upper,
+        list(mean=yForecast, lower=fcA$lower, upper=fcA$upper,
              model=object, level=fcA$level, interval=fcA$interval,
              side=fcA$side, cumulative=fcA$cumulative, h=h,
              scenarios=fcA$scenarios),

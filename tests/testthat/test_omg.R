@@ -98,12 +98,12 @@ test_that("forecast(omg_obj) returns adam.forecast with expected fields", {
     expect_equal(fc$level, 0.95)
 })
 
-test_that("forecast.omg values equal fA / (fA + fB) from sub-forecasts", {
+test_that("forecast.omg values equal fA / (fA + fB) from sub-model raw forecasts", {
     m   <- omg(y, h=10)
     fc  <- forecast(m, h=10)
-    fcA <- forecast(m$modelA, h=10)
-    fcB <- forecast(m$modelB, h=10)
-    expected <- as.numeric(fcA$mean) / (as.numeric(fcA$mean) + as.numeric(fcB$mean))
+    fA  <- as.numeric(m$modelA$forecast)
+    fB  <- as.numeric(m$modelB$forecast)
+    expected <- fA / (fA + fB)
     expect_equal(as.numeric(fc$mean), expected, tolerance=1e-10)
 })
 

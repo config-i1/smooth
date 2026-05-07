@@ -59,7 +59,7 @@ om <- function(data,
                constant = FALSE,
                formula  = NULL,
                regressors = c("use","select","adapt"),
-               occurrence = c("fixed","odds-ratio","inverse-odds-ratio","direct"),
+               occurrence = c("fixed","odds-ratio","inverse-odds-ratio","direct","general"),
                loss = c("likelihood","MSE","MAE","HAM","LASSO","RIDGE"),
                h = 0, holdout = FALSE,
                persistence = NULL, phi = NULL,
@@ -74,6 +74,22 @@ om <- function(data,
     cl <- match.call();
 
     occurrence <- match.arg(occurrence);
+    if(occurrence == "general") {
+        result <- omg(data=data, modelA=model, modelB=model,
+                      ordersA=orders, ordersB=orders,
+                      constantA=constant, constantB=constant,
+                      formulaA=formula, formulaB=formula,
+                      regressorsA=regressors, regressorsB=regressors,
+                      persistenceA=persistence, persistenceB=persistence,
+                      phiA=phi, phiB=phi,
+                      armaA=arma, armaB=arma,
+                      etsA=ets, etsB=ets,
+                      lags=lags, h=h, holdout=holdout,
+                      initial=initial, loss=loss, ic=ic,
+                      bounds=bounds, silent=silent, ...)
+        result$call <- match.call()
+        return(result)
+    }
     occurrenceType <- occurrence;
     loss <- match.arg(loss);
     ic <- match.arg(ic);
