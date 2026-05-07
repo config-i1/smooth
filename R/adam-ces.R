@@ -237,7 +237,8 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                                        # This is not needed by the function
                                        ic=ic, bounds=bounds[1],
                                        regressors=regressors, yName=yName,
-                                       silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
+                                       silent, modelDo, ellipsis, fast=FALSE);
+    list2env(checkerReturn, envir=environment());
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. GUM doesn't need that.
@@ -505,7 +506,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                                   indexLookupTable, profilesRecentTable,
                                   yInSample, ot,
                                   any(initialType==c("complete","backcasting")), nIterations,
-                                  refineHead);
+                                  refineHead, "n");
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -987,7 +988,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
                               indexLookupTable, profilesRecentTable,
                               yInSample, ot,
                               any(initialType==c("complete","backcasting")), nIterations,
-                              refineHead);
+                              refineHead, "n");
 
     errors[] <- adamFitted$errors;
     yFitted[] <- adamFitted$fitted;
