@@ -1993,7 +1993,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     call.=FALSE, immediate.=TRUE);
         }
         if(occurrenceModel){
-            yFitted[] <- yFitted * pFitted;
+            yFitted[] <- yFitted * as.numeric(pFitted);
         }
 
         # Fix the cases, when we have zeroes in the provided occurrence
@@ -2022,7 +2022,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
             # Amend forecasts, multiplying by probability
             if(occurrenceModel && !occurrenceModelProvided){
-                yForecast[] <- yForecast * c(suppressWarnings(forecast(oesModel, h=h))$mean);
+                yForecast[] <- yForecast * as.numeric(suppressWarnings(forecast(oesModel, h=h))$mean);
             }
             else if((occurrenceModel && occurrenceModelProvided) || occurrence=="provided"){
                 yForecast[] <- yForecast * pForecast;
@@ -2181,12 +2181,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
     #### Deal with occurrence model ####
     if(occurrenceModel && !occurrenceModelProvided){
-        modelForOES <- model;
-        if(model=="NNN"){
-            modelForOES[] <- "MNN";
-        }
-        oesModel <- suppressWarnings(oes(ot, model=modelForOES, occurrence=occurrence, ic=ic, h=horizon,
-                                         holdout=FALSE, bounds="usual", xreg=xregData, regressors=regressors, silent=TRUE));
+        oesModel <- suppressWarnings(om(data=data, model=model, lags=lags,
+                                        orders=orders, occurrence=occurrence, formula=formula,
+                                        ic=ic, h=horizon,
+                                        holdout=holdout, bounds=bounds, regressors=regressors,
+                                        initial=initialType, ets=ets, silent=TRUE));
         pFitted[] <- fitted(oesModel);
         parametersNumber[1,3] <- nparam(oesModel);
         # print(oesModel)
@@ -2902,7 +2901,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         modelName <- adam_model_name(etsModel, model, xregModel, arimaModel,
                                      arOrders, iOrders, maOrders, lags,
                                      regressors, constantRequired, constantName,
-                                     occurrence, componentsNumberETSSeasonal);
+                                     modelReturned$occurrence$occurrence, componentsNumberETSSeasonal);
 
         modelReturned$model <- modelName;
         modelReturned$timeElapsed <- Sys.time()-startTime;

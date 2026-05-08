@@ -7,9 +7,9 @@
 om(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   c(0), i = c(0), ma = c(0), select = FALSE), constant = FALSE,
   formula = NULL, regressors = c("use", "select", "adapt"),
-  occurrence = c("fixed", "odds-ratio", "inverse-odds-ratio", "direct"),
-  loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE"), h = 0,
-  holdout = FALSE, persistence = NULL, phi = NULL,
+  occurrence = c("auto", "fixed", "odds-ratio", "inverse-odds-ratio",
+  "direct", "general"), loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO",
+  "RIDGE"), h = 0, holdout = FALSE, persistence = NULL, phi = NULL,
   initial = c("backcasting", "optimal", "two-stage", "complete"),
   arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual",
   "admissible", "none"), ets = c("conventional", "adam"), silent = TRUE,

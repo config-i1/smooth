@@ -46,7 +46,7 @@ auto.om <- function(data,
                     orders     = list(ar=c(3,3), i=c(2,1), ma=c(3,3), select=TRUE),
                     formula    = NULL,
                     regressors = c("use","select","adapt"),
-                    occurrence = c("fixed","odds-ratio","inverse-odds-ratio","direct"),
+                    occurrence = c("fixed","odds-ratio","inverse-odds-ratio","direct","general"),
                     h = 0, holdout = FALSE,
                     persistence = NULL, phi = NULL,
                     initial = c("backcasting","optimal","two-stage","complete"),
@@ -68,7 +68,7 @@ auto.om <- function(data,
     regressors <- match.arg(regressors);
 
     occurrence <- match.arg(occurrence,
-                            c("fixed","odds-ratio","inverse-odds-ratio","direct"),
+                            c("fixed","odds-ratio","inverse-odds-ratio","direct","general"),
                             several.ok=TRUE);
 
     if(any(unlist(strsplit(model,""))=="C")){
@@ -219,7 +219,8 @@ auto.om <- function(data,
             selectedModels <- vector("list", length(occurrence));
             for(i in seq_along(occurrence)){
                 if(!silent){ cat(occurrence[i], "\b, "); }
-                if(etsModel || xregModel || (arimaModel && !arimaModelSelect)){
+                if(etsModel || xregModel || (arimaModel && !arimaModelSelect) ||
+                   occurrence[i] == "general"){
                     selectedModels[[i]] <- om(data=data, model=model, lags=lags,
                                               orders=ordersToUse,
                                               occurrence=occurrence[i], formula=formula,
@@ -230,7 +231,7 @@ auto.om <- function(data,
                                               regressors=regressors,
                                               silent=TRUE, ets=ets, ...);
                 }
-                if(arimaModelSelect){
+                if(arimaModelSelect && occurrence[i] != "general"){
                     selectedModels[[i]] <- adam_arimaSelector(
                         data=data, model=model,
                         lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
@@ -248,7 +249,7 @@ auto.om <- function(data,
             selectedModels <- foreach::`%dopar%`(
                 foreach::foreach(i=seq_along(occurrence)),
                 {
-                    if(etsModel || xregModel){
+                    if(etsModel || xregModel || occurrence[i] == "general"){
                         testModel <- om(data=data, model=model, lags=lags,
                                         orders=ordersToUse,
                                         occurrence=occurrence[i], formula=formula,
@@ -262,7 +263,7 @@ auto.om <- function(data,
                     else{
                         testModel <- NULL;
                     }
-                    if(arimaModelSelect){
+                    if(arimaModelSelect && occurrence[i] != "general"){
                         testModel <- adam_arimaSelector(
                             data=data, model=model,
                             lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
@@ -306,32 +307,50 @@ auto.om <- function(data,
             selectedModels <- vector("list", length(occurrence));
             for(i in seq_along(occurrence)){
                 if(!silent){ cat(occurrence[i], "\b: "); }
-                selectedModels[[i]] <- adam_arimaSelector(
-                    data=data, model=model,
-                    lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
-                    h=h, holdout=holdout,
-                    persistence=persistence, phi=phi, initial=initial,
-                    ic=ic, bounds=bounds, silent=silent, regressors=regressors,
-                    testModelETS=NULL,
-                    fitter=om, fitter_args=list(occurrence=occurrence[i]),
-                    IC=IC, formula=formula, ets=ets,
-                    responseName=responseName, obsInSample=obsInSample, ...);
+                if(occurrence[i] != "general"){
+                    selectedModels[[i]] <- adam_arimaSelector(
+                        data=data, model=model,
+                        lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
+                        h=h, holdout=holdout,
+                        persistence=persistence, phi=phi, initial=initial,
+                        ic=ic, bounds=bounds, silent=silent, regressors=regressors,
+                        testModelETS=NULL,
+                        fitter=om, fitter_args=list(occurrence=occurrence[i]),
+                        IC=IC, formula=formula, ets=ets,
+                        responseName=responseName, obsInSample=obsInSample, ...);
+                } else {
+                    selectedModels[[i]] <- om(data=data, model=model, lags=lags,
+                                              orders=c(0,0,0), occurrence="general",
+                                              formula=formula, h=h, holdout=holdout,
+                                              persistence=persistence, phi=phi,
+                                              initial=initial, arma=arma, ic=ic, bounds=bounds,
+                                              regressors=regressors, silent=TRUE, ets=ets, ...);
+                }
             }
         }
         else{
             selectedModels <- foreach::`%dopar%`(
                 foreach::foreach(i=seq_along(occurrence)),
                 {
-                    testModel <- adam_arimaSelector(
-                        data=data, model=model,
-                        lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
-                        h=h, holdout=holdout,
-                        persistence=persistence, phi=phi, initial=initial,
-                        ic=ic, bounds=bounds, silent=TRUE, regressors=regressors,
-                        testModelETS=NULL,
-                        fitter=om, fitter_args=list(occurrence=occurrence[i]),
-                        IC=IC, formula=formula, ets=ets,
-                        responseName=responseName, obsInSample=obsInSample, ...);
+                    if(occurrence[i] != "general"){
+                        testModel <- adam_arimaSelector(
+                            data=data, model=model,
+                            lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
+                            h=h, holdout=holdout,
+                            persistence=persistence, phi=phi, initial=initial,
+                            ic=ic, bounds=bounds, silent=TRUE, regressors=regressors,
+                            testModelETS=NULL,
+                            fitter=om, fitter_args=list(occurrence=occurrence[i]),
+                            IC=IC, formula=formula, ets=ets,
+                            responseName=responseName, obsInSample=obsInSample, ...);
+                    } else {
+                        testModel <- om(data=data, model=model, lags=lags,
+                                        orders=c(0,0,0), occurrence="general",
+                                        formula=formula, h=h, holdout=holdout,
+                                        persistence=persistence, phi=phi,
+                                        initial=initial, arma=arma, ic=ic, bounds=bounds,
+                                        regressors=regressors, silent=TRUE, ets=ets, ...);
+                    }
                     return(testModel);
                 });
         }

@@ -6,6 +6,7 @@
 \alias{is.msarima}
 \alias{is.oes}
 \alias{is.oesg}
+\alias{is.omg}
 \alias{is.smooth.sim}
 \alias{is.smooth.forecast}
 \alias{is.adam}
@@ -23,6 +24,8 @@ is.msarima(x)
 is.oes(x)
 
 is.oesg(x)
+
+is.omg(x)
 
 is.smooth.sim(x)
 

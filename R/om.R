@@ -59,7 +59,7 @@ om <- function(data,
                constant = FALSE,
                formula  = NULL,
                regressors = c("use","select","adapt"),
-               occurrence = c("fixed","odds-ratio","inverse-odds-ratio","direct","general"),
+               occurrence = c("auto","fixed","odds-ratio","inverse-odds-ratio","direct","general"),
                loss = c("likelihood","MSE","MAE","HAM","LASSO","RIDGE"),
                h = 0, holdout = FALSE,
                persistence = NULL, phi = NULL,
@@ -74,6 +74,18 @@ om <- function(data,
     cl <- match.call();
 
     occurrence <- match.arg(occurrence);
+    if(occurrence == "auto") {
+        result <- auto.om(data=data, model=model, lags=lags, orders=orders,
+                          formula=formula, regressors=regressors,
+                          h=h, holdout=holdout,
+                          persistence=persistence, phi=phi,
+                          initial=initial, arma=arma,
+                          ic=ic, bounds=bounds, silent=silent, ets=ets,
+                          occurrence=c("fixed","general","odds-ratio","inverse-odds-ratio","direct"),
+                          constant=constant, loss=loss, ...)
+        result$call <- match.call()
+        return(result)
+    }
     if(occurrence == "general") {
         result <- omg(data=data, modelA=model, modelB=model,
                       ordersA=orders, ordersB=orders,
@@ -561,7 +573,8 @@ om <- function(data,
                     initialArimaEstimate=initialArimaEstimate,
                     arimaModel=arimaModel,
                     arRequired=arRequired, iRequired=iRequired, maRequired=maRequired,
-                    arEstimate=arEstimate, maEstimate=maEstimate));
+                    arEstimate=arEstimate, maEstimate=maEstimate,
+                    adamArchitect=adamArchitect, adamCreated=adamCreated));
     }
 
     #### IC function with shared environment for nParam ####
@@ -588,67 +601,70 @@ om <- function(data,
         otLogicalInternal <- otLogical;
         otLogicalInternal[] <- TRUE;
 
-        adamArchitect <- adam_architector(res$etsModel, res$Etype, res$Ttype, res$Stype,
-                                          lags, lagsModelSeasonal,
-                                          xregNumber, obsInSample, initialType,
-                                          res$arimaModel, lagsModelARIMA,
-                                          xregModel, constantRequired,
-                                          componentsNumberARIMA,
-                                          obsAll, yIndexAll, yClasses, adamETS);
-        adamCreated <- adam_creator(res$etsModel, res$Etype, res$Ttype, res$Stype,
-                                    res$modelIsTrendy, res$modelIsSeasonal,
-                                    lags, adamArchitect$lagsModel, lagsModelARIMA,
-                                    adamArchitect$lagsModelAll, adamArchitect$lagsModelMax,
-                                    adamArchitect$profilesRecentTable, FALSE,
-                                    adamArchitect$obsStates, obsInSample,
-                                    obsAll,
-                                    adamArchitect$componentsNumberETS, adamArchitect$componentsNumberETSSeasonal,
-                                    adamArchitect$componentsNamesETS, otLogicalInternal, ot,
-                                    persistence, res$persistenceEstimate,
-                                    persistenceLevel, res$persistenceLevelEstimate,
-                                    persistenceTrend, res$persistenceTrendEstimate,
-                                    persistenceSeasonal, res$persistenceSeasonalEstimate,
-                                    persistenceXreg, res$persistenceXregEstimate,
-                                    persistenceXregProvided,
-                                    phi,
-                                    initialType, res$initialEstimate,
-                                    initialLevel, res$initialLevelEstimate,
-                                    initialTrend, res$initialTrendEstimate,
-                                    initialSeasonal, res$initialSeasonalEstimate,
-                                    initialArima, res$initialArimaEstimate,
-                                    initialArimaNumber,
-                                    res$initialXregEstimate, initialXregProvided,
-                                    res$arimaModel, res$arRequired, res$iRequired, res$maRequired,
-                                    armaParameters,
-                                    res$arOrders, res$iOrders, res$maOrders,
-                                    componentsNumberARIMA, componentsNamesARIMA,
-                                    xregModel, xregModelInitials, xregData,
-                                    xregNumber, xregNames,
-                                    xregParametersPersistence,
-                                    constantRequired, constantEstimate,
-                                    constantValue, constantName,
-                                    adamArchitect$adamCpp,
-                                    res$arEstimate, res$maEstimate, smoother,
-                                    nonZeroARI, nonZeroMA);
-
-        # Mirror the optimiser's matVt initialisation so the post-fit pipeline
-        # starts the C++ backcasting from the same state-space-scale initials.
-        # Without this, lossValue (the optimiser's objective at convergence)
-        # disagrees with -logLik recomputed from fitted(m).
-        adamCreated$matVt <- om_initial_transform(
-            adamCreated$matVt, occurrence, res$Etype, res$Ttype, res$Stype,
-            res$etsModel,
-            res$modelIsTrendy, res$modelIsSeasonal,
-            res$initialLevelEstimate, res$initialTrendEstimate, res$initialSeasonalEstimate,
-            adamArchitect$componentsNumberETS,
-            adamArchitect$componentsNumberETSNonSeasonal,
-            adamArchitect$componentsNumberETSSeasonal,
-            adamArchitect$lagsModel, adamArchitect$lagsModelMax, lagsModelSeasonal,
-            obsInSample, ot,
-            res$arimaModel, componentsNumberARIMA,
-            res$initialArimaEstimate, initialArimaNumber,
-            xregModel, xregNumber, res$initialXregEstimate,
-            constantRequired, constantEstimate);
+        if(!is.null(res$adamArchitect)){
+            # Reuse objects built before nloptr — avoids any mismatch between the
+            # matrices the optimiser saw and those rebuilt here from scratch.
+            adamArchitect <- res$adamArchitect;
+            adamCreated   <- res$adamCreated;
+        } else {
+            adamArchitect <- adam_architector(res$etsModel, res$Etype, res$Ttype, res$Stype,
+                                              lags, lagsModelSeasonal,
+                                              xregNumber, obsInSample, initialType,
+                                              res$arimaModel, lagsModelARIMA,
+                                              xregModel, constantRequired,
+                                              componentsNumberARIMA,
+                                              obsAll, yIndexAll, yClasses, adamETS);
+            adamCreated <- adam_creator(res$etsModel, res$Etype, res$Ttype, res$Stype,
+                                        res$modelIsTrendy, res$modelIsSeasonal,
+                                        lags, adamArchitect$lagsModel, lagsModelARIMA,
+                                        adamArchitect$lagsModelAll, adamArchitect$lagsModelMax,
+                                        adamArchitect$profilesRecentTable, FALSE,
+                                        adamArchitect$obsStates, obsInSample,
+                                        obsAll,
+                                        adamArchitect$componentsNumberETS,
+                                        adamArchitect$componentsNumberETSSeasonal,
+                                        adamArchitect$componentsNamesETS, otLogicalInternal, ot,
+                                        persistence, res$persistenceEstimate,
+                                        persistenceLevel, res$persistenceLevelEstimate,
+                                        persistenceTrend, res$persistenceTrendEstimate,
+                                        persistenceSeasonal, res$persistenceSeasonalEstimate,
+                                        persistenceXreg, res$persistenceXregEstimate,
+                                        persistenceXregProvided,
+                                        phi,
+                                        initialType, res$initialEstimate,
+                                        initialLevel, res$initialLevelEstimate,
+                                        initialTrend, res$initialTrendEstimate,
+                                        initialSeasonal, res$initialSeasonalEstimate,
+                                        initialArima, res$initialArimaEstimate,
+                                        initialArimaNumber,
+                                        res$initialXregEstimate, initialXregProvided,
+                                        res$arimaModel, res$arRequired, res$iRequired, res$maRequired,
+                                        armaParameters,
+                                        res$arOrders, res$iOrders, res$maOrders,
+                                        componentsNumberARIMA, componentsNamesARIMA,
+                                        xregModel, xregModelInitials, xregData,
+                                        xregNumber, xregNames,
+                                        xregParametersPersistence,
+                                        constantRequired, constantEstimate,
+                                        constantValue, constantName,
+                                        res$adamCpp,
+                                        res$arEstimate, res$maEstimate, smoother,
+                                        nonZeroARI, nonZeroMA);
+            adamCreated$matVt <- om_initial_transform(
+                adamCreated$matVt, occurrence, res$Etype, res$Ttype, res$Stype,
+                res$etsModel,
+                res$modelIsTrendy, res$modelIsSeasonal,
+                res$initialLevelEstimate, res$initialTrendEstimate, res$initialSeasonalEstimate,
+                adamArchitect$componentsNumberETS,
+                adamArchitect$componentsNumberETSNonSeasonal,
+                adamArchitect$componentsNumberETSSeasonal,
+                adamArchitect$lagsModel, adamArchitect$lagsModelMax, lagsModelSeasonal,
+                obsInSample, ot,
+                res$arimaModel, componentsNumberARIMA,
+                res$initialArimaEstimate, initialArimaNumber,
+                xregModel, xregNumber, res$initialXregEstimate,
+                constantRequired, constantEstimate);
+        }
 
         adamFilled <- adam_filler(res$B,
                                   res$etsModel, res$Etype, res$Ttype, res$Stype,
@@ -851,7 +867,7 @@ om <- function(data,
             lags = lags,
             lagsAll = adamArchitect$lagsModelAll,
             ets = res$etsModel,
-            res = res,
+            res = res$res,
             FI = res$FI,
             adamCpp = adamArchitect$adamCpp,
             bounds = bounds,

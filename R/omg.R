@@ -51,18 +51,18 @@ omgLinkFunction <- function(fittedA, fittedB, EtypeA, EtypeB) {
 #'
 #' @export
 omg <- function(data,
-                modelA = "MNN", modelB = "MNN",
+                modelA = "MNN", modelB = modelA,
                 ordersA = list(ar=c(0), i=c(0), ma=c(0), select=FALSE),
-                ordersB = list(ar=c(0), i=c(0), ma=c(0), select=FALSE),
-                constantA = FALSE, constantB = FALSE,
-                formulaA = NULL, formulaB = NULL,
+                ordersB = ordersA,
+                constantA = FALSE, constantB = constantA,
+                formulaA = NULL, formulaB = formulaA,
                 regressorsA = c("use","select","adapt"),
-                regressorsB = c("use","select","adapt"),
-                persistenceA = NULL, persistenceB = NULL,
-                phiA = NULL, phiB = NULL,
-                armaA = NULL, armaB = NULL,
+                regressorsB = regressorsA,
+                persistenceA = NULL, persistenceB = persistenceA,
+                phiA = NULL, phiB = phiA,
+                armaA = NULL, armaB = armaA,
                 etsA = c("conventional","adam"),
-                etsB = c("conventional","adam"),
+                etsB = etsA,
                 lags = c(frequency(data)),
                 h = 0, holdout = FALSE,
                 initial = c("backcasting","optimal","two-stage","complete"),
@@ -81,7 +81,7 @@ omg <- function(data,
     regressorsA <- match.arg(regressorsA)
     regressorsB <- match.arg(regressorsB)
     etsA       <- match.arg(etsA)
-    etsB       <- match.arg(etsB)
+    etsB       <- match.arg(etsB, c("conventional","adam"))
     ellipsis   <- list(...)
 
     adamETSA <- (etsA == "adam")
@@ -112,7 +112,7 @@ omg <- function(data,
     lossArg <- if(loss == "likelihood") "likelihood" else loss
 
     # Pre-select ETS model when wildcard characters (Z/X/Y) are present
-    if(grepl("[ZXY]", modelA)) {
+    if(grepl("[ZXYFPS]", modelA)) {
         preA  <- om(data=data, model=modelA, lags=lags, orders=ordersA,
                     constant=constantA, formula=formulaA, regressors=regressorsA,
                     occurrence="odds-ratio", loss=loss, h=0, holdout=FALSE,
@@ -120,7 +120,7 @@ omg <- function(data,
                     arma=armaA, ic=ic, bounds=bounds, ets=etsA, silent=TRUE, ...)
         modelA <- modelType(preA)
     }
-    if(grepl("[ZXY]", modelB)) {
+    if(grepl("[ZXYFPS]", modelB)) {
         preB  <- om(data=data, model=modelB, lags=lags, orders=ordersB,
                     constant=constantB, formula=formulaB, regressors=regressorsB,
                     occurrence="inverse-odds-ratio", loss=loss, h=0, holdout=FALSE,
@@ -724,21 +724,26 @@ omg <- function(data,
             nIterations=nIterations, refineHead=refineHead,
             nParamsA=nParamsA)
 
-        res <- suppressWarnings(
-            do.call(nloptr,
-                    c(list(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub,
-                           opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
-                                     maxeval=maxeval, print_level=print_level)),
-                      nloptrArgs)))
-
-        if(is.infinite(res$objective) || res$objective == 1e+300) {
-            B_used[] <- c(BValuesA$B, BValuesB$B)
+        if(length(B_used) == 0){
+            res <- list(solution=B_used,
+                        objective=do.call(omgCF_local, c(list(B=B_used), nloptrArgs)));
+        } else {
             res <- suppressWarnings(
                 do.call(nloptr,
                         c(list(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub,
                                opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
                                          maxeval=maxeval, print_level=print_level)),
                           nloptrArgs)))
+
+            if(is.infinite(res$objective) || res$objective == 1e+300) {
+                B_used[] <- c(BValuesA$B, BValuesB$B)
+                res <- suppressWarnings(
+                    do.call(nloptr,
+                            c(list(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub,
+                                   opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
+                                             maxeval=maxeval, print_level=print_level)),
+                              nloptrArgs)))
+            }
         }
 
         B_joint <- res$solution

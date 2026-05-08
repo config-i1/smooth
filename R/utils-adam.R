@@ -1587,7 +1587,7 @@ adam_model_name <- function(etsModel, model, xregModel, arimaModel,
             modelName <- paste0(modelName," with ",constantName);
         }
     }
-    if(all(occurrence!=c("n","none"))){
+    if(!is.null(occurrence) && all(occurrence!=c("n","none"))){
         modelName <- paste0(prefix,modelName,
                             switch(occurrence,
                                    "f"=,"fixed"="[F]",
