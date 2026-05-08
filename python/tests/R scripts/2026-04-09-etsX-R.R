@@ -26,7 +26,7 @@ auto.adam(y, model="ANN", lags=c(1,12),
 plot(model,7)
 
 
-devtools::test(filter="adam_baseline")
+devtools::test(filter="adam_baseline") 
 
 devtools::test()
 
@@ -37,13 +37,8 @@ plot(forecast(model, h=18, interval="pred"))
 
 forecast(model, h=18, interval="pred")
 
-set.seed(41)
 y <- rpois(100, 0.5)
-om(y, "AAN", occurrence="odds", h=10, silent=F)
-om(y, "AMN", occurrence="odds")
-om(y, "MAN", occurrence="odds")
-
-test <- om(y, "CCN", occurrence="odds")
+test <- om(y, "MMM", occurrence="odds", lags=12)
 test$persistence
 
 test <- msdecompose(y, lags=12, smoother="global")
