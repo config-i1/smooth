@@ -1,7 +1,16 @@
 omgLinkFunction <- function(fittedA, fittedB, EtypeA, EtypeB) {
-    aFit <- if(EtypeA == "A") exp(fittedA) else fittedA
-    bFit <- if(EtypeB == "A") exp(fittedB) else fittedB
-    return(aFit / (aFit + bFit))
+    if(EtypeA == "A" && EtypeB == "A") {
+        return(1 / (1 + exp(fittedB - fittedA)))
+    }
+    else if(EtypeA == "M" && EtypeB == "M") {
+        return(1 / (1 + fittedB / fittedA))
+    }
+    else if(EtypeA == "M" && EtypeB == "A") {
+        return(1 / (1 + exp(fittedB - log(fittedA))))
+    }
+    else {
+        return(1 / (1 + exp(log(fittedB) - fittedA)))
+    }
 }
 
 #' General occurrence model

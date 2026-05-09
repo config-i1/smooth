@@ -4,14 +4,13 @@
 \alias{omg}
 \title{General occurrence model}
 \usage{
-omg(data, modelA = "MNN", modelB = "MNN", ordersA = list(ar = c(0), i =
-  c(0), ma = c(0), select = FALSE), ordersB = list(ar = c(0), i = c(0), ma =
-  c(0), select = FALSE), constantA = FALSE, constantB = FALSE,
-  formulaA = NULL, formulaB = NULL, regressorsA = c("use", "select",
-  "adapt"), regressorsB = c("use", "select", "adapt"), persistenceA = NULL,
-  persistenceB = NULL, phiA = NULL, phiB = NULL, armaA = NULL,
-  armaB = NULL, etsA = c("conventional", "adam"),
-  etsB = c("conventional", "adam"), lags = c(frequency(data)), h = 0,
+omg(data, modelA = "MNN", modelB = modelA, ordersA = list(ar = c(0), i =
+  c(0), ma = c(0), select = FALSE), ordersB = ordersA, constantA = FALSE,
+  constantB = constantA, formulaA = NULL, formulaB = formulaA,
+  regressorsA = c("use", "select", "adapt"), regressorsB = regressorsA,
+  persistenceA = NULL, persistenceB = persistenceA, phiA = NULL,
+  phiB = phiA, armaA = NULL, armaB = armaA, etsA = c("conventional",
+  "adam"), etsB = etsA, lags = c(frequency(data)), h = 0,
   holdout = FALSE, initial = c("backcasting", "optimal", "two-stage",
   "complete"), loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE"),
   ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual", "admissible",
