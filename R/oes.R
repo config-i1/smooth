@@ -764,31 +764,36 @@ oes_old <- function(y, model="MNN", persistence=NULL, initial="optimal", initial
                              vecg, matvt, matat, matFX, vecgX, xregNames, nExovars);
 
                 if(length(B$B)>0){
+                    nloptrArgs <- list(lagsModel=lagsModel, Etype=Etype, Ttype=Ttype, Stype=Stype,
+                                       occurrence=occurrence,
+                                       nComponentsAll=nComponentsAll,
+                                       nComponentsNonSeasonal=nComponentsNonSeasonal,
+                                       nExovars=nExovars, lagsModelMax=lagsModelMax, damped=damped,
+                                       persistenceEstimate=persistenceEstimate,
+                                       initialType=initialType, phiEstimate=phiEstimate,
+                                       modelIsSeasonal=modelIsSeasonal,
+                                       initialSeasonEstimate=initialSeasonEstimate,
+                                       xregEstimate=xregEstimate, initialXEstimate=initialXEstimate,
+                                       updateX=updateX,
+                                       matvt=matvt, vecg=vecg, matF=matF, matw=matw,
+                                       matat=matat, matFX=matFX, vecgX=vecgX, matxt=matxt,
+                                       ot=ot, bounds=bounds);
+                    opts <- list(algorithm=algorithm, xtol_rel=xtol_rel,
+                                 maxeval=maxeval, print_level=print_level);
+
                     # Run the optimisation
-                    res <- nloptr(B$B, CF, lb=B$lb, ub=B$ub,
-                                  opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
-                                  lagsModel=lagsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, occurrence=occurrence,
-                                  nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal, nExovars=nExovars,
-                                  lagsModelMax=lagsModelMax, damped=damped,
-                                  persistenceEstimate=persistenceEstimate, initialType=initialType, phiEstimate=phiEstimate,
-                                  modelIsSeasonal=modelIsSeasonal, initialSeasonEstimate=initialSeasonEstimate,
-                                  xregEstimate=xregEstimate, initialXEstimate=initialXEstimate, updateX=updateX,
-                                  matvt=matvt, vecg=vecg, matF=matF, matw=matw, matat=matat, matFX=matFX, vecgX=vecgX, matxt=matxt,
-                                  ot=ot, bounds=bounds);
+                    res <- do.call(nloptr,
+                                   c(list(x0=B$B, eval_f=CF, lb=B$lb, ub=B$ub, opts=opts),
+                                     nloptrArgs));
+                    res$call <- quote(nloptr(x0=B$B, eval_f=CF, lb=B$lb, ub=B$ub, opts=opts));
 
                     # If the smoothing parameters are high, try different initialisation and reestimate
                     if(persistenceEstimate && any(res$solution[c(1:(1+(Ttype!="N")*1+(Stype!="N")*1))]>0.5)){
                         B$B[c(1:(1+(Ttype!="N")*1+(Stype!="N")*1))] <- 0.01;
-                        res2 <- nloptr(B$B, CF, lb=B$lb, ub=B$ub,
-                                       opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
-                                       lagsModel=lagsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, occurrence=occurrence,
-                                       nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal, nExovars=nExovars,
-                                       lagsModelMax=lagsModelMax, damped=damped,
-                                       persistenceEstimate=persistenceEstimate, initialType=initialType, phiEstimate=phiEstimate,
-                                       modelIsSeasonal=modelIsSeasonal, initialSeasonEstimate=initialSeasonEstimate,
-                                       xregEstimate=xregEstimate, initialXEstimate=initialXEstimate, updateX=updateX,
-                                       matvt=matvt, vecg=vecg, matF=matF, matw=matw, matat=matat, matFX=matFX, vecgX=vecgX, matxt=matxt,
-                                       ot=ot, bounds=bounds);
+                        res2 <- do.call(nloptr,
+                                        c(list(x0=B$B, eval_f=CF, lb=B$lb, ub=B$ub, opts=opts),
+                                          nloptrArgs));
+                        res2$call <- quote(nloptr(x0=B$B, eval_f=CF, lb=B$lb, ub=B$ub, opts=opts));
                         # If the new optimal is better than the old, use it
                         if(res$objective > res2$objective){
                             res <- res2;

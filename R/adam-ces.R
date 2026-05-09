@@ -851,11 +851,14 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
             ftol_abs0 <- ellipsis$ftol_abs0;
         }
 
+        nloptrArgs <- list(matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
+
         # First run of BOBYQA to get better values of B
-        res <- nloptr(B, CF, opts=list(algorithm=algorithm0, xtol_rel=xtol_rel0, xtol_abs=xtol_abs0,
-                                       ftol_rel=ftol_rel0, ftol_abs=ftol_abs0,
-                                       maxeval=maxeval0, maxtime=maxtime0, print_level=print_level),
-                      matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
+        opts <- list(algorithm=algorithm0, xtol_rel=xtol_rel0, xtol_abs=xtol_abs0,
+                     ftol_rel=ftol_rel0, ftol_abs=ftol_abs0,
+                     maxeval=maxeval0, maxtime=maxtime0, print_level=print_level);
+        res <- do.call(nloptr, c(list(x0=B, eval_f=CF, opts=opts), nloptrArgs));
+        res$call <- quote(nloptr(x0=B, eval_f=CF, opts=opts));
 
         if(print_level_hidden>0){
             print(res);
@@ -864,11 +867,11 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         B[] <- res$solution;
 
         # Tuning the best obtained values using Nelder-Mead
-        res <- suppressWarnings(nloptr(B, CF,
-                                       opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
-                                                 ftol_rel=ftol_rel, ftol_abs=ftol_abs,
-                                                 maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level),
-                                       matVt=matVt, matF=matF, vecG=vecG, a=a, b=b));
+        opts <- list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
+                     ftol_rel=ftol_rel, ftol_abs=ftol_abs,
+                     maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level);
+        res <- suppressWarnings(do.call(nloptr, c(list(x0=B, eval_f=CF, opts=opts), nloptrArgs)));
+        res$call <- quote(nloptr(x0=B, eval_f=CF, opts=opts));
 
         if(print_level_hidden>0){
             print(res);

@@ -1681,7 +1681,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                           colnames(xregDataOriginal)!=responseName,
                                           drop=FALSE],
                 obsInSample=obsInSample, ic=ic,
-                df=df, distribution=distributionNew, occurrence=oesModel,
+                df=df, distribution=distributionNew, occurrence=omModel,
                 other=other);
             xregNumber <- length(xregModelInitials[[xregIndex]]$initialXreg);
             xregNames <- names(xregModelInitials[[xregIndex]]$initialXreg);
@@ -1732,7 +1732,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 # Estimate alm again in order to get proper initials
                 almModel <- do.call(alm,list(formula=formulaToUse,
                                              data=data[1:obsInSample,,drop=FALSE],
-                                             distribution=distributionNew, loss=lossNew, occurrence=oesModel));
+                                             distribution=distributionNew, loss=lossNew, occurrence=omModel));
 
                 # Remove trend
                 if(!trendIncluded){
@@ -1882,7 +1882,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                            initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
                            initialArimaEstimate, initialXregEstimate,
                            matVt, matWt, matF, vecG,
-                           occurrenceModel, ot, oesModel,
+                           occurrenceModel, ot, omModel,
                            parametersNumber, CFValue,
                            arimaModel, arRequired, maRequired,
                            arEstimate, maEstimate, arOrders, iOrders, maOrders,
@@ -2000,7 +2000,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
             # Amend forecasts, multiplying by probability
             if(occurrenceModel && !occurrenceModelProvided){
-                yForecast[] <- yForecast * as.numeric(suppressWarnings(forecast(oesModel, h=h))$mean);
+                yForecast[] <- yForecast * as.numeric(suppressWarnings(forecast(omModel, h=h))$mean);
             }
             else if((occurrenceModel && occurrenceModelProvided) || occurrence=="provided"){
                 yForecast[] <- yForecast * pForecast;
@@ -2151,7 +2151,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     measurement=matWt, initial=initialValue, initialType=initialType,
                     initialEstimated=initialEstimated, orders=orders, arma=armaParametersList,
                     constant=constantValue, nParam=parametersNumber,
-                    occurrence=oesModel, formula=formula, regressors=regressors,
+                    occurrence=omModel, formula=formula, regressors=regressors,
                     loss=loss, lossValue=CFValue, logLik=logLikADAMValue, distribution=distribution,
                     scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, ets=ets,
                     res=res, FI=FI, adamCpp=adamCpp));
@@ -2159,16 +2159,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
     #### Deal with occurrence model ####
     if(occurrenceModel && !occurrenceModelProvided){
-        oesModel <- suppressWarnings(om(data=data, model=model, lags=lags,
+        omModel <- suppressWarnings(om(data=data, model=model, lags=lags,
                                         orders=orders, occurrence=occurrence, formula=formula,
                                         ic=ic, h=horizon,
                                         holdout=holdout, bounds=bounds, regressors=regressors,
                                         initial=initialType, ets=ets, silent=TRUE));
-        pFitted[] <- fitted(oesModel);
-        parametersNumber[1,3] <- nparam(oesModel);
-        # print(oesModel)
+        pFitted[] <- fitted(omModel);
+        parametersNumber[1,3] <- nparam(omModel);
+        # print(omModel)
         # This should not happen, but just in case...
-        if(oesModel$occurrence=="n"){
+        if(omModel$occurrence=="n"){
             occurrence <- "n";
             otLogical <- rep(TRUE,obsInSample);
             occurrenceModel <- FALSE;
@@ -2193,7 +2193,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
     }
     else if(occurrenceModel && occurrenceModelProvided){
-        parametersNumber[2,3] <- nparam(oesModel);
+        parametersNumber[2,3] <- nparam(omModel);
     }
 
     xregDataOriginal <- xregData;
@@ -2867,7 +2867,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                     initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
                                     initialArimaEstimate, initialXregEstimate,
                                     matVt, matWt, matF, vecG,
-                                    occurrenceModel, ot, oesModel,
+                                    occurrenceModel, ot, omModel,
                                     parametersNumber, CFValue,
                                     arimaModel, arRequired, maRequired,
                                     arEstimate, maEstimate, arOrders, iOrders, maOrders,
@@ -2946,7 +2946,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                     initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
                                                     initialArimaEstimate, initialXregEstimate,
                                                     matVt, matWt, matF, vecG,
-                                                    occurrenceModel, ot, oesModel,
+                                                    occurrenceModel, ot, omModel,
                                                     parametersNumber, CFValue,
                                                     arimaModel, arRequired, maRequired,
                                                     arEstimate, maEstimate, arOrders, iOrders, maOrders,

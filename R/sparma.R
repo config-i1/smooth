@@ -514,13 +514,10 @@ sparma <- function(data, orders=list(ar=c(1), ma=c(1)), constant=FALSE,
 
     # Optimize if there are parameters to optimise
     if(length(B) > 0){
-        res <- nloptr(x0 = B, eval_f = CF,
-                      opts = list(algorithm = algorithm,
-                                  maxeval = maxevalUsed,
-                                  xtol_rel = xtol_rel, ftol_rel = ftol_rel,
-                                  print_level=print_level_hidden
-            )
-        )
+        opts <- list(algorithm=algorithm, maxeval=maxevalUsed,
+                     xtol_rel=xtol_rel, ftol_rel=ftol_rel, print_level=print_level_hidden);
+        res <- nloptr(x0=B, eval_f=CF, opts=opts);
+        res$call <- quote(nloptr(x0=B, eval_f=CF, opts=opts));
 
         B[] <- res$solution
         CFValue <- res$objective;
