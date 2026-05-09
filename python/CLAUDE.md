@@ -2,6 +2,50 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Never clip, clamp, or patch around bad numerics
+
+This rule applies across the whole project — `adam`, `OM`, `OMG`, `ES`,
+`MSARIMA`, `AutoADAM`, the cost functions, the link functions, the C++
+`adamCore` path, and anywhere else a numerical signal flows from the model
+into a loss or back into the optimiser.
+
+- **Do not clip or clamp the model output.** Fitted values, states,
+  residuals, forecasts, intermediate vectors out of the C++ — leave them
+  exactly as the model produced them. If a value lands outside an
+  expected range (a probability outside `[0, 1]`, a state diverging,
+  a forecast going negative for a multiplicative model), that is a true
+  signal of a model–data mismatch, a bad initialisation, or an upstream
+  bug. Clipping turns those signals into silently-wrong results.
+- **Do not patch the loss function with `pmax` / `np.maximum` floors
+  inside `log()` (or analogous "epsilon" safeguards) either.** It looks
+  like numerical hygiene but it does the same thing: a `-Inf` log-
+  likelihood is the optimiser telling you "the parameters at this point
+  are inconsistent with the data". Hiding it loses the diagnostic.
+- **There is one correct exception: an infeasibility guard at the top of
+  the cost function.** A check like
+  `if(any(is.nan(yFitted)) || any(yFitted<0) || any(yFitted>1)) return(1e+300)`
+  in `om()`'s cost is *not* a clip — it tells the optimiser "the
+  parameters at this point are inconsistent with the model" and returns a
+  uniformly large penalty so it steers away. That is fine. The bad
+  patterns are silent in-place fixes (`pmax`/`np.maximum` inside `log()`,
+  `np.clip` on the fitted vector, "if cost is `Inf` return `1e10`", etc.)
+  that change the value flowing forward without flagging anything.
+- **When the infeasibility guard fires repeatedly and the optimiser is
+  stuck on the penalty plateau, that is also a bug report.** Usually the
+  initialiser handed it a broken `x0`, or the model–data combination is
+  invalid and should have been rejected at parameter-check time.
+- **The right responses, in order of preference:**
+  1. Fix the initialiser so the optimiser's starting point produces a
+     finite, finite-gradient cost in the feasible region.
+  2. Reject incompatible model / data / option combinations at parameter
+     check time with an informative error.
+  3. Surface (don't hide) the signal when the user is exploring a
+     known-fragile combination — warn, don't suppress.
+
+When you are about to write `pmax(x, 1e-15)`, `np.clip(...)`, `if x < 0
+return 1e+300`, `if cf is Inf return 1e10`, or anything in that family:
+**stop and find the actual root cause first.**
+
 ## Important Testing Note
 
 **RNG Differences**: R and Python use different random number generation algorithms. Even with the same seed (e.g., `set.seed(33)` in R and `np.random.seed(33)` in Python), they will produce completely different random data.

@@ -39,8 +39,7 @@ PYBIND11_MODULE(_adamCore, m) {
         .def_readonly("statesB",  &OmFitGeneralResult::statesB)
         .def_readonly("fittedB",  &OmFitGeneralResult::fittedB)
         .def_readonly("errorsB",  &OmFitGeneralResult::errorsB)
-        .def_readonly("profileB", &OmFitGeneralResult::profileB)
-        .def_readonly("pfit",     &OmFitGeneralResult::pfit);
+        .def_readonly("profileB", &OmFitGeneralResult::profileB);
 
     // Bind ForecastResult struct
     py::class_<ForecastResult>(m, "ForecastResult")

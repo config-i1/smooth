@@ -174,6 +174,13 @@ om <- function(data,
         modelDo <- "use";
     }
 
+    # If the user supplied a complete persistence vector (or any other input
+    # forces modelDo="use" outside the "fixed" branch above), nParamEstimated
+    # has not been set yet — but downstream code (omFinalFit, IC) reads it.
+    if(!exists("nParamEstimated", inherits=FALSE)){
+        nParamEstimated <- 0;
+    }
+
     # Binary indicators (ot from checker is already binary when occurrence != "none")
     oInSample <- matrix(as.numeric(ot), ncol=1);
     if(holdout){
@@ -412,11 +419,14 @@ om <- function(data,
         if((Etype=="A" && Ttype=="A" && Stype=="M") ||
            (Etype=="A" && Ttype=="M" && Stype=="A") ||
            (Etype=="M" && Ttype=="A" && Stype=="A") ||
+           (Etype=="M" && Ttype=="A" && Stype=="N") ||
            (Etype=="A" && Ttype=="M" && Stype=="N") ||
            (Etype=="M" && Ttype=="M" && Stype=="A") ||
            (Etype=="M" && Ttype=="N" && Stype=="A") ||
-           (Etype=="A" && Ttype=="N" && Stype=="M")){
+           (Etype=="A" && Ttype=="N" && Stype=="M") ||
+           occurrence=="direct"){
             B_used[] <- 0;
+            B_used[1] <- 0.1;
         }
 
         # ARIMA companion matrices for bounds checking
@@ -1226,30 +1236,27 @@ om_initial_transform <- function(matVt, occurrence, Etype, Ttype, Stype,
     }
 
     #### ARIMA ####
+    # ARIMA initial states live in the same raw state-space as the level
+    # *after* the level has been mapped onto the model-native scale; they are
+    # not probabilities. Running occurrenceTransformer() on them turns the
+    # default seed of 0 into log(0) = -Inf for Etype="A", which corrupts the
+    # initial parameter vector handed to nloptr.
     if(arimaModel){
-        if(initialArimaEstimate && componentsNumberARIMA > 0){
-            arimaRows <- (j+1):(j+componentsNumberARIMA);
-            matVt[arimaRows, 1:initialArimaNumber] <-
-                occurrenceTransformer(matVt[arimaRows, 1:initialArimaNumber, drop=FALSE]);
-        }
         j[] <- j + componentsNumberARIMA;
     }
 
     #### Xreg ####
+    # xreg coefficients are regression weights, not probabilities. They can be
+    # negative; running log(value/(1-value)) on a negative coefficient gives
+    # NaN, which corrupts the initial parameter vector handed to nloptr.
     if(xregModel){
-        if(initialXregEstimate){
-            for(k in seq_len(xregNumber)){
-                matVt[j + k, 1:lagsModelMax] <-
-                    occurrenceTransformer(matVt[j + k, 1:lagsModelMax]);
-            }
-        }
         j[] <- j + xregNumber;
     }
 
     #### Constant ####
-    if(constantRequired && constantEstimate){
-        matVt[j + 1, ] <- occurrenceTransformer(matVt[j + 1, 1]);
-    }
+    # Same reasoning as for xreg/ARIMA: the constant is on the same scale as
+    # the (already-transformed) level, so transforming it again is a category
+    # error. Leaving it untouched.
 
     return(matVt);
 }
