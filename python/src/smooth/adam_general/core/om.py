@@ -362,16 +362,42 @@ class OM(ADAM):
     _OM_DEFAULT_LOSS = "likelihood"
 
     def __new__(cls, *args, **kwargs):
-        # R parity: om(occurrence="general", ...) delegates to omg(modelA=model,
-        # modelB=model, ...). We do the same here so users can write
-        # OM(occurrence="general", ...) and get an OMG back transparently.
-        if kwargs.get("occurrence") == "general":
+        occ = kwargs.get("occurrence")
+        if occ == "general":
             from smooth.adam_general.core.omg import _build_omg_from_om_kwargs
 
-            # Drop OM-only kwargs that OMG does not accept
             kwargs.pop("loss", None)
             kwargs.pop("n_iterations", None)
             return _build_omg_from_om_kwargs(**kwargs)
+        if occ == "auto":
+            from smooth.adam_general.core.auto_om import AutoOM
+
+            kwargs.pop("occurrence", None)
+            return AutoOM(
+                **{
+                    k: v
+                    for k, v in kwargs.items()
+                    if k
+                    in (
+                        "model",
+                        "lags",
+                        "orders",
+                        "h",
+                        "holdout",
+                        "persistence",
+                        "phi",
+                        "initial",
+                        "constant",
+                        "arma",
+                        "regressors",
+                        "ic",
+                        "bounds",
+                        "verbose",
+                        "nlopt_kargs",
+                        "frequency",
+                    )
+                }
+            )
         return super().__new__(cls)
 
     def __init__(
@@ -403,12 +429,7 @@ class OM(ADAM):
         frequency: Optional[str] = None,
         **kwargs,
     ) -> None:
-        if occurrence == "auto":
-            raise NotImplementedError(
-                "occurrence='auto' is added in Stage 4 (AutoOM); "
-                "use 'fixed' / 'odds-ratio' / 'inverse-odds-ratio' / 'direct'."
-            )
-        if occurrence == "general":
+        if occurrence in ("auto", "general"):
             # __new__ handled the redirect to OMG; __init__ on the OMG
             # instance has already run.  This guard is just a safety net for
             # any code path that constructs OM directly via __init__.

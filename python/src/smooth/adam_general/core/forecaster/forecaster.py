@@ -356,11 +356,7 @@ def _process_occurrence_forecast(occurrence_dict, general_dict):
         # If this is a mixture model, produce forecasts for the occurrence
         if occurrence_dict.get("occurrence_model"):
             occurrence_model = True
-            if occurrence_dict["occurrence"] == "provided":
-                p_forecast = np.ones(general_dict["h"])
-            else:
-                # TODO: Implement forecast for occurrence model
-                pass
+            p_forecast = np.ones(general_dict["h"])
         else:
             occurrence_model = False
             # If this was provided occurrence, then use provided values

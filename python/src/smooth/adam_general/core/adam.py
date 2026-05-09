@@ -827,6 +827,17 @@ class ADAM:
 
         # Check parameters and prepare data
         self._check_parameters(y, X)
+
+        # Fit the occurrence model first if requested (mirrors R adam.R:2160-2195).
+        # p_fitted is held constant while the demand-sizes model is estimated.
+        self._om_model = None
+        if self._occurrence.get("occurrence_model"):
+            ot_logical = self._observations["ot_logical"]
+            self._observations["obs_zero"] = int(np.sum(~ot_logical))
+            self._om_model = self._fit_occurrence_model(y)
+            self._occurrence["p_fitted"] = self._om_model.fitted
+            self._occurrence["oes_model"] = self._occurrence["occurrence"]
+
         # Execute model estimation or selection based on model_do
         if self._model_type["model_do"] == "estimate":
             self._execute_estimation()
@@ -856,6 +867,23 @@ class ADAM:
 
         # Prepare final results and format output data
         self._prepare_results()
+
+        # Scale demand-sizes fitted by occurrence probability (mirrors R:1973-1975)
+        if self._om_model is not None:
+            import pandas as pd
+
+            p = self._occurrence["p_fitted"]
+            yf = self._prepared["y_fitted"]
+            if isinstance(yf, pd.Series):
+                yf = yf * p
+            else:
+                yf = np.asarray(yf) * np.asarray(p)
+            self._prepared["y_fitted"] = yf
+            self._prepared["residuals"] = np.asarray(
+                self._observations["y_in_sample"]
+            ) - np.asarray(yf)
+            # Include occurrence model params in the total count
+            self._adam_estimated["n_param_estimated"] += self._om_model.nparam
 
         # Store fitted parameters with trailing underscores
         self._set_fitted_attributes()
@@ -2462,6 +2490,12 @@ class ADAM:
         self._check_is_fitted()
         return list(self._lags_model.get("lags", [1]))
 
+    @property
+    def om_model(self):
+        """Fitted occurrence model (OM / OMG / AutoOM), or None."""
+        self._check_is_fitted()
+        return getattr(self, "_om_model", None)
+
     def predict(
         self,
         h: int,
@@ -2591,6 +2625,12 @@ class ADAM:
             level=level,
             side=side,
         )
+
+        # Scale demand forecast by occurrence probability (mirrors R:2002-2004)
+        if getattr(self, "_om_model", None) is not None:
+            occ_fc = self._om_model.predict(h=h)
+            p_forecast = np.asarray(occ_fc.mean.values, dtype=float)
+            predictions.mean[:] = np.asarray(predictions.mean.values) * p_forecast
 
         # Recompute accuracy measures against holdout if available
         if self._general.get("holdout", False):
@@ -2764,6 +2804,37 @@ class ADAM:
                 self._preset_arima_parameters()
 
             self._general["lambda"] = 0
+
+    def _fit_occurrence_model(self, y):
+        """Fit an occurrence model on ``y`` and return it.
+
+        Mirrors R/adam.R:2161-2166 (``omModel <- om(...)``).
+        Occurrence type comes from ``self._occurrence["occurrence"]``.
+        """
+        from smooth.adam_general.core.auto_om import AutoOM
+        from smooth.adam_general.core.om import OM
+
+        occ = self._occurrence["occurrence"]
+        lags = list(self._lags_model.get("lags", [1]))
+        adam_model = self._model_type.get("model", "MNN")
+        common = dict(
+            lags=lags,
+            h=self._general.get("h", 0),
+            holdout=self._general.get("holdout", False),
+            ic=self._general.get("ic", "AICc"),
+            bounds=self._general.get("bounds", "usual"),
+            initial=self._initials.get("initial_type", "backcasting"),
+        )
+        if occ == "auto":
+            m = AutoOM(model=adam_model, **common)
+        elif occ == "general":
+            from smooth.adam_general.core.omg import OMG
+
+            m = OMG(**common)
+        else:
+            m = OM(model=adam_model, occurrence=occ, **common)
+        m.fit(y)
+        return m
 
     def _preset_arima_parameters(self):
         """Set up ARIMA parameters for special cases where estimation is disabled."""
@@ -3506,6 +3577,10 @@ class ADAM:
             level=0.95,
             side="both",
         )
+        if getattr(self, "_om_model", None) is not None:
+            occ_fc = self._om_model.predict(h=h)
+            p_forecast = np.asarray(occ_fc.mean.values, dtype=float)
+            auto_fc.mean[:] = np.asarray(auto_fc.mean.values) * p_forecast
         self._auto_forecast = auto_fc
 
         if not getattr(self, "holdout", False):

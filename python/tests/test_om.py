@@ -57,9 +57,10 @@ class TestInit:
         assert m.occurrence == occ
         assert m.occurrence_char in ("f", "o", "i", "d")
 
-    def test_init_rejects_auto(self):
-        with pytest.raises(NotImplementedError, match="Stage 4"):
-            OM(occurrence="auto")
+    def test_init_auto_returns_autoOM_instance(self):
+        from smooth import AutoOM
+        m = OM(occurrence="auto")
+        assert isinstance(m, AutoOM)
 
     def test_init_general_returns_omg(self):
         from smooth import OMG
