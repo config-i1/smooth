@@ -494,6 +494,7 @@ om <- function(data,
                                                          maxeval=maxeval,
                                                          print_level=print_level)),
                                           nloptrArgs)));
+        res$call <- quote(nloptr(x0=B_used, eval_f=omCF_local, lb=lb, ub=ub, opts=opts));
 
         if(is.infinite(res$objective) || res$objective == 1e+300){
             B_used[] <- BValues$B;
@@ -505,6 +506,7 @@ om <- function(data,
                                                              maxeval=maxeval,
                                                              print_level=print_level)),
                                               nloptrArgs)));
+            res$call <- quote(nloptr(x0=B_used, eval_f=omCF_local, lb=lb, ub=ub, opts=opts));
         }
 
         B_used <- res$solution;

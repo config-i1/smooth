@@ -734,6 +734,7 @@ omg <- function(data,
                                opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
                                          maxeval=maxeval, print_level=print_level)),
                           nloptrArgs)))
+            res$call <- quote(nloptr(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub, opts=opts));
 
             if(is.infinite(res$objective) || res$objective == 1e+300) {
                 B_used[] <- c(BValuesA$B, BValuesB$B)
@@ -743,6 +744,7 @@ omg <- function(data,
                                    opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
                                              maxeval=maxeval, print_level=print_level)),
                               nloptrArgs)))
+                res$call <- quote(nloptr(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub, opts=opts));
             }
         }
 
