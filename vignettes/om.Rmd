@@ -41,7 +41,7 @@ The simplest call resembles `oes()`. We fix an ETS(M,N,N) model and use the odds
 ```{r etsManual}
 omETS <- om(y, model="MNN", occurrence="odds-ratio", h=10, holdout=TRUE)
 omETS
-plot(omETS)
+plot(omETS, 7)
 ```
 
 Model selection across ETS components is supported through the same `"Z"` / `"X"` / `"Y"` wildcards used in `adam()` and `es()`. The default `model="ZXZ"` searches across all sensible error types and seasonal patterns:
@@ -67,7 +67,7 @@ omARIMA <- om(y, model="NNN",
               orders=list(ar=1, i=0, ma=1),
               occurrence="odds-ratio", h=10, holdout=TRUE)
 omARIMA
-plot(omARIMA)
+plot(omARIMA, 7)
 ```
 
 
@@ -82,7 +82,7 @@ omReg <- om(yReg, model="NNN", constant=TRUE,
             occurrence="odds-ratio", regressors="use",
             h=10, holdout=TRUE)
 omReg
-plot(omReg)
+plot(omReg, 7)
 ```
 
 Setting `regressors="select"` would apply automatic variable selection, dropping regressors that do not improve the information criterion.
@@ -95,7 +95,7 @@ Setting `regressors="select"` would apply automatic variable selection, dropping
 ```{r omg}
 omgModel <- omg(y, modelA="MNN", modelB="ANN", h=10, holdout=TRUE)
 omgModel
-plot(omgModel)
+plot(omgModel, 7)
 ```
 
 Calling `om(..., occurrence="general")` is a shortcut that delegates to `omg()` with the same model specification on both sides.
