@@ -1509,3 +1509,23 @@ plot.omg <- function(x, which=c(1,2,4,6), ...) {
     plotObj$fitted <- x$fitted
     plot.adam(plotObj, which=which, ...)
 }
+
+#' @importFrom stats rstandard
+#' @export
+rstandard.omg <- function(model, ...){
+    obs <- nobs(model);
+    df  <- obs - nparam(model);
+    p   <- as.numeric(model$fitted);
+    e   <- as.numeric(actuals(model)) - p;
+    return(e / sqrt(p * (1 - p)) * sqrt(obs / df));
+}
+
+#' @importFrom stats rstudent
+#' @export
+rstudent.omg <- function(model, ...){
+    obs <- nobs(model);
+    df  <- obs - nparam(model) - 1;
+    p   <- as.numeric(model$fitted);
+    e   <- as.numeric(actuals(model)) - p;
+    return(e / sqrt(p * (1 - p)) * sqrt(obs / df));
+}

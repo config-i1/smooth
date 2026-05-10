@@ -1299,6 +1299,34 @@ class OM(ADAM):
         self._check_is_fitted()
         return np.asarray(self._prepared["residuals"], dtype=float)
 
+    def rstandard(self) -> NDArray:
+        """Pearson standardised residuals for the occurrence model.
+
+        Formula: ``(ot - p) / sqrt(p*(1-p)) * sqrt(n/df)``
+        where ``df = n - k`` (n observations, k estimated parameters).
+        Mirrors R's ``rstandard.om()``.
+        """
+        self._check_is_fitted()
+        obs = self.nobs
+        df = obs - self.nparam
+        p = self.fitted
+        e = self.residuals
+        return e / np.sqrt(p * (1 - p)) * np.sqrt(obs / df)
+
+    def rstudent(self) -> NDArray:
+        """Pearson studentised (leave-one-out) residuals for the occurrence model.
+
+        Formula: ``(ot - p) / sqrt(p*(1-p)) * sqrt(n/df)``
+        where ``df = n - k - 1``.
+        Mirrors R's ``rstudent.om()``.
+        """
+        self._check_is_fitted()
+        obs = self.nobs
+        df = obs - self.nparam - 1
+        p = self.fitted
+        e = self.residuals
+        return e / np.sqrt(p * (1 - p)) * np.sqrt(obs / df)
+
     @property
     def loglik(self) -> float:
         self._check_is_fitted()

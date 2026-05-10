@@ -1406,3 +1406,23 @@ forecast.omCombined <- function(object, h=NULL, ...){
                           side=side, cumulative=cumulative, h=h),
                      class=c("adam.forecast","smooth.forecast","forecast")));
 }
+
+#' @importFrom stats rstandard
+#' @export
+rstandard.om <- function(model, ...){
+    obs <- nobs(model);
+    df  <- obs - nparam(model);
+    p   <- as.numeric(model$fitted);
+    e   <- as.numeric(model$residuals);
+    return(e / sqrt(p * (1 - p)) * sqrt(obs / df));
+}
+
+#' @importFrom stats rstudent
+#' @export
+rstudent.om <- function(model, ...){
+    obs <- nobs(model);
+    df  <- obs - nparam(model) - 1;
+    p   <- as.numeric(model$fitted);
+    e   <- as.numeric(model$residuals);
+    return(e / sqrt(p * (1 - p)) * sqrt(obs / df));
+}

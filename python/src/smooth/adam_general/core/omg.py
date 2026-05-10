@@ -344,6 +344,30 @@ class OMG:
             return None
         return np.asarray(self._observations_dict.get("y_holdout"), dtype=float)
 
+    def rstandard(self) -> NDArray:
+        """Pearson standardised residuals for the general occurrence model.
+
+        Formula: ``(ot - p) / sqrt(p*(1-p)) * sqrt(n/df)``
+        where ``df = n - k``.  Mirrors R's ``rstandard.omg()``.
+        """
+        obs = self.nobs
+        df = obs - self.nparam
+        p = self.fitted
+        e = self.actuals - p
+        return e / np.sqrt(p * (1 - p)) * np.sqrt(obs / df)
+
+    def rstudent(self) -> NDArray:
+        """Pearson studentised residuals for the general occurrence model.
+
+        Formula: ``(ot - p) / sqrt(p*(1-p)) * sqrt(n/df)``
+        where ``df = n - k - 1``.  Mirrors R's ``rstudent.omg()``.
+        """
+        obs = self.nobs
+        df = obs - self.nparam - 1
+        p = self.fitted
+        e = self.actuals - p
+        return e / np.sqrt(p * (1 - p)) * np.sqrt(obs / df)
+
     # ---------------------------------------------------------------------
     # Internals — building the per-side scaffolding
     # ---------------------------------------------------------------------
