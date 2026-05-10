@@ -51,8 +51,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#smooth.AutoMSARIMA"><code class="docutils literal notranslate"><span class="pre">AutoMSARIMA</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.fit.html">smooth.AutoMSARIMA.fit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.outlierdummy.html">smooth.AutoMSARIMA.outlierdummy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.plot.html">smooth.AutoMSARIMA.plot</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.predict.html">smooth.AutoMSARIMA.predict</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.predict_intervals.html">smooth.AutoMSARIMA.predict_intervals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.rmultistep.html">smooth.AutoMSARIMA.rmultistep</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.rstandard.html">smooth.AutoMSARIMA.rstandard</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.rstudent.html">smooth.AutoMSARIMA.rstudent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.select_best_model.html">smooth.AutoMSARIMA.select_best_model</a></li>
@@ -85,6 +87,7 @@
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.n_param.html">smooth.AutoMSARIMA.n_param</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.nobs.html">smooth.AutoMSARIMA.nobs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.nparam.html">smooth.AutoMSARIMA.nparam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.om_model.html">smooth.AutoMSARIMA.om_model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.orders.html">smooth.AutoMSARIMA.orders</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.persistence_vector.html">smooth.AutoMSARIMA.persistence_vector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.phi_.html">smooth.AutoMSARIMA.phi_</a></li>
@@ -97,6 +100,9 @@
 <li class="toctree-l2"><a class="reference internal" href="smooth.AutoMSARIMA.transition.html">smooth.AutoMSARIMA.transition</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.OM.html">smooth.OM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.OMG.html">smooth.OMG</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.AutoOM.html">smooth.AutoOM</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.fit.html">smooth.ADAM.fit</a></li>
@@ -104,12 +110,12 @@
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.predict_intervals.html">smooth.ADAM.predict_intervals</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.select_best_model.html">smooth.ADAM.select_best_model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.summary.html">smooth.ADAM.summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.plot.html">smooth.ADAM.plot</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.rstandard.html">smooth.ADAM.rstandard</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.rstudent.html">smooth.ADAM.rstudent</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.outlierdummy.html">smooth.ADAM.outlierdummy</a></li>
-<li class="toctree-l1"><a class="reference internal" href="smooth.ADAM.residuals.html">smooth.ADAM.residuals</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="smooth.AutoADAM.fit.html">smooth.AutoADAM.fit</a></li>
@@ -130,11 +136,23 @@
 <li class="toctree-l1"><a class="reference internal" href="smooth.AutoMSARIMA.fit.html">smooth.AutoMSARIMA.fit</a></li>
 <li class="toctree-l1"><a class="reference internal" href="smooth.AutoMSARIMA.predict.html">smooth.AutoMSARIMA.predict</a></li>
 </ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.OM.fit.html">smooth.OM.fit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.OM.predict.html">smooth.OM.predict</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.OMG.fit.html">smooth.OMG.fit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smooth.OMG.predict.html">smooth.OMG.predict</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="smooth.AutoOM.fit.html">smooth.AutoOM.fit</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../autoadam.html">AutoADAM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../msarima.html">MSARIMA and AutoMSARIMA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../om.html">OM, OMG and AutoOM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../msdecompose.html">msdecompose</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../lowess.html">lowess</a></li>
 </ul>
@@ -246,11 +264,17 @@ Augmented Dynamic Adaptive Model. <a class="reference external" href="https://op
 <tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.outlierdummy.html#smooth.AutoMSARIMA.outlierdummy" title="smooth.AutoMSARIMA.outlierdummy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">outlierdummy</span></code></a>([level, type])</p></td>
 <td><p>Detect outliers and return a matrix of indicator dummy variables.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.predict.html#smooth.AutoMSARIMA.predict" title="smooth.AutoMSARIMA.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(h[, X, interval, level, side, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.plot.html#smooth.AutoMSARIMA.plot" title="smooth.AutoMSARIMA.plot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot</span></code></a>([which, level, legend, lowess])</p></td>
+<td><p>Diagnostic plots for the fitted ADAM model (R: <code class="docutils literal notranslate"><span class="pre">plot.adam</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.predict.html#smooth.AutoMSARIMA.predict" title="smooth.AutoMSARIMA.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(h[, X, interval, level, side, ...])</p></td>
 <td><p>Generate forecasts using the fitted ADAM model.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.predict_intervals.html#smooth.AutoMSARIMA.predict_intervals" title="smooth.AutoMSARIMA.predict_intervals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_intervals</span></code></a>(h[, X, levels, side, nsim])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.predict_intervals.html#smooth.AutoMSARIMA.predict_intervals" title="smooth.AutoMSARIMA.predict_intervals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_intervals</span></code></a>(h[, X, levels, side, nsim])</p></td>
 <td><p>Generate prediction intervals using the fitted ADAM model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.rmultistep.html#smooth.AutoMSARIMA.rmultistep" title="smooth.AutoMSARIMA.rmultistep"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rmultistep</span></code></a>([h])</p></td>
+<td><p>Return the (T-h) × h matrix of rolling in-sample multistep forecast errors.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.rstandard.html#smooth.AutoMSARIMA.rstandard" title="smooth.AutoMSARIMA.rstandard"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rstandard</span></code></a>()</p></td>
 <td><p>Return standardised residuals.</p></td>
@@ -353,34 +377,37 @@ Augmented Dynamic Adaptive Model. <a class="reference external" href="https://op
 <tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.nparam.html#smooth.AutoMSARIMA.nparam" title="smooth.AutoMSARIMA.nparam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nparam</span></code></a></p></td>
 <td><p>Return number of estimated parameters.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.orders.html#smooth.AutoMSARIMA.orders" title="smooth.AutoMSARIMA.orders"><code class="xref py py-obj docutils literal notranslate"><span class="pre">orders</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.om_model.html#smooth.AutoMSARIMA.om_model" title="smooth.AutoMSARIMA.om_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">om_model</span></code></a></p></td>
+<td><p>Fitted occurrence model (OM / OMG / AutoOM), or None.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.orders.html#smooth.AutoMSARIMA.orders" title="smooth.AutoMSARIMA.orders"><code class="xref py py-obj docutils literal notranslate"><span class="pre">orders</span></code></a></p></td>
 <td><p>Return ARIMA orders as dict with 'ar', 'i', 'ma' keys.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.persistence_vector.html#smooth.AutoMSARIMA.persistence_vector" title="smooth.AutoMSARIMA.persistence_vector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">persistence_vector</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.persistence_vector.html#smooth.AutoMSARIMA.persistence_vector" title="smooth.AutoMSARIMA.persistence_vector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">persistence_vector</span></code></a></p></td>
 <td><p>$persistence).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.phi_.html#smooth.AutoMSARIMA.phi_" title="smooth.AutoMSARIMA.phi_"><code class="xref py py-obj docutils literal notranslate"><span class="pre">phi_</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.phi_.html#smooth.AutoMSARIMA.phi_" title="smooth.AutoMSARIMA.phi_"><code class="xref py py-obj docutils literal notranslate"><span class="pre">phi_</span></code></a></p></td>
 <td><p>$phi).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.profile.html#smooth.AutoMSARIMA.profile" title="smooth.AutoMSARIMA.profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">profile</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.profile.html#smooth.AutoMSARIMA.profile" title="smooth.AutoMSARIMA.profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">profile</span></code></a></p></td>
 <td><p>$profile).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.residuals.html#smooth.AutoMSARIMA.residuals" title="smooth.AutoMSARIMA.residuals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">residuals</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.residuals.html#smooth.AutoMSARIMA.residuals" title="smooth.AutoMSARIMA.residuals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">residuals</span></code></a></p></td>
 <td><p>Return model residuals (errors from fitting).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.scale.html#smooth.AutoMSARIMA.scale" title="smooth.AutoMSARIMA.scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scale</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.scale.html#smooth.AutoMSARIMA.scale" title="smooth.AutoMSARIMA.scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scale</span></code></a></p></td>
 <td><p>$scale).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.sigma.html#smooth.AutoMSARIMA.sigma" title="smooth.AutoMSARIMA.sigma"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sigma</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.sigma.html#smooth.AutoMSARIMA.sigma" title="smooth.AutoMSARIMA.sigma"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sigma</span></code></a></p></td>
 <td><p>Return scale/standard error estimate.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.states.html#smooth.AutoMSARIMA.states" title="smooth.AutoMSARIMA.states"><code class="xref py py-obj docutils literal notranslate"><span class="pre">states</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.states.html#smooth.AutoMSARIMA.states" title="smooth.AutoMSARIMA.states"><code class="xref py py-obj docutils literal notranslate"><span class="pre">states</span></code></a></p></td>
 <td><p>$states).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.time_elapsed.html#smooth.AutoMSARIMA.time_elapsed" title="smooth.AutoMSARIMA.time_elapsed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_elapsed</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.time_elapsed.html#smooth.AutoMSARIMA.time_elapsed" title="smooth.AutoMSARIMA.time_elapsed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_elapsed</span></code></a></p></td>
 <td><p>Time taken to fit the model in seconds.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.transition.html#smooth.AutoMSARIMA.transition" title="smooth.AutoMSARIMA.transition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transition</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="smooth.AutoMSARIMA.transition.html#smooth.AutoMSARIMA.transition" title="smooth.AutoMSARIMA.transition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transition</span></code></a></p></td>
 <td><p>$transition).</p></td>
 </tr>
 </tbody>
