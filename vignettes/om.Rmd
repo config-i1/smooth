@@ -78,7 +78,7 @@ External regressors are incorporated via `cbind()`, exactly as in `adam()`. The 
 ```{r regression}
 highPeriod <- ts(c(rep(0, 60), rep(1, 60)))
 yReg <- cbind(y, highPeriod)
-omReg <- om(yReg, model="NNN", constant=TRUE,
+omReg <- om(yReg, model="NNN",
             occurrence="odds-ratio", regressors="use",
             h=10, holdout=TRUE)
 omReg

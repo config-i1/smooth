@@ -152,7 +152,7 @@ om <- function(data,
     list2env(checkerReturn, envir=environment());
 
     # Delegate ARIMA order selection to auto.om() with the current occurrence type.
-    if(isTRUE(select)){
+    if(isTRUE(orders$select)){
         result <- auto.om(data=data, model=model, lags=lags,
                           orders=orders, formula=formula,
                           regressors=regressors, occurrence=occurrence,
@@ -191,7 +191,7 @@ om <- function(data,
     }
 
     # Binary indicators (ot from checker is already binary when occurrence != "none")
-    oInSample <- matrix(as.numeric(ot), ncol=1);
+    yInSample[] <- (yInSample!=0)*1;
     if(holdout){
         yHoldout[] <- (yHoldout != 0) * 1;
         if(any(yClasses=="ts")){
@@ -204,7 +204,7 @@ om <- function(data,
     # Override occurrence-related flags set by checker
     occurrenceModel <- FALSE;
     oesModel <- NULL;
-    yFitted <- matrix(rep(mean(oInSample), obsInSample), ncol=1);
+    yFitted <- matrix(rep(mean(yInSample), obsInSample), ncol=1);
     refineHead <- TRUE;
     adamETS <- (ets == "adam");
 
@@ -729,7 +729,7 @@ om <- function(data,
         # For "fixed" occurrence the optimizer never ran, so logLikADAMValue is absent.
         # Compute the Bernoulli log-likelihood from the constant fitted probability.
         if(is.null(res$logLikADAMValue)){
-            ot_vec   <- as.numeric(oInSample);
+            ot_vec   <- as.numeric(yInSample);
             yfit_vec <- as.numeric(yFitted);
             ll <- sum(ot_vec   * log(pmax(yfit_vec,     1e-15)) +
                       (1 - ot_vec) * log(pmax(1 - yfit_vec, 1e-15)));
@@ -766,11 +766,11 @@ om <- function(data,
         # Wrap as ts/zoo
         if(any(yClasses == "ts")){
             yFitted    <- ts(yFitted, start=yStart, frequency=yFrequency);
-            errors <- ts(as.numeric(oInSample) - yFitted, start=yStart, frequency=yFrequency);
+            errors <- ts(as.numeric(yInSample) - yFitted, start=yStart, frequency=yFrequency);
             matVt    <- ts(t(statesRaw), start=yStart, frequency=yFrequency);
         } else {
             yFitted    <- zoo(yFitted, order.by=yInSampleIndex);
-            errors <- zoo(as.numeric(oInSample) - yFitted, order.by=yInSampleIndex);
+            errors <- zoo(as.numeric(yInSample) - yFitted, order.by=yInSampleIndex);
             matVt    <- zoo(t(statesRaw), order.by=yInSampleIndex);
         }
 
@@ -912,7 +912,7 @@ om <- function(data,
         if(holdout){
             subModel$holdout <- yHoldout;
             subModel$accuracy <- measures(as.vector(yHoldout), yForecast,
-                                          as.vector(oInSample));
+                                          as.vector(yInSample));
         }
 
         class(subModel) <- c("om","adam","smooth","occurrence");
