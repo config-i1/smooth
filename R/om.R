@@ -151,10 +151,19 @@ om <- function(data,
                                        ellipsis=ellipsis, fast=FALSE);
     list2env(checkerReturn, envir=environment());
 
-    # ARIMA order selection is not supported in om()
+    # Delegate ARIMA order selection to auto.om() with the current occurrence type.
     if(isTRUE(select)){
-        stop("ARIMA order selection (orders$select=TRUE) is not supported in om(). ",
-             "Specify fixed orders instead.", call.=FALSE);
+        result <- auto.om(data=data, model=model, lags=lags,
+                          orders=orders, formula=formula,
+                          regressors=regressors, occurrence=occurrence,
+                          h=h, holdout=holdout,
+                          persistence=persistence, phi=phi,
+                          initial=initial, arma=arma,
+                          ic=ic, bounds=bounds,
+                          silent=silent, ets=ets,
+                          constant=constant, loss=loss, ...);
+        result$call <- match.call();
+        return(result);
     }
 
     occurrence <- occurrenceType;

@@ -557,6 +557,35 @@ class OM(ADAM):
     # ------------------------------------------------------------------
 
     def fit(self, y: NDArray, X: Optional[NDArray] = None):
+        if getattr(self, "arima_select", False):
+            from smooth.adam_general.core.auto_om import AutoOM
+
+            ar = getattr(self, "ar_order", 0) or 3
+            i_ = getattr(self, "i_order", 0) or 2
+            ma = getattr(self, "ma_order", 0) or 3
+            return AutoOM(
+                model=self.model,
+                lags=getattr(self, "lags", None),
+                occurrence=[self._om_occurrence],
+                arima_select=True,
+                ar_order=ar,
+                i_order=i_,
+                ma_order=ma,
+                h=getattr(self, "h", 0),
+                holdout=getattr(self, "holdout", False),
+                persistence=getattr(self, "persistence", None),
+                phi=getattr(self, "phi", None),
+                initial=getattr(self, "initial", "backcasting"),
+                ic=getattr(self, "ic", "AICc"),
+                bounds=getattr(self, "bounds", "usual"),
+                ets=self.ets,
+                constant=getattr(self, "constant", False),
+                arma=getattr(self, "arma", None),
+                regressors=getattr(self, "regressors", "use"),
+                verbose=getattr(self, "verbose", 0),
+                nlopt_kargs=getattr(self, "nlopt_kargs", None),
+            ).fit(y, X)
+
         self._start_time = time.time()
         # Stash the user's requested model spec so we can restore "M*"
         # components after parameters_checker (which auto-downgrades them when

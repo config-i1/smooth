@@ -75,6 +75,10 @@ class AutoOM:
         verbose: int = 0,
         nlopt_kargs: Optional[Dict[str, Any]] = None,
         ets: Literal["conventional", "adam"] = "conventional",
+        arima_select: bool = False,
+        ar_order: Union[int, List[int]] = 3,
+        i_order: Union[int, List[int]] = 2,
+        ma_order: Union[int, List[int]] = 3,
     ) -> None:
         if isinstance(occurrence, str):
             occurrence = [occurrence]
@@ -102,6 +106,10 @@ class AutoOM:
         if ets not in ("conventional", "adam"):
             raise ValueError(f"Invalid ets: {ets!r}. Must be 'conventional' or 'adam'.")
         self.ets = ets
+        self.arima_select = arima_select
+        self.ar_order = ar_order
+        self.i_order = i_order
+        self.ma_order = ma_order
 
     # ------------------------------------------------------------------
     # Private helpers
@@ -147,6 +155,84 @@ class AutoOM:
             **common,
         )
 
+    def _build_candidate_with_orders(
+        self, occ: str, ar: int, i: int, ma: int
+    ) -> Union[OM, OMG]:
+        orders = {"ar": ar, "i": i, "ma": ma}
+        common = self._common_kwargs()
+        if occ == "general":
+            return OMG(
+                model_a=self.model,
+                model_b=self.model,
+                orders_a=orders,
+                constant_a=self.constant,
+                persistence_a=self.persistence,
+                phi_a=self.phi,
+                arma_a=self.arma,
+                regressors_a=self.regressors,
+                ets=self.ets,
+                **common,
+            )
+        return OM(
+            model=self.model,
+            occurrence=occ,
+            orders=orders,
+            constant=self.constant,
+            persistence=self.persistence,
+            phi=self.phi,
+            arma=self.arma,
+            regressors=self.regressors,
+            ets=self.ets,
+            **common,
+        )
+
+    def _fit_with_arima_selection(
+        self, occ: str, y: NDArray, X: Optional[NDArray]
+    ) -> Union[OM, OMG]:
+        """Stepwise ARIMA order selection for a fixed occurrence type."""
+        i_max = self.i_order if isinstance(self.i_order, int) else self.i_order[0]
+        ma_max = self.ma_order if isinstance(self.ma_order, int) else self.ma_order[0]
+        ar_max = self.ar_order if isinstance(self.ar_order, int) else self.ar_order[0]
+
+        def _try(ar: int, i: int, ma: int):
+            m = self._build_candidate_with_orders(occ, ar, i, ma)
+            m.fit(y, X)
+            return m, _get_ic(m, self.ic)
+
+        # Step 1: select integration order d by trying (0, d, 0)
+        d_star, best_ic = 0, float("inf")
+        for d in range(i_max + 1):
+            try:
+                _, ic = _try(0, d, 0)
+                if ic < best_ic:
+                    best_ic, d_star = ic, d
+            except Exception:
+                pass
+
+        # Step 2: select MA order q
+        q_star, best_ic = 0, float("inf")
+        for q in range(ma_max + 1):
+            try:
+                _, ic = _try(0, d_star, q)
+                if ic < best_ic:
+                    best_ic, q_star = ic, q
+            except Exception:
+                pass
+
+        # Step 3: select AR order p and keep the fitted model
+        best_ic, best_model = float("inf"), None
+        for p in range(ar_max + 1):
+            try:
+                m, ic = _try(p, d_star, q_star)
+                if ic < best_ic:
+                    best_ic, best_model = ic, m
+            except Exception:
+                pass
+
+        if best_model is None:
+            raise RuntimeError(f"AutoOM: arima_select failed for occurrence='{occ}'")
+        return best_model
+
     # ------------------------------------------------------------------
     # fit
     # ------------------------------------------------------------------
@@ -173,8 +259,11 @@ class AutoOM:
 
         for occ in self.occurrence:
             try:
-                m = self._build_candidate(occ)
-                m.fit(y, X)
+                if self.arima_select:
+                    m = self._fit_with_arima_selection(occ, y, X)
+                else:
+                    m = self._build_candidate(occ)
+                    m.fit(y, X)
                 ic_val = _get_ic(m, self.ic)
                 if ic_val < best_ic:
                     best_ic = ic_val
