@@ -193,7 +193,12 @@ om <- function(data,
     # Binary indicators (ot from checker is already binary when occurrence != "none")
     oInSample <- matrix(as.numeric(ot), ncol=1);
     if(holdout){
-        oHoldout <- matrix(as.numeric(yHoldout != 0), ncol=1);
+        yHoldout[] <- (yHoldout != 0) * 1;
+        if(any(yClasses=="ts")){
+            yHoldout <- ts(yHoldout, start=yForecastStart, frequency=yFrequency);
+        } else {
+            yHoldout <- zoo(yHoldout, order.by=yForecastIndex);
+        }
     }
 
     # Override occurrence-related flags set by checker
@@ -899,8 +904,8 @@ om <- function(data,
         );
 
         if(holdout){
-            subModel$holdout <- oHoldout;
-            subModel$accuracy <- measures(as.vector(oHoldout), yForecast,
+            subModel$holdout <- yHoldout;
+            subModel$accuracy <- measures(as.vector(yHoldout), yForecast,
                                           as.vector(oInSample));
         }
 

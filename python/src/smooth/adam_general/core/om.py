@@ -605,6 +605,12 @@ class OM(ADAM):
         ot = np.asarray(self._observations["ot"], dtype=np.float64)
         self._observations["y_in_sample"] = ot
         self._observations["obs_zero"] = int(np.sum(~self._observations["ot_logical"]))
+        # Binarize holdout too (mirrors R: yHoldout <- as.numeric(yHoldout != 0))
+        y_hld_raw = self._observations.get("y_holdout")
+        if self._general.get("holdout") and y_hld_raw is not None:
+            self._observations["y_holdout"] = (np.asarray(y_hld_raw) != 0).astype(
+                np.float64
+            )
 
         if self._om_occurrence == "fixed":
             self._fit_fixed()
@@ -1072,6 +1078,7 @@ class OM(ADAM):
             occurrence=self._om_occurrence,
             occurrence_char=self._occurrence_char,
         )
+        self._prepared["holdout"] = self._general.get("holdout", False)
 
     def _set_om_fitted_attributes(self):
         # Persistence trailing-underscore attrs (alpha/beta/gamma)

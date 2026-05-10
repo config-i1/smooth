@@ -342,7 +342,8 @@ class OMG:
     def holdout_data(self) -> Optional[NDArray]:
         if not self.holdout:
             return None
-        return np.asarray(self._observations_dict.get("y_holdout"), dtype=float)
+        y = np.asarray(self._observations_dict.get("y_holdout"), dtype=float)
+        return (y != 0).astype(float)
 
     def rstandard(self) -> NDArray:
         """Pearson standardised residuals for the general occurrence model.

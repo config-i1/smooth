@@ -173,7 +173,12 @@ omg <- function(data,
     otLogical  <- checkerA$otLogical
     oInSample  <- matrix(as.numeric(ot), ncol=1)
     if(holdout) {
-        oHoldout <- matrix(as.numeric(yHoldout != 0), ncol=1)
+        yHoldout[] <- (yHoldout != 0) * 1
+        if(any(yClasses=="ts")) {
+            yHoldout <- ts(yHoldout, start=yForecastStart, frequency=yFrequency)
+        } else {
+            yHoldout <- zoo(yHoldout, order.by=yForecastIndex)
+        }
     }
 
     occurrenceModel <- FALSE
@@ -1035,8 +1040,8 @@ omg <- function(data,
             call        = cl)
 
         if(holdout) {
-            subModel$holdout  <- oHoldout
-            subModel$accuracy <- measures(as.vector(oHoldout), yForecast,
+            subModel$holdout  <- yHoldout
+            subModel$accuracy <- measures(as.vector(yHoldout), yForecast,
                                           as.vector(oInSample))
         }
 
@@ -1295,8 +1300,8 @@ omg <- function(data,
             call        = cl)
 
         if(holdout) {
-            subModel$holdout  <- oHoldout
-            subModel$accuracy <- measures(as.vector(oHoldout), yForecast,
+            subModel$holdout  <- yHoldout
+            subModel$accuracy <- measures(as.vector(yHoldout), yForecast,
                                           as.vector(oInSample))
         }
 
@@ -1426,8 +1431,8 @@ omg <- function(data,
         timeElapsed = Sys.time() - startTime)
 
     if(holdout) {
-        result$holdout  <- oHoldout
-        result$accuracy <- measures(as.vector(oHoldout), yForecast,
+        result$holdout  <- yHoldout
+        result$accuracy <- measures(as.vector(yHoldout), yForecast,
                                     as.vector(yFitted))
     }
 
