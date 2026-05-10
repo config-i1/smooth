@@ -284,7 +284,6 @@ class AutoADAM(ADAM):
             "phi",
             "n_iterations",
             "fast",
-            "frequency",
             "smoother",
         ):
             val = getattr(self, attr, None)

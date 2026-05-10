@@ -75,7 +75,6 @@ class OMG:
         bounds: Literal["usual", "admissible", "none"] = "usual",
         verbose: int = 0,
         nlopt_kargs: Optional[Dict[str, Any]] = None,
-        frequency: Optional[str] = None,
     ) -> None:
         if loss != "likelihood":
             # R/omg.R only ever uses Bernoulli likelihood for the joint cost
@@ -111,7 +110,6 @@ class OMG:
         self.bounds = bounds
         self.verbose = verbose
         self.nlopt_kargs = nlopt_kargs
-        self.frequency = frequency
 
     # ---------------------------------------------------------------------
     # Public API
@@ -382,7 +380,6 @@ class OMG:
             holdout=self.holdout,
             h=self.h,
             nlopt_kargs=self.nlopt_kargs,
-            frequency=self.frequency,
         )
         scaffold._start_time = time.time()
         requested = (
@@ -720,5 +717,4 @@ def _build_omg_from_om_kwargs(**om_kwargs) -> OMG:
         bounds=om_kwargs.pop("bounds", "usual"),
         verbose=om_kwargs.pop("verbose", 0),
         nlopt_kargs=om_kwargs.pop("nlopt_kargs", None),
-        frequency=om_kwargs.pop("frequency", None),
     )

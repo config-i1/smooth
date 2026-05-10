@@ -384,7 +384,6 @@ class ADAM:
         holdout: bool = False,
         fast: bool = False,
         lambda_param: Optional[float] = None,
-        frequency: Optional[str] = None,
         # Profile parameters
         profiles_recent_provided: bool = False,
         profiles_recent_table: Optional[Any] = None,
@@ -489,9 +488,6 @@ class ADAM:
             Whether to use faster, possibly less accurate, estimation methods.
         lambda_param : Optional[float], default=None
             Lambda parameter for Box-Cox transformation or regularization.
-        frequency : Optional[str], default=None
-            Time series frequency (e.g., "D", "M", "Y").
-            Inferred if data is pandas Series with DatetimeIndex.
         profiles_recent_provided : bool, default=False
             Whether recent profiles (e.g., for exogenous variables) are provided.
         profiles_recent_table : Optional[Any], default=None
@@ -599,8 +595,6 @@ class ADAM:
             if self.nlopt_kargs is None:
                 self.nlopt_kargs = {}
             self.nlopt_kargs["print_level"] = kwargs["print_level"]
-
-        self.frequency = frequency
 
         # Store profile parameters
         self.profiles_recent_provided = profiles_recent_provided
@@ -943,7 +937,6 @@ class ADAM:
             "reg_lambda": self.reg_lambda,
             "gnorm_shape": self.gnorm_shape,
             "lambda_param": self.lambda_param,
-            "frequency": self.frequency,
             "fast": self.fast,
             "holdout": self.holdout,
         }
@@ -2824,7 +2817,6 @@ class ADAM:
             silent=(self.verbose == 0),
             fast=self.fast,
             lambda_param=self.lambda_param,
-            frequency=self.frequency,
             X=X,
             regressors=self.regressors,
             arma=self.arma,

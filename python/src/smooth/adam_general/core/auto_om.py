@@ -79,7 +79,6 @@ class AutoOM:
         bounds: Literal["usual", "admissible", "none"] = "usual",
         verbose: int = 0,
         nlopt_kargs: Optional[Dict[str, Any]] = None,
-        frequency: Optional[str] = None,
     ) -> None:
         if isinstance(occurrence, str):
             occurrence = [occurrence]
@@ -108,7 +107,6 @@ class AutoOM:
         self.bounds = bounds
         self.verbose = verbose
         self.nlopt_kargs = nlopt_kargs
-        self.frequency = frequency
         self.best_model: Optional[Union[OM, OMG]] = None
         self.occurrence_: Optional[str] = None
         self.ic_values: Dict[str, float] = {}
@@ -127,7 +125,6 @@ class AutoOM:
             bounds=self.bounds,
             verbose=self.verbose,
             nlopt_kargs=self.nlopt_kargs,
-            frequency=self.frequency,
         )
 
     def _build_candidate(self, occ: str) -> Union[OM, OMG]:

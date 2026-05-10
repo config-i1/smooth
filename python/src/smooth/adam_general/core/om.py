@@ -394,7 +394,6 @@ class OM(ADAM):
                         "bounds",
                         "verbose",
                         "nlopt_kargs",
-                        "frequency",
                     )
                 }
             )
@@ -426,7 +425,6 @@ class OM(ADAM):
         bounds: Literal["usual", "admissible", "none"] = "usual",
         verbose: int = 0,
         nlopt_kargs: Optional[Dict[str, Any]] = None,
-        frequency: Optional[str] = None,
         **kwargs,
     ) -> None:
         if occurrence in ("auto", "general"):
@@ -472,7 +470,6 @@ class OM(ADAM):
             h=h,
             holdout=holdout,
             nlopt_kargs=nlopt_kargs,
-            frequency=frequency,
             **kwargs,
         )
 
@@ -611,7 +608,6 @@ class OM(ADAM):
             "initial": self.initial,
             "n_iterations": self.n_iterations,
             "arma": self.arma,
-            "frequency": self.frequency,
             "h": self.h,
             "holdout": self.holdout,
             "formula": self._formula,
@@ -631,7 +627,6 @@ class OM(ADAM):
             "initial",
             "n_iterations",
             "arma",
-            "frequency",
             "holdout",
         ):
             try:
