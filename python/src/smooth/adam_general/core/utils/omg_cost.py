@@ -98,6 +98,7 @@ def omg_cf(  # noqa: N802
     n_params_a,
     observations_dict,
     bounds,
+    adam_ets: bool = False,
 ):
     """OMG cost function — joint Bernoulli likelihood on combined probability.
 
@@ -215,7 +216,7 @@ def omg_cf(  # noqa: N802
         nXregB=int(side_b["explanatory"].get("xreg_number", 0)),
         nComponentsB=int(side_b["components_dict"]["components_number_all"]),
         constantB=bool(side_b["constant"].get("constant_required", False)),
-        adamETSB=False,
+        adamETSB=adam_ets,
         matrixVtB=_f(elem_b["mat_vt"]),
         matrixWtB=_f(elem_b["mat_wt"]),
         matrixFB=_f(elem_b["mat_f"]),

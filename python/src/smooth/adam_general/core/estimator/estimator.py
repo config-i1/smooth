@@ -47,6 +47,7 @@ def estimator(
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
     smoother="global",
+    adam_ets: bool = False,
 ):
     """
     Estimate parameters for ADAM model using non-linear optimization.
@@ -457,6 +458,7 @@ def estimator(
         constant_dict,
         profiles_recent_table,
         profiles_recent_provided,
+        adam_ets,
     )
 
     # Step 2: Create model matrices

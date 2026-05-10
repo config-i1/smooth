@@ -425,6 +425,7 @@ class OM(ADAM):
         bounds: Literal["usual", "admissible", "none"] = "usual",
         verbose: int = 0,
         nlopt_kargs: Optional[Dict[str, Any]] = None,
+        ets: Literal["conventional", "adam"] = "conventional",
         **kwargs,
     ) -> None:
         if occurrence in ("auto", "general"):
@@ -470,6 +471,7 @@ class OM(ADAM):
             h=h,
             holdout=holdout,
             nlopt_kargs=nlopt_kargs,
+            ets=ets,
             **kwargs,
         )
 
@@ -663,6 +665,7 @@ class OM(ADAM):
             self._constant,
             self.profiles_recent_table,
             self.profiles_recent_provided,
+            self.ets == "adam",
         )
 
         # R: adam_creator() called with Etype="A" so the matrix layout assumes

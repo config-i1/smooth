@@ -75,6 +75,7 @@ class OMG:
         bounds: Literal["usual", "admissible", "none"] = "usual",
         verbose: int = 0,
         nlopt_kargs: Optional[Dict[str, Any]] = None,
+        ets: Literal["conventional", "adam"] = "conventional",
     ) -> None:
         if loss != "likelihood":
             # R/omg.R only ever uses Bernoulli likelihood for the joint cost
@@ -110,6 +111,9 @@ class OMG:
         self.bounds = bounds
         self.verbose = verbose
         self.nlopt_kargs = nlopt_kargs
+        if ets not in ("conventional", "adam"):
+            raise ValueError(f"Invalid ets: {ets!r}. Must be 'conventional' or 'adam'.")
+        self.ets = ets
 
     # ---------------------------------------------------------------------
     # Public API
@@ -162,6 +166,7 @@ class OMG:
                 n_params_a=n_params_a,
                 observations_dict=side_a["observations_dict"],
                 bounds=self.bounds,
+                adam_ets=(self.ets == "adam"),
             )
         else:
             cf_value = self._optimise(B_used, lb, ub, side_a, side_b, n_params_a)
@@ -380,6 +385,7 @@ class OMG:
             holdout=self.holdout,
             h=self.h,
             nlopt_kargs=self.nlopt_kargs,
+            ets=self.ets,
         )
         scaffold._start_time = time.time()
         requested = (
@@ -462,6 +468,8 @@ class OMG:
             nlopt, algorithm.replace("NLOPT_", ""), nlopt.LN_NELDERMEAD
         )
 
+        _adam_ets = self.ets == "adam"
+
         def _objective(x, _grad):
             try:
                 cf = omg_cf(
@@ -471,6 +479,7 @@ class OMG:
                     n_params_a=n_params_a,
                     observations_dict=side_a["observations_dict"],
                     bounds=self.bounds,
+                    adam_ets=_adam_ets,
                 )
             except Exception:
                 cf = 1e100

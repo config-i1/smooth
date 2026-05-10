@@ -398,6 +398,7 @@ class ADAM:
         reg_lambda: Optional[float] = None,
         gnorm_shape: Optional[float] = None,
         smoother: Literal["lowess", "ma", "global"] = SMOOTHER_DEFAULT,
+        ets: Literal["conventional", "adam"] = "conventional",
         **kwargs,
     ) -> None:
         """
@@ -577,6 +578,9 @@ class ADAM:
         self.reg_lambda = reg_lambda
         self.gnorm_shape = gnorm_shape
         self.smoother = smoother
+        if ets not in ("conventional", "adam"):
+            raise ValueError(f"Invalid ets: {ets!r}. Must be 'conventional' or 'adam'.")
+        self.ets = ets
 
         # Store parameters that were moved from fit
         self.h = h
@@ -2939,6 +2943,7 @@ class ADAM:
                 components_dict=self._components,
                 multisteps=self._general.get("multisteps", False),
                 smoother=self.smoother,
+                adam_ets=(self.ets == "adam"),
                 other=other_value,
                 other_parameter_estimate=other_parameter_estimate,
                 **nlopt_params,
@@ -2968,6 +2973,7 @@ class ADAM:
             explanatory_checked=self._explanatory,
             profiles_recent_table=self.profiles_recent_table,
             profiles_recent_provided=self.profiles_recent_provided,
+            adam_ets=(self.ets == "adam"),
         )
         # print(self._components)
         # Create the model matrices
@@ -3198,6 +3204,7 @@ class ADAM:
                 explanatory_checked=self._explanatory,
                 profiles_recent_table=self.profiles_recent_table,
                 profiles_recent_provided=self.profiles_recent_provided,
+                adam_ets=(self.ets == "adam"),
             )
 
             # Call creator to build matrices

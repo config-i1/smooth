@@ -74,6 +74,7 @@ class AutoOM:
         bounds: Literal["usual", "admissible", "none"] = "usual",
         verbose: int = 0,
         nlopt_kargs: Optional[Dict[str, Any]] = None,
+        ets: Literal["conventional", "adam"] = "conventional",
     ) -> None:
         if isinstance(occurrence, str):
             occurrence = [occurrence]
@@ -98,6 +99,9 @@ class AutoOM:
         self.bounds = bounds
         self.verbose = verbose
         self.nlopt_kargs = nlopt_kargs
+        if ets not in ("conventional", "adam"):
+            raise ValueError(f"Invalid ets: {ets!r}. Must be 'conventional' or 'adam'.")
+        self.ets = ets
 
     # ------------------------------------------------------------------
     # Private helpers
@@ -127,6 +131,7 @@ class AutoOM:
                 phi_a=self.phi,
                 arma_a=self.arma,
                 regressors_a=self.regressors,
+                ets=self.ets,
                 **common,
             )
         return OM(
@@ -138,6 +143,7 @@ class AutoOM:
             phi=self.phi,
             arma=self.arma,
             regressors=self.regressors,
+            ets=self.ets,
             **common,
         )
 
