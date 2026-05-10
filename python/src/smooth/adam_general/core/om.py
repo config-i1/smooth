@@ -1117,8 +1117,8 @@ class OM(ADAM):
         # C++ forecaster on the optimal states then apply the link.
         self._auto_forecast = self._om_forecast(h, X_future=None)
 
-    def _om_forecast(self, h: int, X_future=None):
-        """Generate an h-step probability forecast.
+    def _run_forecaster(self, h: int, X_future=None):
+        """Call the C++ forecaster; return ``(fc, raw_array)`` (before link function).
 
         We must NOT call ADAM's :func:`preparator`: it would re-run the
         C++ fitter with ``O='n'`` (additive recursion) and overwrite the
@@ -1129,14 +1129,9 @@ class OM(ADAM):
         general_dict = dict(self._general)
         general_dict["h"] = h
         general_dict["interval"] = "none"
-        # The shared forecaster's scaler doesn't understand "plogis"; we
-        # set dnorm only for it (we don't compute intervals on probabilities).
         general_dict["distribution"] = "dnorm"
         general_dict["distribution_new"] = "dnorm"
 
-        # Build the minimal model_prepared dict from OM state output. The
-        # profile column count must equal lags_model_max (the forecaster
-        # reads profiles_recent_table to seed the projection).
         prep = self._prepared
         model_prepared = {
             "model": self._model_type.get("model"),
@@ -1151,7 +1146,7 @@ class OM(ADAM):
             "mat_f": prep["mat_f"],
             "mat_wt": prep["mat_wt"],
             "phi": prep["phi"],
-            "scale": 1.0,  # Forecaster reads scale only for intervals
+            "scale": 1.0,
             "initial_value": prep["initial_value"],
             "initial_type": prep["initial_type"],
             "occurrence": "none",
@@ -1187,21 +1182,24 @@ class OM(ADAM):
             level=0.95,
             side="both",
         )
+        return fc, np.asarray(fc.mean.values, dtype=float)
 
-        # Apply link function to the raw forecast
-        raw = np.asarray(fc.mean.values, dtype=float)
-        p_forecast = om_link_function(
-            raw, self._model_type["error_type"], self._om_occurrence
-        )
+    def _raw_forecast_direct(self, h: int, X_future=None):
+        """Raw (pre-link) state-space forecast; used by OMG to combine sub-models."""
+        _, raw = self._run_forecaster(h, X_future)
+        return raw
+
+    def _om_forecast(self, h: int, X_future=None):
+        """Generate an h-step probability forecast."""
+        fc, raw = self._run_forecaster(h, X_future)
+        e_type = self._model_type["error_type"]
+        p_forecast = om_link_function(raw, e_type, self._om_occurrence)
         is_logit = (
             self._om_occurrence in ("odds-ratio", "inverse-odds-ratio")
-            and self._model_type["error_type"] == "A"
+            and e_type == "A"
         )
         if is_logit:
-            # When exp() overflows R returns NaN; R replaces them with 1.
             p_forecast = np.where(np.isnan(p_forecast), 1.0, p_forecast)
-        # And clip just to be safe
-        p_forecast = np.clip(p_forecast, 0.0, 1.0)
         fc.mean[:] = p_forecast
         return fc
 

@@ -892,16 +892,6 @@ omg <- function(data,
             resA$CFValue <- -ll
         }
 
-        if(hLocal > 0) {
-            yForecast <- adamArchitect$adamCpp$forecast(
-                            tail(adamFilled$matWt, hLocal),
-                            adamFilled$matF,
-                            adamArchitect$indexLookupTable[,
-                                                           adamArchitect$lagsModelMax + obsInSample +
-                                                               seq_len(hLocal), drop=FALSE],
-                            adamFitted$profile, hLocal)$forecast
-        }
-
         # States
         statesRaw <- adamFitted$states[,
                                        (adamArchitect$lagsModelMax+1):ncol(adamFitted$states), drop=FALSE]
@@ -918,18 +908,10 @@ omg <- function(data,
             matVt   <- zoo(t(statesRaw), order.by=yInSampleIndex)
         }
 
-        if(hLocal > 0 && !is.null(yForecast)) {
-            if(any(yClasses == "ts")) {
-                yForecast <- ts(yForecast, start=yForecastStart, frequency=yFrequency)
-            } else {
-                yForecast <- zoo(yForecast, order.by=yForecastIndex)
-            }
+        yForecast <- if(any(yClasses=="ts")) {
+            ts(NA, start=yForecastStart, frequency=yFrequency)
         } else {
-            yForecast <- if(any(yClasses=="ts")) {
-                ts(NA, start=yForecastStart, frequency=yFrequency)
-            } else {
-                zoo(NA, order.by=yForecastIndex[1])
-            }
+            zoo(NA, order.by=yForecastIndex[1])
         }
 
         modelStr  <- paste0(resA$Etype, resA$Ttype,
@@ -1032,13 +1014,14 @@ omg <- function(data,
             res         = resA,
             FI          = NULL,
             adamCpp     = adamArchitect$adamCpp,
+            forecastMeasurement = if(hLocal > 0) tail(adamFilled$matWt, hLocal) else NULL,
+            forecastIndexLookup = if(hLocal > 0) adamArchitect$indexLookupTable[,
+                adamArchitect$lagsModelMax + obsInSample + seq_len(hLocal), drop=FALSE] else NULL,
             bounds      = bounds,
             call        = cl)
 
         if(holdout) {
             subModel$holdout  <- yHoldout
-            subModel$accuracy <- measures(as.vector(yHoldout), yForecast,
-                                          as.vector(oInSample))
         }
 
         class(subModel) <- c("om","adam","smooth","occurrence")
@@ -1154,15 +1137,6 @@ omg <- function(data,
             resB$CFValue <- -ll
         }
 
-        if(hLocal > 0) {
-            yForecast <- adamArchitect$adamCpp$forecast(
-                tail(adamFilled$matWt, hLocal),
-                adamFilled$matF,
-                adamArchitect$indexLookupTable[,
-                                               adamArchitect$lagsModelMax + obsInSample + seq_len(hLocal), drop=FALSE],
-                adamFitted$profile, hLocal)$forecast
-        }
-
         statesRaw <- adamFitted$states[,
                                        (adamArchitect$lagsModelMax+1):ncol(adamFitted$states), drop=FALSE]
         compNames <- rownames(adamCreated$matVt)
@@ -1178,18 +1152,10 @@ omg <- function(data,
             matVt   <- zoo(t(statesRaw), order.by=yInSampleIndex)
         }
 
-        if(hLocal > 0 && !is.null(yForecast)) {
-            if(any(yClasses == "ts")) {
-                yForecast <- ts(yForecast, start=yForecastStart, frequency=yFrequency)
-            } else {
-                yForecast <- zoo(yForecast, order.by=yForecastIndex)
-            }
+        yForecast <- if(any(yClasses=="ts")) {
+            ts(NA, start=yForecastStart, frequency=yFrequency)
         } else {
-            yForecast <- if(any(yClasses=="ts")) {
-                ts(NA, start=yForecastStart, frequency=yFrequency)
-            } else {
-                zoo(NA, order.by=yForecastIndex[1])
-            }
+            zoo(NA, order.by=yForecastIndex[1])
         }
 
         modelStr  <- paste0(resB$Etype, resB$Ttype,
@@ -1292,13 +1258,14 @@ omg <- function(data,
             res         = resB,
             FI          = NULL,
             adamCpp     = adamArchitect$adamCpp,
+            forecastMeasurement = if(hLocal > 0) tail(adamFilled$matWt, hLocal) else NULL,
+            forecastIndexLookup = if(hLocal > 0) adamArchitect$indexLookupTable[,
+                adamArchitect$lagsModelMax + obsInSample + seq_len(hLocal), drop=FALSE] else NULL,
             bounds      = bounds,
             call        = cl)
 
         if(holdout) {
             subModel$holdout  <- yHoldout
-            subModel$accuracy <- measures(as.vector(yHoldout), yForecast,
-                                          as.vector(oInSample))
         }
 
         class(subModel) <- c("om","adam","smooth","occurrence")
@@ -1377,11 +1344,10 @@ omg <- function(data,
         initialXregEstimate      = checkerB$initialXregEstimate,
         FI                       = NULL)
 
-    # Build sub-model objects using jointly-optimized parameters
+    # Build sub-model objects with forecast-period matrices included
     modelA <- omgFinalFitA(resA, hLocal=h)
     modelB <- omgFinalFitB(resB, hLocal=h)
 
-    # Combined fitted and forecast using raw sub-model values via omgLinkFunction
     EtypeA <- errorType(modelA)
     EtypeB <- errorType(modelB)
 
@@ -1390,12 +1356,25 @@ omg <- function(data,
     yFitted   <- modelA$fitted
     yFitted[] <- omgLinkFunction(yFittedA, yFittedB, EtypeA, EtypeB)
 
+    adamCppA <- modelA$adamCpp
+    adamCppB <- modelB$adamCpp
+
     yForecast <- NULL
     if(h > 0) {
-        yForecastA  <- as.vector(modelA$forecast)
-        yForecastB  <- as.vector(modelB$forecast)
-        yForecast   <- modelA$forecast
-        yForecast[] <- omgLinkFunction(yForecastA, yForecastB, EtypeA, EtypeB)
+        yForecastA <- adamCppA$forecast(
+            modelA$forecastMeasurement, modelA$transition,
+            modelA$forecastIndexLookup, modelA$profile, h
+        )$forecast
+        yForecastB <- adamCppB$forecast(
+            modelB$forecastMeasurement, modelB$transition,
+            modelB$forecastIndexLookup, modelB$profile, h
+        )$forecast
+        yForecastCombined <- omgLinkFunction(yForecastA, yForecastB, EtypeA, EtypeB)
+        yForecast <- if(any(yClasses == "ts")) {
+            ts(yForecastCombined, start=yForecastStart, frequency=yFrequency)
+        } else {
+            zoo(yForecastCombined, order.by=yForecastIndex)
+        }
     }
 
     modelName <- paste0("oETS[G](", modelType(modelA), ")(", modelType(modelB), ")")
@@ -1433,6 +1412,11 @@ omg <- function(data,
     }
 
     class(result) <- c("omg","om","smooth","occurrence")
+
+    if(!silent){
+        plot(result, 7)
+    }
+
     return(result)
 }
 
@@ -1503,13 +1487,6 @@ print.omg <- function(x, digits=4, ...) {
 
 #' @export
 summary.omg <- function(object, ...) { return(invisible(object)) }
-
-#' @export
-plot.omg <- function(x, which=c(1,2,4,6), ...) {
-    plotObj        <- x$modelA
-    plotObj$fitted <- x$fitted
-    plot.adam(plotObj, which=which, ...)
-}
 
 #' @importFrom stats rstandard
 #' @export

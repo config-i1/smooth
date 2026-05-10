@@ -684,52 +684,16 @@ class OMG:
     # ---------------------------------------------------------------------
 
     def _forecast_combined(self, h: int, X_future=None):
-        # Each sub-model returns a probability forecast; the OMG forecast
-        # combines via omg_link_function on the *raw* (pre-link) state-space
-        # values, exactly like R/omg.R:1373-1376 does.
-        fc_a_raw = self._raw_forecast(self.model_a, h, X_future=X_future)
-        fc_b_raw = self._raw_forecast(self.model_b, h, X_future=X_future)
+        # Combine raw (pre-link) forecasts from both sub-models via omg_link_function,
+        # mirroring R's omg() outer block: adamCppA$forecast + adamCppB$forecast → link.
+        fc_a, fc_a_raw = self.model_a._run_forecaster(h, X_future=X_future)
+        fc_b_raw = self.model_b._raw_forecast_direct(h, X_future=X_future)
         e_a = self._side_a["model_type_dict"]["error_type"]
         e_b = self._side_b["model_type_dict"]["error_type"]
         p_combined = omg_link_function(fc_a_raw, fc_b_raw, e_a, e_b)
-        p_combined = np.clip(np.where(np.isnan(p_combined), 1.0, p_combined), 0.0, 1.0)
-        # Use model_a's forecast as the carrier (preserves the index)
-        carrier = self.model_a._om_forecast(h, X_future=X_future)
-        carrier.mean[:] = p_combined
-        return carrier
-
-    def _raw_forecast(self, om_model: OM, h: int, X_future=None) -> NDArray:
-        """Run the underlying ADAM forecaster on the OM-prepared states and
-        return the *raw* (pre-link) state-space output, not a probability.
-
-        We need this because OMG combines A and B in raw space.
-        """
-        # Reuse OM._om_forecast to do the heavy lifting, then back the link
-        # transformation out of the result.
-        fc = om_model._om_forecast(h, X_future=X_future)
-        p = np.asarray(fc.mean.values, dtype=float)
-        e = om_model._model_type["error_type"]
-        occ = om_model._om_occurrence
-        # Invert om_link_function to recover the raw value.
-        if occ == "odds-ratio":
-            if e == "A":
-                # p = exp(x)/(1+exp(x)) → x = log(p/(1-p))
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    x = np.log(p / (1.0 - p))
-            else:
-                # p = x/(1+x) → x = p/(1-p)
-                x = p / (1.0 - p)
-        elif occ == "inverse-odds-ratio":
-            if e == "A":
-                # p = 1/(1+exp(x)) → x = log((1-p)/p)
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    x = np.log((1.0 - p) / p)
-            else:
-                # p = 1/(1+x) → x = (1-p)/p
-                x = (1.0 - p) / p
-        else:
-            x = p
-        return x
+        p_combined = np.where(np.isnan(p_combined), 1.0, p_combined)
+        fc_a.mean[:] = p_combined
+        return fc_a
 
 
 def _build_omg_from_om_kwargs(**om_kwargs) -> OMG:
