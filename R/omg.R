@@ -774,367 +774,67 @@ omg <- function(data,
             logLikValue = -CFValue,
             nParamsA  = nParamsA,
             nParamsB  = length(B_joint) - nParamsA,
-            # Pass through model info needed by omgFinalFitA/B
             adamArchitectA = adamArchitectA,
             adamArchitectB = adamArchitectB,
+            adamCreatedA   = adamCreatedA,
+            adamCreatedB   = adamCreatedB,
             adamCppA = adamCppA,
             adamCppB = adamCppB))
     }
 
-    #### Final fit closures ####
+    #### Final fit ####
 
-    omgFinalFitA <- function(resA, hLocal=0) {
-        otLogicalInternal <- otLogical
-        otLogicalInternal[] <- TRUE
+    omgFinalFit <- function(res, hLocal=0) {
+        checker       <- res$checker
+        adamArchitect <- res$adamArchitect
+        adamCreated   <- res$adamCreated
+        occurrence    <- res$occurrence
+        regressors    <- res$regressors
+        occurrenceChar <- if(occurrence == "odds-ratio") "o" else "i"
 
-        adamArchitect <- adam_architector(
-            checkerA$etsModel, checkerA$Etype, checkerA$Ttype, checkerA$Stype,
-            lags, checkerA$lagsModelSeasonal,
-            checkerA$xregNumber, obsInSample, checkerA$initialType,
-            checkerA$arimaModel, checkerA$lagsModelARIMA,
-            checkerA$xregModel, checkerA$constantRequired,
-            checkerA$componentsNumberARIMA, obsAll, yIndexAll, yClasses, adamETSA)
-
-        adamCreated <- adam_creator(
-            checkerA$etsModel, checkerA$Etype, checkerA$Ttype, checkerA$Stype,
-            resA$modelIsTrendy, resA$modelIsSeasonal,
-            lags, adamArchitect$lagsModel, checkerA$lagsModelARIMA,
-            adamArchitect$lagsModelAll, adamArchitect$lagsModelMax,
-            adamArchitect$profilesRecentTable, FALSE,
-            adamArchitect$obsStates, obsInSample, obsAll,
-            adamArchitect$componentsNumberETS, adamArchitect$componentsNumberETSSeasonal,
-            adamArchitect$componentsNamesETS, otLogicalInternal, ot,
-            checkerA$persistence, resA$persistenceEstimate,
-            checkerA$persistenceLevel, resA$persistenceLevelEstimate,
-            checkerA$persistenceTrend, resA$persistenceTrendEstimate,
-            checkerA$persistenceSeasonal, resA$persistenceSeasonalEstimate,
-            checkerA$persistenceXreg, resA$persistenceXregEstimate,
-            checkerA$persistenceXregProvided,
-            checkerA$phi,
-            checkerA$initialType, resA$initialEstimate,
-            checkerA$initialLevel, resA$initialLevelEstimate,
-            checkerA$initialTrend, resA$initialTrendEstimate,
-            checkerA$initialSeasonal, resA$initialSeasonalEstimate,
-            checkerA$initialArima, resA$initialArimaEstimate,
-            checkerA$initialArimaNumber,
-            resA$initialXregEstimate, checkerA$initialXregProvided,
-            resA$arimaModel, resA$arRequired, resA$iRequired, resA$maRequired,
-            checkerA$armaParameters,
-            resA$arOrders, resA$iOrders, resA$maOrders,
-            checkerA$componentsNumberARIMA, checkerA$componentsNamesARIMA,
-            checkerA$xregModel, checkerA$xregModelInitials, checkerA$xregData,
-            checkerA$xregNumber, checkerA$xregNames,
-            checkerA$xregParametersPersistence,
-            checkerA$constantRequired, checkerA$constantEstimate,
-            checkerA$constantValue, checkerA$constantName,
-            adamArchitect$adamCpp,
-            resA$arEstimate, resA$maEstimate, smoother,
-            checkerA$nonZeroARI, checkerA$nonZeroMA)
-
-        adamCreated$matVt <- om_initial_transform(
-            adamCreated$matVt, "odds-ratio", resA$Etype, resA$Ttype, resA$Stype,
-            resA$etsModel,
-            resA$modelIsTrendy, resA$modelIsSeasonal,
-            resA$initialLevelEstimate, resA$initialTrendEstimate,
-            resA$initialSeasonalEstimate,
-            adamArchitect$componentsNumberETS,
-            adamArchitect$componentsNumberETSNonSeasonal,
-            adamArchitect$componentsNumberETSSeasonal,
-            adamArchitect$lagsModel, adamArchitect$lagsModelMax,
-            checkerA$lagsModelSeasonal, obsInSample, ot,
-            resA$arimaModel, checkerA$componentsNumberARIMA,
-            resA$initialArimaEstimate, checkerA$initialArimaNumber,
-            checkerA$xregModel, checkerA$xregNumber, resA$initialXregEstimate,
-            checkerA$constantRequired, checkerA$constantEstimate)
-
-        adamFilled <- adam_filler(resA$B,
-                                  resA$etsModel, resA$Etype, resA$Ttype, resA$Stype,
-                                  resA$modelIsTrendy, resA$modelIsSeasonal,
+        adamFilled <- adam_filler(res$B,
+                                  checker$etsModel, checker$Etype, checker$Ttype, checker$Stype,
+                                  checker$modelIsTrendy, checker$modelIsSeasonal,
                                   adamArchitect$componentsNumberETS,
                                   adamArchitect$componentsNumberETSNonSeasonal,
                                   adamArchitect$componentsNumberETSSeasonal,
-                                  checkerA$componentsNumberARIMA,
+                                  checker$componentsNumberARIMA,
                                   lags, adamArchitect$lagsModel, adamArchitect$lagsModelMax,
                                   adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-                                  resA$persistenceEstimate, resA$persistenceLevelEstimate,
-                                  resA$persistenceTrendEstimate, resA$persistenceSeasonalEstimate,
-                                  resA$persistenceXregEstimate, resA$phiEstimate,
-                                  checkerA$initialType, resA$initialEstimate,
-                                  resA$initialLevelEstimate, resA$initialTrendEstimate,
-                                  resA$initialSeasonalEstimate, resA$initialArimaEstimate,
-                                  resA$initialXregEstimate,
-                                  resA$arimaModel, resA$arEstimate, resA$maEstimate,
-                                  resA$arOrders, resA$iOrders, resA$maOrders,
-                                  resA$arRequired, resA$maRequired, checkerA$armaParameters,
-                                  checkerA$nonZeroARI, checkerA$nonZeroMA, adamCreated$arimaPolynomials,
-                                  checkerA$xregModel, checkerA$xregNumber,
-                                  checkerA$xregParametersMissing, checkerA$xregParametersIncluded,
-                                  checkerA$xregParametersEstimated, checkerA$xregParametersPersistence,
-                                  checkerA$constantEstimate, adamArchitect$adamCpp,
-                                  checkerA$constantRequired, checkerA$initialArimaNumber)
+                                  checker$persistenceEstimate, checker$persistenceLevelEstimate,
+                                  checker$persistenceTrendEstimate, checker$persistenceSeasonalEstimate,
+                                  checker$persistenceXregEstimate, checker$phiEstimate,
+                                  checker$initialType, checker$initialEstimate,
+                                  checker$initialLevelEstimate, checker$initialTrendEstimate,
+                                  checker$initialSeasonalEstimate, checker$initialArimaEstimate,
+                                  checker$initialXregEstimate,
+                                  checker$arimaModel, checker$arEstimate, checker$maEstimate,
+                                  checker$arOrders, checker$iOrders, checker$maOrders,
+                                  checker$arRequired, checker$maRequired, checker$armaParameters,
+                                  checker$nonZeroARI, checker$nonZeroMA, adamCreated$arimaPolynomials,
+                                  checker$xregModel, checker$xregNumber,
+                                  checker$xregParametersMissing, checker$xregParametersIncluded,
+                                  checker$xregParametersEstimated, checker$xregParametersPersistence,
+                                  checker$constantEstimate, adamArchitect$adamCpp,
+                                  checker$constantRequired, checker$initialArimaNumber)
 
         prof <- adamFilled$matVt[, seq_len(adamArchitect$lagsModelMax), drop=FALSE]
         adamFitted <- adamArchitect$adamCpp$fit(
             adamFilled$matVt, adamFilled$matWt, adamFilled$matF, adamFilled$vecG,
             adamArchitect$indexLookupTable, prof,
             as.numeric(ot), as.numeric(ot),
-            any(checkerA$initialType == c("complete","backcasting")),
-            nIterations, refineHead, "o")
+            any(checker$initialType == c("complete","backcasting")),
+            nIterations, refineHead, occurrenceChar)
 
         yFitted <- adamFitted$fitted
 
-        if(is.null(resA$logLikADAMValue)) {
-            pFitted  <- omLinkFunction(as.numeric(yFitted), resA$Etype, "odds-ratio")
-            ot_vec   <- as.numeric(oInSample)
+        if(is.null(res$logLikADAMValue)) {
+            pFitted <- omLinkFunction(as.numeric(yFitted), checker$Etype, occurrence)
+            ot_vec  <- as.numeric(oInSample)
             ll <- sum(ot_vec * log(pmax(pFitted, 1e-15)) +
                           (1 - ot_vec) * log(pmax(1 - pFitted, 1e-15)))
-            resA$logLikADAMValue <- ll
-            resA$CFValue <- -ll
-        }
-
-        # States
-        statesRaw <- adamFitted$states[,
-                                       (adamArchitect$lagsModelMax+1):ncol(adamFitted$states), drop=FALSE]
-        compNames <- rownames(adamCreated$matVt)
-        if(!is.null(compNames)) rownames(statesRaw) <- compNames
-
-        if(any(yClasses == "ts")) {
-            yFitted <- ts(yFitted, start=yStart, frequency=yFrequency)
-            errors  <- ts(as.numeric(oInSample) - yFitted, start=yStart, frequency=yFrequency)
-            matVt   <- ts(t(statesRaw), start=yStart, frequency=yFrequency)
-        } else {
-            yFitted <- zoo(yFitted, order.by=yInSampleIndex)
-            errors  <- zoo(as.numeric(oInSample) - yFitted, order.by=yInSampleIndex)
-            matVt   <- zoo(t(statesRaw), order.by=yInSampleIndex)
-        }
-
-        yForecast <- if(any(yClasses=="ts")) {
-            ts(NA, start=yForecastStart, frequency=yFrequency)
-        } else {
-            zoo(NA, order.by=yForecastIndex[1])
-        }
-
-        modelStr  <- paste0(resA$Etype, resA$Ttype,
-                            "d"[resA$phiEstimate], resA$Stype)
-        modelName <- adam_model_name(
-            resA$etsModel, modelStr,
-            checkerA$xregModel, resA$arimaModel,
-            resA$arOrders, resA$iOrders, resA$maOrders, lags,
-            regressorsA, checkerA$constantRequired, checkerA$constantName,
-            "odds-ratio", adamArchitect$componentsNumberETSSeasonal,
-            prefix = "o")
-
-        vecGFinal <- adamFilled$vecG
-        if(adamArchitect$componentsNumberETS > 0) {
-            persistenceVec <- as.vector(vecGFinal)[seq_len(adamArchitect$componentsNumberETS)]
-            names(persistenceVec) <- rownames(vecGFinal)[seq_len(adamArchitect$componentsNumberETS)]
-        } else {
-            persistenceVec <- numeric(0)
-        }
-
-        initialCollected <- adam_initial_collector(
-            adamFitted$states[, seq_len(adamArchitect$lagsModelMax), drop=FALSE],
-            resA$etsModel, resA$modelIsTrendy, resA$modelIsSeasonal,
-            adamArchitect$lagsModel, adamArchitect$lagsModelMax,
-            resA$initialLevelEstimate, resA$initialTrendEstimate,
-            resA$initialSeasonalEstimate,
-            adamArchitect$componentsNumberETSSeasonal,
-            resA$arimaModel, resA$initialArimaEstimate,
-            checkerA$initialArima, checkerA$initialArimaNumber,
-            adamArchitect$componentsNumberETS, checkerA$componentsNumberARIMA,
-            adamFilled$arimaPolynomials, resA$Etype,
-            checkerA$xregModel, resA$initialXregEstimate, checkerA$xregNumber)
-
-        if(resA$arimaModel && (resA$arRequired || resA$maRequired)) {
-            armaParametersList <- vector("list", resA$arRequired + resA$maRequired)
-            j <- 1L
-            if(resA$arRequired && resA$arEstimate) {
-                armaParametersList[[j]] <- resA$B[nchar(names(resA$B))>3 &
-                                                      substr(names(resA$B),1,3)=="phi"]
-                names(armaParametersList)[j] <- "ar"; j <- j + 1L
-            } else if(resA$arRequired) {
-                armaParametersList[[j]] <- checkerA$armaParameters[
-                    substr(names(checkerA$armaParameters),1,3)=="phi"]
-                names(armaParametersList)[j] <- "ar"; j <- j + 1L
-            }
-            if(resA$maRequired && resA$maEstimate) {
-                armaParametersList[[j]] <- resA$B[substr(names(resA$B),1,5)=="theta"]
-                names(armaParametersList)[j] <- "ma"
-            } else if(resA$maRequired) {
-                armaParametersList[[j]] <- checkerA$armaParameters[
-                    substr(names(checkerA$armaParameters),1,5)=="theta"]
-                names(armaParametersList)[j] <- "ma"
-            }
-        } else {
-            armaParametersList <- NULL
-        }
-
-        parNum <- checkerA$parametersNumber
-        parNum[1,1] <- resA$nParamEstimated
-        parNum[1,5] <- sum(parNum[1,1:4])
-        parNum[2,5] <- sum(parNum[2,1:4])
-
-        subModel <- list(
-            model       = modelName,
-            timeElapsed = Sys.time() - startTime,
-            data        = yInSample,
-            fitted      = yFitted,
-            residuals   = errors,
-            forecast    = yForecast,
-            states      = matVt,
-            profile     = adamFitted$profile,
-            profileInitial = NULL,
-            persistence = persistenceVec,
-            phi         = if(resA$phiEstimate) resA$B["phi"] else checkerA$phi,
-            transition  = adamFilled$matF,
-            measurement = adamFilled$matWt,
-            initial     = initialCollected$initialValue,
-            initialType = checkerA$initialType,
-            initialEstimated = initialCollected$initialEstimated,
-            orders      = list(ar=resA$arOrders, i=resA$iOrders, ma=resA$maOrders),
-            arma        = armaParametersList,
-            constant    = if(checkerA$constantRequired) {
-                if(checkerA$constantEstimate) resA$B[checkerA$constantName] else checkerA$constantValue
-            } else NULL,
-            nParam      = parNum,
-            occurrence  = "odds-ratio",
-            formula     = checkerA$formula,
-            regressors  = regressorsA,
-            loss        = loss,
-            lossValue   = resA$CFValue,
-            lossFunction = NULL,
-            logLik      = resA$logLikADAMValue,
-            distribution = "plogis",
-            scale       = NA,
-            other       = NULL,
-            B           = resA$B,
-            lags        = lags,
-            lagsAll     = adamArchitect$lagsModelAll,
-            ets         = resA$etsModel,
-            res         = resA,
-            FI          = NULL,
-            adamCpp     = adamArchitect$adamCpp,
-            forecastMeasurement = if(hLocal > 0) tail(adamFilled$matWt, hLocal) else NULL,
-            forecastIndexLookup = if(hLocal > 0) adamArchitect$indexLookupTable[,
-                adamArchitect$lagsModelMax + obsInSample + seq_len(hLocal), drop=FALSE] else NULL,
-            bounds      = bounds,
-            call        = cl)
-
-        if(holdout) {
-            subModel$holdout  <- yHoldout
-        }
-
-        class(subModel) <- c("om","adam","smooth","occurrence")
-        return(subModel)
-    }
-
-    omgFinalFitB <- function(resB, hLocal=0) {
-        otLogicalInternal <- otLogical
-        otLogicalInternal[] <- TRUE
-
-        adamArchitect <- adam_architector(
-            checkerB$etsModel, checkerB$Etype, checkerB$Ttype, checkerB$Stype,
-            lags, checkerB$lagsModelSeasonal,
-            checkerB$xregNumber, obsInSample, checkerB$initialType,
-            checkerB$arimaModel, checkerB$lagsModelARIMA,
-            checkerB$xregModel, checkerB$constantRequired,
-            checkerB$componentsNumberARIMA, obsAll, yIndexAll, yClasses, adamETSB)
-
-        adamCreated <- adam_creator(
-            checkerB$etsModel, checkerB$Etype, checkerB$Ttype, checkerB$Stype,
-            resB$modelIsTrendy, resB$modelIsSeasonal,
-            lags, adamArchitect$lagsModel, checkerB$lagsModelARIMA,
-            adamArchitect$lagsModelAll, adamArchitect$lagsModelMax,
-            adamArchitect$profilesRecentTable, FALSE,
-            adamArchitect$obsStates, obsInSample, obsAll,
-            adamArchitect$componentsNumberETS, adamArchitect$componentsNumberETSSeasonal,
-            adamArchitect$componentsNamesETS, otLogicalInternal, ot,
-            checkerB$persistence, resB$persistenceEstimate,
-            checkerB$persistenceLevel, resB$persistenceLevelEstimate,
-            checkerB$persistenceTrend, resB$persistenceTrendEstimate,
-            checkerB$persistenceSeasonal, resB$persistenceSeasonalEstimate,
-            checkerB$persistenceXreg, resB$persistenceXregEstimate,
-            checkerB$persistenceXregProvided,
-            checkerB$phi,
-            checkerB$initialType, resB$initialEstimate,
-            checkerB$initialLevel, resB$initialLevelEstimate,
-            checkerB$initialTrend, resB$initialTrendEstimate,
-            checkerB$initialSeasonal, resB$initialSeasonalEstimate,
-            checkerB$initialArima, resB$initialArimaEstimate,
-            checkerB$initialArimaNumber,
-            resB$initialXregEstimate, checkerB$initialXregProvided,
-            resB$arimaModel, resB$arRequired, resB$iRequired, resB$maRequired,
-            checkerB$armaParameters,
-            resB$arOrders, resB$iOrders, resB$maOrders,
-            checkerB$componentsNumberARIMA, checkerB$componentsNamesARIMA,
-            checkerB$xregModel, checkerB$xregModelInitials, checkerB$xregData,
-            checkerB$xregNumber, checkerB$xregNames,
-            checkerB$xregParametersPersistence,
-            checkerB$constantRequired, checkerB$constantEstimate,
-            checkerB$constantValue, checkerB$constantName,
-            adamArchitect$adamCpp,
-            resB$arEstimate, resB$maEstimate, smoother,
-            checkerB$nonZeroARI, checkerB$nonZeroMA)
-
-        adamCreated$matVt <- om_initial_transform(
-            adamCreated$matVt, "inverse-odds-ratio", resB$Etype, resB$Ttype, resB$Stype,
-            resB$etsModel,
-            resB$modelIsTrendy, resB$modelIsSeasonal,
-            resB$initialLevelEstimate, resB$initialTrendEstimate,
-            resB$initialSeasonalEstimate,
-            adamArchitect$componentsNumberETS,
-            adamArchitect$componentsNumberETSNonSeasonal,
-            adamArchitect$componentsNumberETSSeasonal,
-            adamArchitect$lagsModel, adamArchitect$lagsModelMax,
-            checkerB$lagsModelSeasonal, obsInSample, ot,
-            resB$arimaModel, checkerB$componentsNumberARIMA,
-            resB$initialArimaEstimate, checkerB$initialArimaNumber,
-            checkerB$xregModel, checkerB$xregNumber, resB$initialXregEstimate,
-            checkerB$constantRequired, checkerB$constantEstimate)
-
-        adamFilled <- adam_filler(resB$B,
-                                  resB$etsModel, resB$Etype, resB$Ttype, resB$Stype,
-                                  resB$modelIsTrendy, resB$modelIsSeasonal,
-                                  adamArchitect$componentsNumberETS,
-                                  adamArchitect$componentsNumberETSNonSeasonal,
-                                  adamArchitect$componentsNumberETSSeasonal,
-                                  checkerB$componentsNumberARIMA,
-                                  lags, adamArchitect$lagsModel, adamArchitect$lagsModelMax,
-                                  adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-                                  resB$persistenceEstimate, resB$persistenceLevelEstimate,
-                                  resB$persistenceTrendEstimate, resB$persistenceSeasonalEstimate,
-                                  resB$persistenceXregEstimate, resB$phiEstimate,
-                                  checkerB$initialType, resB$initialEstimate,
-                                  resB$initialLevelEstimate, resB$initialTrendEstimate,
-                                  resB$initialSeasonalEstimate, resB$initialArimaEstimate,
-                                  resB$initialXregEstimate,
-                                  resB$arimaModel, resB$arEstimate, resB$maEstimate,
-                                  resB$arOrders, resB$iOrders, resB$maOrders,
-                                  resB$arRequired, resB$maRequired, checkerB$armaParameters,
-                                  checkerB$nonZeroARI, checkerB$nonZeroMA, adamCreated$arimaPolynomials,
-                                  checkerB$xregModel, checkerB$xregNumber,
-                                  checkerB$xregParametersMissing, checkerB$xregParametersIncluded,
-                                  checkerB$xregParametersEstimated, checkerB$xregParametersPersistence,
-                                  checkerB$constantEstimate, adamArchitect$adamCpp,
-                                  checkerB$constantRequired, checkerB$initialArimaNumber)
-
-        prof <- adamFilled$matVt[, seq_len(adamArchitect$lagsModelMax), drop=FALSE]
-        adamFitted <- adamArchitect$adamCpp$fit(
-            adamFilled$matVt, adamFilled$matWt, adamFilled$matF, adamFilled$vecG,
-            adamArchitect$indexLookupTable, prof,
-            as.numeric(ot), as.numeric(ot),
-            any(checkerB$initialType == c("complete","backcasting")),
-            nIterations, refineHead, "i")
-
-        yFitted <- adamFitted$fitted
-
-        if(is.null(resB$logLikADAMValue)) {
-            pFitted  <- omLinkFunction(as.numeric(yFitted), resB$Etype, "inverse-odds-ratio")
-            ot_vec   <- as.numeric(oInSample)
-            ll <- sum(ot_vec * log(pmax(pFitted, 1e-15)) +
-                          (1 - ot_vec) * log(pmax(1 - pFitted, 1e-15)))
-            resB$logLikADAMValue <- ll
-            resB$CFValue <- -ll
+            res$logLikADAMValue <- ll
+            res$CFValue <- -ll
         }
 
         statesRaw <- adamFitted$states[,
@@ -1153,19 +853,29 @@ omg <- function(data,
         }
 
         yForecast <- if(any(yClasses=="ts")) {
-            ts(NA, start=yForecastStart, frequency=yFrequency)
+            ts(vector("numeric", h), start=yForecastStart, frequency=yFrequency)
         } else {
-            zoo(NA, order.by=yForecastIndex[1])
+            zoo(vector("numeric", h), order.by=yForecastIndex[1])
         }
 
-        modelStr  <- paste0(resB$Etype, resB$Ttype,
-                            "d"[resB$phiEstimate], resB$Stype)
+        if(hLocal > 0) {
+            forecastIndexLookup <- adamArchitect$indexLookupTable[,
+                                   adamArchitect$lagsModelMax + obsInSample + seq_len(hLocal), drop=FALSE]
+            yForecast[] <- adamArchitect$adamCpp$forecast(
+                tail(adamFilled$matWt, hLocal), adamFilled$matF,
+                forecastIndexLookup, adamFitted$profile, hLocal)$forecast
+        } else {
+            yForecast <- NULL
+        }
+
+        modelStr  <- paste0(checker$Etype, checker$Ttype,
+                            "d"[checker$phiEstimate], checker$Stype)
         modelName <- adam_model_name(
-            resB$etsModel, modelStr,
-            checkerB$xregModel, resB$arimaModel,
-            resB$arOrders, resB$iOrders, resB$maOrders, lags,
-            regressorsB, checkerB$constantRequired, checkerB$constantName,
-            "inverse-odds-ratio", adamArchitect$componentsNumberETSSeasonal,
+            checker$etsModel, modelStr,
+            checker$xregModel, checker$arimaModel,
+            checker$arOrders, checker$iOrders, checker$maOrders, lags,
+            regressors, checker$constantRequired, checker$constantName,
+            occurrence, adamArchitect$componentsNumberETSSeasonal,
             prefix = "o")
 
         vecGFinal <- adamFilled$vecG
@@ -1178,43 +888,43 @@ omg <- function(data,
 
         initialCollected <- adam_initial_collector(
             adamFitted$states[, seq_len(adamArchitect$lagsModelMax), drop=FALSE],
-            resB$etsModel, resB$modelIsTrendy, resB$modelIsSeasonal,
+            checker$etsModel, checker$modelIsTrendy, checker$modelIsSeasonal,
             adamArchitect$lagsModel, adamArchitect$lagsModelMax,
-            resB$initialLevelEstimate, resB$initialTrendEstimate,
-            resB$initialSeasonalEstimate,
+            checker$initialLevelEstimate, checker$initialTrendEstimate,
+            checker$initialSeasonalEstimate,
             adamArchitect$componentsNumberETSSeasonal,
-            resB$arimaModel, resB$initialArimaEstimate,
-            checkerB$initialArima, checkerB$initialArimaNumber,
-            adamArchitect$componentsNumberETS, checkerB$componentsNumberARIMA,
-            adamFilled$arimaPolynomials, resB$Etype,
-            checkerB$xregModel, resB$initialXregEstimate, checkerB$xregNumber)
+            checker$arimaModel, checker$initialArimaEstimate,
+            checker$initialArima, checker$initialArimaNumber,
+            adamArchitect$componentsNumberETS, checker$componentsNumberARIMA,
+            adamFilled$arimaPolynomials, checker$Etype,
+            checker$xregModel, checker$initialXregEstimate, checker$xregNumber)
 
-        if(resB$arimaModel && (resB$arRequired || resB$maRequired)) {
-            armaParametersList <- vector("list", resB$arRequired + resB$maRequired)
+        if(checker$arimaModel && (checker$arRequired || checker$maRequired)) {
+            armaParametersList <- vector("list", checker$arRequired + checker$maRequired)
             j <- 1L
-            if(resB$arRequired && resB$arEstimate) {
-                armaParametersList[[j]] <- resB$B[nchar(names(resB$B))>3 &
-                                                      substr(names(resB$B),1,3)=="phi"]
+            if(checker$arRequired && checker$arEstimate) {
+                armaParametersList[[j]] <- res$B[nchar(names(res$B))>3 &
+                                                     substr(names(res$B),1,3)=="phi"]
                 names(armaParametersList)[j] <- "ar"; j <- j + 1L
-            } else if(resB$arRequired) {
-                armaParametersList[[j]] <- checkerB$armaParameters[
-                    substr(names(checkerB$armaParameters),1,3)=="phi"]
+            } else if(checker$arRequired) {
+                armaParametersList[[j]] <- checker$armaParameters[
+                    substr(names(checker$armaParameters),1,3)=="phi"]
                 names(armaParametersList)[j] <- "ar"; j <- j + 1L
             }
-            if(resB$maRequired && resB$maEstimate) {
-                armaParametersList[[j]] <- resB$B[substr(names(resB$B),1,5)=="theta"]
+            if(checker$maRequired && checker$maEstimate) {
+                armaParametersList[[j]] <- res$B[substr(names(res$B),1,5)=="theta"]
                 names(armaParametersList)[j] <- "ma"
-            } else if(resB$maRequired) {
-                armaParametersList[[j]] <- checkerB$armaParameters[
-                    substr(names(checkerB$armaParameters),1,5)=="theta"]
+            } else if(checker$maRequired) {
+                armaParametersList[[j]] <- checker$armaParameters[
+                    substr(names(checker$armaParameters),1,5)=="theta"]
                 names(armaParametersList)[j] <- "ma"
             }
         } else {
             armaParametersList <- NULL
         }
 
-        parNum <- checkerB$parametersNumber
-        parNum[1,1] <- resB$nParamEstimated
+        parNum <- checker$parametersNumber
+        parNum[1,1] <- res$nParamEstimated
         parNum[1,5] <- sum(parNum[1,1:4])
         parNum[2,5] <- sum(parNum[2,1:4])
 
@@ -1229,38 +939,35 @@ omg <- function(data,
             profile     = adamFitted$profile,
             profileInitial = NULL,
             persistence = persistenceVec,
-            phi         = if(resB$phiEstimate) resB$B["phi"] else checkerB$phi,
+            phi         = if(checker$phiEstimate) res$B["phi"] else checker$phi,
             transition  = adamFilled$matF,
             measurement = adamFilled$matWt,
             initial     = initialCollected$initialValue,
-            initialType = checkerB$initialType,
+            initialType = checker$initialType,
             initialEstimated = initialCollected$initialEstimated,
-            orders      = list(ar=resB$arOrders, i=resB$iOrders, ma=resB$maOrders),
+            orders      = list(ar=checker$arOrders, i=checker$iOrders, ma=checker$maOrders),
             arma        = armaParametersList,
-            constant    = if(checkerB$constantRequired) {
-                if(checkerB$constantEstimate) resB$B[checkerB$constantName] else checkerB$constantValue
+            constant    = if(checker$constantRequired) {
+                if(checker$constantEstimate) res$B[checker$constantName] else checker$constantValue
             } else NULL,
             nParam      = parNum,
-            occurrence  = "inverse-odds-ratio",
-            formula     = checkerB$formula,
-            regressors  = regressorsB,
+            occurrence  = occurrence,
+            formula     = checker$formula,
+            regressors  = regressors,
             loss        = loss,
-            lossValue   = resB$CFValue,
+            lossValue   = res$CFValue,
             lossFunction = NULL,
-            logLik      = resB$logLikADAMValue,
+            logLik      = res$logLikADAMValue,
             distribution = "plogis",
             scale       = NA,
             other       = NULL,
-            B           = resB$B,
+            B           = res$B,
             lags        = lags,
             lagsAll     = adamArchitect$lagsModelAll,
-            ets         = resB$etsModel,
-            res         = resB,
+            ets         = checker$etsModel,
+            res         = res,
             FI          = NULL,
             adamCpp     = adamArchitect$adamCpp,
-            forecastMeasurement = if(hLocal > 0) tail(adamFilled$matWt, hLocal) else NULL,
-            forecastIndexLookup = if(hLocal > 0) adamArchitect$indexLookupTable[,
-                adamArchitect$lagsModelMax + obsInSample + seq_len(hLocal), drop=FALSE] else NULL,
             bounds      = bounds,
             call        = cl)
 
@@ -1275,78 +982,32 @@ omg <- function(data,
     #### Run estimation ####
     jointResult <- omgEstimator()
 
-    # Build result structs for sub-models
     resA <- list(
-        B                        = jointResult$B_A,
-        nParamEstimated          = jointResult$nParamsA,
-        logLikADAMValue          = NULL,
-        CFValue                  = 0,
-        etsModel                 = checkerA$etsModel,
-        Etype                    = checkerA$Etype,
-        Ttype                    = checkerA$Ttype,
-        Stype                    = checkerA$Stype,
-        modelIsTrendy            = checkerA$modelIsTrendy,
-        modelIsSeasonal          = checkerA$modelIsSeasonal,
-        arimaModel               = checkerA$arimaModel,
-        arOrders                 = checkerA$arOrders,
-        iOrders                  = checkerA$iOrders,
-        maOrders                 = checkerA$maOrders,
-        arRequired               = checkerA$arRequired,
-        iRequired                = checkerA$iRequired,
-        maRequired               = checkerA$maRequired,
-        arEstimate               = checkerA$arEstimate,
-        maEstimate               = checkerA$maEstimate,
-        phiEstimate              = checkerA$phiEstimate,
-        persistenceEstimate      = checkerA$persistenceEstimate,
-        persistenceLevelEstimate = checkerA$persistenceLevelEstimate,
-        persistenceTrendEstimate = checkerA$persistenceTrendEstimate,
-        persistenceSeasonalEstimate = checkerA$persistenceSeasonalEstimate,
-        persistenceXregEstimate  = checkerA$persistenceXregEstimate,
-        initialEstimate          = checkerA$initialEstimate,
-        initialLevelEstimate     = checkerA$initialLevelEstimate,
-        initialTrendEstimate     = checkerA$initialTrendEstimate,
-        initialSeasonalEstimate  = checkerA$initialSeasonalEstimate,
-        initialArimaEstimate     = checkerA$initialArimaEstimate,
-        initialXregEstimate      = checkerA$initialXregEstimate,
-        FI                       = NULL)
+        B               = jointResult$B_A,
+        nParamEstimated = jointResult$nParamsA,
+        logLikADAMValue = NULL,
+        CFValue         = 0,
+        FI              = NULL,
+        checker         = checkerA,
+        adamArchitect   = jointResult$adamArchitectA,
+        adamCreated     = jointResult$adamCreatedA,
+        occurrence      = "odds-ratio",
+        regressors      = regressorsA)
 
     resB <- list(
-        B                        = jointResult$B_B,
-        nParamEstimated          = jointResult$nParamsB,
-        logLikADAMValue          = NULL,
-        CFValue                  = 0,
-        etsModel                 = checkerB$etsModel,
-        Etype                    = checkerB$Etype,
-        Ttype                    = checkerB$Ttype,
-        Stype                    = checkerB$Stype,
-        modelIsTrendy            = checkerB$modelIsTrendy,
-        modelIsSeasonal          = checkerB$modelIsSeasonal,
-        arimaModel               = checkerB$arimaModel,
-        arOrders                 = checkerB$arOrders,
-        iOrders                  = checkerB$iOrders,
-        maOrders                 = checkerB$maOrders,
-        arRequired               = checkerB$arRequired,
-        iRequired                = checkerB$iRequired,
-        maRequired               = checkerB$maRequired,
-        arEstimate               = checkerB$arEstimate,
-        maEstimate               = checkerB$maEstimate,
-        phiEstimate              = checkerB$phiEstimate,
-        persistenceEstimate      = checkerB$persistenceEstimate,
-        persistenceLevelEstimate = checkerB$persistenceLevelEstimate,
-        persistenceTrendEstimate = checkerB$persistenceTrendEstimate,
-        persistenceSeasonalEstimate = checkerB$persistenceSeasonalEstimate,
-        persistenceXregEstimate  = checkerB$persistenceXregEstimate,
-        initialEstimate          = checkerB$initialEstimate,
-        initialLevelEstimate     = checkerB$initialLevelEstimate,
-        initialTrendEstimate     = checkerB$initialTrendEstimate,
-        initialSeasonalEstimate  = checkerB$initialSeasonalEstimate,
-        initialArimaEstimate     = checkerB$initialArimaEstimate,
-        initialXregEstimate      = checkerB$initialXregEstimate,
-        FI                       = NULL)
+        B               = jointResult$B_B,
+        nParamEstimated = jointResult$nParamsB,
+        logLikADAMValue = NULL,
+        CFValue         = 0,
+        FI              = NULL,
+        checker         = checkerB,
+        adamArchitect   = jointResult$adamArchitectB,
+        adamCreated     = jointResult$adamCreatedB,
+        occurrence      = "inverse-odds-ratio",
+        regressors      = regressorsB)
 
-    # Build sub-model objects with forecast-period matrices included
-    modelA <- omgFinalFitA(resA, hLocal=h)
-    modelB <- omgFinalFitB(resB, hLocal=h)
+    modelA <- omgFinalFit(resA, hLocal=h)
+    modelB <- omgFinalFit(resB, hLocal=h)
 
     EtypeA <- errorType(modelA)
     EtypeB <- errorType(modelB)
@@ -1356,25 +1017,10 @@ omg <- function(data,
     yFitted   <- modelA$fitted
     yFitted[] <- omgLinkFunction(yFittedA, yFittedB, EtypeA, EtypeB)
 
-    adamCppA <- modelA$adamCpp
-    adamCppB <- modelB$adamCpp
-
     yForecast <- NULL
     if(h > 0) {
-        yForecastA <- adamCppA$forecast(
-            modelA$forecastMeasurement, modelA$transition,
-            modelA$forecastIndexLookup, modelA$profile, h
-        )$forecast
-        yForecastB <- adamCppB$forecast(
-            modelB$forecastMeasurement, modelB$transition,
-            modelB$forecastIndexLookup, modelB$profile, h
-        )$forecast
-        yForecastCombined <- omgLinkFunction(yForecastA, yForecastB, EtypeA, EtypeB)
-        yForecast <- if(any(yClasses == "ts")) {
-            ts(yForecastCombined, start=yForecastStart, frequency=yFrequency)
-        } else {
-            zoo(yForecastCombined, order.by=yForecastIndex)
-        }
+        yForecast <- modelA$forecast;
+        yForecast[] <- omgLinkFunction(modelA$forecast, modelB$forecast, EtypeA, EtypeB)
     }
 
     modelName <- paste0("oETS[G](", modelType(modelA), ")(", modelType(modelB), ")")
@@ -1408,7 +1054,7 @@ omg <- function(data,
     if(holdout) {
         result$holdout  <- yHoldout
         result$accuracy <- measures(as.vector(yHoldout), yForecast,
-                                    as.vector(yFitted))
+                                    as.vector(yInSample))
     }
 
     class(result) <- c("omg","om","smooth","occurrence")
