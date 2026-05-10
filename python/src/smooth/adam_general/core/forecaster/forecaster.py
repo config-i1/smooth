@@ -14,6 +14,7 @@ from ._helpers import (
 )
 from .intervals import (
     ensure_level_format,
+    generate_multistep_interval,
     generate_prediction_interval,
     generate_simulation_interval,
 )
@@ -356,7 +357,12 @@ def _process_occurrence_forecast(occurrence_dict, general_dict):
         # If this is a mixture model, produce forecasts for the occurrence
         if occurrence_dict.get("occurrence_model"):
             occurrence_model = True
-            p_forecast = np.ones(general_dict["h"])
+            # Use pre-computed p_forecast if available (set by ADAM.predict before
+            # calling forecaster so intervals can use the actual OM probabilities).
+            if occurrence_dict.get("p_forecast") is not None:
+                p_forecast = np.asarray(occurrence_dict["p_forecast"], dtype=float)
+            else:
+                p_forecast = np.ones(general_dict["h"])
         else:
             occurrence_model = False
             # If this was provided occurrence, then use provided values
@@ -719,9 +725,8 @@ def forecaster(
     y_forecast_values = y_forecast_values * p_forecast
     if general_dict.get("cumulative"):
         y_forecast_values = np.sum(y_forecast_values)
-    # In case of occurrence model use simulations - the cumulative
-    # probability is complex
-    if occurrence_model:
+    # For cumulative+occurrence the Bernoulli sum is non-trivial; force simulated.
+    if occurrence_model and general_dict.get("cumulative", False):
         general_dict["interval"] = "simulated"
         resolved_interval = "simulated"
 
@@ -769,6 +774,7 @@ def forecaster(
                     level_low,
                     level_up,
                     nsim=nsim,
+                    p_forecast=p_forecast if occurrence_model else None,
                 )
             if general_dict.get("scenarios", False):
                 general_dict["_scenarios_matrix"] = y_simulated
@@ -783,12 +789,31 @@ def forecaster(
                 params_info,
                 level_low,
                 level_up,
+                p_forecast=p_forecast if occurrence_model else None,
+            )
+            if general_dict.get("scenarios", False):
+                warnings.warn('scenarios=True requires interval="simulated". Ignored.')
+        elif resolved_interval in ("semiparametric", "empirical", "nonparametric"):
+            y_lower, y_upper = generate_multistep_interval(
+                y_forecast_values,
+                model_prepared,
+                general_dict,
+                observations_dict,
+                model_type_dict,
+                lags_dict,
+                params_info,
+                adam_cpp,
+                level_low,
+                level_up,
+                resolved_interval,
             )
             if general_dict.get("scenarios", False):
                 warnings.warn('scenarios=True requires interval="simulated". Ignored.')
         else:
             raise NotImplementedError(
-                f'interval="{resolved_interval}" is not yet implemented'
+                f'interval="{resolved_interval}" is not yet implemented. '
+                '"confidence" and "complete" require reforecast() '
+                "which is not yet ported."
             )
 
         n_levels = len(level_low)

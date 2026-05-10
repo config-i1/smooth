@@ -2496,6 +2496,41 @@ class ADAM:
         self._check_is_fitted()
         return getattr(self, "_om_model", None)
 
+    def rmultistep(self, h: int = 10) -> pd.DataFrame:
+        """Return the (T-h) × h matrix of rolling in-sample multistep forecast errors.
+
+        Translates R's rmultistep.adam() from R/rmultistep.R.
+        Must be called after fit().
+
+        Parameters
+        ----------
+        h : int
+            Forecast horizon (number of steps ahead). Default 10.
+
+        Returns
+        -------
+        pd.DataFrame
+            Shape (T-h, h) where T is obs_in_sample.
+        """
+        from smooth.adam_general.core.forecaster._helpers import (
+            _compute_multistep_errors,
+        )
+
+        self._check_is_fitted()
+        gen = {**self._general, "h": h}
+        mat_wt = np.asfortranarray(self._prepared["measurement"], dtype=np.float64)
+        mat_f = np.asfortranarray(self._prepared["transition"], dtype=np.float64)
+        errors = _compute_multistep_errors(
+            self._adam_cpp,
+            self._prepared,
+            self._observations,
+            self._lags_model,
+            gen,
+            mat_wt,
+            mat_f,
+        )
+        return pd.DataFrame(errors, columns=[f"h={i + 1}" for i in range(h)])
+
     def predict(
         self,
         h: int,
@@ -2619,18 +2654,42 @@ class ADAM:
         self._validate_prediction_inputs()
         self._prepare_prediction_data()
 
-        # Execute the prediction
+        # Pre-compute p_forecast so forecaster can use it for both point forecasts
+        # and interval adjustment (R: forecast.adam lines 6134-6172, 6204-6210).
+        p_forecast_arr = None
+        if getattr(self, "_om_model", None) is not None:
+            occ_fc = self._om_model.predict(h=h)
+            p_forecast_arr = np.asarray(occ_fc.mean.values, dtype=float)
+            # Store in occurrence_dict so _process_occurrence_forecast can use it
+            self._occurrence["p_forecast"] = p_forecast_arr
+
+        # Execute the prediction (forecaster handles p scaling + interval adjustment)
         predictions = self._execute_prediction(
             interval=interval,
             level=level,
             side=side,
         )
 
-        # Scale demand forecast by occurrence probability (mirrors R:2002-2004)
-        if getattr(self, "_om_model", None) is not None:
-            occ_fc = self._om_model.predict(h=h)
-            p_forecast = np.asarray(occ_fc.mean.values, dtype=float)
-            predictions.mean[:] = np.asarray(predictions.mean.values) * p_forecast
+        # Post-interval NA patch (R/adam.R ~6742-6751)
+        if p_forecast_arr is not None:
+            if predictions.upper is not None:
+                upper_vals = predictions.upper.values
+                mask = np.isnan(upper_vals)
+                if np.any(mask):
+                    fill = (predictions.mean.values / p_forecast_arr).reshape(-1, 1)
+                    predictions.upper = pd.DataFrame(
+                        np.where(mask, fill, upper_vals),
+                        index=predictions.upper.index,
+                        columns=predictions.upper.columns,
+                    )
+            if predictions.lower is not None:
+                lower_vals = predictions.lower.values
+                if np.any(np.isnan(lower_vals)):
+                    predictions.lower = pd.DataFrame(
+                        np.where(np.isnan(lower_vals), 0.0, lower_vals),
+                        index=predictions.lower.index,
+                        columns=predictions.lower.columns,
+                    )
 
         # Recompute accuracy measures against holdout if available
         if self._general.get("holdout", False):
@@ -3561,6 +3620,10 @@ class ADAM:
         self._general["h"] = h
         self._prepare_prediction_data()
 
+        if getattr(self, "_om_model", None) is not None:
+            occ_fc = self._om_model.predict(h=h)
+            self._occurrence["p_forecast"] = np.asarray(occ_fc.mean.values, dtype=float)
+
         auto_fc = forecaster(
             model_prepared=self._prepared,
             observations_dict=self._observations,
@@ -3577,10 +3640,6 @@ class ADAM:
             level=0.95,
             side="both",
         )
-        if getattr(self, "_om_model", None) is not None:
-            occ_fc = self._om_model.predict(h=h)
-            p_forecast = np.asarray(occ_fc.mean.values, dtype=float)
-            auto_fc.mean[:] = np.asarray(auto_fc.mean.values) * p_forecast
         self._auto_forecast = auto_fc
 
         if not getattr(self, "holdout", False):
