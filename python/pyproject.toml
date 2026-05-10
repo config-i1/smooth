@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "smooth"
-version = "1.0.2"
+version = "1.0.3"
 description = "Python version of the smooth forecasting library"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -55,6 +55,7 @@ addopts = [
     "-v",
     "--tb=short",
     "-ra",
+    "-m", "not r_comparison",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
@@ -62,6 +63,7 @@ filterwarnings = [
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "r_comparison: tests that compare Python output against R reference data (skipped by default; run with -m r_comparison)",
 ]
 
 [tool.coverage.run]

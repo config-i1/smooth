@@ -19,6 +19,7 @@ def architector(
     # Profiles
     profiles_recent_table: Union[np.ndarray, None] = None,
     profiles_recent_provided: bool = False,
+    adam_ets: bool = False,
 ) -> Dict[str, Any]:
     """
     Determine and set up ADAM model architecture before matrix creation.
@@ -277,7 +278,7 @@ def architector(
         constant=constants_checked.get("constant_required", False)
         if constants_checked
         else False,
-        adamETS=False,  # Default like R
+        adamETS=adam_ets,
     )
 
     return (

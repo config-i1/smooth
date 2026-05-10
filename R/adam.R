@@ -1444,46 +1444,59 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         ##### Parameter estimation ####
         # Parameters are chosen to speed up the optimisation process and have decent accuracy
-        res <- suppressWarnings(nloptr(B, CF, lb=lb, ub=ub,
-                                       opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
-                                                 ftol_rel=ftol_rel, ftol_abs=ftol_abs,
-                                                 maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level),
-                                       etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
-                                       modelIsSeasonal=modelIsSeasonal, yInSample=yInSample,
-                                       ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel, obsInSample=obsInSample,
-                                       componentsNumberETS=componentsNumberETS,
-                                       componentsNumberETSSeasonal=componentsNumberETSSeasonal,
-                                       componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
-                                       componentsNumberARIMA=componentsNumberARIMA,
-                                       lags=lags, lagsModel=lagsModel, lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
-                                       indexLookupTable=indexLookupTable, profilesRecentTable=profilesRecentTable,
-                                       matVt=adamCreated$matVt, matWt=adamCreated$matWt,
-                                       matF=adamCreated$matF, vecG=adamCreated$vecG,
-                                       persistenceEstimate=persistenceEstimate, persistenceLevelEstimate=persistenceLevelEstimate,
-                                       persistenceTrendEstimate=persistenceTrendEstimate,
-                                       persistenceSeasonalEstimate=persistenceSeasonalEstimate,
-                                       persistenceXregEstimate=persistenceXregEstimate,
-                                       phiEstimate=phiEstimate, initialType=initialType,
-                                       initialEstimate=initialEstimate, initialLevelEstimate=initialLevelEstimate,
-                                       initialTrendEstimate=initialTrendEstimate, initialSeasonalEstimate=initialSeasonalEstimate,
-                                       initialArimaEstimate=initialArimaEstimate, initialXregEstimate=initialXregEstimate,
-                                       arimaModel=arimaModel, nonZeroARI=nonZeroARI, nonZeroMA=nonZeroMA,
-                                       arimaPolynomials=adamCreated$arimaPolynomials,
-                                       arEstimate=arEstimate, maEstimate=maEstimate,
-                                       arOrders=arOrders, iOrders=iOrders, maOrders=maOrders,
-                                       arRequired=arRequired, maRequired=maRequired, armaParameters=armaParameters,
-                                       xregModel=xregModel, xregNumber=xregNumber,
-                                       xregParametersMissing=xregParametersMissing,
-                                       xregParametersIncluded=xregParametersIncluded,
-                                       xregParametersEstimated=xregParametersEstimated,
-                                       xregParametersPersistence=xregParametersPersistence,
-                                       constantRequired=constantRequired, constantEstimate=constantEstimate,
-                                       bounds=bounds, loss=loss, lossFunction=lossFunction, distribution=distributionNew,
-                                       horizon=horizon, multisteps=multisteps,
-                                       denominator=denominator, yDenominator=yDenominator,
-                                       other=other, otherParameterEstimate=otherParameterEstimate, lambda=lambda,
-                                       arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix,
-                                       adamCpp=adamCpp));
+        nloptrArgs <- list(etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype,
+                           modelIsTrendy=modelIsTrendy, modelIsSeasonal=modelIsSeasonal,
+                           yInSample=yInSample,
+                           ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel,
+                           obsInSample=obsInSample,
+                           componentsNumberETS=componentsNumberETS,
+                           componentsNumberETSSeasonal=componentsNumberETSSeasonal,
+                           componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
+                           componentsNumberARIMA=componentsNumberARIMA,
+                           lags=lags, lagsModel=lagsModel, lagsModelAll=lagsModelAll,
+                           lagsModelMax=lagsModelMax,
+                           indexLookupTable=indexLookupTable, profilesRecentTable=profilesRecentTable,
+                           matVt=adamCreated$matVt, matWt=adamCreated$matWt,
+                           matF=adamCreated$matF, vecG=adamCreated$vecG,
+                           persistenceEstimate=persistenceEstimate,
+                           persistenceLevelEstimate=persistenceLevelEstimate,
+                           persistenceTrendEstimate=persistenceTrendEstimate,
+                           persistenceSeasonalEstimate=persistenceSeasonalEstimate,
+                           persistenceXregEstimate=persistenceXregEstimate,
+                           phiEstimate=phiEstimate, initialType=initialType,
+                           initialEstimate=initialEstimate, initialLevelEstimate=initialLevelEstimate,
+                           initialTrendEstimate=initialTrendEstimate,
+                           initialSeasonalEstimate=initialSeasonalEstimate,
+                           initialArimaEstimate=initialArimaEstimate,
+                           initialXregEstimate=initialXregEstimate,
+                           arimaModel=arimaModel, nonZeroARI=nonZeroARI, nonZeroMA=nonZeroMA,
+                           arimaPolynomials=adamCreated$arimaPolynomials,
+                           arEstimate=arEstimate, maEstimate=maEstimate,
+                           arOrders=arOrders, iOrders=iOrders, maOrders=maOrders,
+                           arRequired=arRequired, maRequired=maRequired,
+                           armaParameters=armaParameters,
+                           xregModel=xregModel, xregNumber=xregNumber,
+                           xregParametersMissing=xregParametersMissing,
+                           xregParametersIncluded=xregParametersIncluded,
+                           xregParametersEstimated=xregParametersEstimated,
+                           xregParametersPersistence=xregParametersPersistence,
+                           constantRequired=constantRequired, constantEstimate=constantEstimate,
+                           bounds=bounds, loss=loss, lossFunction=lossFunction,
+                           distribution=distributionNew,
+                           horizon=horizon, multisteps=multisteps,
+                           denominator=denominator, yDenominator=yDenominator,
+                           other=other, otherParameterEstimate=otherParameterEstimate,
+                           lambda=lambda,
+                           arPolynomialMatrix=arPolynomialMatrix,
+                           maPolynomialMatrix=maPolynomialMatrix,
+                           adamCpp=adamCpp);
+        opts <- list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
+                     ftol_rel=ftol_rel, ftol_abs=ftol_abs,
+                     maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level);
+        res <- suppressWarnings(do.call(nloptr,
+                                        c(list(x0=B, eval_f=CF, lb=lb, ub=ub, opts=opts),
+                                          nloptrArgs)));
+        res$call <- quote(nloptr(x0=B, eval_f=CF, lb=lb, ub=ub, opts=opts));
 
         if(is.infinite(res$objective) || res$objective==1e+300){
             # If the optimisation didn't work, give it another try with zero initials for smoothing parameters
@@ -1494,48 +1507,13 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 B[componentsNumberETS+persistenceXregEstimate*xregNumber+
                       c(1:sum(arOrders*arEstimate,maOrders*maEstimate))] <- 0.01;
             }
-            # print(B)
-            res <- suppressWarnings(nloptr(B, CF, lb=lb, ub=ub,
-                                           opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
-                                                     ftol_rel=ftol_rel, ftol_abs=ftol_abs,
-                                                     maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level),
-                                           etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
-                                           modelIsSeasonal=modelIsSeasonal, yInSample=yInSample,
-                                           ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel, obsInSample=obsInSample,
-                                           componentsNumberETS=componentsNumberETS,
-                                           componentsNumberETSSeasonal=componentsNumberETSSeasonal,
-                                           componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
-                                           componentsNumberARIMA=componentsNumberARIMA,
-                                           lags=lags, lagsModel=lagsModel, lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
-                                           indexLookupTable=indexLookupTable, profilesRecentTable=profilesRecentTable,
-                                           matVt=adamCreated$matVt, matWt=adamCreated$matWt,
-                                           matF=adamCreated$matF, vecG=adamCreated$vecG,
-                                           persistenceEstimate=persistenceEstimate,
-                                           persistenceLevelEstimate=persistenceLevelEstimate,
-                                           persistenceTrendEstimate=persistenceTrendEstimate,
-                                           persistenceSeasonalEstimate=persistenceSeasonalEstimate,
-                                           persistenceXregEstimate=persistenceXregEstimate,
-                                           phiEstimate=phiEstimate, initialType=initialType,
-                                           initialEstimate=initialEstimate, initialLevelEstimate=initialLevelEstimate,
-                                           initialTrendEstimate=initialTrendEstimate, initialSeasonalEstimate=initialSeasonalEstimate,
-                                           initialArimaEstimate=initialArimaEstimate, initialXregEstimate=initialXregEstimate,
-                                           arimaModel=arimaModel, nonZeroARI=nonZeroARI, nonZeroMA=nonZeroMA,
-                                           arimaPolynomials=adamCreated$arimaPolynomials,
-                                           arEstimate=arEstimate, maEstimate=maEstimate,
-                                           arOrders=arOrders, iOrders=iOrders, maOrders=maOrders,
-                                           arRequired=arRequired, maRequired=maRequired, armaParameters=armaParameters,
-                                           xregModel=xregModel, xregNumber=xregNumber,
-                                           xregParametersMissing=xregParametersMissing,
-                                           xregParametersIncluded=xregParametersIncluded,
-                                           xregParametersEstimated=xregParametersEstimated,
-                                           xregParametersPersistence=xregParametersPersistence,
-                                           constantRequired=constantRequired, constantEstimate=constantEstimate,
-                                           bounds=bounds, loss=loss, lossFunction=lossFunction, distribution=distributionNew,
-                                           horizon=horizon, multisteps=multisteps,
-                                           denominator=denominator, yDenominator=yDenominator,
-                                           other=other, otherParameterEstimate=otherParameterEstimate, lambda=lambda,
-                                           arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix,
-                                           adamCpp=adamCpp));
+            opts <- list(algorithm=algorithm, xtol_rel=xtol_rel,
+                         ftol_rel=ftol_rel, ftol_abs=ftol_abs,
+                         maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level);
+            res <- suppressWarnings(do.call(nloptr,
+                                            c(list(x0=B, eval_f=CF, lb=lb, ub=ub, opts=opts),
+                                              nloptrArgs)));
+            res$call <- quote(nloptr(x0=B, eval_f=CF, lb=lb, ub=ub, opts=opts));
         }
 
         if(print_level_hidden>0){
@@ -1703,7 +1681,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                           colnames(xregDataOriginal)!=responseName,
                                           drop=FALSE],
                 obsInSample=obsInSample, ic=ic,
-                df=df, distribution=distributionNew, occurrence=oesModel,
+                df=df, distribution=distributionNew, occurrence=omModel,
                 other=other);
             xregNumber <- length(xregModelInitials[[xregIndex]]$initialXreg);
             xregNames <- names(xregModelInitials[[xregIndex]]$initialXreg);
@@ -1754,7 +1732,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 # Estimate alm again in order to get proper initials
                 almModel <- do.call(alm,list(formula=formulaToUse,
                                              data=data[1:obsInSample,,drop=FALSE],
-                                             distribution=distributionNew, loss=lossNew, occurrence=oesModel));
+                                             distribution=distributionNew, loss=lossNew, occurrence=omModel));
 
                 # Remove trend
                 if(!trendIncluded){
@@ -1904,7 +1882,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                            initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
                            initialArimaEstimate, initialXregEstimate,
                            matVt, matWt, matF, vecG,
-                           occurrenceModel, ot, oesModel,
+                           occurrenceModel, ot, omModel,
                            parametersNumber, CFValue,
                            arimaModel, arRequired, maRequired,
                            arEstimate, maEstimate, arOrders, iOrders, maOrders,
@@ -1993,7 +1971,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     call.=FALSE, immediate.=TRUE);
         }
         if(occurrenceModel){
-            yFitted[] <- yFitted * pFitted;
+            yFitted[] <- yFitted * as.numeric(pFitted);
         }
 
         # Fix the cases, when we have zeroes in the provided occurrence
@@ -2022,7 +2000,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
             # Amend forecasts, multiplying by probability
             if(occurrenceModel && !occurrenceModelProvided){
-                yForecast[] <- yForecast * c(suppressWarnings(forecast(oesModel, h=h))$mean);
+                yForecast[] <- yForecast * as.numeric(suppressWarnings(forecast(omModel, h=h))$mean);
             }
             else if((occurrenceModel && occurrenceModelProvided) || occurrence=="provided"){
                 yForecast[] <- yForecast * pForecast;
@@ -2173,7 +2151,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     measurement=matWt, initial=initialValue, initialType=initialType,
                     initialEstimated=initialEstimated, orders=orders, arma=armaParametersList,
                     constant=constantValue, nParam=parametersNumber,
-                    occurrence=oesModel, formula=formula, regressors=regressors,
+                    occurrence=omModel, formula=formula, regressors=regressors,
                     loss=loss, lossValue=CFValue, logLik=logLikADAMValue, distribution=distribution,
                     scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, ets=ets,
                     res=res, FI=FI, adamCpp=adamCpp));
@@ -2181,17 +2159,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
     #### Deal with occurrence model ####
     if(occurrenceModel && !occurrenceModelProvided){
-        modelForOES <- model;
-        if(model=="NNN"){
-            modelForOES[] <- "MNN";
-        }
-        oesModel <- suppressWarnings(oes(ot, model=modelForOES, occurrence=occurrence, ic=ic, h=horizon,
-                                         holdout=FALSE, bounds="usual", xreg=xregData, regressors=regressors, silent=TRUE));
-        pFitted[] <- fitted(oesModel);
-        parametersNumber[1,3] <- nparam(oesModel);
-        # print(oesModel)
+        omModel <- suppressWarnings(om(data=data, model=model, lags=lags,
+                                        orders=orders, occurrence=occurrence, formula=formula,
+                                        ic=ic, h=horizon,
+                                        holdout=holdout, bounds=bounds, regressors=regressors,
+                                        initial=initialType, ets=ets, silent=TRUE));
+        pFitted[] <- fitted(omModel);
+        parametersNumber[1,3] <- nparam(omModel);
+        # print(omModel)
         # This should not happen, but just in case...
-        if(oesModel$occurrence=="n"){
+        if(omModel$occurrence=="n"){
             occurrence <- "n";
             otLogical <- rep(TRUE,obsInSample);
             occurrenceModel <- FALSE;
@@ -2216,7 +2193,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
     }
     else if(occurrenceModel && occurrenceModelProvided){
-        parametersNumber[2,3] <- nparam(oesModel);
+        parametersNumber[2,3] <- nparam(omModel);
     }
 
     xregDataOriginal <- xregData;
@@ -2890,7 +2867,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                     initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
                                     initialArimaEstimate, initialXregEstimate,
                                     matVt, matWt, matF, vecG,
-                                    occurrenceModel, ot, oesModel,
+                                    occurrenceModel, ot, omModel,
                                     parametersNumber, CFValue,
                                     arimaModel, arRequired, maRequired,
                                     arEstimate, maEstimate, arOrders, iOrders, maOrders,
@@ -2902,7 +2879,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         modelName <- adam_model_name(etsModel, model, xregModel, arimaModel,
                                      arOrders, iOrders, maOrders, lags,
                                      regressors, constantRequired, constantName,
-                                     occurrence, componentsNumberETSSeasonal);
+                                     modelReturned$occurrence$occurrence, componentsNumberETSSeasonal);
 
         modelReturned$model <- modelName;
         modelReturned$timeElapsed <- Sys.time()-startTime;
@@ -2969,7 +2946,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                     initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
                                                     initialArimaEstimate, initialXregEstimate,
                                                     matVt, matWt, matF, vecG,
-                                                    occurrenceModel, ot, oesModel,
+                                                    occurrenceModel, ot, omModel,
                                                     parametersNumber, CFValue,
                                                     arimaModel, arRequired, maRequired,
                                                     arEstimate, maEstimate, arOrders, iOrders, maOrders,

@@ -20,6 +20,9 @@ Classes
    ES
    MSARIMA
    AutoMSARIMA
+   OM
+   OMG
+   AutoOM
 
 ADAM Methods
 ------------
@@ -33,6 +36,7 @@ ADAM Methods
    ADAM.predict_intervals
    ADAM.select_best_model
    ADAM.summary
+   ADAM.plot
 
 ADAM Diagnostics
 ----------------
@@ -87,6 +91,35 @@ AutoMSARIMA Methods
 
    AutoMSARIMA.fit
    AutoMSARIMA.predict
+
+OM Methods
+----------
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: method.rst
+
+   OM.fit
+   OM.predict
+
+OMG Methods
+-----------
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: method.rst
+
+   OMG.fit
+   OMG.predict
+
+AutoOM Methods
+--------------
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: method.rst
+
+   AutoOM.fit
 
 Utility Functions
 -----------------
@@ -147,5 +180,6 @@ customize the optimization behavior via the ``nlopt_kargs`` parameter:
    api
    autoadam
    msarima
+   om
    msdecompose
    lowess

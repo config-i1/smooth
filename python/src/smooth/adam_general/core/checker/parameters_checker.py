@@ -53,7 +53,6 @@ def parameters_checker(
     silent=False,
     fast=False,
     lambda_param=None,
-    frequency=None,
     interval="none",
     interval_level=[0.95],
     side="both",
@@ -375,14 +374,6 @@ def parameters_checker(
 
         Typical values: 0.01-0.1 for moderate regularization.
 
-    frequency : str or None, default=None
-        Time series frequency for date/time indexing.
-
-        Pandas frequency strings: "D" (daily), "W" (weekly), "M" (monthly),
-        "Q" (quarterly), "Y" (yearly), "H" (hourly), etc.
-
-        If None, inferred from data if it has DatetimeIndex.
-
     interval : str, default="prediction"
         Prediction interval type (matches R's ``forecast.adam()``).
 
@@ -530,7 +521,7 @@ def parameters_checker(
         except Exception:
             raise ValueError("Data must be numeric or convertible to numeric values")
 
-    occ_info = _check_occurrence(data_values, occurrence, frequency, silent, holdout, h)
+    occ_info = _check_occurrence(data_values, occurrence, silent, holdout, h)
     obs_in_sample = occ_info["obs_in_sample"]
     obs_nonzero = occ_info["obs_nonzero"]
     occurrence_model = occ_info["occurrence_model"]
@@ -839,7 +830,6 @@ def parameters_checker(
         occurrence=occurrence_dict["occurrence"],
         occurrence_model=occurrence_dict["occurrence_model"],
         obs_in_sample=obs_in_sample,
-        frequency=frequency,
         h=h,
         holdout=holdout,
     )

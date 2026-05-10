@@ -14,8 +14,11 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from smooth.adam_general.core.auto_adam import AutoADAM
+
+pytestmark = pytest.mark.r_comparison
 
 # ---------------------------------------------------------------------------
 # Load reference data

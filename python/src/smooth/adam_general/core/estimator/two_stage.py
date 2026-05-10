@@ -31,6 +31,7 @@ def _run_two_stage_estimator(
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
     smoother="global",
+    adam_ets: bool = False,
 ):
     """
     Internal function to handle two-stage initialization within estimator.
@@ -77,6 +78,7 @@ def _run_two_stage_estimator(
         ftol_abs=ftol_abs,
         algorithm=algorithm,
         smoother=smoother,
+        adam_ets=adam_ets,
     )
 
     # Get B vector structure with "two-stage" (includes initial states in B)
@@ -97,6 +99,7 @@ def _run_two_stage_estimator(
         constant_dict,
         profiles_recent_table,
         profiles_recent_provided,
+        adam_ets,
     )
 
     adam_created_s2 = creator(

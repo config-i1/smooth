@@ -16,8 +16,10 @@
 
    ~MSARIMA.fit
    ~MSARIMA.outlierdummy
+   ~MSARIMA.plot
    ~MSARIMA.predict
    ~MSARIMA.predict_intervals
+   ~MSARIMA.rmultistep
    ~MSARIMA.rstandard
    ~MSARIMA.rstudent
    ~MSARIMA.select_best_model
@@ -60,6 +62,7 @@
    ~MSARIMA.n_param
    ~MSARIMA.nobs
    ~MSARIMA.nparam
+   ~MSARIMA.om_model
    ~MSARIMA.orders
    ~MSARIMA.persistence_vector
    ~MSARIMA.phi_

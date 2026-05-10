@@ -43,8 +43,7 @@ namespace Rcpp {
             Named("statesB")  = result.statesB,
             Named("fittedB")  = result.fittedB,
             Named("errorsB")  = result.errorsB,
-            Named("profileB") = result.profileB,
-            Named("pfit")     = result.pfit
+            Named("profileB") = result.profileB
         );
     }
 

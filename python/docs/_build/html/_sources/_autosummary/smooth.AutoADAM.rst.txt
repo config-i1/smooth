@@ -16,8 +16,10 @@
 
    ~AutoADAM.fit
    ~AutoADAM.outlierdummy
+   ~AutoADAM.plot
    ~AutoADAM.predict
    ~AutoADAM.predict_intervals
+   ~AutoADAM.rmultistep
    ~AutoADAM.rstandard
    ~AutoADAM.rstudent
    ~AutoADAM.select_best_model
@@ -60,6 +62,7 @@
    ~AutoADAM.n_param
    ~AutoADAM.nobs
    ~AutoADAM.nparam
+   ~AutoADAM.om_model
    ~AutoADAM.orders
    ~AutoADAM.persistence_vector
    ~AutoADAM.phi_

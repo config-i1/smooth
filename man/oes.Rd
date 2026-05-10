@@ -7,9 +7,10 @@
 oes(y, model = "MNN", lags = c(frequency(y)), persistence = NULL,
   phi = NULL, initial = c("backcasting", "optimal", "two-stage",
   "complete"), occurrence = c("fixed", "odds-ratio", "inverse-odds-ratio",
-  "direct"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 0,
+  "direct", "general"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 0,
   holdout = FALSE, bounds = c("usual", "admissible", "none"),
-  ets = c("conventional", "adam"), silent = TRUE, ...)
+  ets = c("conventional", "adam"), xreg = NULL, regressors = c("use",
+  "select"), silent = TRUE, ...)
 }
 \arguments{
 \item{y}{Univariate numeric vector or time-series. Non-binary input is
@@ -42,6 +43,12 @@ withheld.}
 \item{bounds}{Parameter bounds type.}
 
 \item{ets}{Type of ETS model: \code{"conventional"} or \code{"adam"}.}
+
+\item{xreg}{Optional numeric vector or matrix of exogenous regressors, aligned
+with \code{y}. Merged with \code{y} into a multi-column data matrix before
+being passed to \link[smooth]{om}.}
+
+\item{regressors}{How to handle regressors: \code{"use"} or \code{"select"}.}
 
 \item{silent}{If \code{TRUE}, suppresses output and plot.}
 

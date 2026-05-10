@@ -29,6 +29,10 @@
 #'   withheld.
 #' @param bounds Parameter bounds type.
 #' @param ets Type of ETS model: \code{"conventional"} or \code{"adam"}.
+#' @param xreg Optional numeric vector or matrix of exogenous regressors, aligned
+#'   with \code{y}. Merged with \code{y} into a multi-column data matrix before
+#'   being passed to \link[smooth]{om}.
+#' @param regressors How to handle regressors: \code{"use"} or \code{"select"}.
 #' @param silent If \code{TRUE}, suppresses output and plot.
 #' @param ... Additional arguments forwarded to \link[smooth]{om} (e.g.
 #'   \code{maxeval}, \code{xtol_rel}, \code{algorithm}, \code{print_level}).
@@ -47,26 +51,53 @@
 oes <- function(y, model="MNN", lags=c(frequency(y)),
                 persistence=NULL, phi=NULL,
                 initial=c("backcasting","optimal","two-stage","complete"),
-                occurrence=c("fixed","odds-ratio","inverse-odds-ratio","direct"),
+                occurrence=c("fixed","odds-ratio","inverse-odds-ratio","direct","general"),
                 ic=c("AICc","AIC","BIC","BICc"),
                 h=0, holdout=FALSE,
                 bounds=c("usual","admissible","none"),
                 ets=c("conventional","adam"),
+                xreg=NULL, regressors=c("use","select"),
                 silent=TRUE, ...){
 
     startTime <- Sys.time();
     cl <- match.call();
 
+    occurrence <- match.arg(occurrence);
+    initial    <- match.arg(initial);
+    regressors <- match.arg(regressors);
+    if(!is.null(xreg)){
+        if(is.matrix(xreg)){
+            data <- as.matrix(cbind(y=as.data.frame(y), as.data.frame(xreg[1:length(y),])));
+        }
+        else{
+            data <- as.matrix(cbind(y=as.data.frame(y), as.data.frame(xreg[1:length(y)])));
+        }
+        data <- ts(data, start=start(y), frequency=frequency(y));
+        colnames(data)[1] <- "y";
+        if(is.null(colnames(xreg))){
+            if(!is.null(ncol(xreg))){
+                colnames(data)[-1] <- paste0("x", c(1:ncol(xreg)));
+            }
+            else{
+                colnames(data)[-1] <- "x";
+            }
+        }
+    }
+    else{
+        data <- y;
+    }
+
     # ARIMA / ARMA / regression-formula are disabled in the ETS-only wrapper.
     # om() requires the orders list to have the ar/i/ma/select fields, so the
     # "NULL" intent is expressed as the no-ARIMA default below.
-    ourModel <- om(data=y, model=model, lags=lags,
+    ourModel <- om(data=data, model=model, lags=lags,
                    orders=list(ar=0, i=0, ma=0, select=FALSE),
                    formula=NULL, arma=NULL,
                    persistence=persistence, phi=phi,
                    initial=initial, occurrence=occurrence,
                    ic=ic, h=h, holdout=holdout,
                    bounds=bounds, ets=ets,
+                   regressors=regressors,
                    silent=silent, ...);
     ourModel$call <- cl;
     ourModel$timeElapsed <- Sys.time() - startTime;

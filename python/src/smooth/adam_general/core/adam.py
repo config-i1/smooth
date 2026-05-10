@@ -384,7 +384,6 @@ class ADAM:
         holdout: bool = False,
         fast: bool = False,
         lambda_param: Optional[float] = None,
-        frequency: Optional[str] = None,
         # Profile parameters
         profiles_recent_provided: bool = False,
         profiles_recent_table: Optional[Any] = None,
@@ -399,6 +398,7 @@ class ADAM:
         reg_lambda: Optional[float] = None,
         gnorm_shape: Optional[float] = None,
         smoother: Literal["lowess", "ma", "global"] = SMOOTHER_DEFAULT,
+        ets: Literal["conventional", "adam"] = "conventional",
         **kwargs,
     ) -> None:
         """
@@ -489,9 +489,6 @@ class ADAM:
             Whether to use faster, possibly less accurate, estimation methods.
         lambda_param : Optional[float], default=None
             Lambda parameter for Box-Cox transformation or regularization.
-        frequency : Optional[str], default=None
-            Time series frequency (e.g., "D", "M", "Y").
-            Inferred if data is pandas Series with DatetimeIndex.
         profiles_recent_provided : bool, default=False
             Whether recent profiles (e.g., for exogenous variables) are provided.
         profiles_recent_table : Optional[Any], default=None
@@ -581,6 +578,9 @@ class ADAM:
         self.reg_lambda = reg_lambda
         self.gnorm_shape = gnorm_shape
         self.smoother = smoother
+        if ets not in ("conventional", "adam"):
+            raise ValueError(f"Invalid ets: {ets!r}. Must be 'conventional' or 'adam'.")
+        self.ets = ets
 
         # Store parameters that were moved from fit
         self.h = h
@@ -599,8 +599,6 @@ class ADAM:
             if self.nlopt_kargs is None:
                 self.nlopt_kargs = {}
             self.nlopt_kargs["print_level"] = kwargs["print_level"]
-
-        self.frequency = frequency
 
         # Store profile parameters
         self.profiles_recent_provided = profiles_recent_provided
@@ -827,6 +825,17 @@ class ADAM:
 
         # Check parameters and prepare data
         self._check_parameters(y, X)
+
+        # Fit the occurrence model first if requested (mirrors R adam.R:2160-2195).
+        # p_fitted is held constant while the demand-sizes model is estimated.
+        self._om_model = None
+        if self._occurrence.get("occurrence_model"):
+            ot_logical = self._observations["ot_logical"]
+            self._observations["obs_zero"] = int(np.sum(~ot_logical))
+            self._om_model = self._fit_occurrence_model(y)
+            self._occurrence["p_fitted"] = self._om_model.fitted
+            self._occurrence["oes_model"] = self._occurrence["occurrence"]
+
         # Execute model estimation or selection based on model_do
         if self._model_type["model_do"] == "estimate":
             self._execute_estimation()
@@ -856,6 +865,23 @@ class ADAM:
 
         # Prepare final results and format output data
         self._prepare_results()
+
+        # Scale demand-sizes fitted by occurrence probability (mirrors R:1973-1975)
+        if self._om_model is not None:
+            import pandas as pd
+
+            p = self._occurrence["p_fitted"]
+            yf = self._prepared["y_fitted"]
+            if isinstance(yf, pd.Series):
+                yf = yf * p
+            else:
+                yf = np.asarray(yf) * np.asarray(p)
+            self._prepared["y_fitted"] = yf
+            self._prepared["residuals"] = np.asarray(
+                self._observations["y_in_sample"]
+            ) - np.asarray(yf)
+            # Include occurrence model params in the total count
+            self._adam_estimated["n_param_estimated"] += self._om_model.nparam
 
         # Store fitted parameters with trailing underscores
         self._set_fitted_attributes()
@@ -915,7 +941,6 @@ class ADAM:
             "reg_lambda": self.reg_lambda,
             "gnorm_shape": self.gnorm_shape,
             "lambda_param": self.lambda_param,
-            "frequency": self.frequency,
             "fast": self.fast,
             "holdout": self.holdout,
         }
@@ -2462,6 +2487,47 @@ class ADAM:
         self._check_is_fitted()
         return list(self._lags_model.get("lags", [1]))
 
+    @property
+    def om_model(self):
+        """Fitted occurrence model (OM / OMG / AutoOM), or None."""
+        self._check_is_fitted()
+        return getattr(self, "_om_model", None)
+
+    def rmultistep(self, h: int = 10) -> pd.DataFrame:
+        """Return the (T-h) × h matrix of rolling in-sample multistep forecast errors.
+
+        Translates R's rmultistep.adam() from R/rmultistep.R.
+        Must be called after fit().
+
+        Parameters
+        ----------
+        h : int
+            Forecast horizon (number of steps ahead). Default 10.
+
+        Returns
+        -------
+        pd.DataFrame
+            Shape (T-h, h) where T is obs_in_sample.
+        """
+        from smooth.adam_general.core.forecaster._helpers import (
+            _compute_multistep_errors,
+        )
+
+        self._check_is_fitted()
+        gen = {**self._general, "h": h}
+        mat_wt = np.asfortranarray(self._prepared["measurement"], dtype=np.float64)
+        mat_f = np.asfortranarray(self._prepared["transition"], dtype=np.float64)
+        errors = _compute_multistep_errors(
+            self._adam_cpp,
+            self._prepared,
+            self._observations,
+            self._lags_model,
+            gen,
+            mat_wt,
+            mat_f,
+        )
+        return pd.DataFrame(errors, columns=[f"h={i + 1}" for i in range(h)])
+
     def predict(
         self,
         h: int,
@@ -2585,12 +2651,42 @@ class ADAM:
         self._validate_prediction_inputs()
         self._prepare_prediction_data()
 
-        # Execute the prediction
+        # Pre-compute p_forecast so forecaster can use it for both point forecasts
+        # and interval adjustment (R: forecast.adam lines 6134-6172, 6204-6210).
+        p_forecast_arr = None
+        if getattr(self, "_om_model", None) is not None:
+            occ_fc = self._om_model.predict(h=h)
+            p_forecast_arr = np.asarray(occ_fc.mean.values, dtype=float)
+            # Store in occurrence_dict so _process_occurrence_forecast can use it
+            self._occurrence["p_forecast"] = p_forecast_arr
+
+        # Execute the prediction (forecaster handles p scaling + interval adjustment)
         predictions = self._execute_prediction(
             interval=interval,
             level=level,
             side=side,
         )
+
+        # Post-interval NA patch (R/adam.R ~6742-6751)
+        if p_forecast_arr is not None:
+            if predictions.upper is not None:
+                upper_vals = predictions.upper.values
+                mask = np.isnan(upper_vals)
+                if np.any(mask):
+                    fill = (predictions.mean.values / p_forecast_arr).reshape(-1, 1)
+                    predictions.upper = pd.DataFrame(
+                        np.where(mask, fill, upper_vals),
+                        index=predictions.upper.index,
+                        columns=predictions.upper.columns,
+                    )
+            if predictions.lower is not None:
+                lower_vals = predictions.lower.values
+                if np.any(np.isnan(lower_vals)):
+                    predictions.lower = pd.DataFrame(
+                        np.where(np.isnan(lower_vals), 0.0, lower_vals),
+                        index=predictions.lower.index,
+                        columns=predictions.lower.columns,
+                    )
 
         # Recompute accuracy measures against holdout if available
         if self._general.get("holdout", False):
@@ -2725,7 +2821,6 @@ class ADAM:
             silent=(self.verbose == 0),
             fast=self.fast,
             lambda_param=self.lambda_param,
-            frequency=self.frequency,
             X=X,
             regressors=self.regressors,
             arma=self.arma,
@@ -2764,6 +2859,37 @@ class ADAM:
                 self._preset_arima_parameters()
 
             self._general["lambda"] = 0
+
+    def _fit_occurrence_model(self, y):
+        """Fit an occurrence model on ``y`` and return it.
+
+        Mirrors R/adam.R:2161-2166 (``omModel <- om(...)``).
+        Occurrence type comes from ``self._occurrence["occurrence"]``.
+        """
+        from smooth.adam_general.core.auto_om import AutoOM
+        from smooth.adam_general.core.om import OM
+
+        occ = self._occurrence["occurrence"]
+        lags = list(self._lags_model.get("lags", [1]))
+        adam_model = self._model_type.get("model", "MNN")
+        common = dict(
+            lags=lags,
+            h=self._general.get("h", 0),
+            holdout=self._general.get("holdout", False),
+            ic=self._general.get("ic", "AICc"),
+            bounds=self._general.get("bounds", "usual"),
+            initial=self._initials.get("initial_type", "backcasting"),
+        )
+        if occ == "auto":
+            m = AutoOM(model=adam_model, **common)
+        elif occ == "general":
+            from smooth.adam_general.core.omg import OMG
+
+            m = OMG(**common)
+        else:
+            m = OM(model=adam_model, occurrence=occ, **common)
+        m.fit(y)
+        return m
 
     def _preset_arima_parameters(self):
         """Set up ARIMA parameters for special cases where estimation is disabled."""
@@ -2817,6 +2943,7 @@ class ADAM:
                 components_dict=self._components,
                 multisteps=self._general.get("multisteps", False),
                 smoother=self.smoother,
+                adam_ets=(self.ets == "adam"),
                 other=other_value,
                 other_parameter_estimate=other_parameter_estimate,
                 **nlopt_params,
@@ -2846,6 +2973,7 @@ class ADAM:
             explanatory_checked=self._explanatory,
             profiles_recent_table=self.profiles_recent_table,
             profiles_recent_provided=self.profiles_recent_provided,
+            adam_ets=(self.ets == "adam"),
         )
         # print(self._components)
         # Create the model matrices
@@ -3076,6 +3204,7 @@ class ADAM:
                 explanatory_checked=self._explanatory,
                 profiles_recent_table=self.profiles_recent_table,
                 profiles_recent_provided=self.profiles_recent_provided,
+                adam_ets=(self.ets == "adam"),
             )
 
             # Call creator to build matrices
@@ -3489,6 +3618,10 @@ class ADAM:
 
         self._general["h"] = h
         self._prepare_prediction_data()
+
+        if getattr(self, "_om_model", None) is not None:
+            occ_fc = self._om_model.predict(h=h)
+            self._occurrence["p_forecast"] = np.asarray(occ_fc.mean.values, dtype=float)
 
         auto_fc = forecaster(
             model_prepared=self._prepared,

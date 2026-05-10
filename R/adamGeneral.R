@@ -839,19 +839,19 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
 
     #### Occurrence variable ####
     if(is.occurrence(occurrence)){
-        oesModel <- occurrence;
-        occurrence <- oesModel$occurrence;
+        omModel <- occurrence;
+        occurrence <- omModel$occurrence;
         if(occurrence=="provided"){
             occurrenceModelProvided <- FALSE;
         }
         else{
             occurrenceModelProvided <- TRUE;
         }
-        pFitted <- matrix(fitted(oesModel), obsInSample, 1);
+        pFitted <- matrix(fitted(omModel), obsInSample, 1);
     }
     else{
         occurrenceModelProvided <- FALSE;
-        oesModel <- NULL;
+        omModel <- NULL;
         pFitted <- matrix(1, obsInSample, 1);
     }
     pForecast <- rep(NA,h);
@@ -893,8 +893,12 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
                 pForecast <- NA;
             }
             occurrence <- "provided";
-            oesModel <- list(fitted=pFitted,forecast=pForecast,occurrence="provided");
+            omModel <- list(fitted=pFitted,forecast=pForecast,occurrence="provided");
         }
+    }
+    else if(is.occurrence(occurrence)){
+        omModel <- occurrence;
+        occurrence <- omModel$occurrence;
     }
 
     occurrence <- match.arg(occurrence[1],c("none","auto","fixed","general","odds-ratio",
@@ -916,7 +920,7 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
         pFitted[] <- otLogical*1;
         pForecast[] <- 1;
         occurrenceModel <- FALSE;
-        oesModel <- structure(list(y=matrix((otLogical)*1,ncol=1),fitted=pFitted,forecast=pForecast,
+        omModel <- structure(list(y=matrix((otLogical)*1,ncol=1),fitted=pFitted,forecast=pForecast,
                                    occurrence="provided"),class="occurrence");
     }
     else{
@@ -926,7 +930,7 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
         }
         else if(occurrence=="provided"){
             occurrenceModel <- TRUE;
-            oesModel$y <- matrix(otLogical*1,ncol=1);
+            omModel$y <- matrix(otLogical*1,ncol=1);
         }
         else{
             occurrenceModel <- TRUE;
@@ -1557,7 +1561,7 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
                     almModel <- do.call("alm", list(formula=formulaToUse, data=xregData,
                                                     distribution=distribution, loss=loss,
                                                     subset=which(subset),
-                                                    occurrence=oesModel,FI=FI));
+                                                    occurrence=omModel,FI=FI));
                     almModel$call$data <- as.name(yName);
                     return(almModel);
                 }
@@ -2172,7 +2176,7 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
                 }
 
                 almModel <- do.call("stepwise", list(data=xregData, formula=formulaToUse, subset=subset,
-                                                     distribution=distribution, occurrence=oesModel));
+                                                     distribution=distribution, occurrence=omModel));
                 almModel$call$data <- as.name(yName);
                 return(almModel);
             }
@@ -2350,8 +2354,8 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
 
     # Update the number of parameters
     if(occurrenceModelProvided){
-        parametersNumber[2,3] <- nparam(oesModel);
-        pForecast <- c(forecast(oesModel, h=h, interval="none")$mean);
+        parametersNumber[2,3] <- nparam(omModel);
+        pForecast <- c(forecast(omModel, h=h)$mean);
     }
 
     #### Information Criteria ####
@@ -2915,7 +2919,7 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
         initialXregEstimate = initialXregEstimate,
         initialXregProvided = initialXregProvided,
         # Occurrence model
-        oesModel = oesModel,
+        omModel = omModel,
         occurrenceModel = occurrenceModel,
         occurrenceModelProvided = occurrenceModelProvided,
         occurrence = occurrence,
