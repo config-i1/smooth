@@ -173,12 +173,8 @@ omg <- function(data,
     otLogical  <- checkerA$otLogical
     oInSample  <- matrix(as.numeric(ot), ncol=1)
     if(holdout) {
+        yHoldout <- checkerA$yHoldout
         yHoldout[] <- (yHoldout != 0) * 1
-        if(any(yClasses=="ts")) {
-            yHoldout <- ts(yHoldout, start=yForecastStart, frequency=yFrequency)
-        } else {
-            yHoldout <- zoo(yHoldout, order.by=yForecastIndex)
-        }
     }
 
     occurrenceModel <- FALSE
@@ -898,12 +894,12 @@ omg <- function(data,
 
         if(hLocal > 0) {
             yForecast <- adamArchitect$adamCpp$forecast(
-                tail(adamFilled$matWt, hLocal),
-                adamFilled$matF,
-                adamArchitect$indexLookupTable[,
-                                               adamArchitect$lagsModelMax + obsInSample +
-                                                   seq_len(hLocal), drop=FALSE],
-                adamFitted$profile, hLocal)$forecast
+                            tail(adamFilled$matWt, hLocal),
+                            adamFilled$matF,
+                            adamArchitect$indexLookupTable[,
+                                                           adamArchitect$lagsModelMax + obsInSample +
+                                                               seq_len(hLocal), drop=FALSE],
+                            adamFitted$profile, hLocal)$forecast
         }
 
         # States
@@ -1045,7 +1041,7 @@ omg <- function(data,
                                           as.vector(oInSample))
         }
 
-        class(subModel) <- c("om","adam","smooth")
+        class(subModel) <- c("om","adam","smooth","occurrence")
         return(subModel)
     }
 
@@ -1305,7 +1301,7 @@ omg <- function(data,
                                           as.vector(oInSample))
         }
 
-        class(subModel) <- c("om","adam","smooth")
+        class(subModel) <- c("om","adam","smooth","occurrence")
         return(subModel)
     }
 
@@ -1436,7 +1432,7 @@ omg <- function(data,
                                     as.vector(yFitted))
     }
 
-    class(result) <- c("omg","om","smooth")
+    class(result) <- c("omg","om","smooth","occurrence")
     return(result)
 }
 

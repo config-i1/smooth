@@ -896,6 +896,10 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
             omModel <- list(fitted=pFitted,forecast=pForecast,occurrence="provided");
         }
     }
+    else if(is.occurrence(occurrence)){
+        omModel <- occurrence;
+        occurrence <- omModel$occurrence;
+    }
 
     occurrence <- match.arg(occurrence[1],c("none","auto","fixed","general","odds-ratio",
                                             "inverse-odds-ratio","direct","provided"));
@@ -2351,7 +2355,7 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
     # Update the number of parameters
     if(occurrenceModelProvided){
         parametersNumber[2,3] <- nparam(omModel);
-        pForecast <- c(forecast(omModel, h=h, interval="none")$mean);
+        pForecast <- c(forecast(omModel, h=h)$mean);
     }
 
     #### Information Criteria ####

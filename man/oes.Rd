@@ -7,7 +7,7 @@
 oes(y, model = "MNN", lags = c(frequency(y)), persistence = NULL,
   phi = NULL, initial = c("backcasting", "optimal", "two-stage",
   "complete"), occurrence = c("fixed", "odds-ratio", "inverse-odds-ratio",
-  "direct"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 0,
+  "direct", "general"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 0,
   holdout = FALSE, bounds = c("usual", "admissible", "none"),
   ets = c("conventional", "adam"), xreg = NULL, regressors = c("use",
   "select"), silent = TRUE, ...)

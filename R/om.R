@@ -857,6 +857,12 @@ om <- function(data,
         parNum[1,5] <- sum(parNum[1,1:4]);
         parNum[2,5] <- sum(parNum[2,1:4]);
 
+        if(any(yClasses == "ts")){
+            yInSample <- ts(yInSample, start=yStart, frequency=yFrequency);
+        } else {
+            yInSample <- zoo(yInSample, order.by=yInSampleIndex);
+        }
+
         subModel <- list(
             model = modelName,
             timeElapsed = Sys.time() - startTime,
@@ -909,7 +915,7 @@ om <- function(data,
                                           as.vector(oInSample));
         }
 
-        class(subModel) <- c("om","adam","smooth");
+        class(subModel) <- c("om","adam","smooth","occurrence");
         return(subModel);
     };
 
@@ -1144,7 +1150,7 @@ om <- function(data,
         nParamMat[1,5] <- sum(nParamMat[1,1:4]);
         nParamMat[2,5] <- sum(nParamMat[2,1:4]);
         modelReturned$nParam <- nParamMat;
-        class(modelReturned) <- c("omCombined","om","adam","smooth");
+        class(modelReturned) <- c("omCombined","om","adam","smooth","occurrence");
     } else {
         modelReturned <- omFinalFit(estimatorResult, hLocal=h, fullObject=TRUE);
         if(modelDo == "select"){
@@ -1331,7 +1337,8 @@ actuals.om <- function(object, ...){
         return(NULL);
     }
     yObs <- if(is.data.frame(object$data) || is.matrix(object$data)) object$data[,1] else object$data;
-    return(as.numeric(yObs != 0));
+    yObs[] <- (yObs != 0) * 1;
+    return(yObs);
 }
 
 #' @export
