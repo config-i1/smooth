@@ -1,7 +1,8 @@
-"""Tests for the AutoOM class (Stage 3 — automatic occurrence model selection).
+"""Tests for the AutoOM class — automatic occurrence model selection.
 
-Covers init validation, fit/predict, selection logic, property delegation, and
-the transparent ``OM(occurrence='auto', ...)`` delegation path.
+AutoOM.fit() returns the best OM or OMG object directly (matching R's auto.om()
+which returns the best om object). The returned model has all standard OM/OMG
+attributes plus time_elapsed_ (total selection time).
 """
 
 from __future__ import annotations
@@ -61,7 +62,7 @@ class TestInit:
 
 
 # --------------------------------------------------------------------------
-# OM delegation: OM(occurrence='auto') returns AutoOM
+# OM delegation: OM(occurrence='auto') returns AutoOM before fit
 # --------------------------------------------------------------------------
 
 
@@ -71,60 +72,39 @@ class TestOMDelegation:
         assert isinstance(m, AutoOM)
 
     def test_delegated_autoOM_fits(self, intermittent_y):
-        m = OM(model="MNN", occurrence="auto", lags=[1])
-        m.fit(intermittent_y)
+        m = OM(model="MNN", occurrence="auto", lags=[1]).fit(intermittent_y)
+        assert isinstance(m, (OM, OMG))
         assert np.all(m.fitted >= 0.0)
         assert np.all(m.fitted <= 1.0)
 
 
 # --------------------------------------------------------------------------
-# Fit
+# Fit — returns OM or OMG
 # --------------------------------------------------------------------------
 
 
 class TestFit:
-    def test_fit_returns_self(self, intermittent_y):
-        m = AutoOM(model="MNN", lags=[1])
-        out = m.fit(intermittent_y)
-        assert out is m
+    def test_fit_returns_om_or_omg(self, intermittent_y):
+        out = AutoOM(model="MNN", lags=[1]).fit(intermittent_y)
+        assert isinstance(out, (OM, OMG))
 
-    def test_best_model_is_set(self, fitted_auto):
-        assert fitted_auto.best_model is not None
+    def test_fitted_has_time_elapsed(self, fitted_auto):
+        assert hasattr(fitted_auto, "time_elapsed_")
+        assert fitted_auto.time_elapsed_ > 0
 
-    def test_best_model_is_om_or_omg(self, fitted_auto):
-        assert isinstance(fitted_auto.best_model, (OM, OMG))
+    def test_fitted_probabilities_in_range(self, fitted_auto):
+        assert np.all(fitted_auto.fitted >= 0.0)
+        assert np.all(fitted_auto.fitted <= 1.0)
 
-    def test_occurrence_is_set(self, fitted_auto):
-        assert fitted_auto.occurrence_ in (
-            "fixed",
-            "odds-ratio",
-            "inverse-odds-ratio",
-            "direct",
-            "general",
+    def test_restricted_occurrence_returns_om(self, intermittent_y):
+        m = AutoOM(model="MNN", lags=[1], occurrence=["fixed", "odds-ratio"]).fit(
+            intermittent_y
         )
-
-    def test_ic_values_has_all_keys(self, fitted_auto):
-        assert set(fitted_auto.ic_values.keys()) == {
-            "fixed",
-            "odds-ratio",
-            "inverse-odds-ratio",
-            "direct",
-            "general",
-        }
-
-    def test_selected_ic_is_lowest(self, fitted_auto):
-        best = fitted_auto.ic_values[fitted_auto.occurrence_]
-        assert all(best <= v for v in fitted_auto.ic_values.values())
-
-    def test_restricted_occurrence_list(self, intermittent_y):
-        m = AutoOM(model="MNN", lags=[1], occurrence=["fixed", "odds-ratio"])
-        m.fit(intermittent_y)
-        assert m.occurrence_ in ("fixed", "odds-ratio")
-        assert set(m.ic_values.keys()) == {"fixed", "odds-ratio"}
+        assert isinstance(m, OM)
 
 
 # --------------------------------------------------------------------------
-# Properties
+# Properties — all standard OM/OMG attributes are accessible
 # --------------------------------------------------------------------------
 
 
@@ -183,31 +163,7 @@ class TestProperties:
         assert fitted_auto.loss_ == "likelihood"
 
     def test_time_elapsed_positive(self, fitted_auto):
-        assert fitted_auto.time_elapsed > 0
-
-    def test_property_surface_does_not_raise(self, fitted_auto):
-        _ = (
-            fitted_auto.fitted,
-            fitted_auto.residuals,
-            fitted_auto.actuals,
-            fitted_auto.coef,
-            fitted_auto.b_value,
-            fitted_auto.loss_value,
-            fitted_auto.loglik,
-            fitted_auto.aic,
-            fitted_auto.aicc,
-            fitted_auto.bic,
-            fitted_auto.bicc,
-            fitted_auto.nobs,
-            fitted_auto.nparam,
-            fitted_auto.model_name,
-            fitted_auto.lags_used,
-            fitted_auto.scale,
-            fitted_auto.sigma,
-            fitted_auto.distribution_,
-            fitted_auto.loss_,
-            fitted_auto.time_elapsed,
-        )
+        assert fitted_auto.time_elapsed_ > 0
 
 
 # --------------------------------------------------------------------------
@@ -243,15 +199,3 @@ class TestHoldout:
 
     def test_no_holdout_data_when_holdout_false(self, fitted_auto):
         assert fitted_auto.holdout_data is None
-
-
-# --------------------------------------------------------------------------
-# Unfitted guard
-# --------------------------------------------------------------------------
-
-
-class TestUnfitted:
-    def test_properties_raise_before_fit(self):
-        m = AutoOM()
-        with pytest.raises(RuntimeError, match="fit"):
-            _ = m.fitted

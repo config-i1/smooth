@@ -303,3 +303,13 @@ fc.to_dataframe()    # flat pd.DataFrame with prefixed column names
 
 **Current Branch**: `Python` (active development)
 **Main Branch**: `master`
+
+## R / Python API Parity
+
+The Python implementation must match R's public API as closely as possible. **Parameters, defaults, return types, attributes, and output structure should be equivalent** unless a language difference makes strict parity impossible (e.g. R uses `...` / `formula`, Python uses `X=` / keyword args).
+
+When adding or removing parameters from any class (`ADAM`, `OM`, `OMG`, `AutoOM`, `AutoADAM`, etc.), **check the corresponding R function signature first**. If Python has parameters or return-type behaviour that R does not (or vice-versa), flag the discrepancy explicitly before implementing. In particular:
+
+- Functions that return a fitted object in R should have `.fit()` return the same type in Python (not a separate wrapper class). For example, `auto.om()` returns the best `om` object; `AutoOM.fit()` must return the best `OM` or `OMG`.
+- Parameter names may differ between R and Python (camelCase → snake_case is acceptable). Extra parameters with no R equivalent are not allowed without approval.
+- Fitted attributes should mirror R's `$` access: if R has `m$timeElapsed`, Python should have `m.time_elapsed_`.

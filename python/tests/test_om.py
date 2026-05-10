@@ -62,6 +62,12 @@ class TestInit:
         m = OM(occurrence="auto")
         assert isinstance(m, AutoOM)
 
+    def test_auto_fit_returns_om_or_omg(self, intermittent_y):
+        from smooth import AutoOM, OMG
+        m = OM(model="MNN", occurrence="auto", lags=[1]).fit(intermittent_y)
+        assert isinstance(m, (OM, OMG))
+        assert not isinstance(m, AutoOM)
+
     def test_init_general_returns_omg(self):
         from smooth import OMG
         m = OM(occurrence="general")
