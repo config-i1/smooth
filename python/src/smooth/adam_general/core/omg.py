@@ -621,11 +621,18 @@ class OMG:
             "arima_polynomials": side["matrices_dict"].get("arima_polynomials"),
             "adam_cpp": side["adam_cpp"],
         }
-        scaffold._adam_created = side["matrices_dict"]
         scaffold._adam_cpp = side["adam_cpp"]
         scaffold._profile = side["profile"]
         scaffold._ic_selection = self._ic_value
         scaffold._select_distribution()
+
+        # Build fresh matrices with the ORIGINAL error/trend/season types —
+        # mirrors R's omgFinalFitA/B which calls adam_creator with checkerA/B's
+        # actual Etype (not the forced-additive used during optimization).
+        # The difference matters for seasonal initial states that seed backcasting.
+        adam_created_final = scaffold._build_final_fit_adam_created(side["profile"])
+        scaffold._adam_created = adam_created_final
+
         scaffold._prepared = om_preparator(
             model_type_dict=scaffold._model_type,
             components_dict=scaffold._components,

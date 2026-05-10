@@ -65,9 +65,19 @@ run_scenario <- function(name, model_obj) {
     B_B <- if (length(model_obj$modelB$B) > 0) as.numeric(model_obj$modelB$B) else numeric(0)
     write_vec(sd, "coef", c(B_A, B_B))
 
-    if (!is.null(model_obj$forecast) && length(as.numeric(model_obj$forecast)) > 0
-        && !all(is.na(as.numeric(model_obj$forecast)))) {
-        write_vec(sd, "forecast", as.numeric(model_obj$forecast))
+    existing_fc <- if (!is.null(model_obj$forecast) &&
+                       length(as.numeric(model_obj$forecast)) > 0 &&
+                       !all(is.na(as.numeric(model_obj$forecast))))
+                       as.numeric(model_obj$forecast)
+                   else NULL
+    if (!is.null(existing_fc)) {
+        write_vec(sd, "forecast", existing_fc)
+    } else {
+        fc <- tryCatch(as.numeric(forecast(model_obj, h = 10)$mean),
+                       error = function(e) NULL)
+        if (!is.null(fc) && length(fc) > 0 && all(is.finite(fc))) {
+            write_vec(sd, "forecast", fc)
+        }
     }
 
     scalars <- list(

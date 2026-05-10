@@ -65,9 +65,19 @@ run_scenario <- function(name, model_obj, holdout_data = NULL) {
         write.csv(data.frame(value = numeric(0)),
                   file.path(sd, "coef.csv"), row.names = FALSE)
     }
-    if (!is.null(model_obj$forecast) && length(as.numeric(model_obj$forecast)) > 0
-        && !all(is.na(as.numeric(model_obj$forecast)))) {
-        write_vec(sd, "forecast", as.numeric(model_obj$forecast))
+    existing_fc <- if (!is.null(model_obj$forecast) &&
+                       length(as.numeric(model_obj$forecast)) > 0 &&
+                       !all(is.na(as.numeric(model_obj$forecast))))
+                       as.numeric(model_obj$forecast)
+                   else NULL
+    if (!is.null(existing_fc)) {
+        write_vec(sd, "forecast", existing_fc)
+    } else {
+        fc <- tryCatch(as.numeric(forecast(model_obj, h = 10)$mean),
+                       error = function(e) NULL)
+        if (!is.null(fc) && length(fc) > 0 && all(is.finite(fc))) {
+            write_vec(sd, "forecast", fc)
+        }
     }
 
     persistence <- as.numeric(model_obj$persistence)

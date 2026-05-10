@@ -31,6 +31,8 @@ import pytest
 
 from smooth import OM
 
+pytestmark = pytest.mark.r_comparison
+
 DATA_DIR = Path(__file__).parent / "data" / "om"
 
 # Numeric tolerances. Looser than 1e-8 because nloptr (R) and nlopt (Python)
@@ -258,10 +260,11 @@ class TestOMRComparison:
         ref = _load_vector(scenario["name"], "forecast")
         if ref is None:
             pytest.skip(f"{scenario['name']}: no forecast reference")
+        fc_h = scenario["h"] if scenario["h"] > 0 else 10
         fc = (
             np.asarray(m._auto_forecast.mean.values, dtype=float)
             if hasattr(m, "_auto_forecast") and m._auto_forecast is not None
-            else np.asarray(m.predict(h=scenario["h"]).mean.values, dtype=float)
+            else np.asarray(m.predict(h=fc_h).mean.values, dtype=float)
         )
         np.testing.assert_allclose(
             fc, ref,

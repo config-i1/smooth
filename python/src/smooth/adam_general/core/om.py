@@ -785,6 +785,76 @@ class OM(ADAM):
 
         return adam_cpp, adam_created, profile_dict
 
+    def _build_final_fit_adam_created(self, profile_dict):
+        """Rebuild matrices using the ORIGINAL error/trend/season types.
+
+        Mirrors R's ``omgFinalFitA`` / ``omgFinalFitB``: those functions call
+        ``adam_creator`` with the checker's actual Etype/Ttype/Stype (not the
+        forced-additive version used during optimization). The difference matters
+        for the seasonal initial-state values in ``mat_vt``, which seed the
+        backcasting that runs inside the final standalone ``adamCpp$fit``.
+        """
+        model_type_dict = self._model_type
+        original_ot_logical = self._observations["ot_logical"]
+        observations_dict_for_creator = dict(self._observations)
+        observations_dict_for_creator["ot_logical"] = np.ones_like(
+            original_ot_logical, dtype=bool
+        )
+
+        adam_created = creator(
+            model_type_dict,  # original types — no forcing to "A"
+            self._lags_model,
+            profile_dict,
+            observations_dict_for_creator,
+            self._persistence,
+            self._initials,
+            self._arima,
+            self._constant,
+            self._phi_internal,
+            self._components,
+            self._explanatory,
+            smoother=self.smoother,
+        )
+
+        adam_created["mat_vt"] = om_initial_transform(
+            mat_vt=adam_created["mat_vt"],
+            occurrence=self._om_occurrence,
+            error_type=model_type_dict["error_type"],
+            trend_type=model_type_dict.get("trend_type", "N"),
+            season_type=model_type_dict.get("season_type", "N"),
+            ets_model=model_type_dict.get("ets_model", False),
+            model_is_trendy=model_type_dict.get("model_is_trendy", False),
+            model_is_seasonal=model_type_dict.get("model_is_seasonal", False),
+            initial_level_estimate=self._initials.get("initial_level_estimate", True),
+            initial_trend_estimate=self._initials.get("initial_trend_estimate", True),
+            initial_seasonal_estimate=self._initials.get(
+                "initial_seasonal_estimate", True
+            ),
+            components_number_ets=self._components.get("components_number_ets", 0),
+            components_number_ets_non_seasonal=self._components.get(
+                "components_number_ets_non_seasonal", 0
+            ),
+            components_number_ets_seasonal=self._components.get(
+                "components_number_ets_seasonal", 0
+            ),
+            lags_model=self._lags_model["lags_model"],
+            lags_model_max=self._lags_model["lags_model_max"],
+            lags_model_seasonal=self._lags_model.get("lags_model_seasonal", []),
+            obs_in_sample=self._observations["obs_in_sample"],
+            ot=self._observations["ot"],
+            arima_model=self._arima.get("arima_model", False),
+            components_number_arima=self._components.get("components_number_arima", 0),
+            initial_arima_estimate=self._initials.get("initial_arima_estimate", False),
+            initial_arima_number=self._initials.get("initial_arima_number", 0),
+            xreg_model=self._explanatory.get("xreg_model", False),
+            xreg_number=self._explanatory.get("xreg_number", 0),
+            initial_xreg_estimate=self._initials.get("initial_xreg_estimate", False),
+            constant_required=self._constant.get("constant_required", False),
+            constant_estimate=self._constant.get("constant_estimate", False),
+        )
+
+        return adam_created
+
     def _fit_occurrence(self):
         """Estimate persistence + initials for non-fixed occurrence types."""
         adam_cpp, adam_created, profile_dict = self._build_om_artifacts()

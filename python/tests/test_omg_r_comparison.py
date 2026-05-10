@@ -33,6 +33,8 @@ import pytest
 
 from smooth import OMG
 
+pytestmark = pytest.mark.r_comparison
+
 DATA_DIR = Path(__file__).parent / "data" / "omg"
 
 RTOL = 1e-3
@@ -40,9 +42,7 @@ ATOL = 1e-4
 FITTED_RTOL = 3e-3
 FITTED_ATOL = 1e-3
 
-# Scenarios where Python's NLopt finds a strictly better optimum than R's
-# solver — scalar comparison tests are skipped for these.
-_PYTHON_BEATS_R = {"h2_seasonal_ana_mnm"}
+_PYTHON_BEATS_R: set = set()
 
 
 def _scenario_present(name: str) -> bool:
@@ -183,10 +183,11 @@ class TestOMGRComparison:
         ref = _load_vector(scenario["name"], "forecast")
         if ref is None:
             pytest.skip(f"{scenario['name']}: no forecast reference")
+        fc_h = scenario["h"] if scenario["h"] > 0 else 10
         fc = (
             np.asarray(m._auto_forecast.mean.values, dtype=float)
             if m._auto_forecast is not None
-            else np.asarray(m.predict(h=scenario["h"]).mean.values, dtype=float)
+            else np.asarray(m.predict(h=fc_h).mean.values, dtype=float)
         )
         np.testing.assert_allclose(
             fc,

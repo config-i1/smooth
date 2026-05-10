@@ -737,11 +737,14 @@ omg <- function(data,
             res <- list(solution=B_used,
                         objective=do.call(omgCF_local, c(list(B=B_used), nloptrArgs)));
         } else {
+            maxevalUsed <- if(is.null(maxeval)) length(B_used) * 40L else maxeval
             res <- suppressWarnings(
                 do.call(nloptr,
                         c(list(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub,
-                               opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
-                                         maxeval=maxeval, print_level=print_level)),
+                               opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
+                                         ftol_rel=ftol_rel, ftol_abs=ftol_abs,
+                                         maxeval=maxevalUsed, maxtime=maxtime,
+                                         print_level=print_level)),
                           nloptrArgs)))
             res$call <- quote(nloptr(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub, opts=opts));
 
@@ -750,8 +753,10 @@ omg <- function(data,
                 res <- suppressWarnings(
                     do.call(nloptr,
                             c(list(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub,
-                                   opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
-                                             maxeval=maxeval, print_level=print_level)),
+                                   opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
+                                             ftol_rel=ftol_rel, ftol_abs=ftol_abs,
+                                             maxeval=maxevalUsed, maxtime=maxtime,
+                                             print_level=print_level)),
                               nloptrArgs)))
                 res$call <- quote(nloptr(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub, opts=opts));
             }
