@@ -106,14 +106,14 @@ omg <- function(data,
     modelDo <- "estimate"
 
     # Convert one-sided formulas to two-sided (e.g. ~x -> y~x)
-    makeTwoSided <- function(f, rName) {
-        if(!is.null(f) && length(f) == 2) {
-            return(as.formula(paste0(rName, "~", deparse(f[[2]]))))
-        }
-        return(f)
-    }
-    formulaA <- makeTwoSided(formulaA, yName)
-    formulaB <- makeTwoSided(formulaB, yName)
+    # makeTwoSided <- function(f, rName) {
+    #     if(!is.null(f) && length(f) == 2) {
+    #         return(as.formula(paste0(rName, "~", deparse(f[[2]]))))
+    #     }
+    #     return(f)
+    # }
+    # formulaA <- makeTwoSided(formulaA, yName)
+    # formulaB <- makeTwoSided(formulaB, yName)
 
     dataChecked <- adam_checkData(data, lags, h, holdout, yName, modelDo, formulaA)
     list2env(dataChecked, envir=environment())
