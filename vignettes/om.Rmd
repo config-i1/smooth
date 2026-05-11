@@ -73,14 +73,15 @@ plot(omARIMA, 7)
 
 ## om(): Regression occurrence model
 
-External regressors are incorporated via `cbind()`, exactly as in `adam()`. The first column of the matrix is treated as the response; subsequent columns become regressors. Here we include a simple indicator for the high-demand regime (last 60 observations):
+External regressors are incorporated via `cbind()`, exactly as in `adam()`. The first column of the matrix is treated as the response; subsequent columns become regressors. Here we use the `Seatbelts` dataset from the `datasets` package: the response is a binary indicator for above-median driver casualties, and the predictor is the seatbelt law indicator:
 
 ```{r regression}
-highPeriod <- ts(c(rep(0, 60), rep(1, 60)))
-yReg <- cbind(y, highPeriod)
-omReg <- om(yReg, model="NNN",
+data(Seatbelts)
+highDeaths <- as.integer(Seatbelts[, "DriversKilled"] > median(Seatbelts[, "DriversKilled"]))
+ySeat <- ts(cbind(highDeaths, law=Seatbelts[, "law"]), start=c(1969, 1), frequency=12)
+omReg <- om(ySeat, model="NNN",
             occurrence="odds-ratio", regressors="use",
-            h=10, holdout=TRUE)
+            h=12, holdout=TRUE)
 omReg
 plot(omReg, 7)
 ```

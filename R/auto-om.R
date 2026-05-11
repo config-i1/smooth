@@ -213,7 +213,7 @@ auto.om <- function(data,
                            persistence, phi, initial, arma,
                            ic, bounds, regressors, parallel,
                            arimaModelSelect, arMax, iMax, maMax, ...){
-        ordersToUse <- if(arimaModelSelect) c(0,0,0) else orders;
+        ordersToUse <- if(arimaModelSelect) list(ar=0, i=0, ma=0, select=FALSE) else orders;
 
         if(!parallel){
             selectedModels <- vector("list", length(occurrence));

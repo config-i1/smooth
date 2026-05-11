@@ -1,7 +1,7 @@
 commonParametersChecker <- function(data, model, lags, formulaToUse, orders, constant=FALSE, arma,
                                     persistence, phi, initial,
                                     distribution=c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
-                                                   "dlnorm","dinvgauss","dgamma"),
+                                                   "dlnorm","dinvgauss","dgamma","plogis"),
                                     loss, h, holdout, occurrence,
                                     ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
                                     regressors, yName,
@@ -563,7 +563,7 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
     if(!fast){
         #### Distribution selected ####
         distribution <- match.arg(distribution[1], c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
-                                                      "dlnorm","dinvgauss","dgamma"));
+                                                      "dlnorm","dinvgauss","dgamma","plogis"));
     }
 
     if(select){
@@ -2998,7 +2998,7 @@ adamSpecificChecker <- function(data, model, lags, formulaToUse, orders, constan
                                 outliers=c("ignore","use","select"), level=0.99,
                                 persistence, phi, initial,
                                 distribution=c("default","dnorm","dlaplace","dalaplace",
-                                               "ds","dgnorm","dlnorm","dinvgauss","dgamma"),
+                                               "ds","dgnorm","dlnorm","dinvgauss","dgamma","plogis"),
                                 loss, h, holdout, occurrence,
                                 ic=c("AICc","AIC","BIC","BICc"),
                                 bounds=c("usual","admissible","none"),
@@ -3009,7 +3009,7 @@ adamSpecificChecker <- function(data, model, lags, formulaToUse, orders, constan
     if(!fast){
         distribution <- match.arg(distribution[1],
                                    c("default","dnorm","dlaplace","dalaplace",
-                                     "ds","dgnorm","dlnorm","dinvgauss","dgamma"))
+                                     "ds","dgnorm","dlnorm","dinvgauss","dgamma","plogis"))
     }
 
     if(outliers != "ignore"){
