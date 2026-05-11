@@ -457,7 +457,7 @@ class OM(ADAM):
             orders=orders,
             constant=constant,
             regressors=regressors,
-            distribution="dnorm",  # passed to checker; we override _select_distribution
+            distribution="dnorm",
             loss=loss,
             ic=ic,
             bounds=bounds,
@@ -598,6 +598,22 @@ class OM(ADAM):
             else None
         )
         self._check_parameters(y, X)
+
+        # Pure-regression early exit — mirrors R/om.R:154-281.
+        if getattr(self, "_alm_model", None) is not None:
+            from greybox import ALM as _ALM
+
+            alm_orig = self._alm_model
+            alm_plogis = _ALM(distribution="plogis")
+            alm_plogis.fit(
+                np.asarray(alm_orig._X_train_),
+                np.asarray(alm_orig._y_train_),
+            )
+            self._alm_model = alm_plogis
+            self._populate_from_alm(y, X)
+            self.time_elapsed_ = time.time() - self._start_time
+            return self
+
         self._restore_user_model_spec(requested_model_spec)
 
         # Replace y_in_sample with binary ot (mirrors R: oInSample <- as.numeric(ot))

@@ -155,6 +155,12 @@ class OMG:
         self._side_a = side_a
         self._side_b = side_b
 
+        # Pure-regression early exit: both sides are ALM.
+        if side_a.get("is_alm") and side_b.get("is_alm"):
+            self._fit_alm_omg(side_a, side_b, y, X)
+            self.time_elapsed_ = time.time() - self._start_time
+            return self
+
         B_used, lb, ub, n_params_a = self._initial_B(side_a, side_b)
 
         if len(B_used) == 0:
@@ -419,6 +425,16 @@ class OMG:
             else None
         )
         scaffold._check_parameters(y, X)
+
+        # Pure-regression early exit: return a minimal marker dict so OMG.fit()
+        # can detect and handle both sides without running the ETS machinery.
+        if getattr(scaffold, "_alm_model", None) is not None:
+            return {
+                "scaffold": scaffold,
+                "is_alm": True,
+                "occurrence_str": occurrence,
+            }
+
         scaffold._restore_user_model_spec(requested)
         ot = np.asarray(scaffold._observations["ot"], dtype=np.float64)
         scaffold._observations["y_in_sample"] = ot
@@ -678,6 +694,58 @@ class OMG:
         )
         scaffold._set_om_fitted_attributes()
         return scaffold
+
+    # ---------------------------------------------------------------------
+    # Pure-regression path (both sub-models are greybox.ALM)
+    # ---------------------------------------------------------------------
+
+    def _fit_alm_omg(self, side_a, side_b, y, X):
+        """Handle OMG when both sub-models reduce to logistic regression.
+
+        Side A is fitted on occurrence (ot); side B is refitted on non-occurrence
+        (1-ot) — the inverse-odds-ratio complement.  The combined probability
+        p = pA / (pA + pB) simplifies to the side-A probability because
+        symmetry of logistic regression guarantees pA + pB = 1.
+        """
+        from greybox import ALM
+
+        scaffold_a = side_a["scaffold"]
+        alm_a = scaffold_a._alm_model
+
+        y_inv = 1.0 - np.asarray(alm_a._y_train_, dtype=float)
+        alm_b = ALM(distribution=alm_a.distribution)
+        alm_b.fit(np.asarray(alm_a._X_train_), y_inv)
+
+        scaffold_b = side_b["scaffold"]
+        scaffold_b._alm_model = alm_b
+
+        scaffold_a._populate_from_alm(y, X)
+        scaffold_b._populate_from_alm(y, X)
+
+        self.model_a = scaffold_a
+        self.model_b = scaffold_b
+
+        pA = np.asarray(alm_a.fitted_values_, dtype=float)
+        pB = np.asarray(alm_b.fitted_values_, dtype=float)
+        self._fitted_combined = pA / (pA + pB)
+
+        ot = np.asarray(alm_a._y_train_, dtype=float)
+        self._residuals_combined = ot - self._fitted_combined
+        self._ot = ot
+        self._observations_dict = scaffold_a._observations
+
+        nobs = int(alm_a.nobs)
+        df = int(alm_a.nparam) + int(alm_b.nparam)
+        loglik = float(alm_a.loglik) + float(alm_b.loglik)
+        self._loglik = loglik
+        self._cf_value = -loglik
+        self._log_lik_dict = {"value": loglik, "nobs": nobs, "df": df}
+        self._ic_value = None
+        self._B_joint = np.concatenate(
+            [np.asarray(alm_a.coefficients), np.asarray(alm_b.coefficients)]
+        )
+        self._n_params_a = int(alm_a.nparam)
+        self._auto_forecast = None
 
     # ---------------------------------------------------------------------
     # Combined forecast

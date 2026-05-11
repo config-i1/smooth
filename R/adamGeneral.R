@@ -1518,8 +1518,10 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
                 # Form subset in order to use in-sample only
                 subset <- rep(FALSE, obsAll);
                 subset[1:obsInSample] <- TRUE;
-                # Exclude zeroes if this is an occurrence model
+                # Exclude zeroes if this is an occurrence model (demand-size models need
+                # only non-zero demand; for the occurrence-probability ALM we keep all obs)
                 if(occurrenceModel){
+                    subsetOccurrence <- subset;
                     subset[1:obsInSample][!otLogical] <- FALSE;
                 }
 
@@ -1558,9 +1560,10 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
                     else{
                         FI <- ellipsis$FI;
                     }
+                    almSubset <- if(occurrenceModel) which(subsetOccurrence) else which(subset);
                     almModel <- do.call("alm", list(formula=formulaToUse, data=xregData,
                                                     distribution=distribution, loss=loss,
-                                                    subset=which(subset),
+                                                    subset=almSubset,
                                                     occurrence=omModel,FI=FI));
                     almModel$call$data <- as.name(yName);
                     return(almModel);

@@ -979,6 +979,31 @@ def parameters_checker(
         "lags_model_arima": arima_info.get("lags_model_arima", []),
     }
 
+    # Pure-regression early exit — mirrors R/adamGeneral.R:1528/1561.
+    # When model="NNN" (no ETS, no ARIMA) and regressors are provided (not adaptive),
+    # delegate directly to greybox.ALM and return it instead of the 13-tuple.
+    _arima_nonzero = any(
+        v > 0
+        for orders_list in (ar_orders or [], i_orders or [], ma_orders or [])
+        for v in orders_list
+    )
+    if not ets_model and not _arima_nonzero and has_xreg and regressors != "adapt":
+        from greybox import ALM
+
+        n = observations_dict["obs_in_sample"]
+        y_is = np.asarray(observations_dict["y_in_sample"], dtype=float)
+        dist = _map_distribution_for_greybox(distribution)
+        if regressors == "select":
+            names = xreg_names_from_input or [f"x{i + 1}" for i in range(xreg_number)]
+            X_df = pd.DataFrame(X[:n], columns=names)
+            X_df.insert(0, "y", y_is)
+            from greybox import stepwise
+
+            return stepwise(X_df, ic=ic, distribution=dist, silent=True)
+        alm = ALM(distribution=dist)
+        alm.fit(np.column_stack([np.ones(n), X[:n]]), y_is)
+        return alm
+
     # Build explanatory variables dictionary
     if has_xreg:
         xreg_dict = _process_xreg(
@@ -1116,6 +1141,7 @@ def _map_distribution_for_greybox(distribution):
         "ds": "ds",
         "dgnorm": "dgnorm",
         "dinvgauss": "dinvgauss",
+        "plogis": "plogis",
     }
     return _map.get(distribution, "dnorm")
 
