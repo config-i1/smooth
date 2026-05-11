@@ -105,16 +105,6 @@ omg <- function(data,
     }
     modelDo <- "estimate"
 
-    # Convert one-sided formulas to two-sided (e.g. ~x -> y~x)
-    # makeTwoSided <- function(f, rName) {
-    #     if(!is.null(f) && length(f) == 2) {
-    #         return(as.formula(paste0(rName, "~", deparse(f[[2]]))))
-    #     }
-    #     return(f)
-    # }
-    # formulaA <- makeTwoSided(formulaA, yName)
-    # formulaB <- makeTwoSided(formulaB, yName)
-
     dataChecked <- adam_checkData(data, lags, h, holdout, yName, modelDo, formulaA)
     list2env(dataChecked, envir=environment())
 
@@ -852,13 +842,12 @@ omg <- function(data,
             matVt   <- zoo(t(statesRaw), order.by=yInSampleIndex)
         }
 
-        yForecast <- if(any(yClasses=="ts")) {
-            ts(vector("numeric", h), start=yForecastStart, frequency=yFrequency)
-        } else {
-            zoo(vector("numeric", h), order.by=yForecastIndex[1])
-        }
-
         if(hLocal > 0) {
+            yForecast <- if(any(yClasses=="ts")) {
+                ts(vector("numeric", hLocal), start=yForecastStart, frequency=yFrequency)
+            } else {
+                zoo(vector("numeric", hLocal), order.by=yForecastIndex[1])
+            }
             forecastIndexLookup <- adamArchitect$indexLookupTable[,
                                    adamArchitect$lagsModelMax + obsInSample + seq_len(hLocal), drop=FALSE]
             yForecast[] <- adamArchitect$adamCpp$forecast(
@@ -1066,8 +1055,9 @@ omg <- function(data,
     return(result)
 }
 
+#' @rdname forecast.smooth
 #' @export
-forecast.omg <- function(object, h=NULL, ...) {
+forecast.omg <- function(object, h=10, ...) {
     if(is.null(h)) { h <- length(object$forecast) }
     fcA <- forecast.adam(object$modelA, h=h, interval="none",
                          level=0.95, side="both", cumulative=FALSE, ...)

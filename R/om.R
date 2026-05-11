@@ -283,7 +283,7 @@ om <- function(data,
     list2env(checkerReturn, envir=environment());
 
     # Delegate ARIMA order selection to auto.om() with the current occurrence type.
-    if(isTRUE(orders$select)){
+    if(is.list(orders) && !is.null(orders$select) && isTRUE(orders$select)){
         result <- auto.om(data=data, model=model, lags=lags,
                           orders=orders, formula=formula,
                           regressors=regressors, occurrence=occurrence,
@@ -1431,20 +1431,9 @@ omLinkFunction <- function(x, Etype, occurrence){
            x);
 }
 
-#' Forecast from an occurrence model
-#'
-#' Wraps \code{forecast.adam()} and applies the occurrence link function to
-#' convert state-space forecasts to probabilities.
-#'
-#' @param object An object of class \code{om}.
-#' @param h Forecast horizon. If \code{NULL}, uses \code{object$h}.
-#' @param interval Type of prediction interval.
-#' @param ... Additional arguments passed to \code{forecast.adam()}.
-#'
-#' @return An object of class \code{forecast.smooth} with probability forecasts.
-#'
+#' @rdname forecast.smooth
 #' @export
-forecast.om <- function(object, h=NULL, ...){
+forecast.om <- function(object, h=10, ...){
     # Intervals on the probability scale are not implemented yet, so the
     # underlying forecast.adam() call is forced to interval="none". The
     # remaining slots (level, side, cumulative) are set to their defaults so
