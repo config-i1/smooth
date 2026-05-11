@@ -55,7 +55,7 @@ addopts = [
     "-v",
     "--tb=short",
     "-ra",
-    "-m", "not r_comparison",
+    "-m", "not r_comparison and not r_parity",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

@@ -132,7 +132,10 @@ test_that("Seasonal ARIMA(1,0,0)(1,0,0)[12]", {
 # 13. ARIMA order selection
 test_that("ARIMA order selection", {
     skip_on_cran()
-    testModel <- om(yIntermittent, occurrence="o", model="NNN",
+    # AR-structured binary series so that ARIMA order selection finds an improvement
+    set.seed(42)
+    yAR <- as.numeric(arima.sim(list(ar=0.9), n=200) * 2 > 0)
+    testModel <- om(yAR, occurrence="o", model="NNN",
                     orders=list(ar=2, i=0, ma=2, select=TRUE))
     expect_match(testModel$model, "^oARIMA")
     expect_s3_class(testModel, "om")

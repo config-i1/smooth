@@ -2110,6 +2110,10 @@ adam_arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
                                 obsInSample, ...){
     silentDebug <- FALSE;
     env <- environment();
+    # Strip 'constant' from ... — it is added explicitly in each do.call below,
+    # and a duplicate named argument causes an error in R.
+    dots <- list(...);
+    dots[["constant"]] <- NULL;
 
     modelOriginal <- model;
     etsModelType <- model;
@@ -2190,7 +2194,7 @@ adam_arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
                                  c(base_call,
                                    list(orders=list(ar=0, i=iOrders[d,1:ordersLength], ma=0),
                                         constant=(iOrders[d,ordersLength+1]==1)),
-                                   list(...))),
+                                   dots)),
                          silent=TRUE);
         if(!inherits(testModel,"try-error")){
             iOrdersICs[d] <- IC(testModel);
@@ -2211,7 +2215,7 @@ adam_arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
                                         list(orders=list(ar=0, i=iBest, ma=0),
                                              constant=constantValue,
                                              B=BValues[[d]]),
-                                        list(...)));
+                                        dots));
     bestIC <- iOrdersICs[d];
 
     if(silentDebug){
@@ -2244,7 +2248,7 @@ adam_arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
                                          c(base_call,
                                            list(orders=list(ar=arBest, i=iBest, ma=maTest),
                                                 constant=constantValue),
-                                           list(...))),
+                                           dots)),
                                  silent=TRUE);
                 ICValue <- if(inherits(testModel,"try-error")) Inf else IC(testModel);
 
@@ -2278,7 +2282,7 @@ adam_arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
                                          c(base_call,
                                            list(orders=list(ar=arTest, i=iBest, ma=maBest),
                                                 constant=constantValue),
-                                           list(...))),
+                                           dots)),
                                  silent=TRUE);
                 ICValue <- if(inherits(testModel,"try-error")) Inf else IC(testModel);
                 if(silentDebug){
@@ -2320,7 +2324,7 @@ adam_arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
                                                         i=additionalModels[d,1:ordersLength],
                                                         ma=additionalModels[d,1:ordersLength]),
                                             constant=FALSE),
-                                       list(...))),
+                                       dots)),
                              silent=TRUE);
 
             if(!inherits(testModel,"try-error")){
@@ -2348,7 +2352,7 @@ adam_arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
                                    list(orders=list(ar=0, i=iBest, ma=maBest),
                                         constant=constantValue,
                                         B=BValues[[d]]),
-                                   list(...)));
+                                   dots));
         }
     }
 
@@ -2358,7 +2362,7 @@ adam_arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
                              c(base_call,
                                list(orders=list(ar=arBest, i=iBest, ma=maBest),
                                     constant=constantValue),
-                               list(...)));
+                               dots));
 
         if(IC(bestModel) >= ICOriginal){
             bestModel <- testModelETS;
