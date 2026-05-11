@@ -826,6 +826,11 @@ class ADAM:
         # Check parameters and prepare data
         self._check_parameters(y, X)
 
+        # Pure-regression early exit — mirrors R/adam.R:498-629.
+        if getattr(self, "_alm_model", None) is not None:
+            self._populate_from_alm(y, X)
+            return self
+
         # Fit the occurrence model first if requested (mirrors R adam.R:2160-2195).
         # p_fitted is held constant while the demand-sizes model is estimated.
         self._om_model = None
@@ -2785,21 +2790,7 @@ class ADAM:
         else:
             orders = None
 
-        (
-            self._general,
-            self._observations,
-            self._persistence,
-            self._initials,
-            self._arima,
-            self._constant,
-            self._model_type,
-            self._components,
-            self._lags_model,
-            self._occurrence,
-            self._phi_internal,
-            self._explanatory,
-            self._params_info,
-        ) = parameters_checker(
+        result = parameters_checker(
             ts,
             model=self.model,
             lags=self.lags,
@@ -2825,6 +2816,69 @@ class ADAM:
             regressors=self.regressors,
             arma=self.arma,
         )
+        if not isinstance(result, tuple):
+            self._alm_model = result
+            return
+        self._alm_model = None
+        (
+            self._general,
+            self._observations,
+            self._persistence,
+            self._initials,
+            self._arima,
+            self._constant,
+            self._model_type,
+            self._components,
+            self._lags_model,
+            self._occurrence,
+            self._phi_internal,
+            self._explanatory,
+            self._params_info,
+        ) = result
+
+    def _populate_from_alm(self, y, X):
+        """Populate model attributes from the greybox.ALM early-exit object.
+
+        Mirrors R/adam.R:498-629 where an alm() result is wrapped into the
+        adam object when model="NNN" with regressors but no ETS/ARIMA.
+        """
+        alm = self._alm_model
+        n = int(alm.nobs)
+        y_in_sample = np.asarray(y[:n], dtype=float)
+        fitted = np.asarray(alm.fitted_values_, dtype=float)
+
+        self._observations = {
+            "y_in_sample": y_in_sample,
+            "ot": (y_in_sample != 0).astype(float),
+        }
+        self._model_type = {
+            "model": "NNN",
+            "ets_model": False,
+            "arima_model": False,
+            "xreg_model": True,
+        }
+        self._arima = {"ar_orders": [0], "i_orders": [0], "ma_orders": [0]}
+        self._explanatory = {"xreg_model": True}
+        self._general = {
+            "loss": "likelihood",
+            "h": getattr(self, "h", 0),
+            "holdout": getattr(self, "holdout", False),
+        }
+        self._prepared = {
+            "y_fitted": fitted,
+            "residuals": y_in_sample - fitted,
+        }
+        self._adam_estimated = {
+            "B": np.asarray(alm.coefficients),
+            "n_param_estimated": int(alm.nparam),
+            "log_lik_adam_value": {
+                "value": float(alm.loglik),
+                "nobs": n,
+                "df": int(alm.nparam),
+            },
+        }
+        self.model = "Regression"
+        self.time_elapsed_ = time.time() - self._start_time
 
     def _handle_lasso_ridge_special_case(self):
         """

@@ -1,7 +1,7 @@
 commonParametersChecker <- function(data, model, lags, formulaToUse, orders, constant=FALSE, arma,
                                     persistence, phi, initial,
                                     distribution=c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
-                                                   "dlnorm","dinvgauss","dgamma"),
+                                                   "dlnorm","dinvgauss","dgamma","plogis"),
                                     loss, h, holdout, occurrence,
                                     ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
                                     regressors, yName,
@@ -563,7 +563,7 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
     if(!fast){
         #### Distribution selected ####
         distribution <- match.arg(distribution[1], c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
-                                                      "dlnorm","dinvgauss","dgamma"));
+                                                      "dlnorm","dinvgauss","dgamma","plogis"));
     }
 
     if(select){
@@ -1518,8 +1518,10 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
                 # Form subset in order to use in-sample only
                 subset <- rep(FALSE, obsAll);
                 subset[1:obsInSample] <- TRUE;
-                # Exclude zeroes if this is an occurrence model
+                # Exclude zeroes if this is an occurrence model (demand-size models need
+                # only non-zero demand; for the occurrence-probability ALM we keep all obs)
                 if(occurrenceModel){
+                    subsetOccurrence <- subset;
                     subset[1:obsInSample][!otLogical] <- FALSE;
                 }
 
@@ -1558,9 +1560,10 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
                     else{
                         FI <- ellipsis$FI;
                     }
+                    almSubset <- if(occurrenceModel) which(subsetOccurrence) else which(subset);
                     almModel <- do.call("alm", list(formula=formulaToUse, data=xregData,
                                                     distribution=distribution, loss=loss,
-                                                    subset=which(subset),
+                                                    subset=almSubset,
                                                     occurrence=omModel,FI=FI));
                     almModel$call$data <- as.name(yName);
                     return(almModel);
@@ -2264,6 +2267,7 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
         # Fix the names of variables
         colnames(xregData) <- make.names(colnames(xregData), unique=TRUE);
         xregNames[] <- make.names(xregNames, unique=TRUE);
+        xregData <- as.matrix(xregData);
 
         # If there are no variables after all of that, then xreg doesn't exist
         if(xregNumber==0){
@@ -2792,8 +2796,9 @@ commonParametersChecker <- function(data, model, lags, formulaToUse, orders, con
             modelDo <- "estimate";
         }
         Etype <- switch(distribution,
-                        "default"=,"dnorm"=,"dlaplace"=,"ds"=,"dgnorm"=,"dlogis"=,"dt"=,"dalaplace"="A",
-                        "dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"=,"dinvgauss"=,"dgamma"="M");
+                        "default"=,"dnorm"=,"dlaplace"=,"ds"=,"dgnorm"=,"dlogis"=,"plogis"=,"dt"=,"dalaplace"="A",
+                        "dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"=,"dinvgauss"=,"dgamma"="M",
+                        "A");
         Ttype <- "N";
         Stype <- "N";
         phiEstimate <- FALSE;
@@ -2998,7 +3003,7 @@ adamSpecificChecker <- function(data, model, lags, formulaToUse, orders, constan
                                 outliers=c("ignore","use","select"), level=0.99,
                                 persistence, phi, initial,
                                 distribution=c("default","dnorm","dlaplace","dalaplace",
-                                               "ds","dgnorm","dlnorm","dinvgauss","dgamma"),
+                                               "ds","dgnorm","dlnorm","dinvgauss","dgamma","plogis"),
                                 loss, h, holdout, occurrence,
                                 ic=c("AICc","AIC","BIC","BICc"),
                                 bounds=c("usual","admissible","none"),
@@ -3009,7 +3014,7 @@ adamSpecificChecker <- function(data, model, lags, formulaToUse, orders, constan
     if(!fast){
         distribution <- match.arg(distribution[1],
                                    c("default","dnorm","dlaplace","dalaplace",
-                                     "ds","dgnorm","dlnorm","dinvgauss","dgamma"))
+                                     "ds","dgnorm","dlnorm","dinvgauss","dgamma","plogis"))
     }
 
     if(outliers != "ignore"){

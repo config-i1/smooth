@@ -3231,7 +3231,7 @@ errorType.adam <- function(object, ...){
     model <- modelType(object);
     if(model=="NNN"){
         return(switch(object$distribution,
-                      "dnorm"=,"dlaplace"=,"ds"=,"dgnorm"=,"dlogis"=,"dt"=,"dalaplace"="A",
+                      "dnorm"=,"dlaplace"=,"ds"=,"dgnorm"=,"dlogis"=,"plogis"=,"dt"=,"dalaplace"="A",
                       "dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"=,"dinvgauss"=,"dgamma"="M"));
     }
     else{

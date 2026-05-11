@@ -141,7 +141,7 @@ om <- function(data,
                                        constant=constant, arma=arma,
                                        persistence=persistence, phi=phi,
                                        initial=initial,
-                                       distribution="dnorm",
+                                       distribution="plogis",
                                        loss=if(loss=="likelihood") "likelihood" else loss,
                                        h=h, holdout=holdout,
                                        occurrence=occurrence,
@@ -149,10 +149,141 @@ om <- function(data,
                                        yName=yName,
                                        silent=silent, modelDo=modelDo,
                                        ellipsis=ellipsis, fast=FALSE);
+
+    #### Pure regression: alm was returned directly by the checker ####
+    if(is.alm(checkerReturn)){
+        obsInSample <- nobs(checkerReturn);
+        nParam <- length(coef(checkerReturn));
+
+        modelReturned <- list(model="Regression");
+        modelReturned$timeElapsed <- Sys.time() - startTime;
+        modelReturned$call <- cl;
+        if(is.null(formula)){
+            formula <- formula(checkerReturn);
+        }
+        if(holdout){
+            colnames(data) <- make.names(colnames(data), unique=TRUE);
+            modelReturned$holdout <- data[obsInSample + c(1:h),,drop=FALSE];
+        }
+        else{
+            modelReturned$holdout <- NULL;
+        }
+        responseName <- all.vars(formula)[1];
+        y <- data[, responseName];
+        yIndex <- try(time(y), silent=TRUE);
+        if(inherits(yIndex, "try-error")){
+            if(!is.data.frame(data) && !is.null(dim(data))){
+                yIndex <- as.POSIXct(rownames(data));
+            }
+            else if(is.data.frame(data)){
+                yIndex <- c(1:nrow(data));
+            }
+            else{
+                yIndex <- c(1:length(data));
+            }
+        }
+
+        if(inherits(y, "zoo")){
+            modelReturned$data      <- data[1:obsInSample,,drop=FALSE];
+            modelReturned$fitted    <- zoo(fitted(checkerReturn),    order.by=yIndex[1:obsInSample]);
+            modelReturned$residuals <- zoo(residuals(checkerReturn), order.by=yIndex[1:obsInSample]);
+            if(h > 0){
+                if(holdout){
+                    modelReturned$forecast <- zoo(
+                        forecast(checkerReturn, h=h, newdata=tail(data,h), interval="none")$mean,
+                        order.by=yIndex[obsInSample + 1:h]);
+                }
+                else{
+                    modelReturned$forecast <- zoo(
+                        forecast(checkerReturn, h=h, interval="none")$mean,
+                        order.by=yIndex[obsInSample + 1:h]);
+                }
+            }
+            else{
+                modelReturned$forecast <- zoo(NA, order.by=yIndex[obsInSample + 1]);
+            }
+            modelReturned$states <- zoo(
+                matrix(coef(checkerReturn), obsInSample + 1, nParam, byrow=TRUE,
+                       dimnames=list(NULL, names(coef(checkerReturn)))),
+                order.by=c(yIndex[1] - diff(yIndex[1:2]), yIndex[1:obsInSample]));
+        }
+        else{
+            yFrequency <- frequency(y);
+            modelReturned$data      <- ts(data[1:obsInSample,,drop=FALSE], start=yIndex[1], frequency=yFrequency);
+            modelReturned$fitted    <- ts(fitted(checkerReturn),    start=yIndex[1], frequency=yFrequency);
+            modelReturned$residuals <- ts(residuals(checkerReturn), start=yIndex[1], frequency=yFrequency);
+            if(h > 0){
+                if(holdout){
+                    modelReturned$forecast <- ts(
+                        forecast(checkerReturn, h=h, newdata=tail(data,h), interval="none")$mean,
+                        start=yIndex[obsInSample + 1], frequency=yFrequency);
+                }
+                else{
+                    modelReturned$forecast <- ts(
+                        as.numeric(forecast(checkerReturn, h=h, interval="none")$mean),
+                        start=yIndex[obsInSample] + diff(yIndex[1:2]), frequency=yFrequency);
+                }
+            }
+            else{
+                modelReturned$forecast <- ts(NA, start=yIndex[obsInSample] + diff(yIndex[1:2]), frequency=yFrequency);
+            }
+            modelReturned$states <- ts(
+                matrix(coef(checkerReturn), obsInSample + 1, nParam, byrow=TRUE,
+                       dimnames=list(NULL, names(coef(checkerReturn)))),
+                start=yIndex[1] - diff(yIndex[1:2]), frequency=yFrequency);
+        }
+        modelReturned$persistence <- rep(0, nParam);
+        names(modelReturned$persistence) <- paste0("delta", c(1:nParam));
+        modelReturned$phi <- 1;
+        modelReturned$transition <- diag(nParam);
+        modelReturned$measurement <- checkerReturn$data;
+        modelReturned$measurement[,1] <- 1;
+        colnames(modelReturned$measurement) <- colnames(modelReturned$states);
+        modelReturned$initial <- list(xreg=coef(checkerReturn));
+        modelReturned$initialType <- "optimal";
+        modelReturned$initialEstimated <- TRUE;
+        names(modelReturned$initialEstimated) <- "xreg";
+        modelReturned$orders <- list(ar=0, i=0, ma=0);
+        modelReturned$arma <- NULL;
+        parametersNumber <- matrix(0, 2, 5,
+                                   dimnames=list(c("Estimated","Provided"),
+                                                 c("nParamInternal","nParamXreg","nParamOccurrence","nParamScale","nParamAll")));
+        parametersNumber[1, 2] <- nParam;
+        parametersNumber[1, 5] <- nParam;
+        modelReturned$nParam        <- parametersNumber;
+        modelReturned$formula       <- formula(checkerReturn);
+        modelReturned$regressors    <- "use";
+        modelReturned$loss          <- checkerReturn$loss;
+        modelReturned$lossValue     <- checkerReturn$lossValue;
+        modelReturned$lossFunction  <- checkerReturn$lossFunction;
+        modelReturned$logLik        <- logLik(checkerReturn);
+        modelReturned$distribution  <- checkerReturn$distribution;
+        modelReturned$scale         <- checkerReturn$scale;
+        modelReturned$other         <- checkerReturn$other;
+        modelReturned$B             <- coef(checkerReturn);
+        modelReturned$lags          <- 1;
+        modelReturned$lagsAll       <- rep(1, nParam);
+        modelReturned$FI            <- checkerReturn$FI;
+        modelReturned$occurrence    <- occurrence;
+        if(holdout){
+            modelReturned$accuracy <- measures(modelReturned$holdout[, responseName],
+                                               modelReturned$forecast,
+                                               modelReturned$data[, responseName]);
+        }
+        else{
+            modelReturned$accuracy <- NULL;
+        }
+        class(modelReturned) <- c("om","adam","smooth","occurrence");
+        if(!silent){
+            plot(modelReturned, 7);
+        }
+        return(modelReturned);
+    }
+
     list2env(checkerReturn, envir=environment());
 
     # Delegate ARIMA order selection to auto.om() with the current occurrence type.
-    if(isTRUE(select)){
+    if(is.list(orders) && !is.null(orders$select) && isTRUE(orders$select)){
         result <- auto.om(data=data, model=model, lags=lags,
                           orders=orders, formula=formula,
                           regressors=regressors, occurrence=occurrence,
@@ -191,7 +322,7 @@ om <- function(data,
     }
 
     # Binary indicators (ot from checker is already binary when occurrence != "none")
-    oInSample <- matrix(as.numeric(ot), ncol=1);
+    yInSample[] <- (yInSample!=0)*1;
     if(holdout){
         yHoldout[] <- (yHoldout != 0) * 1;
         if(any(yClasses=="ts")){
@@ -204,7 +335,7 @@ om <- function(data,
     # Override occurrence-related flags set by checker
     occurrenceModel <- FALSE;
     oesModel <- NULL;
-    yFitted <- matrix(rep(mean(oInSample), obsInSample), ncol=1);
+    yFitted <- matrix(rep(mean(yInSample), obsInSample), ncol=1);
     refineHead <- TRUE;
     adamETS <- (ets == "adam");
 
@@ -729,7 +860,7 @@ om <- function(data,
         # For "fixed" occurrence the optimizer never ran, so logLikADAMValue is absent.
         # Compute the Bernoulli log-likelihood from the constant fitted probability.
         if(is.null(res$logLikADAMValue)){
-            ot_vec   <- as.numeric(oInSample);
+            ot_vec   <- as.numeric(yInSample);
             yfit_vec <- as.numeric(yFitted);
             ll <- sum(ot_vec   * log(pmax(yfit_vec,     1e-15)) +
                       (1 - ot_vec) * log(pmax(1 - yfit_vec, 1e-15)));
@@ -766,11 +897,11 @@ om <- function(data,
         # Wrap as ts/zoo
         if(any(yClasses == "ts")){
             yFitted    <- ts(yFitted, start=yStart, frequency=yFrequency);
-            errors <- ts(as.numeric(oInSample) - yFitted, start=yStart, frequency=yFrequency);
+            errors <- ts(as.numeric(yInSample) - yFitted, start=yStart, frequency=yFrequency);
             matVt    <- ts(t(statesRaw), start=yStart, frequency=yFrequency);
         } else {
             yFitted    <- zoo(yFitted, order.by=yInSampleIndex);
-            errors <- zoo(as.numeric(oInSample) - yFitted, order.by=yInSampleIndex);
+            errors <- zoo(as.numeric(yInSample) - yFitted, order.by=yInSampleIndex);
             matVt    <- zoo(t(statesRaw), order.by=yInSampleIndex);
         }
 
@@ -912,7 +1043,7 @@ om <- function(data,
         if(holdout){
             subModel$holdout <- yHoldout;
             subModel$accuracy <- measures(as.vector(yHoldout), yForecast,
-                                          as.vector(oInSample));
+                                          as.vector(yInSample));
         }
 
         class(subModel) <- c("om","adam","smooth","occurrence");
@@ -1300,20 +1431,9 @@ omLinkFunction <- function(x, Etype, occurrence){
            x);
 }
 
-#' Forecast from an occurrence model
-#'
-#' Wraps \code{forecast.adam()} and applies the occurrence link function to
-#' convert state-space forecasts to probabilities.
-#'
-#' @param object An object of class \code{om}.
-#' @param h Forecast horizon. If \code{NULL}, uses \code{object$h}.
-#' @param interval Type of prediction interval.
-#' @param ... Additional arguments passed to \code{forecast.adam()}.
-#'
-#' @return An object of class \code{forecast.smooth} with probability forecasts.
-#'
+#' @rdname forecast.smooth
 #' @export
-forecast.om <- function(object, h=NULL, ...){
+forecast.om <- function(object, h=10, ...){
     # Intervals on the probability scale are not implemented yet, so the
     # underlying forecast.adam() call is forced to interval="none". The
     # remaining slots (level, side, cumulative) are set to their defaults so

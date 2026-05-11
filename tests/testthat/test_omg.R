@@ -172,7 +172,7 @@ test_that("omg() with etsB='adam' runs without error", {
 test_that("omg() with formulaA and exogenous data runs without error", {
     set.seed(1)
     xreg <- data.frame(y=y, x=rnorm(100))
-    m <- omg(xreg, formulaA=~x)
+    m <- omg(xreg, formulaA=y~x)
     expect_s3_class(m, "omg")
 })
 
