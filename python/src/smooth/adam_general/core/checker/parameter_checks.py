@@ -36,6 +36,7 @@ def _check_distribution_loss(distribution, loss, silent=False):
         "dinvgauss",
         "dgamma",
         "dpois",
+        "plogis",
     ]
 
     # Valid loss functions

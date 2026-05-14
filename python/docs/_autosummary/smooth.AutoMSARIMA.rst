@@ -16,8 +16,10 @@
 
    ~AutoMSARIMA.fit
    ~AutoMSARIMA.outlierdummy
+   ~AutoMSARIMA.plot
    ~AutoMSARIMA.predict
    ~AutoMSARIMA.predict_intervals
+   ~AutoMSARIMA.rmultistep
    ~AutoMSARIMA.rstandard
    ~AutoMSARIMA.rstudent
    ~AutoMSARIMA.select_best_model
@@ -60,6 +62,7 @@
    ~AutoMSARIMA.n_param
    ~AutoMSARIMA.nobs
    ~AutoMSARIMA.nparam
+   ~AutoMSARIMA.om_model
    ~AutoMSARIMA.orders
    ~AutoMSARIMA.persistence_vector
    ~AutoMSARIMA.phi_

@@ -15,6 +15,9 @@ Classes
    ES
    MSARIMA
    AutoMSARIMA
+   OM
+   OMG
+   AutoOM
 
 Functions
 ---------

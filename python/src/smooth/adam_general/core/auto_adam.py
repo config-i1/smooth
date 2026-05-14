@@ -171,6 +171,7 @@ class AutoADAM(ADAM):
         initial: Union[str, Dict[str, Any], None] = "backcasting",
         regressors: Literal["use", "select", "adapt"] = "use",
         verbose: int = 0,
+        ets: Literal["conventional", "adam"] = "conventional",
         **kwargs,
     ) -> None:
         """Initialise AutoADAM."""
@@ -228,6 +229,7 @@ class AutoADAM(ADAM):
             initial=initial,
             regressors=regressors,
             verbose=verbose,
+            ets=ets,
             **kwargs,
         )
 
@@ -284,8 +286,8 @@ class AutoADAM(ADAM):
             "phi",
             "n_iterations",
             "fast",
-            "frequency",
             "smoother",
+            "ets",
         ):
             val = getattr(self, attr, None)
             if val is not None:
