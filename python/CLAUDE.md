@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Never add a `frequency` parameter
+
+Do not add a `frequency` (or `period`, `seasonality`, or any equivalent) parameter
+to any class or function. Seasonal period is always inferred automatically from the
+data — from a pandas `DatetimeIndex`, from `lags`, or from the model specification.
+Exposing it as a parameter creates redundancy and diverges from the R API.
+
 ## Never clip, clamp, or patch around bad numerics
 
 This rule applies across the whole project — `adam`, `OM`, `OMG`, `ES`,
