@@ -163,8 +163,9 @@ def _check_arima(orders, validated_lags, silent=False, arma=None):
     """
     Check and validate ARIMA model specification.
 
-    This function mirrors R's parametersChecker ARIMA handling in adamGeneral.R lines
-    519-666.
+    Normalises the user-supplied ``orders`` argument (which may be a list,
+    tuple, scalar, dict or ``None``), validates compatibility with the
+    seasonal lags, and returns the canonical AR/I/MA order lists.
 
     Parameters
     ----------

@@ -263,7 +263,7 @@ def _format_param_matrix(row_labels, col_labels, matrix, digits):
 
 
 def _format_arma_parameters(model: Any, digits: int = 4) -> str:
-    """Format ARMA parameters as R-style matrix (rows=orders, cols=lags)."""
+    """Format ARMA parameters as a matrix (rows=orders, cols=lags)."""
     if not hasattr(model, "_arima") or not model._arima:
         return ""
     if not model._arima.get("arima_model", False):
@@ -641,7 +641,7 @@ def model_summary(model: Any, digits: int = 4) -> str:
 
 
 def _build_model_name(model: Any) -> str:
-    """Build the full R-style model name (e.g. 'SARIMA(1,1,2)[1](1,1,2)[12]')."""
+    """Build the full model name (e.g. 'SARIMA(1,1,2)[1](1,1,2)[12]')."""
     model_str = getattr(model, "model", "") or ""
     ets_model = False
     arima_model = False

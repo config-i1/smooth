@@ -1,8 +1,10 @@
 """
 Simple Moving Average (SMA) wrapper for ADAM.
 
-Implements SMA as an SSOE AR(m) model with all coefficients fixed at 1/m,
-mirroring R's sma() function in smooth.
+Implements SMA(m) as a single-source-of-error AR(m) state-space model with
+every autoregressive coefficient fixed at 1/m. Wrapping the moving average
+inside ADAM gives recursive multi-step forecasts, proper forecast variance,
+and information-criterion-based automatic order selection.
 """
 
 from typing import Literal, Optional
@@ -34,9 +36,13 @@ class SMA(ADAM):
     """
     Simple Moving Average in Single Source of Error state space form.
 
-    SMA(m) is an AR(m) model where all AR coefficients are fixed at 1/m,
-    implemented via ADAM with ``model="NNN"`` and fixed ARMA parameters.
-    Mirrors R's ``sma()`` function from the smooth package.
+    SMA(m) is an AR(m) state-space model where every AR coefficient is fixed
+    at 1/m. It is implemented as a thin wrapper over :class:`ADAM` with
+    ``model="NNN"`` and the AR vector hard-coded, so it inherits the full
+    ADAM fit / predict / diagnostics surface (multi-step forecasts,
+    prediction intervals, residual diagnostics). If ``order`` is left
+    unspecified, the order is selected automatically by information
+    criterion.
 
     Parameters
     ----------
@@ -210,7 +216,7 @@ class SMA(ADAM):
 
     @staticmethod
     def _ic_for_order(y_is: NDArray, order: int, ic: str) -> float:
-        """Fit SMA(order) on y_is and return IC with df=1 (mirrors R's CreatorSMA)."""
+        """Fit SMA(order) on y_is and return the IC (df=1: scale is the sole param)."""
         m = ADAM(
             model="NNN",
             ar_order=order,

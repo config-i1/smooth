@@ -419,7 +419,7 @@ class ADAM:
         ma_order : Union[int, List[int]], default=0
             Moving average order(s) for ARIMA components.
         orders : Optional[Dict[str, Any]], default=None
-            R-style alternative to ``ar_order``/``i_order``/``ma_order``.
+            Dict-style alternative to ``ar_order``/``i_order``/``ma_order``.
             A dict with keys ``"ar"``, ``"i"``, ``"ma"`` (each an int or list
             of ints) and optionally ``"select"`` (bool).  Example::
 
@@ -826,13 +826,16 @@ class ADAM:
         # Check parameters and prepare data
         self._check_parameters(y, X)
 
-        # Pure-regression early exit — mirrors R/adam.R:498-629.
+        # Pure-regression early exit: when model="NNN" with regressors but
+        # no ETS/ARIMA, the parameter checker has wrapped a greybox.ALM fit
+        # as ``_alm_model`` — populate from it and return.
         if getattr(self, "_alm_model", None) is not None:
             self._populate_from_alm(y, X)
             return self
 
-        # Fit the occurrence model first if requested (mirrors R adam.R:2160-2195).
-        # p_fitted is held constant while the demand-sizes model is estimated.
+        # Fit the occurrence model first if requested. The fitted occurrence
+        # probability p_fitted is held constant while the demand-sizes model
+        # is estimated.
         self._om_model = None
         if self._occurrence.get("occurrence_model"):
             ot_logical = self._observations["ot_logical"]
@@ -871,7 +874,8 @@ class ADAM:
         # Prepare final results and format output data
         self._prepare_results()
 
-        # Scale demand-sizes fitted by occurrence probability (mirrors R:1973-1975)
+        # Scale the demand-sizes fitted values by the occurrence probability
+        # so the resulting ``fitted`` series is on the original (mixed) scale.
         if self._om_model is not None:
             import pandas as pd
 
@@ -1043,7 +1047,7 @@ class ADAM:
                 self.model += " with " + ("drift" if has_drift else "constant")
 
     # =========================================================================
-    # Extraction Properties - R-style accessors implemented as Python properties
+    # Extraction properties — convenience accessors over the fitted state.
     # =========================================================================
 
     def _check_is_fitted(self):
@@ -1845,7 +1849,6 @@ class ADAM:
 
         For a correctly specified model the result should be approximately
         distributed as the standardised version of the fitted distribution.
-        Mirrors R's ``rstandard.adam()``.
 
         Returns
         -------
@@ -1919,8 +1922,6 @@ class ADAM:
         - **dlnorm**: ``exp(log_e[i] / √(Σlog_e[-i]² / df))``,
           where ``log_e = log(e) - mean(log e) - σ²/2``
         - **dinvgauss / dgamma**: ``e[i] / mean(e[-i])``
-
-        Mirrors R's ``rstudent.adam()``.
 
         Returns
         -------
@@ -2016,8 +2017,6 @@ class ADAM:
         - **dgnorm**: ``scipy.stats.gennorm.ppf(..., beta=shape)``
         - **dgamma**: ``scipy.stats.gamma.ppf(..., a=1/σ, scale=σ)``
         - **dinvgauss**: ``scipy.stats.invgauss.ppf`` with df-corrected dispersion
-
-        Mirrors R's ``outlierdummy.adam()`` from the **greybox** package.
 
         Parameters
         ----------
@@ -2501,8 +2500,9 @@ class ADAM:
     def rmultistep(self, h: int = 10) -> pd.DataFrame:
         """Return the (T-h) × h matrix of rolling in-sample multistep forecast errors.
 
-        Translates R's rmultistep.adam() from R/rmultistep.R.
-        Must be called after fit().
+        For each origin ``t``, computes the ``h``-step-ahead forecast and the
+        corresponding errors against the realised observations. Must be called
+        after fit().
 
         Parameters
         ----------
@@ -2557,9 +2557,6 @@ class ADAM:
     ) -> NDArray:
         """
         Generate forecasts using the fitted ADAM model.
-
-        Matches R's ``forecast.adam()`` interface for interval types and
-        additional parameters.
 
         Parameters
         ----------
@@ -2672,7 +2669,9 @@ class ADAM:
             side=side,
         )
 
-        # Post-interval NA patch (R/adam.R ~6742-6751)
+        # Post-interval NaN patch: when an occurrence forecast is present
+        # and the upper bound came back as NaN (sparse occurrence at long
+        # horizons), substitute mean / p so the band stays usable.
         if p_forecast_arr is not None:
             if predictions.upper is not None:
                 upper_vals = predictions.upper.values
@@ -2839,8 +2838,9 @@ class ADAM:
     def _populate_from_alm(self, y, X):
         """Populate model attributes from the greybox.ALM early-exit object.
 
-        Mirrors R/adam.R:498-629 where an alm() result is wrapped into the
-        adam object when model="NNN" with regressors but no ETS/ARIMA.
+        Used when ``model="NNN"`` with regressors but no ETS/ARIMA — in that
+        case the parameter checker fits a greybox.ALM and we wrap its
+        outputs into the ADAM attribute surface.
         """
         alm = self._alm_model
         n = int(alm.nobs)
@@ -2917,8 +2917,7 @@ class ADAM:
     def _fit_occurrence_model(self, y):
         """Fit an occurrence model on ``y`` and return it.
 
-        Mirrors R/adam.R:2161-2166 (``omModel <- om(...)``).
-        Occurrence type comes from ``self._occurrence["occurrence"]``.
+        The occurrence type is taken from ``self._occurrence["occurrence"]``.
         """
         from smooth.adam_general.core.auto_om import AutoOM
         from smooth.adam_general.core.om import OM
@@ -2967,7 +2966,8 @@ class ADAM:
         # Estimate the model
         # Note: estimator() handles two-stage initialization internally
         if estimation:
-            # gnorm shape handling: estimate when not given (mirrors R)
+            # gnorm shape: estimate it from the data when the user did not
+            # supply ``gnorm_shape``.
             dist = self._general.get("distribution_new") or self._general.get(
                 "distribution", "dnorm"
             )

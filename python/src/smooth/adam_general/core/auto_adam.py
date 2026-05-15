@@ -1,7 +1,7 @@
 """
 AutoADAM — automatic model selection wrapper for ADAM.
 
-Mirrors R's ``auto.adam()`` function, providing automatic selection of:
+Provides automatic selection of:
 - ARIMA orders (three-phase D→MA→AR search)
 - Error distribution (tries each candidate; picks lowest IC)
 - ETS model (delegated to ADAM's existing selection machinery)
@@ -37,7 +37,7 @@ class AutoADAM(ADAM):
     Automatic ADAM model selection.
 
     Wraps :class:`ADAM` with automatic selection of ARIMA orders and error
-    distribution, mirroring R's ``auto.adam()`` function.
+    distribution.
 
     ETS model selection (ZZZ, ZXZ, FFF, CCC …) is handled by the underlying
     ADAM machinery and is not duplicated here.
@@ -61,13 +61,12 @@ class AutoADAM(ADAM):
 
     ma_order : Union[int, List[int]], default=[3, 3]
         Maximum MA order(s) per lag level for ARIMA selection.
-        Defaults to ``[3, 3]`` matching R's ``auto.adam()``.
 
     orders : Optional[Dict[str, Any]], default=None
-        R-style alternative to scalar max orders. A dict with keys
-        ``"ar"``, ``"i"``, ``"ma"`` (each an int or list) and optionally
-        ``"select"`` (bool). When provided, ``ar_order``/``i_order``/
-        ``ma_order`` are ignored.
+        Dict-style alternative to the scalar max-order arguments above. A
+        dict with keys ``"ar"``, ``"i"``, ``"ma"`` (each an int or list)
+        and optionally ``"select"`` (bool). When provided,
+        ``ar_order`` / ``i_order`` / ``ma_order`` are ignored.
 
     arima_select : bool, default=True
         Whether to perform ARIMA order selection. Unlike :class:`ADAM`,

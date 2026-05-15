@@ -1,7 +1,9 @@
 """
 LOWESS (Locally Weighted Scatterplot Smoothing) implementation.
 
-This module provides a LOWESS smoother that exactly matches R's stats::lowess function.
+This module provides a LOWESS smoother based on Cleveland's (1979) algorithm:
+locally weighted polynomial regression with a tricube weight function and
+iterative reweighting for robustness to outliers.
 """
 
 import numpy as np
@@ -12,10 +14,11 @@ from smooth.adam_general import lowess_cpp as _lowess_cpp
 
 def lowess(x, y=None, f=2 / 3, iter=3, delta=None):
     """
-    LOWESS smoother that exactly matches R's stats::lowess function.
+    LOWESS smoother (Locally Weighted Scatterplot Smoothing).
 
-    Performs locally weighted polynomial regression using Cleveland's LOWESS algorithm.
-    This implementation produces results identical to R's stats::lowess function.
+    Performs locally weighted polynomial regression using Cleveland's LOWESS
+    algorithm. Useful for smoothing noisy data while preserving local
+    patterns and for robust trend estimation in the presence of outliers.
 
     Parameters
     ----------
@@ -33,25 +36,23 @@ def lowess(x, y=None, f=2 / 3, iter=3, delta=None):
         Using smaller values of iter will make lowess run faster.
     delta : float, optional
         Values within delta of each other are treated as being at the same point.
-        If None (default), uses 0.01 * (max(x) - min(x)), matching R's default.
+        If None (default), uses 0.01 * (max(x) - min(x)).
 
     Returns
     -------
     dict
-        A dictionary with two keys matching R's lowess output:
+        A dictionary with two keys:
         - 'x': The sorted x values
         - 'y': The smoothed y values corresponding to the sorted x values
 
     Notes
     -----
-    This function is a direct port of R's stats::lowess, which implements
-    Cleveland's (1979) LOWESS algorithm. The algorithm uses locally weighted
+    Implements Cleveland's (1979) LOWESS algorithm: locally weighted
     polynomial regression with a tricube weight function and iterative
     reweighting for robustness to outliers.
 
-    The function returns results in the same format as R's lowess: a list/dict
-    with 'x' and 'y' components, where x is sorted and y contains the
-    corresponding smoothed values.
+    The returned dictionary holds ``x`` sorted in ascending order and ``y``
+    containing the corresponding smoothed values.
 
     References
     ----------
@@ -81,7 +82,7 @@ def lowess(x, y=None, f=2 / 3, iter=3, delta=None):
 
     >>> result = lowess(x, y, f=0.5)
 
-    Using a 2D array input (like R's behavior):
+    Using a 2D array input:
 
     >>> xy = np.column_stack([x, y])
     >>> result = lowess(xy)
@@ -115,18 +116,18 @@ def lowess(x, y=None, f=2 / 3, iter=3, delta=None):
     if n < 2:
         return {"x": x.copy(), "y": y.copy()}
 
-    # Compute delta if not provided (R's default: 0.01 * diff(range(x)))
+    # Compute delta if not provided (default: 0.01 * diff(range(x)))
     if delta is None:
         delta = 0.01 * (x.max() - x.min())
 
-    # Sort by x to match R's output format
+    # Sort by x so the returned (x, y) pair is ascending in x
     order = np.argsort(x)
     x_sorted = x[order]
     y_sorted = y[order]
 
     # Call C++ implementation
-    #  Note: C++ version handles sorting internally but we need sorted output for R
-    # compatibility
+    # Note: the C++ routine handles sorting internally; we pre-sort so the
+    # smoothed output stays aligned with the returned sorted x.
     smoothed = _lowess_cpp(x_sorted, y_sorted, f=f, nsteps=iter, delta=delta)
 
     return {"x": x_sorted, "y": smoothed}

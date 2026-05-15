@@ -106,7 +106,8 @@ def sigma(observations_dict, params_info, general, prepared_model):
       The sigma is the standard deviation of log(errors), not errors themselves.
 
     - **Gamma and Inverse Gaussian**: For multiplicative error models. The formula
-      uses residuals directly (not residuals - 1) to match R implementation.
+      uses the residuals directly (not residuals − 1) — the multiplicative-error
+      residual already encodes relative deviation, so no recentring is needed.
 
     - **Generalized Log-Normal**: Currently commented out, would require additional
       scale extraction step.

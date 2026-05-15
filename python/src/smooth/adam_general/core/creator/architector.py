@@ -263,7 +263,6 @@ def architector(
     )
 
     # Create C++ adam class, which will then use fit, forecast etc methods
-    # This matches R implementation (adam.R line 752-758)
     adam_cpp = adamCore(
         lags=np.array(lags_dict["lags_model_all"], dtype=np.uint64),
         E=model_type_dict["error_type"],

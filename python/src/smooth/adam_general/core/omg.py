@@ -1,11 +1,11 @@
-"""General Occurrence Model (OMG): port of R's ``omg()`` to Python.
+"""General Occurrence Model (OMG).
 
 Fits two parallel ETS / ARIMA occurrence sub-models — A (odds-ratio) and
 B (inverse-odds-ratio) — jointly, against a shared Bernoulli log-likelihood
 on the combined probability ``p = aFit / (aFit + bFit)``.
 
-Mirrors R/omg.R. The single C++ entry point ``adamCore.omfitGeneral`` advances
-both sub-models simultaneously inside the optimiser.
+The single C++ entry point ``adamCore.omfitGeneral`` advances both
+sub-models simultaneously inside the optimiser.
 """
 
 from __future__ import annotations
@@ -78,7 +78,8 @@ class OMG:
         ets: Literal["conventional", "adam"] = "conventional",
     ) -> None:
         if loss != "likelihood":
-            # R/omg.R only ever uses Bernoulli likelihood for the joint cost
+            # The joint cost for OMG is fixed at the Bernoulli log-likelihood
+            # on the combined probability; no other loss is supported.
             raise ValueError(
                 "OMG only supports loss='likelihood' (Bernoulli log-likelihood "
                 "on the combined probability)."
@@ -197,10 +198,10 @@ class OMG:
             side_b, B_used[n_params_a:], "inverse-odds-ratio"
         )
 
-        # Combined probability via individual sub-model raw fitted values —
-        # matches R's omgFinalFitA/B + omgLinkFunction approach.  Fall back to
-        # the joint omfitGeneral result when individual re-fits produce NaN
-        # (can happen for certain ARIMA configurations during backcasting).
+        # Combined probability built from each sub-model's raw fitted values
+        # through the OMG link function. Fall back to the joint omfitGeneral
+        # result when individual re-fits produce NaN (can happen for certain
+        # ARIMA configurations during backcasting).
         raw_a = np.asarray(self.model_a._prepared["y_fitted_raw"]).ravel()
         raw_b = np.asarray(self.model_b._prepared["y_fitted_raw"]).ravel()
         e_a = side_a["model_type_dict"]["error_type"]
@@ -236,7 +237,7 @@ class OMG:
         if interval != "none":
             warnings.warn(
                 "Intervals on the probability scale are not implemented for OMG; "
-                "returning point forecasts only (matches R's forecast.omg)."
+                "returning point forecasts only."
             )
         return self._forecast_combined(h, X_future=X)
 
@@ -355,7 +356,7 @@ class OMG:
         """Pearson standardised residuals for the general occurrence model.
 
         Formula: ``(ot - p) / sqrt(p*(1-p)) * sqrt(n/df)``
-        where ``df = n - k``.  Mirrors R's ``rstandard.omg()``.
+        where ``df = n - k``.
         """
         obs = self.nobs
         df = obs - self.nparam
@@ -367,7 +368,7 @@ class OMG:
         """Pearson studentised residuals for the general occurrence model.
 
         Formula: ``(ot - p) / sqrt(p*(1-p)) * sqrt(n/df)``
-        where ``df = n - k - 1``.  Mirrors R's ``rstudent.omg()``.
+        where ``df = n - k - 1``.
         """
         obs = self.nobs
         df = obs - self.nparam - 1
@@ -667,10 +668,10 @@ class OMG:
         scaffold._ic_selection = self._ic_value
         scaffold._select_distribution()
 
-        # Build fresh matrices with the ORIGINAL error/trend/season types —
-        # mirrors R's omgFinalFitA/B which calls adam_creator with checkerA/B's
-        # actual Etype (not the forced-additive used during optimization).
-        # The difference matters for seasonal initial states that seed backcasting.
+        # Build fresh matrices with the ORIGINAL error/trend/season types
+        # rather than the forced-additive types used during optimisation.
+        # The difference matters for seasonal initial states that seed
+        # backcasting.
         adam_created_final = scaffold._build_final_fit_adam_created(side["profile"])
         scaffold._adam_created = adam_created_final
 
@@ -752,8 +753,8 @@ class OMG:
     # ---------------------------------------------------------------------
 
     def _forecast_combined(self, h: int, X_future=None):
-        # Combine raw (pre-link) forecasts from both sub-models via omg_link_function,
-        # mirroring R's omg() outer block: adamCppA$forecast + adamCppB$forecast → link.
+        # Combine raw (pre-link) forecasts from both sub-models via
+        # omg_link_function to produce the combined probability forecast.
         fc_a, fc_a_raw = self.model_a._run_forecaster(h, X_future=X_future)
         fc_b_raw = self.model_b._raw_forecast_direct(h, X_future=X_future)
         e_a = self._side_a["model_type_dict"]["error_type"]
@@ -767,8 +768,8 @@ class OMG:
 def _build_omg_from_om_kwargs(**om_kwargs) -> OMG:
     """Construct an OMG from the kwargs supplied to OM(occurrence='general', ...).
 
-    Mirrors R's om(occurrence='general'): forwards model/lags/orders as both
-    modelA and modelB and delegates to omg().
+    Forwards ``model`` / ``lags`` / ``orders`` as both ``model_a`` and
+    ``model_b`` and delegates to :class:`OMG`.
     """
     model = om_kwargs.pop("model", "MNN")
     return OMG(

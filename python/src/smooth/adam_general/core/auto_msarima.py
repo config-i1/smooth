@@ -1,9 +1,9 @@
 """
 AutoMSARIMA — automatic ARIMA order selection wrapper for ADAM.
 
-Mirrors R's ``auto.msarima()`` function: fixes ``model="NNN"`` and
-``distribution="dnorm"``, always enables ARIMA order selection, and
-forwards all other parameters to :class:`AutoADAM`.
+Fixes ``model="NNN"`` and ``distribution="dnorm"``, always enables ARIMA
+order selection, and forwards all other parameters to :class:`AutoADAM`.
+Use this when you want a pure (S)ARIMA without ETS components.
 """
 
 from typing import Any, Dict, List, Literal, Optional, Union
@@ -21,7 +21,7 @@ class AutoMSARIMA(AutoADAM):
 
     Wraps :class:`AutoADAM` with ``model="NNN"`` and ``distribution="dnorm"``
     fixed, providing automatic ARIMA order selection for pure ARIMA (and
-    SARIMA) models without ETS components. Mirrors R's ``auto.msarima()``.
+    SARIMA) models without ETS components.
 
     Parameters
     ----------
@@ -30,21 +30,19 @@ class AutoMSARIMA(AutoADAM):
         If None, defaults to ``[1]`` (non-seasonal).
 
     ar_order : Union[int, List[int]], default=[3, 3]
-        Maximum AR order(s) per lag level for selection.
-        Matches R's ``orders=list(ar=c(3,3))``.
+        Maximum AR order(s) per lag level for selection (one entry per
+        seasonal frequency in ``lags``).
 
     i_order : Union[int, List[int]], default=[2, 1]
         Maximum integration order(s) per lag level.
-        Matches R's ``orders=list(i=c(2,1))``.
 
     ma_order : Union[int, List[int]], default=[3, 3]
         Maximum MA order(s) per lag level for selection.
-        Matches R's ``orders=list(ma=c(3,3))``.
 
     orders : Optional[Dict[str, Any]], default=None
-        R-style alternative to scalar max orders. A dict with keys
-        ``"ar"``, ``"i"``, ``"ma"`` (each an int or list). When provided,
-        ``ar_order``/``i_order``/``ma_order`` are ignored.
+        Dict-style alternative to the scalar max-order arguments above. A
+        dict with keys ``"ar"``, ``"i"``, ``"ma"`` (each an int or list).
+        When provided, ``ar_order`` / ``i_order`` / ``ma_order`` are ignored.
 
     constant : Union[bool, float], default=False
         Whether to include a constant (drift) term.
