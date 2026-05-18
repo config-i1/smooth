@@ -1,4 +1,4 @@
-"""Diagnostic plots for fitted ADAM models — Python equivalent of R's plot.adam()."""
+"""Diagnostic plots for fitted ADAM models (residuals, ACF/PACF, Q-Q, fit)."""
 
 import math
 
@@ -336,7 +336,7 @@ def _plot5(model, ax, legend, **kw):
         full_t, full_y = t_in, actuals
     ax.plot(full_t, full_y, color="#000000", lw=1.5, label="Actuals")
 
-    # Fitted values — dashed purple on top (#A020F0 matches R's "purple")
+    # Fitted values — dashed purple on top
     ax.plot(t_in, fitted, color="#A020F0", lw=1.5, linestyle="--", label="Fitted")
 
     # Horizontal line at the last in-sample observation

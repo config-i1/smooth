@@ -20,10 +20,10 @@ SMOOTHER_DEFAULT = "global"
 
 def lowess_r(x, y, f=2 / 3, nsteps=3, delta=None):
     """
-    LOWESS smoother that exactly matches R's stats::lowess function.
+    Pure Python/NumPy implementation of Cleveland's LOWESS algorithm.
 
-    This is a pure Python/NumPy implementation of Cleveland's LOWESS algorithm
-    as implemented in R's stats package (clowess C function).
+    Performs locally weighted polynomial regression with a tricube weight
+    function and iterative reweighting for robustness to outliers.
 
     Parameters
     ----------
@@ -47,7 +47,6 @@ def lowess_r(x, y, f=2 / 3, nsteps=3, delta=None):
     ----------
     Cleveland, W.S. (1979) "Robust Locally Weighted Regression and
     Smoothing Scatterplots". JASA 74(368): 829-836.
-    R source: https://github.com/SurajGupta/r-source/blob/master/src/library/stats/src/lowess.c
     """
     x = np.asarray(x, dtype=np.float64)
     y = np.asarray(y, dtype=np.float64)
@@ -76,13 +75,13 @@ def lowess_r(x, y, f=2 / 3, nsteps=3, delta=None):
 
     def lowest(xs, nleft, nright, rw_iter):
         """
-        Compute weighted local regression at point xs.
-        This matches R's lowest() function exactly.
+        Compute weighted local regression at point xs using the tricube
+        weight function applied to the [nleft, nright] window.
         """
         # Compute bandwidth h
         h = max(xs - x_sorted[nleft], x_sorted[nright] - xs)
 
-        # Thresholds for weight calculation (R's h9 and h1)
+        # Thresholds for the tricube weight (h9 = upper, h1 = lower)
         h9 = 0.999 * h
         h1 = 0.001 * h
 
@@ -457,8 +456,8 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     if smoother not in ["ma", "lowess", "supsmu", "global"]:
         raise ValueError("smoother must be 'ma', 'lowess', 'supsmu', or 'global'")
 
-    # Note: lowess/supsmu now use custom lowess_r implementation that matches R exactly
-    # No external dependencies required
+    # Note: lowess/supsmu use the bundled lowess_r implementation, so no
+    # external smoothing dependencies are required.
 
     # Variable name handling
     y_name = "y"
@@ -467,10 +466,10 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     y = np.asarray(y)
     obs_in_sample = len(y)
 
-    # Handle empty lags case - treat as lags=[1] to match R behavior
-    # In R, msdecompose is never called with empty lags, but the Python code
-    # filters lags to remove lag=1, which can result in empty lags.
-    # We treat empty lags as lags=[1] to ensure consistent smoothing behavior.
+    # Handle empty lags case — treat as lags=[1]. The decomposition entry
+    # point filters out lag=1 before reaching this branch, which can leave
+    # an empty list when the only requested lag was 1. Falling back to
+    # lags=[1] keeps the smoothing path consistent.
     if len(lags) == 0:
         lags = [1]
 
@@ -649,11 +648,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     # Create initial as a dict with nonseasonal and seasonal components
     initial = {"nonseasonal": {}, "seasonal": []}
 
-    # Calculate nonseasonal initial values (level and trend)
-    #  R: initial$nonseasonal <-
-    # c(ySmooth[[ySmoothLength]][!is.na(ySmooth[[ySmoothLength]])][1],
-    #                             mean(diff(ySmooth[[ySmoothLength]]),na.rm=T));
-    data_for_initial = y_smooth[lags_length]  # Matches R's ySmooth[[ySmoothLength]]
+    # Calculate nonseasonal initial values (level and trend) from the
+    # smoothed series at the largest seasonal lag.
+    data_for_initial = y_smooth[lags_length]
     valid_data_for_initial = data_for_initial[~np.isnan(data_for_initial)]
     if len(valid_data_for_initial) == 0:
         init_level = 0.0
@@ -661,18 +658,17 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     else:
         # Level: first non-NA value
         init_level = valid_data_for_initial[0]
-        # Trend: mean of diffs of full series (with NAs), then remove NAs from mean
-        # This matches R's mean(diff(x), na.rm=T) behavior
-        diffs = np.diff(data_for_initial)  # Diff full series, NAs propagate
+        # Trend: NaN-skipping mean of first differences of the full series.
+        diffs = np.diff(data_for_initial)
         init_trend = np.nanmean(diffs) if len(diffs) > 0 else 0.0
 
     lags_max = max(lags)
 
-    # Fix the initial for MA smoother (lines 200-202 in R)
+    # Centre-correct the initial level when using the moving-average smoother
     if smoother == "ma":
         init_level -= init_trend * np.floor(lags_max / 2)
 
-    # Lag things back to get values useful for ADAM (lines 204-206 in R)
+    # Lag things back to get values useful for ADAM
     init_level -= init_trend * lags_max
 
     # Store in nonseasonal dict
@@ -803,8 +799,9 @@ def calculate_likelihood(distribution, Etype, y, y_fitted, scale, other):
         # Implement asymmetric Laplace distribution
         pass
     elif distribution == "dlnorm":
-        # Use complex log to handle negative y_fitted during optimization,
-        # mirroring R's Re(log(as.complex(y_fitted))) failsafe.
+        # Use the real part of the complex logarithm so that negative
+        # y_fitted values during optimisation produce a finite log instead
+        # of NaN (the imaginary part is discarded).
         meanlog = np.real(np.log(y_fitted.astype(complex))) - scale**2 / 2
         return stats.lognorm.logpdf(y, s=scale, scale=np.exp(meanlog))
     elif distribution == "dllaplace":

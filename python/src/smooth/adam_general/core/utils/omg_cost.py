@@ -1,10 +1,10 @@
 """Cost function for general occurrence (OMG) models.
 
-Mirrors ``omgCF_local`` in ``R/omg.R``: fills two parallel sets of state-space
-matrices from a joint parameter vector ``B = [B_A | B_B]``, runs the C++
-``adamCore.omfitGeneral`` to advance both sub-models simultaneously, applies
-``omg_link_function`` to combine the two raw fitted vectors into a probability,
-and returns the negative Bernoulli log-likelihood.
+Fills two parallel sets of state-space matrices from a joint parameter
+vector ``B = [B_A | B_B]``, runs the C++ ``adamCore.omfitGeneral`` to
+advance both sub-models simultaneously, applies ``omg_link_function`` to
+combine the two raw fitted vectors into a probability, and returns the
+negative Bernoulli log-likelihood.
 
 The single-model OM cost lives in :mod:`om_cost`; this module is the
 two-model analogue.
@@ -19,12 +19,11 @@ from smooth.adam_general.core.creator import filler
 
 
 def omg_link_function(fitted_a, fitted_b, error_type_a, error_type_b):
-    """Translation of ``omgLinkFunction`` (R/omg.R:1).
+    """Combine the raw fitted outputs of two sub-models into a probability.
 
-    Combines the raw (state-space) fitted output of model A and model B into a
-    probability.  All four branches are numerically stable reformulations of
-    ``aFit / (aFit + bFit)`` that avoid exp-overflow by dividing through by the
-    larger of the two exponentials before returning.
+    All four branches are numerically stable reformulations of
+    ``aFit / (aFit + bFit)`` that avoid exp-overflow by dividing through by
+    the larger of the two exponentials before returning.
 
     A+A: 1/(1+exp(fb-fa))          M+M: 1/(1+fb/fa)
     M+A: 1/(1+exp(fb-log(fa)))     A+M: 1/(1+exp(log(fb)-fa))
@@ -104,7 +103,7 @@ def omg_cf(  # noqa: N802
 
     ``side_a`` and ``side_b`` are dicts collecting everything ``filler`` and
     ``adam_cpp.omfitGeneral`` need for the two sub-models. ``n_params_a``
-    splits the concatenated parameter vector. Mirrors R/omg.R:omgCF_local.
+    splits the concatenated parameter vector.
     """
     B_A = B[:n_params_a]
     B_B = B[n_params_a:]
@@ -238,9 +237,9 @@ def omg_cf(  # noqa: N802
         e_b,
     )
 
-    # Infeasibility guard, mirroring R/omg.R:336 (NaN or boundary p means
-    # the parameters are inconsistent with the data — uniform large penalty
-    # so the optimiser steers away). NOT a clip on the model output.
+    # Infeasibility guard: NaN or boundary p means the parameters are
+    # inconsistent with the data — return a uniform large penalty so the
+    # optimiser steers away. NOT a clip on the model output.
     if (
         np.any(np.isnan(p_combined))
         or np.any(p_combined <= 0)

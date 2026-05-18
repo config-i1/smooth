@@ -375,7 +375,7 @@ def parameters_checker(
         Typical values: 0.01-0.1 for moderate regularization.
 
     interval : str, default="prediction"
-        Prediction interval type (matches R's ``forecast.adam()``).
+        Prediction interval type.
 
         - **"none"**: No intervals.
         - **"prediction"**: Auto-selects "simulated" or "approximate".
@@ -449,12 +449,12 @@ def parameters_checker(
     suboptimal choices are detected (e.g., multiplicative seasonality with negative
     data).
 
-    **Relationship to R Implementation**:
+    **Output Structure**:
 
-    This function consolidates checks that are distributed across multiple functions in
-    the R package (adam, adamSelection, etc.). The Python version performs equivalent
-    validation but returns more structured outputs (dictionaries) rather than R's
-    list objects.
+    The function consolidates parameter validation into a single entry
+    point and returns structured dictionaries grouping related settings
+    (model type, distribution, ARIMA spec, occurrence, observations, etc.)
+    that the downstream architector / creator / estimator consume.
 
     **Performance**:
 
@@ -567,8 +567,8 @@ def parameters_checker(
     loss = dist_info["loss"]
     loss_function = dist_info.get("loss_function", None)
 
-    # If ETS is off (e.g. NNN), set error_type from distribution
-    # mirrors R adamGeneral.R:1410
+    # If ETS is off (e.g. NNN), infer error_type from the distribution:
+    # log/multiplicative distributions imply multiplicative errors.
     if not ets_model:
         _mult_dists = {"dinvgauss", "dlnorm", "dllaplace", "dls", "dlgnorm", "dgamma"}
         ets_info["error_type"] = "M" if distribution in _mult_dists else "A"
@@ -979,9 +979,9 @@ def parameters_checker(
         "lags_model_arima": arima_info.get("lags_model_arima", []),
     }
 
-    # Pure-regression early exit — mirrors R/adamGeneral.R:1528/1561.
-    # When model="NNN" (no ETS, no ARIMA) and regressors are provided (not adaptive),
-    # delegate directly to greybox.ALM and return it instead of the 13-tuple.
+    # Pure-regression early exit: when model="NNN" (no ETS, no ARIMA) and
+    # regressors are provided (not adaptive), delegate directly to
+    # greybox.ALM and return it instead of the 13-tuple.
     _arima_nonzero = any(
         v > 0
         for orders_list in (ar_orders or [], i_orders or [], ma_orders or [])

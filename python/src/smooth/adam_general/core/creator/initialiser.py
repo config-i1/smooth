@@ -727,7 +727,7 @@ def initialiser(
             - 1,
             : initials_checked["initial_arima_number"],
         ]
-        # Normalize by ARI polynomial tail (matches R lines 1684-1686)
+        # Normalise the ARIMA initial state by the tail of the ARI polynomial.
         if adam_cpp is not None:
             n_ar = (
                 sum(arima_checked["ar_orders"]) if arima_checked["ar_estimate"] else 0
@@ -1145,10 +1145,10 @@ def _calculate_initial_parameters_and_bounds(
 
     # --- Populate B, Bl, Bu, names based on old initialiser logic ---
 
-    # Determine model-specific initial values for persistence parameters
-    #  R has special initialization for "mixed" models (models with both A and M
-    # components)
-    # See R/adam.R lines 1450-1485
+    # Determine model-specific initial values for persistence parameters.
+    # "Mixed" ETS specifications (models that combine additive and
+    # multiplicative components) need their own seeds because the additive
+    # defaults would put the optimiser on a flat/penalty plateau.
     initial_type = initials_checked.get("initial_type")
     is_mixed = (
         ets_model

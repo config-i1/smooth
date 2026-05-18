@@ -1,8 +1,8 @@
 """Cost function for occurrence (OM) models.
 
-Mirrors ``omCF_local`` in ``R/om.R``: fills the state-space matrices from B,
-runs the C++ fitter with the occurrence flag, applies the link function to map
-raw fitted values into [0, 1] probabilities, and returns the negative
+Fills the state-space matrices from the optimisation vector ``B``, runs the
+C++ fitter with the occurrence flag, applies the link function to map the
+raw fitted values into ``[0, 1]`` probabilities, and returns the negative
 Bernoulli log-likelihood (or MSE on the binary indicators).
 """
 
@@ -15,9 +15,11 @@ from smooth.adam_general.core.creator import filler
 
 
 def om_link_function(x, error_type, occurrence):
-    """Translation of ``omLinkFunction`` (R/om.R:1258).
+    """Map raw state-space fitted values onto a probability scale.
 
-    Maps raw state-space fitted values onto a probability scale.
+    The exact transformation depends on the ``occurrence`` type
+    (odds-ratio, inverse-odds-ratio, direct or fixed) and on the
+    underlying error type (additive or multiplicative).
     """
     x = np.asarray(x, dtype=np.float64)
     if occurrence == "odds-ratio":
@@ -189,7 +191,7 @@ def om_cf(  # noqa: N802
     # Infeasibility guard (NOT a clipping hack): if the link function
     # produced NaN or values outside [0, 1], the parameters at this point
     # are infeasible for the model — return a uniformly large penalty so
-    # the optimiser steers away. Mirrors R/om.R:omCF_local.
+    # the optimiser steers away.
     if np.any(np.isnan(p_fitted)) or np.any(p_fitted < 0) or np.any(p_fitted > 1):
         return 1e300
 
