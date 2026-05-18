@@ -473,9 +473,35 @@ class OMG:
         b_a = self._initial_B_side(side_a)
         b_b = self._initial_B_side(side_b)
         n_params_a = len(b_a["B"])
-        B_used = np.concatenate([b_a["B"], b_b["B"]])
+        B_used = np.concatenate([b_a["B"], b_b["B"]])  # noqa: N806
         lb = np.concatenate([b_a["Bl"], b_b["Bl"]])
         ub = np.concatenate([b_a["Bu"], b_b["Bu"]])
+
+        # Respect user-supplied B / lb / ub from nlopt_kargs. B is the JOINT
+        # vector spanning A-side then B-side. dict-keyed names are matched
+        # against suffixed names ("alpha_A", "alpha_B", ...); array-like B is
+        # assigned positionally. lb / ub override positionally.
+        kargs = self.nlopt_kargs or {}
+        user_B = kargs.get("B")  # noqa: N806
+        user_lb = kargs.get("lb")
+        user_ub = kargs.get("ub")
+
+        names_a = b_a.get("names") or []
+        names_b = b_b.get("names") or []
+        joint_names = [f"{n}_A" for n in names_a] + [f"{n}_B" for n in names_b]
+
+        if user_B is not None:
+            if isinstance(user_B, dict):
+                for k, v in user_B.items():
+                    if k in joint_names:
+                        B_used[joint_names.index(k)] = float(v)
+            else:
+                B_used[:] = np.asarray(user_B, dtype=float)
+        if user_lb is not None:
+            lb[:] = np.asarray(user_lb, dtype=float)
+        if user_ub is not None:
+            ub[:] = np.asarray(user_ub, dtype=float)
+
         return B_used, lb, ub, n_params_a
 
     def _initial_B_side(self, side):  # noqa: N802
@@ -544,7 +570,40 @@ class OMG:
             B_used[:] = opt.optimize(B_used)
         except Exception:
             pass
-        return opt.last_optimum_value()
+        cf_value = opt.last_optimum_value()
+
+        # Retry from a small-persistence safe point if the first run hit the
+        # infeasibility plateau, but ONLY when the user did NOT supply their
+        # own B — otherwise their B is the authoritative starting point.
+        # Mirrors the failsafe in R/omg.R: all params 0.001 with the two
+        # leading alphas (A-side and B-side) bumped to 0.01.
+        user_B_supplied = kargs.get("B") is not None  # noqa: N806
+        if not user_B_supplied and (not np.isfinite(cf_value) or cf_value >= 1e300):
+            B_used[:] = 0.001
+            if len(B_used) > 0:
+                B_used[0] = 0.01  # alpha for A-side
+            if n_params_a < len(B_used):
+                B_used[n_params_a] = 0.01  # alpha for B-side
+            opt2 = nlopt.opt(nlopt_algorithm, len(B_used))
+            opt2 = _configure_optimizer(
+                opt2,
+                lb,
+                ub,
+                maxeval,
+                None,
+                xtol_rel=xtol_rel,
+                xtol_abs=xtol_abs,
+                ftol_rel=ftol_rel,
+                ftol_abs=ftol_abs,
+            )
+            opt2.set_min_objective(_objective)
+            try:
+                B_used[:] = opt2.optimize(B_used)
+            except Exception:
+                pass
+            cf_value = opt2.last_optimum_value()
+
+        return cf_value
 
     # ---------------------------------------------------------------------
     # Build per-sub-model OM objects from the joint estimate
