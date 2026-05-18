@@ -1,7 +1,9 @@
-"""Occurrence Model (OM): port of R's ``om()`` to Python.
+"""Occurrence Model (OM).
 
 This module implements the :class:`OM` class — a state-space model for the
-*probability of occurrence* of demand, mirroring R's ``smooth::om()``.
+*probability of occurrence* of demand. Useful for intermittent-demand data
+where many observations are zero and the size of the non-zero demands is
+modelled separately.
 
 Supported ``occurrence`` values:
 
@@ -93,11 +95,10 @@ def om_initial_transform(
     constant_required: bool,
     constant_estimate: bool,
 ) -> np.ndarray:
-    """Translation of ``om_initial_transform`` (R/om.R:1140).
+    """Transform initial state values from probability space onto the
+    model-native scale before optimisation begins.
 
-    Transforms initial state values from probability space onto the
-    model-native scale before optimisation begins.  Mutates ``mat_vt`` in
-    place and also returns it.
+    Mutates ``mat_vt`` in place and also returns it.
     """
 
     def _transform(value):
@@ -351,12 +352,12 @@ def om_preparator(
 
 
 class OM(ADAM):
-    """Occurrence model — Python port of R's ``om()``.
+    """Occurrence model — state-space model for the probability of demand occurrence.
 
-    Inherits the ADAM API surface and overrides the bits that differ:
-    cost function (Bernoulli likelihood with link transform), distribution
-    (always ``"plogis"``), scale (``nan``), and model-name format
-    (``"oETS(...)[F|O|I|D]"``).
+    Inherits the ADAM API surface and overrides the bits that differ for an
+    occurrence model: cost function (Bernoulli likelihood applied to the
+    link-transformed fitted values), distribution (always ``"plogis"``),
+    scale (``nan``), and model-name format (``"oETS(...)[F|O|I|D]"``).
     """
 
     _OM_DEFAULT_LOSS = "likelihood"
@@ -442,7 +443,7 @@ class OM(ADAM):
             raise ValueError(f"Invalid loss={loss!r}; expected 'likelihood' or 'MSE'.")
 
         # For "fixed" occurrence the model is forced to ANN with persistence
-        # disabled and an analytic initial level — match R/om.R:130-136.
+        # disabled and an analytic initial level.
         if occurrence == "fixed":
             model = "ANN"
             persistence = 0
@@ -599,7 +600,8 @@ class OM(ADAM):
         )
         self._check_parameters(y, X)
 
-        # Pure-regression early exit — mirrors R/om.R:154-281.
+        # Pure-regression early exit: when the user supplied an explicit
+        # ALM regression model, refit it under the plogis link and return.
         if getattr(self, "_alm_model", None) is not None:
             from greybox import ALM as _ALM
 
@@ -616,12 +618,12 @@ class OM(ADAM):
 
         self._restore_user_model_spec(requested_model_spec)
 
-        # Replace y_in_sample with binary ot (mirrors R: oInSample <- as.numeric(ot))
-        # so the inherited forecaster/preparator paths see the binary indicator.
+        # Replace y_in_sample with the binary occurrence indicator so the
+        # inherited forecaster/preparator paths see the 0/1 series.
         ot = np.asarray(self._observations["ot"], dtype=np.float64)
         self._observations["y_in_sample"] = ot
         self._observations["obs_zero"] = int(np.sum(~self._observations["ot_logical"]))
-        # Binarize holdout too (mirrors R: yHoldout <- as.numeric(yHoldout != 0))
+        # Binarise the holdout as well.
         y_hld_raw = self._observations.get("y_holdout")
         if self._general.get("holdout") and y_hld_raw is not None:
             self._observations["y_holdout"] = (np.asarray(y_hld_raw) != 0).astype(
@@ -810,11 +812,11 @@ class OM(ADAM):
     def _build_final_fit_adam_created(self, profile_dict):
         """Rebuild matrices using the ORIGINAL error/trend/season types.
 
-        Mirrors R's ``omgFinalFitA`` / ``omgFinalFitB``: those functions call
-        ``adam_creator`` with the checker's actual Etype/Ttype/Stype (not the
-        forced-additive version used during optimization). The difference matters
-        for the seasonal initial-state values in ``mat_vt``, which seed the
-        backcasting that runs inside the final standalone ``adamCpp$fit``.
+        During optimisation the model is forced to use additive error/trend/
+        season types for numerical stability. For the final standalone fit
+        we rebuild the matrices using the user-requested Etype/Ttype/Stype,
+        because the difference matters for the seasonal initial-state values
+        in ``mat_vt`` that seed the backcasting inside ``adamCpp$fit``.
         """
         model_type_dict = self._model_type
         original_ot_logical = self._observations["ot_logical"]
@@ -977,7 +979,7 @@ class OM(ADAM):
             pass
         cf_value = opt.last_optimum_value()
 
-        # Retry with zero persistence if first run blew up (mirrors R)
+        # Retry with zero persistence if the first run failed to converge.
         if not np.isfinite(cf_value) or cf_value >= 1e300:
             n_ets = self._components.get("components_number_ets", 0)
             if n_ets > 0:
@@ -1245,15 +1247,14 @@ class OM(ADAM):
     ):
         """Probability forecast for the occurrence model.
 
-        Mirrors R's ``forecast.om`` (R/om.R:1286). Currently only
-        ``interval="none"`` is supported; intervals on the probability scale
-        are not implemented yet (matches R behaviour).
+        Currently only ``interval="none"`` is supported; intervals on the
+        probability scale are not implemented yet.
         """
         self._check_is_fitted()
         if interval != "none":
             warnings.warn(
                 "Intervals on the probability scale are not implemented for OM "
-                "models; returning point forecasts only (matches R's forecast.om)."
+                "models; returning point forecasts only."
             )
         return self._om_forecast(h, X_future=X)
 
@@ -1304,7 +1305,7 @@ class OM(ADAM):
 
     @property
     def actuals(self) -> NDArray:
-        """Binary 0/1 occurrence indicator (matches R's ``actuals.om``)."""
+        """Binary 0/1 occurrence indicator for the in-sample series."""
         self._check_is_fitted()
         return np.asarray(self._observations["ot"], dtype=float)
 
@@ -1325,7 +1326,6 @@ class OM(ADAM):
 
         Formula: ``(ot - p) / sqrt(p*(1-p)) * sqrt(n/df)``
         where ``df = n - k`` (n observations, k estimated parameters).
-        Mirrors R's ``rstandard.om()``.
         """
         self._check_is_fitted()
         obs = self.nobs
@@ -1339,7 +1339,6 @@ class OM(ADAM):
 
         Formula: ``(ot - p) / sqrt(p*(1-p)) * sqrt(n/df)``
         where ``df = n - k - 1``.
-        Mirrors R's ``rstudent.om()``.
         """
         self._check_is_fitted()
         obs = self.nobs

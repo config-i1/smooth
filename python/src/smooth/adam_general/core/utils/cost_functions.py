@@ -312,7 +312,9 @@ def CF(  # noqa: N802
     ]
     mat_vt = np.asfortranarray(adam_elements["mat_vt"], dtype=np.float64)
 
-    # Restore seed row for next CF call (mirrors R copy-on-modify for matVt parameter).
+    # Restore the seed row of mat_vt before the next CF call so each
+    # optimiser step starts from the same initial state (the C++ fitter may
+    # mutate the row in place).
     if arima_seed_backup is not None:
         idx, n, row = arima_seed_backup
         matrices_dict["mat_vt"][idx, :n] = row

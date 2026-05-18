@@ -67,8 +67,7 @@ AutoOM
    :members: fit
 
 ``AutoOM`` tests multiple occurrence types and returns the best ``OM`` or
-``OMG`` instance, selected by information criterion (default: AICc). It is the
-Python equivalent of R's ``auto.om()``.
+``OMG`` instance, selected by information criterion (default: AICc).
 
 .. code-block:: python
 

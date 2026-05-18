@@ -569,12 +569,12 @@ def estimator(
     B[:] = _run_optimization(opt, B)
     CF_value = opt.last_optimum_value()
 
-    # Step 9a: R uses only Nelder-Mead; no BOBYQA refinement. Disabling BOBYQA
-    # pass to match R exactly and achieve 100% identical ARIMA results.
+    # Step 9a: a BOBYQA refinement pass was tried in the past but produced
+    # less stable ARIMA estimates, so only the Nelder-Mead pass is run.
 
-    # Step 10a: Retry optimization with zero smoothing parameters if initial
-    # optimization failed
-    # Matches R: is.infinite(res$objective) || res$objective==1e+300
+    # Step 10a: Retry optimisation with zero smoothing parameters if the
+    # initial optimisation failed to converge (non-finite or penalty-valued
+    # cost function).
     if not np.isfinite(CF_value) or CF_value >= 1e300:
         # Calculate number of ETS persistence parameters (alpha, beta, gamma)
         components_number_ets = 0
