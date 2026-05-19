@@ -902,16 +902,46 @@ class OM(ADAM):
             other_value=2.0,
         )
 
-        B = np.asarray(b_values["B"], dtype=float)
-        lb = np.asarray(b_values["Bl"], dtype=float)
-        ub = np.asarray(b_values["Bu"], dtype=float)
+        # Optimisation knobs (subset of nlopt_kargs we care about for OM)
+        kargs = self.nlopt_kargs or {}
+
+        # Respect user-supplied B / lb / ub from nlopt_kargs (mirrors R's
+        # adam_checkOptimizer + adam.R:1229-1361 pattern). Named B is supplied
+        # as a dict (parameter-name -> value); array-like B is assigned
+        # positionally. lb / ub fall back to b_values only when not provided.
+        user_B = kargs.get("B")  # noqa: N806
+        user_lb = kargs.get("lb")
+        user_ub = kargs.get("ub")
+
+        B = np.asarray(b_values["B"], dtype=float)  # noqa: N806
+        names = b_values.get("names")
+        if user_B is not None:
+            if isinstance(user_B, dict):
+                if names is None:
+                    raise ValueError(
+                        "Initialiser did not return parameter names; "
+                        "cannot apply dict-keyed user B."
+                    )
+                for k, v in user_B.items():
+                    if k in names:
+                        B[names.index(k)] = float(v)
+            else:
+                B[:] = np.asarray(user_B, dtype=float)
+
+        lb = (
+            np.asarray(user_lb, dtype=float)
+            if user_lb is not None
+            else np.asarray(b_values["Bl"], dtype=float)
+        )
+        ub = (
+            np.asarray(user_ub, dtype=float)
+            if user_ub is not None
+            else np.asarray(b_values["Bu"], dtype=float)
+        )
 
         ar_polynomial_matrix, ma_polynomial_matrix = _setup_arima_polynomials(
             self._model_type, self._arima, self._lags_model
         )
-
-        # Optimisation knobs (subset of nlopt_kargs we care about for OM)
-        kargs = self.nlopt_kargs or {}
         algorithm = kargs.get("algorithm", "NLOPT_LN_NELDERMEAD")
         xtol_rel = kargs.get("xtol_rel", 1e-6)
         xtol_abs = kargs.get("xtol_abs", 1e-8)
@@ -979,11 +1009,14 @@ class OM(ADAM):
             pass
         cf_value = opt.last_optimum_value()
 
-        # Retry with zero persistence if the first run failed to converge.
-        if not np.isfinite(cf_value) or cf_value >= 1e300:
-            n_ets = self._components.get("components_number_ets", 0)
-            if n_ets > 0:
-                B[:n_ets] = 0
+        # Retry from a small-persistence safe point if the first run hit the
+        # infeasibility plateau, but ONLY when the user did NOT supply their
+        # own B — otherwise their B is the authoritative starting point.
+        # Failsafe mirrors R/om.R: all params 0.001 with alpha bumped to 0.01.
+        if user_B is None and (not np.isfinite(cf_value) or cf_value >= 1e300):
+            B[:] = 0.001
+            if len(B) > 0:
+                B[0] = 0.01
             opt2 = nlopt.opt(nlopt_algorithm, len(B))
             opt2 = _configure_optimizer(
                 opt2,

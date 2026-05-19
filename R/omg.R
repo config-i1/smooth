@@ -541,12 +541,39 @@ omg <- function(data,
             etsB, bounds, ot, otLogicalInternal,
             checkerB$iOrders, checkerB$armaParameters, checkerB$other)
 
+        # Capture user-supplied B / lb / ub from ellipses BEFORE the joint
+        # defaults shadow them (B, lb, ub were extracted by
+        # adam_checkOptimizer() and list2env()'d into the surrounding omg()
+        # frame; the joint default assignments below would otherwise mask
+        # them as local variables).
+        userB  <- B
+        userLb <- lb
+        userUb <- ub
+
         B_A <- BValuesA$B
         B_B <- BValuesB$B
         nParamsA <- length(B_A)
         B_used  <- c(B_A, B_B)
         lb      <- c(BValuesA$Bl, BValuesB$Bl)
         ub      <- c(BValuesA$Bu, BValuesB$Bu)
+
+        # Override with user-supplied values when given. B is the JOINT
+        # vector; named B is name-matched onto B_used, unnamed B is assigned
+        # positionally — mirrors the adam.R/om.R pattern.
+        if(!is.null(userB)){
+            if(!is.null(names(userB))){
+                userB <- userB[names(userB) %in% names(B_used)]
+                B_used[names(userB)] <- userB
+            } else {
+                B_used[] <- userB
+            }
+        }
+        if(!is.null(userLb)){
+            lb[] <- userLb
+        }
+        if(!is.null(userUb)){
+            ub[] <- userUb
+        }
 
         # Mixed model checks
         EtypeA <- checkerA$Etype; TtypeA <- checkerA$Ttype; StypeA <- checkerA$Stype
@@ -739,8 +766,16 @@ omg <- function(data,
                           nloptrArgs)))
             res$call <- quote(nloptr(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub, opts=opts));
 
-            if(is.infinite(res$objective) || res$objective == 1e+300) {
-                B_used[] <- c(BValuesA$B, BValuesB$B)
+            # Retry from a small-persistence safe point if the first run hit
+            # the infeasibility plateau, but only when the user did NOT supply
+            # their own B — otherwise their B is the authoritative starting
+            # point. Mirrors the failsafe in om()'s retry block: all params
+            # set to 0.001 with the two leading alphas (A-side and B-side)
+            # bumped to 0.01, which keeps the multiplicative recursion stable.
+            if(is.null(userB) && (is.infinite(res$objective) || res$objective == 1e+300)) {
+                B_used[] <- 0.001
+                B_used[1] <- 0.01                # alpha for A-side
+                B_used[nParamsA + 1] <- 0.01     # alpha for B-side
                 res <- suppressWarnings(
                     do.call(nloptr,
                             c(list(x0=B_used, eval_f=omgCF_local, lb=lb, ub=ub,
@@ -768,8 +803,11 @@ omg <- function(data,
             adamArchitectB = adamArchitectB,
             adamCreatedA   = adamCreatedA,
             adamCreatedB   = adamCreatedB,
-            adamCppA = adamCppA,
-            adamCppB = adamCppB))
+            # The exact arg-set that nloptr (and every CF call) saw. Made
+            # available downstream so any future per-side use can pull from
+            # the same source the optimiser used. adamCppA/adamCppB are not
+            # returned separately — they live in adamArchitectA/B$adamCpp.
+            nloptrArgs = nloptrArgs))
     }
 
     #### Final fit ####
@@ -980,6 +1018,8 @@ omg <- function(data,
         checker         = checkerA,
         adamArchitect   = jointResult$adamArchitectA,
         adamCreated     = jointResult$adamCreatedA,
+        # Same arg-set the optimiser saw — available for downstream use.
+        nloptrArgs      = jointResult$nloptrArgs,
         occurrence      = "odds-ratio",
         regressors      = regressorsA)
 
@@ -992,6 +1032,7 @@ omg <- function(data,
         checker         = checkerB,
         adamArchitect   = jointResult$adamArchitectB,
         adamCreated     = jointResult$adamCreatedB,
+        nloptrArgs      = jointResult$nloptrArgs,
         occurrence      = "inverse-odds-ratio",
         regressors      = regressorsB)
 
