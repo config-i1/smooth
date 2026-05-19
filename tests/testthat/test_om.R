@@ -260,3 +260,55 @@ test_that("Combined forecast with holdout populates accuracy", {
 #     testModel <- om(yIntermittent, occurrence="o", model="MNN")
 #     expect_null(testModel$FI)
 # })
+
+# ---------------------------------------------------------------------
+# vcov.om — phase 1 of vcov mechanism mirroring vcov.adam
+# ---------------------------------------------------------------------
+
+test_that("vcov.om returns a finite, well-formed matrix (ANN + odds-ratio)", {
+    set.seed(7);
+    y <- rbinom(60, 1, 0.4);
+    m <- suppressWarnings(om(y, "ANN", occurrence="odds-ratio"));
+
+    V <- suppressWarnings(vcov(m));
+    expect_true(is.matrix(V));
+    expect_equal(nrow(V), length(coef(m)));
+    expect_equal(ncol(V), length(coef(m)));
+    expect_true(all(is.finite(V)));         # no Inf / NaN
+    expect_true(all(abs(V) < 1e+50));       # no 1e+100 singular fallback
+    expect_equal(V, t(V), tolerance=1e-8);  # symmetric
+    expect_true(all(diag(V) >= 0));         # non-negative diagonal
+})
+
+test_that("vcov.om works for occurrence='direct'", {
+    set.seed(11);
+    y <- rbinom(60, 1, 0.3);
+    m <- suppressWarnings(om(y, "MNN", occurrence="direct"));
+    V <- suppressWarnings(vcov(m));
+    expect_true(is.matrix(V));
+    expect_true(all(is.finite(V)));
+    expect_true(all(abs(V) < 1e+50));
+})
+
+test_that("vcov.om works for occurrence='inverse-odds-ratio'", {
+    set.seed(13);
+    y <- rbinom(60, 1, 0.6);
+    m <- suppressWarnings(om(y, "ANN", occurrence="inverse-odds-ratio"));
+    V <- suppressWarnings(vcov(m));
+    expect_true(is.matrix(V));
+    expect_true(all(is.finite(V)));
+    expect_true(all(abs(V) < 1e+50));
+})
+
+test_that("vcov.om returns a multi-parameter matrix for AAN", {
+    set.seed(17);
+    y <- rbinom(80, 1, 0.5);
+    m <- suppressWarnings(om(y, "AAN", occurrence="odds-ratio"));
+    V <- suppressWarnings(vcov(m));
+    expect_true(is.matrix(V));
+    expect_equal(nrow(V), length(coef(m)));
+    expect_equal(ncol(V), length(coef(m)));
+    expect_true(all(is.finite(V)));
+    expect_true(all(abs(V) < 1e+50));
+    expect_equal(V, t(V), tolerance=1e-8);
+})
