@@ -5998,7 +5998,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                "Using the last available values as future ones."),
                         call.=FALSE);
                 newnRows <- h-nrow(newdata);
-                xreg <- newdata[c(1:nrow(newdata),rep(nrow(newdata)),each=newnRows),];
+                xreg <- newdata[c(1:nrow(newdata),rep(nrow(newdata),each=newnRows)),];
                 # xreg <- rbind(newdata,
                 #               data.frame(matrix(rep(tail(newdata,1),each=newnRows),
                 #                                 newnRows,ncol(newdata),

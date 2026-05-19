@@ -1,4 +1,4 @@
-smooth v4.5.0 (Release data: 2026-05-10)
+smooth v4.5.0 (Release data: 2026-05-19)
 =======
 
 Change:
@@ -6,6 +6,9 @@ Change:
 * adam() now calls for om() by default, not oes().
 * auto.om() function to select occurrence and/or ARIMA orders.
 * om() supports all types of occurrence and does automatic selection via auto.om().
+
+Bugfixes:
+* forecast.adam() would not do the correct row repetition for explanatory variables when the new values are not provided.
 
 
 smooth v4.4.1 (Release data: 2026-02-26)
