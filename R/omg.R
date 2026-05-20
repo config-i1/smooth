@@ -1322,6 +1322,97 @@ omgCF_local <- function(B,
                  sum(log(1 - pCombined[!otLogical]))))
 }
 
+# Per-side ETS "usual"-bounds confint correction for one omg sub-model.
+# Mirrors the ETS block of confint.adam (R/adam.R:4441-4541). Takes the
+# side's parameter values, their standard errors (from the JOINT vcov) and
+# the two t-quantiles; returns a 2-column [lower, upper] matrix. The
+# admissible-bounds and ARIMA branches of confint.adam are not reproduced
+# here — occurrence sub-models are plain ETS with bounds="usual"; for any
+# other bounds type the plain t-interval is returned.
+omgConfintSide <- function(subModel, params, se, tLo, tHi){
+    pn <- names(params)
+    n  <- length(params)
+    bnd <- matrix(0, n, 2, dimnames=list(pn, NULL))
+    bnd[,1] <- tLo * se
+    bnd[,2] <- tHi * se
+
+    etsModel   <- isTRUE(subModel$ets)
+    boundsType <- subModel$bounds
+
+    if(etsModel && !is.null(boundsType) && boundsType=="usual"){
+        if(any(pn=="alpha")){
+            bnd["alpha",1] <- max(-params["alpha"], bnd["alpha",1])
+            bnd["alpha",2] <- min(1-params["alpha"], bnd["alpha",2])
+        }
+        if(any(pn=="beta")){
+            bnd["beta",1] <- max(-params["beta"], bnd["beta",1])
+            if(any(pn=="alpha")){
+                bnd["beta",2] <- min(params["alpha"]-params["beta"], bnd["beta",2])
+            }
+            else{
+                bnd["beta",2] <- min(subModel$persistence["alpha"]-params["beta"], bnd["beta",2])
+            }
+        }
+        if(any(substr(pn,1,5)=="gamma")){
+            gammas <- which(substr(pn,1,5)=="gamma")
+            bnd[gammas,1] <- apply(cbind(bnd[gammas,1], -params[gammas]),1,max)
+            if(any(pn=="alpha")){
+                bnd[gammas,2] <- apply(cbind(bnd[gammas,2],
+                                             (1-params["alpha"])-params[gammas]),1,min)
+            }
+            else{
+                bnd[gammas,2] <- apply(cbind(bnd[gammas,2],
+                                             (1-subModel$persistence["alpha"])-params[gammas]),1,min)
+            }
+        }
+        if(any(substr(pn,1,5)=="delta")){
+            deltas <- which(substr(pn,1,5)=="delta")
+            bnd[deltas,1] <- apply(cbind(bnd[deltas,1], -params[deltas]),1,max)
+            bnd[deltas,2] <- apply(cbind(bnd[deltas,2], 1-params[deltas]),1,min)
+        }
+        if(any(pn=="phi")){
+            bnd["phi",1] <- max(-params["phi"], bnd["phi",1])
+            bnd["phi",2] <- min(1-params["phi"], bnd["phi",2])
+        }
+    }
+
+    bnd[] <- bnd + params
+    return(bnd)
+}
+
+#' @export
+confint.omg <- function(object, parm, level=0.95, ...){
+    confintNames <- c(paste0((1-level)/2*100,"%"),
+                      paste0((1+level)/2*100,"%"))
+
+    V  <- vcov(object, ...)               # JOINT covariance (vcov.omg)
+    SE <- sqrt(abs(diag(V)))
+
+    coefJoint <- c(object$modelA$B, object$modelB$B)
+    nParamsA  <- length(object$modelA$B)
+    idxA <- seq_len(nParamsA)
+    idxB <- seq_len(length(coefJoint) - nParamsA) + nParamsA
+
+    # Base t-interval half-widths with the JOINT nobs / nparam, exactly like
+    # confint.adam (R/adam.R:4430-4431).
+    tLo <- qt((1-level)/2, df=nobs(object)-nparam(object))
+    tHi <- qt((1+level)/2, df=nobs(object)+nparam(object))
+
+    sideA <- omgConfintSide(object$modelA, coefJoint[idxA], SE[idxA], tLo, tHi)
+    sideB <- omgConfintSide(object$modelB, coefJoint[idxB], SE[idxB], tLo, tHi)
+
+    out <- rbind(cbind(SE[idxA], sideA),
+                 cbind(SE[idxB], sideB))
+    colnames(out) <- c("S.E.", confintNames)
+    rownames(out) <- c(paste0("A:", names(object$modelA$B)),
+                       paste0("B:", names(object$modelB$B)))
+
+    if(!missing(parm)){
+        out <- out[parm, , drop=FALSE]
+    }
+    return(out)
+}
+
 #' @export
 vcov.omg <- function(object, heuristics=NULL, ...){
     ellipsis <- list(...)
@@ -1450,7 +1541,87 @@ print.omg <- function(x, digits=4, ...) {
 }
 
 #' @export
-summary.omg <- function(object, ...) { return(invisible(object)) }
+summary.omg <- function(object, level=0.95, ...) {
+    ci <- confint(object, level=level, ...)   # joint table, A:/B: rows
+
+    nParamsA <- length(object$modelA$B)
+    idxA <- seq_len(nParamsA)
+    idxB <- seq_len(nrow(ci) - nParamsA) + nParamsA
+
+    buildTable <- function(vals, ciRows){
+        tab <- cbind(vals, ciRows)
+        colnames(tab) <- c("Estimate","Std. Error",
+                           paste0("Lower ",(1-level)/2*100,"%"),
+                           paste0("Upper ",(1+level)/2*100,"%"))
+        rownames(tab) <- sub("^[AB]:", "", rownames(ciRows))
+        list(table=tab,
+             significance=!(tab[,3]<=0 & tab[,4]>=0))
+    }
+    A <- buildTable(object$modelA$B, ci[idxA, , drop=FALSE])
+    B <- buildTable(object$modelB$B, ci[idxB, , drop=FALSE])
+
+    ourReturn <- list(
+        model         = object$model,
+        modelAName    = object$modelA$model,
+        modelBName    = object$modelB$model,
+        occurrence    = "General",
+        distribution  = object$distribution,
+        coefficientsA = A$table, significanceA = A$significance,
+        coefficientsB = B$table, significanceB = B$significance,
+        loss          = object$loss,
+        lossValue     = object$lossValue,
+        nobs          = nobs(object),
+        nparam        = nparam(object),
+        nParam        = object$nParam,
+        call          = object$call,
+        ICs           = c(AIC=AIC(object), AICc=AICc(object),
+                          BIC=BIC(object), BICc=BICc(object))
+    )
+    return(structure(ourReturn, class="summary.omg"))
+}
+
+#' @export
+print.summary.omg <- function(x, ...){
+    ellipsis <- list(...)
+    digits <- if(is.null(ellipsis$digits)) 4 else ellipsis$digits
+
+    cat(paste0("\nModel estimated using omg() function: ", x$model))
+    cat(paste0("\nOccurrence model type: ", x$occurrence))
+    cat(paste0("\nDistribution used in the estimation: Cumulative Logistic"))
+    cat(paste0("\nLoss function type: ", x$loss))
+    if(!is.null(x$lossValue)){
+        cat(paste0("; Loss function value: ", round(x$lossValue, digits)))
+    }
+
+    # Per-model blocks: model name as the heading directly above its
+    # coefficient table.
+    printModelBlock <- function(label, name, tab, sig){
+        cat(paste0("\n\n", label, ": ", name, "\n"))
+        stars <- setNames(vector("character", length(sig)), names(sig))
+        stars[sig] <- "*"
+        print(data.frame(round(tab, digits), stars,
+                         check.names=FALSE, fix.empty.names=FALSE))
+    }
+    printModelBlock("Model A", x$modelAName, x$coefficientsA, x$significanceA)
+    printModelBlock("Model B", x$modelBName, x$coefficientsB, x$significanceB)
+
+    cat(paste0("\nSample size: ", x$nobs))
+    cat(paste0("\nNumber of estimated parameters: ", x$nparam))
+    cat(paste0("\nNumber of degrees of freedom: ", x$nobs - x$nparam))
+    if(x$nParam[2,5] > 0){
+        cat(paste0("\nNumber of provided parameters: ", x$nParam[2,5]))
+    }
+    cat("\nInformation criteria:\n")
+    print(round(x$ICs, digits))
+    return(invisible(x))
+}
+
+#' @export
+as.data.frame.summary.omg <- function(x, ...){
+    A <- as.data.frame(x$coefficientsA); rownames(A) <- paste0("A:", rownames(A))
+    B <- as.data.frame(x$coefficientsB); rownames(B) <- paste0("B:", rownames(B))
+    return(rbind(A, B))
+}
 
 #' @importFrom stats rstandard
 #' @export

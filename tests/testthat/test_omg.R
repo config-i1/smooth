@@ -219,3 +219,45 @@ test_that("vcov.omg respects the heuristics argument", {
     expect_true(is.matrix(V));
     expect_equal(nrow(V), length(m$modelA$B) + length(m$modelB$B));
 })
+
+# ---------------------------------------------------------------------
+# confint.omg / summary.omg — joint CI table and per-model summary blocks
+# ---------------------------------------------------------------------
+
+test_that("confint.omg returns a finite joint CI table", {
+    set.seed(12);
+    y <- rbinom(150, 1, 0.5);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    ci <- suppressWarnings(confint(m));
+    expect_true(is.matrix(ci));
+    expect_equal(nrow(ci), length(m$modelA$B) + length(m$modelB$B));
+    expect_equal(ncol(ci), 3);                       # S.E., lower, upper
+    expect_true(all(is.finite(ci)));
+    expect_true(any(grepl("^A:", rownames(ci))));
+    expect_true(any(grepl("^B:", rownames(ci))));
+})
+
+test_that("summary.omg builds two coefficient sub-tables", {
+    set.seed(12);
+    y <- rbinom(150, 1, 0.5);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    s <- suppressWarnings(summary(m));
+    expect_s3_class(s, "summary.omg");
+    expect_true(is.matrix(s$coefficientsA));
+    expect_true(is.matrix(s$coefficientsB));
+    expect_equal(nrow(s$coefficientsA), length(m$modelA$B));
+    expect_equal(nrow(s$coefficientsB), length(m$modelB$B));
+    expect_equal(colnames(s$coefficientsA),
+                 c("Estimate","Std. Error","Lower 2.5%","Upper 97.5%"));
+    expect_true(all(is.finite(s$coefficientsA)));
+    expect_true(all(is.finite(s$coefficientsB)));
+})
+
+test_that("print.summary.omg prints per-model blocks", {
+    set.seed(12);
+    y <- rbinom(150, 1, 0.5);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    s <- suppressWarnings(summary(m));
+    expect_output(print(s), "Model A:");
+    expect_output(print(s), "Model B:");
+})
