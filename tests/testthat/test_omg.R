@@ -182,3 +182,40 @@ test_that("omg() with fixed persistenceA is respected in modelA", {
     expect_s3_class(m, "omg")
     expect_equal(as.numeric(m$modelA$persistence), 0.2)
 })
+
+# ---------------------------------------------------------------------
+# vcov.omg — phase 2 of vcov mechanism mirroring vcov.adam / vcov.om
+# ---------------------------------------------------------------------
+
+test_that("vcov.omg returns a finite joint covariance matrix", {
+    set.seed(12);
+    y <- rbinom(150, 1, 0.5);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    V <- suppressWarnings(vcov(m));
+    expect_true(is.matrix(V));
+    expect_equal(nrow(V), length(m$modelA$B) + length(m$modelB$B));
+    expect_equal(ncol(V), nrow(V));
+    expect_true(all(is.finite(V)));        # no Inf / NaN
+    expect_true(all(abs(V) < 1e+50));      # no 1e+100 singular fallback
+    expect_equal(V, t(V), tolerance=1e-3); # symmetric
+    expect_true(all(diag(V) >= 0));        # non-negative diagonal
+})
+
+test_that("vcov.omg dimension matches the joint B vector", {
+    set.seed(7);
+    y <- rbinom(150, 1, 0.5);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    V <- suppressWarnings(vcov(m));
+    nJoint <- length(m$modelA$B) + length(m$modelB$B);
+    expect_equal(dim(V), c(nJoint, nJoint));
+    expect_true(is.matrix(V));
+})
+
+test_that("vcov.omg respects the heuristics argument", {
+    set.seed(11);
+    y <- rbinom(60, 1, 0.4);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    V <- vcov(m, heuristics=0.1);
+    expect_true(is.matrix(V));
+    expect_equal(nrow(V), length(m$modelA$B) + length(m$modelB$B));
+})

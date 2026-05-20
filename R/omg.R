@@ -1,18 +1,3 @@
-omgLinkFunction <- function(fittedA, fittedB, EtypeA, EtypeB) {
-    if(EtypeA == "A" && EtypeB == "A") {
-        return(1 / (1 + exp(fittedB - fittedA)))
-    }
-    else if(EtypeA == "M" && EtypeB == "M") {
-        return(1 / (1 + fittedB / fittedA))
-    }
-    else if(EtypeA == "M" && EtypeB == "A") {
-        return(1 / (1 + exp(fittedB - log(fittedA))))
-    }
-    else {
-        return(1 / (1 + exp(log(fittedB) - fittedA)))
-    }
-}
-
 #' General occurrence model
 #'
 #' Fits two parallel ETS occurrence models (A: odds-ratio, B: inverse-odds-ratio)
@@ -45,6 +30,12 @@ omgLinkFunction <- function(fittedA, fittedB, EtypeA, EtypeB) {
 #' @param loss Loss function (shared).
 #' @param ic Information criterion (shared).
 #' @param bounds Parameter bounds type (shared).
+#' @param model An already-fitted \code{omg} object. When supplied, the
+#'   per-side parameters are lifted from \code{model$modelA} and
+#'   \code{model$modelB} and no estimation is performed; passing
+#'   \code{FI=TRUE} alongside computes the observed Fisher information
+#'   over the joint parameter vector (the path used by
+#'   \code{vcov.omg}).
 #' @param silent If \code{TRUE}, suppress output.
 #' @param ... Additional arguments passed to the optimiser.
 #'
@@ -57,7 +48,6 @@ omgLinkFunction <- function(fittedA, fittedB, EtypeA, EtypeB) {
 #' y <- rpois(100, 0.5)
 #' m <- omg(y)
 #' forecast(m, h=10)
-#'
 #' @export
 omg <- function(data,
                 modelA = "MNN", modelB = modelA,
@@ -78,20 +68,73 @@ omg <- function(data,
                 loss = c("likelihood","MSE","MAE","HAM","LASSO","RIDGE"),
                 ic = c("AICc","AIC","BIC","BICc"),
                 bounds = c("usual","admissible","none"),
+                model = NULL,
                 silent = TRUE, ...) {
 
     startTime <- Sys.time()
     cl        <- match.call()
+
+    # Capture ellipsis early so FI / stepSize / B / lb / ub passed via ...
+    # are visible to the fitted-object intake below.
+    ellipsis <- list(...)
+
+    # If a fitted omg object is passed via `model`, lift its parameters out
+    # of model$modelA / model$modelB and set modelDo_user="use" so the
+    # optimiser is skipped. Mirrors om()'s Phase 1 intake. This is the
+    # canonical entry for vcov(omg_obj): vcov re-calls omg(..., model=obj,
+    # FI=TRUE, stepSize=...).
+    if(is.omg(model)){
+        # A-side
+        modelA       <- modelType(model$modelA)
+        persistenceA <- model$modelA$persistence
+        phiA         <- model$modelA$phi
+        armaA        <- model$modelA$arma
+        ordersA      <- model$modelA$orders
+        regressorsA  <- model$modelA$regressors
+        constantA    <- if(is.null(model$modelA$constant)) FALSE else model$modelA$constant
+        if(is.null(formulaA)) { formulaA <- formula(model$modelA) }
+        # B-side
+        modelB       <- modelType(model$modelB)
+        persistenceB <- model$modelB$persistence
+        phiB         <- model$modelB$phi
+        armaB        <- model$modelB$arma
+        ordersB      <- model$modelB$orders
+        regressorsB  <- model$modelB$regressors
+        constantB    <- if(is.null(model$modelB$constant)) FALSE else model$modelB$constant
+        if(is.null(formulaB)) { formulaB <- formula(model$modelB) }
+        # Shared
+        if(!is.null(model$lags)) { lags <- model$lags }
+        if(!is.null(model$loss)) { loss <- model$loss }
+        if(!is.null(model$modelA$bounds))      { bounds  <- model$modelA$bounds }
+        if(!is.null(model$modelA$initialType)) { initial <- model$modelA$initialType }
+        # Joint B (concatenation: A then B).
+        ellipsis$B   <- c(model$modelA$B, model$modelB$B)
+        # A/B split point for the joint B. The initialiser produces empty
+        # BValues when persistence and initials are "provided", so we cannot
+        # rely on its nParamsA for the FI computation.
+        nParamsA_use <- length(model$modelA$B)
+        modelDo_user <- "use"
+    } else {
+        modelDo_user <- NULL
+        nParamsA_use <- NULL
+    }
 
     loss       <- match.arg(loss)
     ic         <- match.arg(ic)
     bounds     <- match.arg(bounds)
     initial    <- match.arg(initial)
     regressorsA <- match.arg(regressorsA)
-    regressorsB <- match.arg(regressorsB)
+    # Explicit choices here — defensive against the `regressorsB = regressorsA`
+    # formal default getting evaluated AFTER the line above reassigned
+    # regressorsA, which would make `match.arg(regressorsB)` see choices of
+    # length 1 and reject any multi-element supplied value. Mirrors etsB below.
+    regressorsB <- match.arg(regressorsB, c("use","select","adapt"))
     etsA       <- match.arg(etsA)
     etsB       <- match.arg(etsB, c("conventional","adam"))
-    ellipsis   <- list(...)
+    # `ellipsis` was already populated by the fitted-object intake at the top
+    # of omg() (may carry $B injected from model$modelA$B / model$modelB$B).
+    # Only initialise it here if the intake didn't run.
+    if(!exists("ellipsis", inherits=FALSE)) { ellipsis <- list(...) }
 
     adamETSA <- (etsA == "adam")
     adamETSB <- (etsB == "adam")
@@ -104,6 +147,9 @@ omg <- function(data,
         if(length(yName) == 0 || is.null(yName)) { yName <- "y" }
     }
     modelDo <- "estimate"
+    # If we lifted a fitted omg object earlier, switch to the "use" path so
+    # the optimiser is skipped and (optionally) the hessian is computed.
+    if(!is.null(modelDo_user)) { modelDo <- modelDo_user }
 
     dataChecked <- adam_checkData(data, lags, h, holdout, yName, modelDo, formulaA)
     list2env(dataChecked, envir=environment())
@@ -185,161 +231,9 @@ omg <- function(data,
     #### Inner joint estimator ####
     omgEstimator <- function() {
 
-        omgCF_local <- function(B,
-                                # A-side
-                                etsModelA, EtypeA, TtypeA, StypeA,
-                                modelIsTrendyA, modelIsSeasonalA,
-                                componentsNumberETSA, componentsNumberETSNonSeasonalA,
-                                componentsNumberETSSeasonalA, componentsNumberARIMAA,
-                                lags, lagsModelA, lagsModelMaxA, lagsModelAllA,
-                                indexLookupTableA, profilesRecentTableA,
-                                matVtA, matWtA, matFA, vecGA,
-                                persistenceEstimateA, persistenceLevelEstimateA,
-                                persistenceTrendEstimateA, persistenceSeasonalEstimateA,
-                                persistenceXregEstimateA, phiEstimateA,
-                                initialTypeA, initialEstimateA,
-                                initialLevelEstimateA, initialTrendEstimateA,
-                                initialSeasonalEstimateA, initialArimaEstimateA,
-                                initialXregEstimateA, initialArimaNumberA,
-                                arimaModelA, arEstimateA, maEstimateA,
-                                arOrdersA, iOrdersA, maOrdersA,
-                                arRequiredA, maRequiredA, armaParametersA,
-                                nonZeroARIA, nonZeroMAA, arimaPolynomialsA,
-                                arPolynomialMatrixA, maPolynomialMatrixA,
-                                xregModelA, xregNumberA,
-                                xregParametersMissingA, xregParametersIncludedA,
-                                xregParametersEstimatedA, xregParametersPersistenceA,
-                                constantRequiredA, constantEstimateA,
-                                adamCppA,
-                                # B-side
-                                etsModelB, EtypeB, TtypeB, StypeB,
-                                modelIsTrendyB, modelIsSeasonalB,
-                                componentsNumberETSB, componentsNumberETSNonSeasonalB,
-                                componentsNumberETSSeasonalB, componentsNumberARIMAB,
-                                lagsModelB, lagsModelMaxB, lagsModelAllB,
-                                indexLookupTableB, profilesRecentTableB,
-                                matVtB, matWtB, matFB, vecGB,
-                                persistenceEstimateB, persistenceLevelEstimateB,
-                                persistenceTrendEstimateB, persistenceSeasonalEstimateB,
-                                persistenceXregEstimateB, phiEstimateB,
-                                initialTypeB, initialEstimateB,
-                                initialLevelEstimateB, initialTrendEstimateB,
-                                initialSeasonalEstimateB, initialArimaEstimateB,
-                                initialXregEstimateB, initialArimaNumberB,
-                                arimaModelB, arEstimateB, maEstimateB,
-                                arOrdersB, iOrdersB, maOrdersB,
-                                arRequiredB, maRequiredB, armaParametersB,
-                                nonZeroARIB, nonZeroMAB, arimaPolynomialsB,
-                                arPolynomialMatrixB, maPolynomialMatrixB,
-                                xregModelB, xregNumberB,
-                                xregParametersMissingB, xregParametersIncludedB,
-                                xregParametersEstimatedB, xregParametersPersistenceB,
-                                constantRequiredB, constantEstimateB,
-                                adamCppB,
-                                # B-side scalars for omfitGeneral
-                                nNonSeasonalB, nSeasonalB, nETSB,
-                                nArimaB, nXregB, nComponentsB, adamETSB_flag,
-                                # Shared
-                                bounds, regressors,
-                                ot, otLogical, obsInSample,
-                                nIterations, refineHead, nParamsA) {
-
-            B_A <- B[seq_len(nParamsA)]
-            B_B <- B[seq_len(length(B) - nParamsA) + nParamsA]
-
-            elemA <- adam_filler(B_A,
-                                 etsModelA, EtypeA, TtypeA, StypeA,
-                                 modelIsTrendyA, modelIsSeasonalA,
-                                 componentsNumberETSA, componentsNumberETSNonSeasonalA,
-                                 componentsNumberETSSeasonalA, componentsNumberARIMAA,
-                                 lags, lagsModelA, lagsModelMaxA,
-                                 matVtA, matWtA, matFA, vecGA,
-                                 persistenceEstimateA, persistenceLevelEstimateA,
-                                 persistenceTrendEstimateA, persistenceSeasonalEstimateA,
-                                 persistenceXregEstimateA, phiEstimateA,
-                                 initialTypeA, initialEstimateA,
-                                 initialLevelEstimateA, initialTrendEstimateA,
-                                 initialSeasonalEstimateA, initialArimaEstimateA,
-                                 initialXregEstimateA,
-                                 arimaModelA, arEstimateA, maEstimateA,
-                                 arOrdersA, iOrdersA, maOrdersA,
-                                 arRequiredA, maRequiredA, armaParametersA,
-                                 nonZeroARIA, nonZeroMAA, arimaPolynomialsA,
-                                 xregModelA, xregNumberA,
-                                 xregParametersMissingA, xregParametersIncludedA,
-                                 xregParametersEstimatedA, xregParametersPersistenceA,
-                                 constantEstimateA, adamCppA,
-                                 constantRequiredA, initialArimaNumberA)
-
-            elemB <- adam_filler(B_B,
-                                 etsModelB, EtypeB, TtypeB, StypeB,
-                                 modelIsTrendyB, modelIsSeasonalB,
-                                 componentsNumberETSB, componentsNumberETSNonSeasonalB,
-                                 componentsNumberETSSeasonalB, componentsNumberARIMAB,
-                                 lags, lagsModelB, lagsModelMaxB,
-                                 matVtB, matWtB, matFB, vecGB,
-                                 persistenceEstimateB, persistenceLevelEstimateB,
-                                 persistenceTrendEstimateB, persistenceSeasonalEstimateB,
-                                 persistenceXregEstimateB, phiEstimateB,
-                                 initialTypeB, initialEstimateB,
-                                 initialLevelEstimateB, initialTrendEstimateB,
-                                 initialSeasonalEstimateB, initialArimaEstimateB,
-                                 initialXregEstimateB,
-                                 arimaModelB, arEstimateB, maEstimateB,
-                                 arOrdersB, iOrdersB, maOrdersB,
-                                 arRequiredB, maRequiredB, armaParametersB,
-                                 nonZeroARIB, nonZeroMAB, arimaPolynomialsB,
-                                 xregModelB, xregNumberB,
-                                 xregParametersMissingB, xregParametersIncludedB,
-                                 xregParametersEstimatedB, xregParametersPersistenceB,
-                                 constantEstimateB, adamCppB,
-                                 constantRequiredB, initialArimaNumberB)
-
-            penaltyA <- adam_bounds_checker(elemA, elemA$arimaPolynomials, bounds,
-                                            etsModelA, modelIsTrendyA, modelIsSeasonalA,
-                                            componentsNumberETSA, componentsNumberETSNonSeasonalA,
-                                            componentsNumberETSSeasonalA,
-                                            arimaModelA, arEstimateA, maEstimateA,
-                                            xregModelA, regressors, xregNumberA, componentsNumberARIMAA,
-                                            lagsModelAllA, obsInSample,
-                                            arPolynomialMatrixA, maPolynomialMatrixA, phiEstimateA)
-
-            penaltyB <- adam_bounds_checker(elemB, elemB$arimaPolynomials, bounds,
-                                            etsModelB, modelIsTrendyB, modelIsSeasonalB,
-                                            componentsNumberETSB, componentsNumberETSNonSeasonalB,
-                                            componentsNumberETSSeasonalB,
-                                            arimaModelB, arEstimateB, maEstimateB,
-                                            xregModelB, regressors, xregNumberB, componentsNumberARIMAB,
-                                            lagsModelAllB, obsInSample,
-                                            arPolynomialMatrixB, maPolynomialMatrixB, phiEstimateB)
-
-            if(penaltyA + penaltyB > 0) { return(1e+300) }
-
-            profilesRecentTableA[] <- elemA$matVt[, seq_len(lagsModelMaxA)]
-            profilesRecentTableB[] <- elemB$matVt[, seq_len(lagsModelMaxB)]
-
-            res <- adamCppA$omfitGeneral(
-                elemA$matVt, elemA$matWt, elemA$matF, elemA$vecG,
-                indexLookupTableA, profilesRecentTableA,
-                EtypeB, TtypeB, StypeB,
-                nNonSeasonalB, nSeasonalB, nETSB,
-                nArimaB, nXregB, nComponentsB,
-                constantRequiredB, adamETSB_flag,
-                elemB$matVt, elemB$matWt, elemB$matF, elemB$vecG,
-                indexLookupTableB, profilesRecentTableB,
-                as.numeric(ot),
-                any(initialTypeA == c("complete","backcasting")),
-                nIterations, refineHead)
-
-            pCombined <- omgLinkFunction(res$fittedA, res$fittedB, EtypeA, EtypeB)
-
-            if(any(is.nan(pCombined)) || any(pCombined <= 0) || any(pCombined >= 1)) {
-                return(1e+300)
-            }
-
-            return(-(sum(log(pCombined[otLogical])) +
-                         sum(log(1 - pCombined[!otLogical]))))
-        }
+        # omgCF_local is defined at file scope (top of this file) — pure
+        # function over its explicit args, reachable from both the optimiser
+        # path here and from the modelDo=="use" branch for FI computation.
 
         # Architecture for A
         adamArchitectA <- adam_architector(
@@ -751,7 +645,159 @@ omg <- function(data,
             nIterations=nIterations, refineHead=refineHead,
             nParamsA=nParamsA)
 
-        if(length(B_used) == 0){
+        # --------------------------------------------------------------
+        # FI placeholder. Populated when modelDo=="use" and ellipsis$FI is
+        # TRUE; otherwise stays NULL. Mirrors the FI path in om()'s use
+        # branch — hessian of -logLik (= what omgCF_local returns) IS the
+        # observed Fisher Information.
+        # --------------------------------------------------------------
+        FIMatrixUse <- NULL
+
+        if(identical(modelDo, "use")) {
+            # No optimisation. Joint B comes straight from the fitted-object
+            # intake at the top of omg(): ellipsis$B was set to
+            # c(model$modelA$B, model$modelB$B). DO NOT use userB here —
+            # the name-match override block above filters userB against
+            # B_used's names, which is empty when persistence and initials
+            # arrive as "provided" from the fitted model.
+            B_use <- if(!is.null(ellipsis$B)) ellipsis$B else B_used
+            res <- list(solution=as.numeric(B_use),
+                        objective=NA_real_)
+
+            if(isTRUE(ellipsis$FI) && length(B_use) > 0) {
+                stepSize <- if(is.null(ellipsis$stepSize)) {
+                    .Machine$double.eps^(1/4)
+                } else {
+                    ellipsis$stepSize
+                }
+                Bnames <- names(B_use)
+                if(is.null(Bnames)) {
+                    Bnames <- c(names(BValuesA$B), names(BValuesB$B))
+                    names(B_use) <- Bnames
+                }
+                # Split into A-half and B-half by position, and derive the
+                # *EstimateFI flags from each half's names — exactly the
+                # same name-matching pattern as om()'s use-branch FI block.
+                .deriveFI <- function(half_names, nCompSeas, archHas_arima, archHas_xreg,
+                                      xreg_names) {
+                    pLvl <- any(half_names == "alpha")
+                    pTrd <- any(half_names == "beta")
+                    if(any(substr(half_names, 1, 5) == "gamma")) {
+                        gmsk <- substr(half_names, 1, 5) == "gamma"
+                        if(sum(gmsk) == 1) {
+                            pSea <- TRUE
+                        } else {
+                            pSea <- vector("logical", nCompSeas)
+                            pSea[as.numeric(substr(half_names, 6, 6)[gmsk])] <- TRUE
+                        }
+                    } else { pSea <- FALSE }
+                    pXrg   <- any(substr(half_names, 1, 5) == "delta")
+                    pEst   <- any(c(pLvl, pTrd, pSea, pXrg))
+                    phiEst <- any(half_names == "phi")
+                    iLvl   <- any(half_names == "level")
+                    iTrd   <- any(half_names == "trend")
+                    if(any(substr(half_names, 1, 8) == "seasonal")) {
+                        sn   <- half_names[substr(half_names, 1, 8) == "seasonal"]
+                        iSea <- vector("logical", nCompSeas)
+                        if(any(substr(sn, 1, 9) == "seasonal_")) {
+                            iSea[] <- TRUE
+                        } else {
+                            iSea[unique(as.numeric(substr(sn, 9, 9)))] <- TRUE
+                        }
+                    } else { iSea <- FALSE }
+                    iAri <- if(archHas_arima) any(substr(half_names, 1, 10) == "ARIMAState") else FALSE
+                    iXrg <- if(archHas_xreg)  any(xreg_names %in% half_names) else FALSE
+                    iEst <- any(c(iLvl, iTrd, iSea, iAri, iXrg))
+                    list(pEst=pEst, pLvl=pLvl, pTrd=pTrd, pSea=pSea, pXrg=pXrg,
+                         phiEst=phiEst, iLvl=iLvl, iTrd=iTrd, iSea=iSea,
+                         iAri=iAri, iXrg=iXrg, iEst=iEst)
+                }
+
+                # Use the fitted-object split point when available — the
+                # initialiser's nParamsA is 0 for the "use" path (everything
+                # provided), so it would put all of B into the B-side half.
+                nParamsA_FI <- if(!is.null(nParamsA_use)) nParamsA_use else nParamsA
+                names_A <- Bnames[seq_len(nParamsA_FI)]
+                names_B <- Bnames[seq_len(length(B_use) - nParamsA_FI) + nParamsA_FI]
+
+                xnamesA <- if(checkerA$xregModel) colnames(checkerA$xregData) else character(0)
+                xnamesB <- if(checkerB$xregModel) colnames(checkerB$xregData) else character(0)
+
+                fA <- .deriveFI(names_A, adamArchitectA$componentsNumberETSSeasonal,
+                                checkerA$arimaModel, checkerA$xregModel, xnamesA)
+                fB <- .deriveFI(names_B, adamArchitectB$componentsNumberETSSeasonal,
+                                checkerB$arimaModel, checkerB$xregModel, xnamesB)
+
+                iTypeAFI <- if(fA$iEst) "optimal" else checkerA$initialType
+                iTypeBFI <- if(fB$iEst) "optimal" else checkerB$initialType
+
+                nlaFI <- nloptrArgs
+                # A-side overrides
+                nlaFI$persistenceEstimateA         <- fA$pEst
+                nlaFI$persistenceLevelEstimateA    <- fA$pLvl
+                nlaFI$persistenceTrendEstimateA    <- fA$pTrd
+                nlaFI$persistenceSeasonalEstimateA <- fA$pSea
+                nlaFI$persistenceXregEstimateA     <- fA$pXrg
+                nlaFI$phiEstimateA                 <- fA$phiEst
+                nlaFI$initialTypeA                 <- iTypeAFI
+                nlaFI$initialEstimateA             <- fA$iEst
+                nlaFI$initialLevelEstimateA        <- fA$iLvl
+                nlaFI$initialTrendEstimateA        <- fA$iTrd
+                nlaFI$initialSeasonalEstimateA     <- fA$iSea
+                nlaFI$initialArimaEstimateA        <- fA$iAri
+                nlaFI$initialXregEstimateA         <- fA$iXrg
+                # B-side overrides
+                nlaFI$persistenceEstimateB         <- fB$pEst
+                nlaFI$persistenceLevelEstimateB    <- fB$pLvl
+                nlaFI$persistenceTrendEstimateB    <- fB$pTrd
+                nlaFI$persistenceSeasonalEstimateB <- fB$pSea
+                nlaFI$persistenceXregEstimateB     <- fB$pXrg
+                nlaFI$phiEstimateB                 <- fB$phiEst
+                nlaFI$initialTypeB                 <- iTypeBFI
+                nlaFI$initialEstimateB             <- fB$iEst
+                nlaFI$initialLevelEstimateB        <- fB$iLvl
+                nlaFI$initialTrendEstimateB        <- fB$iTrd
+                nlaFI$initialSeasonalEstimateB     <- fB$iSea
+                nlaFI$initialArimaEstimateB        <- fB$iAri
+                nlaFI$initialXregEstimateB         <- fB$iXrg
+                # Override the joint split point so omgCF_local splits B at
+                # the fitted-model boundary, not at the (zero-length)
+                # initialiser boundary.
+                nlaFI$nParamsA <- nParamsA_FI
+                # Disable bounds so omgCF_local never short-circuits with
+                # 1e+300 during the hessian probes.
+                nlaFI$bounds <- "none"
+                if(checkerA$arimaModel) {
+                    nlaFI$arPolynomialMatrixA <- NULL
+                    nlaFI$maPolynomialMatrixA <- NULL
+                }
+                if(checkerB$arimaModel) {
+                    nlaFI$arPolynomialMatrixB <- NULL
+                    nlaFI$maPolynomialMatrixB <- NULL
+                }
+
+                CFAtOptimum <- do.call(omgCF_local, c(list(B=B_use), nlaFI))
+                omgCF_for_FI <- function(B) {
+                    names(B) <- Bnames
+                    val <- tryCatch(suppressWarnings(
+                                        do.call(omgCF_local, c(list(B=B), nlaFI))),
+                                    error = function(e) CFAtOptimum + 1e6)
+                    if(!is.finite(val)) { val <- CFAtOptimum + 1e6 }
+                    return(val)
+                }
+                FIMatrixUse <- try(suppressWarnings(
+                                       pracma::hessian(omgCF_for_FI, B_use, h=stepSize)),
+                                   silent=TRUE)
+                if(inherits(FIMatrixUse, "try-error") ||
+                   any(!is.finite(FIMatrixUse))) {
+                    FIMatrixUse <- NULL
+                } else {
+                    colnames(FIMatrixUse) <- Bnames
+                    rownames(FIMatrixUse) <- Bnames
+                }
+            }
+            # Fall through to the standard B_joint / return(list(...)) below.
+        } else if(length(B_used) == 0){
             res <- list(solution=B_used,
                         objective=do.call(omgCF_local, c(list(B=B_used), nloptrArgs)));
         } else {
@@ -807,7 +853,10 @@ omg <- function(data,
             # available downstream so any future per-side use can pull from
             # the same source the optimiser used. adamCppA/adamCppB are not
             # returned separately — they live in adamArchitectA/B$adamCpp.
-            nloptrArgs = nloptrArgs))
+            nloptrArgs = nloptrArgs,
+            # Observed Fisher Information at the supplied B. Non-NULL only
+            # when modelDo=="use" + ellipsis$FI=TRUE; otherwise NULL.
+            FI = FIMatrixUse))
     }
 
     #### Final fit ####
@@ -1079,7 +1128,10 @@ omg <- function(data,
         distribution = "plogis",
         loss        = "likelihood",
         call        = cl,
-        timeElapsed = Sys.time() - startTime)
+        timeElapsed = Sys.time() - startTime,
+        # FI is non-NULL only when omg() was called with model=<fitted omg>
+        # and FI=TRUE (the vcov.omg path).
+        FI          = jointResult$FI)
 
     if(holdout) {
         result$holdout  <- yHoldout
@@ -1094,6 +1146,241 @@ omg <- function(data,
     }
 
     return(result)
+}
+
+omgLinkFunction <- function(fittedA, fittedB, EtypeA, EtypeB) {
+    if(EtypeA == "A" && EtypeB == "A") {
+        return(1 / (1 + exp(fittedB - fittedA)))
+    }
+    else if(EtypeA == "M" && EtypeB == "M") {
+        return(1 / (1 + fittedB / fittedA))
+    }
+    else if(EtypeA == "M" && EtypeB == "A") {
+        return(1 / (1 + exp(fittedB - log(fittedA))))
+    }
+    else {
+        return(1 / (1 + exp(log(fittedB) - fittedA)))
+    }
+}
+
+# File-scope joint cost function for omg. Used by omgEstimator() during
+# optimisation and by the modelDo=="use" branch of omg() for FI computation.
+# Takes all dependencies as explicit arguments — no closure state.
+omgCF_local <- function(B,
+                        # A-side
+                        etsModelA, EtypeA, TtypeA, StypeA,
+                        modelIsTrendyA, modelIsSeasonalA,
+                        componentsNumberETSA, componentsNumberETSNonSeasonalA,
+                        componentsNumberETSSeasonalA, componentsNumberARIMAA,
+                        lags, lagsModelA, lagsModelMaxA, lagsModelAllA,
+                        indexLookupTableA, profilesRecentTableA,
+                        matVtA, matWtA, matFA, vecGA,
+                        persistenceEstimateA, persistenceLevelEstimateA,
+                        persistenceTrendEstimateA, persistenceSeasonalEstimateA,
+                        persistenceXregEstimateA, phiEstimateA,
+                        initialTypeA, initialEstimateA,
+                        initialLevelEstimateA, initialTrendEstimateA,
+                        initialSeasonalEstimateA, initialArimaEstimateA,
+                        initialXregEstimateA, initialArimaNumberA,
+                        arimaModelA, arEstimateA, maEstimateA,
+                        arOrdersA, iOrdersA, maOrdersA,
+                        arRequiredA, maRequiredA, armaParametersA,
+                        nonZeroARIA, nonZeroMAA, arimaPolynomialsA,
+                        arPolynomialMatrixA, maPolynomialMatrixA,
+                        xregModelA, xregNumberA,
+                        xregParametersMissingA, xregParametersIncludedA,
+                        xregParametersEstimatedA, xregParametersPersistenceA,
+                        constantRequiredA, constantEstimateA,
+                        adamCppA,
+                        # B-side
+                        etsModelB, EtypeB, TtypeB, StypeB,
+                        modelIsTrendyB, modelIsSeasonalB,
+                        componentsNumberETSB, componentsNumberETSNonSeasonalB,
+                        componentsNumberETSSeasonalB, componentsNumberARIMAB,
+                        lagsModelB, lagsModelMaxB, lagsModelAllB,
+                        indexLookupTableB, profilesRecentTableB,
+                        matVtB, matWtB, matFB, vecGB,
+                        persistenceEstimateB, persistenceLevelEstimateB,
+                        persistenceTrendEstimateB, persistenceSeasonalEstimateB,
+                        persistenceXregEstimateB, phiEstimateB,
+                        initialTypeB, initialEstimateB,
+                        initialLevelEstimateB, initialTrendEstimateB,
+                        initialSeasonalEstimateB, initialArimaEstimateB,
+                        initialXregEstimateB, initialArimaNumberB,
+                        arimaModelB, arEstimateB, maEstimateB,
+                        arOrdersB, iOrdersB, maOrdersB,
+                        arRequiredB, maRequiredB, armaParametersB,
+                        nonZeroARIB, nonZeroMAB, arimaPolynomialsB,
+                        arPolynomialMatrixB, maPolynomialMatrixB,
+                        xregModelB, xregNumberB,
+                        xregParametersMissingB, xregParametersIncludedB,
+                        xregParametersEstimatedB, xregParametersPersistenceB,
+                        constantRequiredB, constantEstimateB,
+                        adamCppB,
+                        # B-side scalars for omfitGeneral
+                        nNonSeasonalB, nSeasonalB, nETSB,
+                        nArimaB, nXregB, nComponentsB, adamETSB_flag,
+                        # Shared
+                        bounds, regressors,
+                        ot, otLogical, obsInSample,
+                        nIterations, refineHead, nParamsA) {
+
+    B_A <- B[seq_len(nParamsA)]
+    B_B <- B[seq_len(length(B) - nParamsA) + nParamsA]
+
+    elemA <- adam_filler(B_A,
+                         etsModelA, EtypeA, TtypeA, StypeA,
+                         modelIsTrendyA, modelIsSeasonalA,
+                         componentsNumberETSA, componentsNumberETSNonSeasonalA,
+                         componentsNumberETSSeasonalA, componentsNumberARIMAA,
+                         lags, lagsModelA, lagsModelMaxA,
+                         matVtA, matWtA, matFA, vecGA,
+                         persistenceEstimateA, persistenceLevelEstimateA,
+                         persistenceTrendEstimateA, persistenceSeasonalEstimateA,
+                         persistenceXregEstimateA, phiEstimateA,
+                         initialTypeA, initialEstimateA,
+                         initialLevelEstimateA, initialTrendEstimateA,
+                         initialSeasonalEstimateA, initialArimaEstimateA,
+                         initialXregEstimateA,
+                         arimaModelA, arEstimateA, maEstimateA,
+                         arOrdersA, iOrdersA, maOrdersA,
+                         arRequiredA, maRequiredA, armaParametersA,
+                         nonZeroARIA, nonZeroMAA, arimaPolynomialsA,
+                         xregModelA, xregNumberA,
+                         xregParametersMissingA, xregParametersIncludedA,
+                         xregParametersEstimatedA, xregParametersPersistenceA,
+                         constantEstimateA, adamCppA,
+                         constantRequiredA, initialArimaNumberA)
+
+    elemB <- adam_filler(B_B,
+                         etsModelB, EtypeB, TtypeB, StypeB,
+                         modelIsTrendyB, modelIsSeasonalB,
+                         componentsNumberETSB, componentsNumberETSNonSeasonalB,
+                         componentsNumberETSSeasonalB, componentsNumberARIMAB,
+                         lags, lagsModelB, lagsModelMaxB,
+                         matVtB, matWtB, matFB, vecGB,
+                         persistenceEstimateB, persistenceLevelEstimateB,
+                         persistenceTrendEstimateB, persistenceSeasonalEstimateB,
+                         persistenceXregEstimateB, phiEstimateB,
+                         initialTypeB, initialEstimateB,
+                         initialLevelEstimateB, initialTrendEstimateB,
+                         initialSeasonalEstimateB, initialArimaEstimateB,
+                         initialXregEstimateB,
+                         arimaModelB, arEstimateB, maEstimateB,
+                         arOrdersB, iOrdersB, maOrdersB,
+                         arRequiredB, maRequiredB, armaParametersB,
+                         nonZeroARIB, nonZeroMAB, arimaPolynomialsB,
+                         xregModelB, xregNumberB,
+                         xregParametersMissingB, xregParametersIncludedB,
+                         xregParametersEstimatedB, xregParametersPersistenceB,
+                         constantEstimateB, adamCppB,
+                         constantRequiredB, initialArimaNumberB)
+
+    penaltyA <- adam_bounds_checker(elemA, elemA$arimaPolynomials, bounds,
+                                    etsModelA, modelIsTrendyA, modelIsSeasonalA,
+                                    componentsNumberETSA, componentsNumberETSNonSeasonalA,
+                                    componentsNumberETSSeasonalA,
+                                    arimaModelA, arEstimateA, maEstimateA,
+                                    xregModelA, regressors, xregNumberA, componentsNumberARIMAA,
+                                    lagsModelAllA, obsInSample,
+                                    arPolynomialMatrixA, maPolynomialMatrixA, phiEstimateA)
+
+    penaltyB <- adam_bounds_checker(elemB, elemB$arimaPolynomials, bounds,
+                                    etsModelB, modelIsTrendyB, modelIsSeasonalB,
+                                    componentsNumberETSB, componentsNumberETSNonSeasonalB,
+                                    componentsNumberETSSeasonalB,
+                                    arimaModelB, arEstimateB, maEstimateB,
+                                    xregModelB, regressors, xregNumberB, componentsNumberARIMAB,
+                                    lagsModelAllB, obsInSample,
+                                    arPolynomialMatrixB, maPolynomialMatrixB, phiEstimateB)
+
+    if(penaltyA + penaltyB > 0) { return(1e+300) }
+
+    profilesRecentTableA[] <- elemA$matVt[, seq_len(lagsModelMaxA)]
+    profilesRecentTableB[] <- elemB$matVt[, seq_len(lagsModelMaxB)]
+
+    res <- adamCppA$omfitGeneral(
+        elemA$matVt, elemA$matWt, elemA$matF, elemA$vecG,
+        indexLookupTableA, profilesRecentTableA,
+        EtypeB, TtypeB, StypeB,
+        nNonSeasonalB, nSeasonalB, nETSB,
+        nArimaB, nXregB, nComponentsB,
+        constantRequiredB, adamETSB_flag,
+        elemB$matVt, elemB$matWt, elemB$matF, elemB$vecG,
+        indexLookupTableB, profilesRecentTableB,
+        as.numeric(ot),
+        any(initialTypeA == c("complete","backcasting")),
+        nIterations, refineHead)
+
+    pCombined <- omgLinkFunction(res$fittedA, res$fittedB, EtypeA, EtypeB)
+
+    if(any(is.nan(pCombined)) || any(pCombined <= 0) || any(pCombined >= 1)) {
+        return(1e+300)
+    }
+
+    return(-(sum(log(pCombined[otLogical])) +
+                 sum(log(1 - pCombined[!otLogical]))))
+}
+
+#' @export
+vcov.omg <- function(object, heuristics=NULL, ...){
+    ellipsis <- list(...)
+
+    if(!is.null(heuristics) && is.numeric(heuristics)){
+        # Heuristic shortcut over the joint coef vector
+        return(diag(abs(c(object$modelA$B, object$modelB$B)) * heuristics))
+    }
+
+    h <- if(any(!is.na(object$forecast))) length(object$forecast) else 0
+    stepSize <- if(is.null(ellipsis$stepSize)) {
+        .Machine$double.eps^(1/4)
+    } else {
+        ellipsis$stepSize
+    }
+
+    # Data is stored on the sub-models, not at the omg top level.
+    yData <- object$modelA$data
+
+    modelReturn <- suppressWarnings(
+        omg(yData, h=h, model=object, FI=TRUE, stepSize=stepSize))
+
+    if(is.null(modelReturn$FI)){
+        stop("Could not compute Fisher Information for this omg model. ",
+             "Try a different stepSize.", call.=FALSE)
+    }
+
+    brokenVariables <- apply(modelReturn$FI==0, 1, all) |
+                       apply(is.nan(modelReturn$FI), 1, any)
+    if(any(brokenVariables)){
+        modelReturn <- suppressWarnings(
+            omg(yData, h=h, model=object, FI=TRUE,
+                stepSize=.Machine$double.eps^(1/6)))
+        brokenVariables <- apply(modelReturn$FI==0, 1, all)
+    }
+    if(any(is.nan(modelReturn$FI))){
+        stop("Fisher Information contains NaN; try a different stepSize ",
+             "(e.g. stepSize=1e-6).", call.=FALSE)
+    }
+    if(any(eigen(modelReturn$FI, only.values=TRUE)$values < 0)){
+        warning("Observed Fisher Information is not positive semi-definite; ",
+                "covariance matrix may be unreliable.", call.=FALSE)
+    }
+
+    FIMatrix <- modelReturn$FI[!brokenVariables, !brokenVariables, drop=FALSE]
+    vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE)
+    if(inherits(vcovMatrix, "try-error")){
+        vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20),
+                          silent=TRUE)
+        if(inherits(vcovMatrix, "try-error")){
+            warning("Hessian is singular; cannot invert.", call.=FALSE)
+            vcovMatrix <- diag(1e+100, ncol(FIMatrix))
+        }
+    }
+    modelReturn$FI[!brokenVariables, !brokenVariables] <- vcovMatrix
+    modelReturn$FI[brokenVariables, ] <- Inf
+    modelReturn$FI[, brokenVariables] <- Inf
+    diag(modelReturn$FI) <- abs(diag(modelReturn$FI))
+    return(modelReturn$FI)
 }
 
 #' @rdname forecast.smooth

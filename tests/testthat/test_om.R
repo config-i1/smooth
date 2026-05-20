@@ -312,3 +312,45 @@ test_that("vcov.om returns a multi-parameter matrix for AAN", {
     expect_true(all(abs(V) < 1e+50));
     expect_equal(V, t(V), tolerance=1e-8);
 })
+
+# ---------------------------------------------------------------------
+# Regression: om() with occurrence="general" forwards to omg() and must
+# work with the default un-resolved `regressors` vector. The earlier bug
+# was that om() passed regressors=c("use","select","adapt") to omg()
+# without first running match.arg, and omg.R's `match.arg(regressorsB)`
+# then failed because its formal default `regressorsB = regressorsA` had
+# already been overwritten by a successful match.arg(regressorsA).
+# ---------------------------------------------------------------------
+
+test_that("om() with occurrence='general' / 'gen' forwards to omg() without error", {
+    set.seed(41);
+    x <- sim.oes("MNN", 120, frequency=12, occurrence="general",
+                 persistence=0.01, initial=2, initialB=1);
+    x <- sim.es("MNN", 120, frequency=12, probability=x$probability,
+                persistence=0.1);
+    expect_error(
+        suppressWarnings(om(x$data, "MMN", occurrence="gen", silent=TRUE, h=12)),
+        NA
+    );
+    expect_error(
+        suppressWarnings(om(x$data, "MNN", occurrence="general", silent=TRUE, h=12)),
+        NA
+    );
+})
+
+test_that("om() forwards regressors correctly to omg() across spellings", {
+    set.seed(41);
+    x <- sim.oes("MNN", 120, frequency=12, occurrence="general",
+                 persistence=0.01, initial=2, initialB=1);
+    x <- sim.es("MNN", 120, frequency=12, probability=x$probability,
+                persistence=0.1);
+    for (occ in c("gen", "general")) {
+        m <- suppressWarnings(om(x$data, "MNN", occurrence=occ,
+                                  silent=TRUE, h=12));
+        expect_s3_class(m, "omg");
+    }
+    # Explicit length-1 regressors — the path that was already working.
+    m <- suppressWarnings(om(x$data, "MNN", occurrence="general",
+                              regressors="use", silent=TRUE, h=12));
+    expect_s3_class(m, "omg");
+})

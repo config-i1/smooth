@@ -115,6 +115,11 @@ om <- function(data,
     }
 
     occurrence <- match.arg(occurrence);
+    # Resolve `regressors` early — both the auto.om() and omg() forwarding
+    # blocks below pass it through as-is, and if it's still the
+    # multi-element formal default at that point, downstream match.arg
+    # calls (notably omg.R's `match.arg(regressorsB)`) will fail.
+    regressors <- match.arg(regressors);
     if(occurrence == "auto") {
         result <- auto.om(data=data, model=model, lags=lags, orders=orders,
                           formula=formula, regressors=regressors,
@@ -147,7 +152,8 @@ om <- function(data,
     loss <- match.arg(loss);
     ic <- match.arg(ic);
     bounds <- match.arg(bounds);
-    regressors <- match.arg(regressors);
+    # `regressors` is resolved earlier (above the auto.om/omg forwarding
+    # blocks) — no need to repeat.
     ets <- match.arg(ets);
     # Do not overwrite ellipsis here — it may already hold values pulled out
     # of a fitted-object intake at the top of the function (ellipsis$B etc.).
