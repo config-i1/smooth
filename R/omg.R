@@ -1381,6 +1381,209 @@ omgConfintSide <- function(subModel, params, se, tLo, tHi){
 }
 
 #' @export
+coefbootstrap.omg <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
+                              replace=FALSE, prob=NULL, parallel=FALSE,
+                              method=c("cr","dsr"), ...){
+
+    startTime <- Sys.time();
+
+    cl <- match.call();
+    yInSample <- actuals(object);
+
+    method <- match.arg(method);
+
+    if(is.numeric(parallel)){
+        nCores <- parallel;
+        parallel <- TRUE;
+    }
+    else if(is.logical(parallel) && parallel){
+        nCores <- min(parallel::detectCores() - 1, nsim);
+    }
+
+    if(parallel){
+        if(!requireNamespace("foreach", quietly = TRUE)){
+            stop("In order to run the function in parallel, 'foreach' package must be installed.", call. = FALSE);
+        }
+        if(!requireNamespace("parallel", quietly = TRUE)){
+            stop("In order to run the function in parallel, 'parallel' package must be installed.", call. = FALSE);
+        }
+        if(Sys.info()['sysname']=="Windows"){
+            if(requireNamespace("doParallel", quietly = TRUE)){
+                cluster <- parallel::makeCluster(nCores);
+                doParallel::registerDoParallel(cluster);
+            }
+            else{
+                stop("Sorry, but in order to run the function in parallel, you need 'doParallel' package.",
+                     call. = FALSE);
+            }
+        }
+        else{
+            if(requireNamespace("doMC", quietly = TRUE)){
+                doMC::registerDoMC(nCores);
+                cluster <- NULL;
+            }
+            else if(requireNamespace("doParallel", quietly = TRUE)){
+                cluster <- parallel::makeCluster(nCores);
+                doParallel::registerDoParallel(cluster);
+            }
+            else{
+                stop("Sorry, but in order to run the function in parallel, you need either 'doMC' (prefered) or 'doParallel' packages.",
+                     call. = FALSE);
+            }
+        }
+    }
+
+    # Joint coefficients, with A:/B: prefixed names (mirrors confint.omg)
+    coefficientsOriginal <- c(object$modelA$B, object$modelB$B);
+    names(coefficientsOriginal) <- c(paste0("A:", names(object$modelA$B)),
+                                     paste0("B:", names(object$modelB$B)));
+    nVariables <- length(coefficientsOriginal);
+    variablesNames <- names(coefficientsOriginal);
+    nParamsA <- length(object$modelA$B);
+    obsInsample <- nobs(object);
+    # omg's lags() generic errors on the oETS[G] name — use the stored value.
+    lags <- object$lags;
+    yData <- object$modelA$data;
+
+    coefBootstrap <- matrix(0, nsim, nVariables, dimnames=list(NULL, variablesNames));
+    indices <- c(1:obsInsample);
+
+    # Build a fresh omg() call from the fitted sub-model specs. We never use
+    # object$call (its head may be om() when the object came from
+    # om(occurrence="general")) and never call om() — every replicate goes
+    # through omg() directly.
+    newCall <- quote(omg());
+    newCall$data    <- yData;
+    newCall$modelA  <- modelType(object$modelA);
+    newCall$modelB  <- modelType(object$modelB);
+    newCall$ordersA <- object$modelA$orders;
+    newCall$ordersB <- object$modelB$orders;
+    newCall$lags    <- lags;
+    newCall$silent  <- TRUE;
+    newCall$holdout <- FALSE;
+    newCall$B  <- coefficientsOriginal;
+    newCall$lb <- rep(-Inf, nVariables);
+    newCall$ub <- rep(Inf,  nVariables);
+
+    regressionPure <- FALSE;
+
+    obsMinimum <- max(lags, nVariables) + 2;
+    if(obsMinimum>=obsInsample && method=="cr"){
+        warning("Not enough observations to do Case Resampling bootstrap. Changing method to 'dsr'.",
+                call.=FALSE, immediate.=TRUE);
+        method <- "dsr";
+    }
+
+    changeOrigin <- any(object$modelA$initialType==c("backcasting","complete"));
+
+    sampler <- function(indices,size,replace,prob,regressionPure=FALSE,changeOrigin=FALSE){
+        if(regressionPure){
+            return(sample(indices,size=size,replace=replace,prob=prob));
+        }
+        else{
+            indices <- c(1:ceiling(runif(1,obsMinimum,obsInsample)));
+            startingIndex <- 0;
+            if(changeOrigin){
+                startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
+            }
+            return(startingIndex+indices);
+        }
+    }
+
+    # Extract the joint coefficient vector from a re-fitted omg model.
+    jointCoef <- function(testModel){
+        c(testModel$modelA$B, testModel$modelB$B);
+    }
+
+    #### Bootstrap the data
+    if(method=="dsr"){
+        type <- "additive";
+        if(all(yInSample>=0) && any(yInSample>1)){
+            type[] <- "multiplicative";
+        }
+        dataBoot <- dsrboot(yInSample, nsim=nsim, type=type, intermittent=FALSE);
+        if(!parallel){
+            for(i in 1:nsim){
+                newCall$data <- dataBoot$boot[,i];
+                testModel <- tryCatch(suppressWarnings(eval(newCall)), error=function(e) NULL);
+                if(!is.null(testModel)){
+                    testCoef <- jointCoef(testModel);
+                    if(length(testCoef)==nVariables){ coefBootstrap[i,] <- testCoef; }
+                }
+            }
+        }
+        else{
+            coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+                newCall$data <- dataBoot$boot[,i];
+                testModel <- tryCatch(eval(newCall), error=function(e) NULL);
+                if(is.null(testModel)){ return(NULL); }
+                return(jointCoef(testModel));
+            })
+            for(i in 1:nsim){
+                if(!is.null(coefBootstrapParallel[[i]]) &&
+                   length(coefBootstrapParallel[[i]])==nVariables){
+                    coefBootstrap[i,] <- coefBootstrapParallel[[i]];
+                }
+            }
+        }
+    }
+    else{
+        #### Case Resampling bootstrap
+        # Resample short / sparse subsamples that the joint model cannot be
+        # re-estimated on, so every replicate is a genuine re-estimation with
+        # the provided joint B as the starting point.
+        maxAttempts <- 100L;
+        refitOMG <- function(){
+            testModel <- NULL; testCoef <- NULL; attempt <- 0L;
+            while(is.null(testCoef) && attempt < maxAttempts){
+                attempt <- attempt + 1L;
+                subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+                newCall$data <- yData[subsetValues];
+                testModel <- tryCatch(suppressWarnings(eval(newCall)), error=function(e) NULL);
+                if(!is.null(testModel)){
+                    cand <- jointCoef(testModel);
+                    if(length(cand)==nVariables){ testCoef <- cand; }
+                }
+            }
+            return(testCoef);
+        }
+        if(!parallel){
+            for(i in 1:nsim){
+                testCoef <- refitOMG();
+                if(!is.null(testCoef)){ coefBootstrap[i,] <- testCoef; }
+            }
+        }
+        else{
+            coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+                refitOMG();
+            })
+            for(i in 1:nsim){
+                if(!is.null(coefBootstrapParallel[[i]]) &&
+                   length(coefBootstrapParallel[[i]])==nVariables){
+                    coefBootstrap[i,] <- coefBootstrapParallel[[i]];
+                }
+            }
+        }
+    }
+
+    if(parallel && !is.null(cluster)){
+        parallel::stopCluster(cluster);
+    }
+
+    coefBootstrap[is.na(coefBootstrap)] <- 0;
+    colnames(coefBootstrap) <- variablesNames;
+
+    coefvcov <- coefBootstrap - matrix(coefficientsOriginal, nsim, nVariables, byrow=TRUE);
+
+    return(structure(list(vcov=(t(coefvcov) %*% coefvcov)/nsim,
+                          coefficients=coefBootstrap, method=method,
+                          nsim=nsim, size=NA, replace=NA, prob=NA,
+                          parallel=parallel, model=as.symbol("omg"),
+                          timeElapsed=Sys.time()-startTime),
+                     class="bootstrap"));
+}
+
+#' @export
 confint.omg <- function(object, parm, level=0.95, ...){
     confintNames <- c(paste0((1-level)/2*100,"%"),
                       paste0((1+level)/2*100,"%"))

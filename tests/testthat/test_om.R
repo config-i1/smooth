@@ -354,3 +354,21 @@ test_that("om() forwards regressors correctly to omg() across spellings", {
                               regressors="use", silent=TRUE, h=12));
     expect_s3_class(m, "omg");
 })
+
+# ---------------------------------------------------------------------
+# coefbootstrap.om — bootstrap covariance of the occurrence-model coefs
+# ---------------------------------------------------------------------
+
+test_that("coefbootstrap.om returns a bootstrap object", {
+    set.seed(41);
+    x <- sim.oes("MNN", 120, frequency=12, occurrence="general",
+                 persistence=0.01, initial=2, initialB=1);
+    x <- sim.es("MNN", 120, frequency=12, probability=x$probability, persistence=0.1);
+    m <- suppressWarnings(om(x$data, "MNN", occurrence="odds-ratio", silent=TRUE));
+    bs <- suppressWarnings(coefbootstrap(m, nsim=20));
+    expect_s3_class(bs, "bootstrap");
+    expect_equal(nrow(bs$coefficients), 20);
+    expect_equal(ncol(bs$coefficients), length(coef(m)));
+    expect_equal(dim(bs$vcov), c(length(coef(m)), length(coef(m))));
+    expect_true(all(is.finite(bs$vcov)));
+})

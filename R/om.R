@@ -638,25 +638,16 @@ om <- function(data,
             occurrence=occurrence, occurrenceChar=occurrenceChar,
             adamCpp=adamCpp);
 
-        maxevalUsed <- if(is.null(maxeval)) length(B_used) * 40L else maxeval;
-        res <- suppressWarnings(do.call(nloptr,
-                                        c(list(x0=B_used, eval_f=omCF_local,
-                                               lb=lb, ub=ub,
-                                               opts=list(algorithm=algorithm,
-                                                         xtol_rel=xtol_rel, xtol_abs=xtol_abs,
-                                                         ftol_rel=ftol_rel, ftol_abs=ftol_abs,
-                                                         maxeval=maxevalUsed, maxtime=maxtime,
-                                                         print_level=print_level)),
-                                          nloptrArgs)));
-        res$call <- quote(nloptr(x0=B_used, eval_f=omCF_local, lb=lb, ub=ub, opts=opts));
-
-        # Retry from BValues$B if the first run hit the infeasibility plateau,
-        # but only when the user did NOT supply their own B — their B is the
-        # authoritative starting point and must not be silently replaced.
-        if(is.null(B) && (is.infinite(res$objective) || res$objective == 1e+300)){
-            B_used[] <- BValues$B;
-            B_used[] <- 0.001;
-            B_used[1] <- 0.01;
+        # If there is nothing to estimate (e.g. a degenerate/tiny sample where
+        # the initialiser produced an empty parameter vector), skip nloptr —
+        # calling it with a zero-length x0 errors. Just evaluate the cost once
+        # at the empty B. Mirrors the guard in omgEstimator().
+        if(length(B_used) == 0){
+            res <- list(solution=B_used,
+                        objective=do.call(omCF_local, c(list(B=B_used), nloptrArgs)));
+        }
+        else{
+            maxevalUsed <- if(is.null(maxeval)) length(B_used) * 40L else maxeval;
             res <- suppressWarnings(do.call(nloptr,
                                             c(list(x0=B_used, eval_f=omCF_local,
                                                    lb=lb, ub=ub,
@@ -667,6 +658,25 @@ om <- function(data,
                                                              print_level=print_level)),
                                               nloptrArgs)));
             res$call <- quote(nloptr(x0=B_used, eval_f=omCF_local, lb=lb, ub=ub, opts=opts));
+
+            # Retry from BValues$B if the first run hit the infeasibility plateau,
+            # but only when the user did NOT supply their own B — their B is the
+            # authoritative starting point and must not be silently replaced.
+            if(is.null(B) && (is.infinite(res$objective) || res$objective == 1e+300)){
+                B_used[] <- BValues$B;
+                B_used[] <- 0.001;
+                B_used[1] <- 0.01;
+                res <- suppressWarnings(do.call(nloptr,
+                                                c(list(x0=B_used, eval_f=omCF_local,
+                                                       lb=lb, ub=ub,
+                                                       opts=list(algorithm=algorithm,
+                                                                 xtol_rel=xtol_rel, xtol_abs=xtol_abs,
+                                                                 ftol_rel=ftol_rel, ftol_abs=ftol_abs,
+                                                                 maxeval=maxevalUsed, maxtime=maxtime,
+                                                                 print_level=print_level)),
+                                                  nloptrArgs)));
+                res$call <- quote(nloptr(x0=B_used, eval_f=omCF_local, lb=lb, ub=ub, opts=opts));
+            }
         }
 
         B_used <- res$solution;
@@ -1723,6 +1733,204 @@ omCF_local <- function(B,
         CFValue <- mean((as.numeric(ot) - yFitted)^2);
     }
     return(CFValue)
+}
+
+#' @export
+coefbootstrap.om <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
+                             replace=FALSE, prob=NULL, parallel=FALSE,
+                             method=c("cr","dsr"), ...){
+
+    startTime <- Sys.time();
+
+    cl <- match.call();
+    yInSample <- actuals(object);
+
+    method <- match.arg(method);
+
+    if(is.numeric(parallel)){
+        nCores <- parallel;
+        parallel <- TRUE;
+    }
+    else if(is.logical(parallel) && parallel){
+        nCores <- min(parallel::detectCores() - 1, nsim);
+    }
+
+    if(parallel){
+        if(!requireNamespace("foreach", quietly = TRUE)){
+            stop("In order to run the function in parallel, 'foreach' package must be installed.", call. = FALSE);
+        }
+        if(!requireNamespace("parallel", quietly = TRUE)){
+            stop("In order to run the function in parallel, 'parallel' package must be installed.", call. = FALSE);
+        }
+        if(Sys.info()['sysname']=="Windows"){
+            if(requireNamespace("doParallel", quietly = TRUE)){
+                cluster <- parallel::makeCluster(nCores);
+                doParallel::registerDoParallel(cluster);
+            }
+            else{
+                stop("Sorry, but in order to run the function in parallel, you need 'doParallel' package.",
+                     call. = FALSE);
+            }
+        }
+        else{
+            if(requireNamespace("doMC", quietly = TRUE)){
+                doMC::registerDoMC(nCores);
+                cluster <- NULL;
+            }
+            else if(requireNamespace("doParallel", quietly = TRUE)){
+                cluster <- parallel::makeCluster(nCores);
+                doParallel::registerDoParallel(cluster);
+            }
+            else{
+                stop("Sorry, but in order to run the function in parallel, you need either 'doMC' (prefered) or 'doParallel' packages.",
+                     call. = FALSE);
+            }
+        }
+    }
+
+    # Coefficients of the model
+    coefficientsOriginal <- coef(object);
+    nVariables <- length(coefficientsOriginal);
+    variablesNames <- names(coefficientsOriginal);
+    obsInsample <- nobs(object);
+
+    coefBootstrap <- matrix(0, nsim, nVariables, dimnames=list(NULL, variablesNames));
+    indices <- c(1:obsInsample);
+
+    # Form the call for om()
+    newCall <- object$call;
+    newCall$silent <- TRUE;
+    if(newCall[[1]]=="auto.om"){
+        newCall[[1]] <- as.symbol("om");
+    }
+    newCall$holdout <- FALSE;
+    newCall$model <- modelType(object);
+    newCall$occurrence <- object$occurrence;
+    if(!is.null(object$call$orders$select)){
+        newCall$orders <- orders(object);
+        newCall$orders$select <- FALSE;
+    }
+    newCall$constant <- !is.null(object$constant);
+    lags <- lags(object);
+    newCall$lags <- lags;
+    newCall$B <- object$B;
+    newCall$lb <- rep(-Inf, length(object$B));
+    newCall$ub <- rep(Inf, length(object$B));
+    newCall$data <- object$data;
+
+    regressionPure <- substr(object$model,1,10)=="Regression";
+
+    obsMinimum <- max(lags, nVariables) + 2;
+    if(obsMinimum>=obsInsample && method=="cr"){
+        warning("Not enough observations to do Case Resampling bootstrap. Changing method to 'dsr'.",
+                call.=FALSE, immediate.=TRUE);
+        method <- "dsr";
+    }
+
+    # If this is backcasting, do sampling with moving origin
+    changeOrigin <- any(object$initialType==c("backcasting","complete"));
+
+    sampler <- function(indices,size,replace,prob,regressionPure=FALSE,changeOrigin=FALSE){
+        if(regressionPure){
+            return(sample(indices,size=size,replace=replace,prob=prob));
+        }
+        else{
+            indices <- c(1:ceiling(runif(1,obsMinimum,obsInsample)));
+            startingIndex <- 0;
+            if(changeOrigin){
+                startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
+            }
+            return(startingIndex+indices);
+        }
+    }
+
+    #### Bootstrap the data
+    if(method=="dsr"){
+        #### Data Shape Replication bootstrap (on the 0/1 occurrence response)
+        type <- "additive";
+        if(all(yInSample>=0) && any(yInSample>1)){
+            type[] <- "multiplicative";
+        }
+        dataBoot <- dsrboot(yInSample, nsim=nsim, type=type, intermittent=FALSE);
+        if(!parallel){
+            for(i in 1:nsim){
+                newCall$data <- dataBoot$boot[,i];
+                testModel <- tryCatch(suppressWarnings(eval(newCall)), error=function(e) NULL);
+                if(!is.null(testModel)){
+                    coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+                }
+            }
+        }
+        else{
+            coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+                newCall$data <- dataBoot$boot[,i];
+                testModel <- tryCatch(eval(newCall), error=function(e) NULL);
+                if(is.null(testModel)){ return(NULL); }
+                return(coef(testModel));
+            })
+            for(i in 1:nsim){
+                if(!is.null(coefBootstrapParallel[[i]])){
+                    coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+                }
+            }
+        }
+    }
+    else{
+        #### Case Resampling bootstrap
+        # A subsample can be too short / too sparse (few non-zero occurrences)
+        # for the model to be re-estimated. Such draws are resampled (up to
+        # maxAttempts) so every replicate is a genuine re-estimation with the
+        # provided B as the starting point.
+        maxAttempts <- 100L;
+        refitOM <- function(){
+            testModel <- NULL; attempt <- 0L;
+            while(is.null(testModel) && attempt < maxAttempts){
+                attempt <- attempt + 1L;
+                subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+                newCall$data <- object$data[subsetValues];
+                testModel <- tryCatch(suppressWarnings(eval(newCall)), error=function(e) NULL);
+                if(!is.null(testModel) && length(coef(testModel))==0){ testModel <- NULL; }
+            }
+            return(testModel);
+        }
+        if(!parallel){
+            for(i in 1:nsim){
+                testModel <- refitOM();
+                if(!is.null(testModel)){
+                    coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+                }
+            }
+        }
+        else{
+            coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+                testModel <- refitOM();
+                if(is.null(testModel)){ return(NULL); }
+                return(coef(testModel));
+            })
+            for(i in 1:nsim){
+                if(!is.null(coefBootstrapParallel[[i]])){
+                    coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+                }
+            }
+        }
+    }
+
+    if(parallel && !is.null(cluster)){
+        parallel::stopCluster(cluster);
+    }
+
+    # Get rid of NAs. They mean "zero"
+    coefBootstrap[is.na(coefBootstrap)] <- 0;
+    colnames(coefBootstrap) <- names(coefficientsOriginal);
+
+    # Centre the coefficients for the calculation of the vcov
+    coefvcov <- coefBootstrap - matrix(coefficientsOriginal, nsim, nVariables, byrow=TRUE);
+
+    return(structure(list(vcov=(t(coefvcov) %*% coefvcov)/nsim,
+                          coefficients=coefBootstrap, method=method,
+                          nsim=nsim, size=NA, replace=NA, prob=NA,
+                          parallel=parallel, model=object$call[[1]], timeElapsed=Sys.time()-startTime),
+                     class="bootstrap"));
 }
 
 #' @export

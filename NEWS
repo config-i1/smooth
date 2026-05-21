@@ -1,4 +1,4 @@
-smooth v4.5.0 (Release data: 2026-05-10)
+smooth v4.5.0 (Release data: 2026-05-21)
 =======
 
 Change:
@@ -7,6 +7,7 @@ Change:
 * auto.om() function to select occurrence and/or ARIMA orders.
 * om() supports all types of occurrence and does automatic selection via auto.om().
 * vcov, confint and summary methods for the om class.
+* coefbootstrap for the om class.
 
 
 smooth v4.4.1 (Release data: 2026-02-26)

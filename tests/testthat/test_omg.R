@@ -261,3 +261,22 @@ test_that("print.summary.omg prints per-model blocks", {
     expect_output(print(s), "Model A:");
     expect_output(print(s), "Model B:");
 })
+
+# ---------------------------------------------------------------------
+# coefbootstrap.omg — joint bootstrap covariance over c(modelA$B, modelB$B)
+# ---------------------------------------------------------------------
+
+test_that("coefbootstrap.omg returns a joint bootstrap object", {
+    set.seed(41);
+    x <- sim.oes("MNN", 120, frequency=12, occurrence="general",
+                 persistence=0.01, initial=2, initialB=1);
+    x <- sim.es("MNN", 120, frequency=12, probability=x$probability, persistence=0.1);
+    m <- suppressWarnings(omg(x$data, modelA="ANN", modelB="ANN", silent=TRUE));
+    nJoint <- length(m$modelA$B) + length(m$modelB$B);
+    bs <- suppressWarnings(coefbootstrap(m, nsim=20));
+    expect_s3_class(bs, "bootstrap");
+    expect_equal(nrow(bs$coefficients), 20);
+    expect_equal(ncol(bs$coefficients), nJoint);
+    expect_equal(dim(bs$vcov), c(nJoint, nJoint));
+    expect_true(all(is.finite(bs$vcov)));
+})
