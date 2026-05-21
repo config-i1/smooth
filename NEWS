@@ -9,6 +9,9 @@ Change:
 * vcov, confint and summary methods for the om class.
 * coefbootstrap for the om class.
 
+Bugfixes:
+* forecast.adam() would not do the correct row repetition for explanatory variables when the new values are not provided.
+
 
 smooth v4.4.1 (Release data: 2026-02-26)
 =======
