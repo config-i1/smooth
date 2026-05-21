@@ -959,3 +959,127 @@ def _format_holdout_errors(model: Any, digits: int) -> str:
 
     errors = _compute_forecast_errors(y_holdout, y_forecast, y_in_sample, period)
     return _format_forecast_errors(errors, digits)
+
+
+def _occurrence_label(model: Any) -> Optional[str]:
+    """Human-readable occurrence type, mirroring R's summary.adam."""
+    occ = getattr(model, "_occurrence", None) or {}
+    if not occ.get("occurrence_model"):
+        return None
+    return {
+        "fixed": "Fixed probability",
+        "odds-ratio": "Odds ratio",
+        "inverse-odds-ratio": "Inverse odds ratio",
+        "direct": "Direct",
+        "general": "General",
+    }.get(occ.get("occurrence"), occ.get("occurrence"))
+
+
+class ADAMSummary:
+    """Coefficient-table summary of a fitted ADAM model.
+
+    Mirrors R's ``summary.adam`` object and its ``print.summary.adam`` rendering:
+    a table of estimates with standard errors, confidence intervals and
+    significance marks, plus the error scale, sample size, parameter counts and
+    information criteria. Returned by :meth:`ADAM.summary`; printing it (or
+    ``str()``/``repr()``) renders the report.
+    """
+
+    def __init__(self, model: Any, level: float = 0.95, digits: int = 4):
+        import pandas as pd
+
+        self.digits = digits
+        self.level = level
+
+        ci = model.confint(level=level)
+        estimate = np.asarray(model.coef, dtype=float)
+        lo_col, hi_col = ci.columns[1], ci.columns[2]
+        coefficients = pd.DataFrame(
+            {
+                "Estimate": estimate,
+                "Std. Error": ci["S.E."].to_numpy(),
+                f"Lower {lo_col}": ci[lo_col].to_numpy(),
+                f"Upper {hi_col}": ci[hi_col].to_numpy(),
+            },
+            index=ci.index,
+        )
+        self.coefficients = coefficients
+        lower = coefficients.iloc[:, 2].to_numpy()
+        upper = coefficients.iloc[:, 3].to_numpy()
+        self.significance = ~((lower <= 0) & (upper >= 0))
+
+        self.model = _get_model_name(model)
+        self.function_name = _get_function_name(model)
+        self.response_name = getattr(model, "_response_name", None) or "y"
+        self.occurrence = _occurrence_label(model)
+        self.distribution = _get_distribution(model)
+        self.other = getattr(model, "other", None)
+        self.loss = model._general.get("loss", "likelihood")
+        self.loss_value = getattr(model, "loss_value", None)
+        self.sigma = getattr(model, "sigma", None)
+        self.nobs = _get_nobs(model)
+        self.nparam = _get_n_params(model)
+        self.n_provided = 0
+
+        self.ICs = None
+        if _can_compute_ic(model):
+            self.ICs = {
+                "AIC": model.aic,
+                "AICc": model.aicc,
+                "BIC": model.bic,
+                "BICc": model.bicc,
+            }
+
+    def _render(self) -> str:
+        import pandas as pd
+
+        d = self.digits
+        lines = []
+        lines.append(
+            f"\nModel estimated using {self.function_name}() function: {self.model}"
+        )
+        lines.append(f"Response variable: {self.response_name}")
+        if self.occurrence is not None:
+            lines.append(f"Occurrence model type: {self.occurrence}")
+
+        dist_str = _format_distribution(self.distribution, self.other)
+        if self.occurrence is not None:
+            dist_str = f"Mixture of Bernoulli and {dist_str}"
+        lines.append(f"Distribution used in the estimation: {dist_str}")
+
+        loss_line = f"Loss function type: {self.loss}"
+        if self.loss_value is not None:
+            loss_line += f"; Loss function value: {round(self.loss_value, d)}"
+        lines.append(loss_line)
+
+        lines.append("Coefficients:")
+        table = self.coefficients.round(d).copy()
+        stars = ["*" if s else "" for s in self.significance]
+        table[" "] = stars
+        lines.append(table.to_string())
+
+        if self.sigma is not None:
+            lines.append(f"Error standard deviation: {round(self.sigma, d)}")
+        lines.append(f"Sample size: {self.nobs}")
+        lines.append(f"Number of estimated parameters: {self.nparam}")
+        lines.append(f"Number of degrees of freedom: {self.nobs - self.nparam}")
+        if self.n_provided > 0:
+            lines.append(f"Number of provided parameters: {self.n_provided}")
+
+        if self.ICs is not None:
+            lines.append("Information criteria:")
+            ic_row = pd.DataFrame([self.ICs]).round(d)
+            lines.append(ic_row.to_string(index=False))
+        else:
+            lines.append(
+                "Information criteria are unavailable for the chosen loss & "
+                "distribution."
+            )
+
+        return "\n".join(lines)
+
+    def __str__(self) -> str:
+        return self._render()
+
+    def __repr__(self) -> str:
+        return self._render()
