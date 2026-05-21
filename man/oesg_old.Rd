@@ -133,18 +133,9 @@ oesg(y, modelA="MNN", modelB="ANN")
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
-\keyword{demand}
-\keyword{exponential}
-\keyword{forecasting}
-\keyword{intermittent}
-\keyword{iss}
-\keyword{model}
 \keyword{models}
 \keyword{nonlinear}
 \keyword{regression}
 \keyword{smooth}
-\keyword{smoothing}
-\keyword{space}
-\keyword{state}
 \keyword{ts}
 \keyword{univar}

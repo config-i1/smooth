@@ -73,7 +73,53 @@ om <- function(data,
     startTime <- Sys.time();
     cl <- match.call();
 
+    # Capture ellipsis early so FI / stepSize / B / lb / ub passed via ...
+    # are visible downstream. Mirrors adam.R.
+    ellipsis <- list(...);
+
+    # If a fitted om object is passed via `model`, lift its parameters out
+    # and set modelDo="use" so the optimiser is skipped. Mirrors
+    # adam.R:354-424. This is the canonical entry point for vcov(om_obj),
+    # which re-calls om(..., model=object, FI=TRUE, stepSize=...).
+    if(is.om(model)){
+        initial      <- model$initial;
+        persistence  <- model$persistence;
+        phi          <- model$phi;
+        occurrence   <- model$occurrence;
+        bounds       <- model$bounds;
+        loss         <- model$loss;
+        if(!is.null(model$ic)){
+            ic <- model$ic;
+        }
+        ellipsis$B   <- model$B;
+        lags         <- model$lags;
+        orders       <- model$orders;
+        constant     <- if(is.null(model$constant)) FALSE else model$constant;
+        arma         <- model$arma;
+        if(is.null(formula)){
+            formula <- formula(model);
+        }
+        profilesRecentTable    <- model$profileInitial;
+        profilesRecentProvided <- TRUE;
+        regressors   <- model$regressors;
+        initialType  <- model$initialType;
+        # NOTE: do NOT propagate model$ets — that is the etsModel boolean
+        # flag, not the om() `ets` argument (which is a character of
+        # c("conventional","adam")). Leave `ets` at the user's default.
+        # Collapse the fitted object down to its ETS spec string so the rest
+        # of om() treats `model` as a normal spec.
+        model        <- modelType(model);
+        modelDo_user <- "use";
+    } else {
+        modelDo_user <- NULL;
+    }
+
     occurrence <- match.arg(occurrence);
+    # Resolve `regressors` early — both the auto.om() and omg() forwarding
+    # blocks below pass it through as-is, and if it's still the
+    # multi-element formal default at that point, downstream match.arg
+    # calls (notably omg.R's `match.arg(regressorsB)`) will fail.
+    regressors <- match.arg(regressors);
     if(occurrence == "auto") {
         result <- auto.om(data=data, model=model, lags=lags, orders=orders,
                           formula=formula, regressors=regressors,
@@ -106,9 +152,14 @@ om <- function(data,
     loss <- match.arg(loss);
     ic <- match.arg(ic);
     bounds <- match.arg(bounds);
-    regressors <- match.arg(regressors);
+    # `regressors` is resolved earlier (above the auto.om/omg forwarding
+    # blocks) — no need to repeat.
     ets <- match.arg(ets);
-    ellipsis <- list(...);
+    # Do not overwrite ellipsis here — it may already hold values pulled out
+    # of a fitted-object intake at the top of the function (ellipsis$B etc.).
+    if(!exists("ellipsis", inherits=FALSE)){
+        ellipsis <- list(...);
+    }
 
     occurrenceChar <- switch(occurrence,
                              "odds-ratio"          = "o",
@@ -123,6 +174,10 @@ om <- function(data,
         yName <- "y";
     }
     modelDo <- "estimate";
+    # If we lifted a fitted om object earlier, switch to the "use" path.
+    if(!is.null(modelDo_user)){
+        modelDo <- modelDo_user;
+    }
 
     dataChecked <- adam_checkData(data, lags, h, holdout, yName, modelDo, formula);
     list2env(dataChecked, envir=environment());
@@ -380,91 +435,9 @@ om <- function(data,
                             horizon, multisteps, other, otherParameterEstimate,
                             lambda, B){
 
-        omCF_local <- function(B,
-                               etsModel, Etype, Ttype, Stype,
-                               modelIsTrendy, modelIsSeasonal,
-                               componentsNumberETS, componentsNumberETSNonSeasonal,
-                               componentsNumberETSSeasonal, componentsNumberARIMA,
-                               lags, lagsModel, lagsModelMax, lagsModelAll,
-                               indexLookupTable, profilesRecentTable,
-                               matVt, matWt, matF, vecG,
-                               persistenceEstimate, persistenceLevelEstimate,
-                               persistenceTrendEstimate, persistenceSeasonalEstimate,
-                               persistenceXregEstimate, phiEstimate,
-                               initialType, initialEstimate,
-                               initialLevelEstimate, initialTrendEstimate,
-                               initialSeasonalEstimate, initialArimaEstimate,
-                               initialXregEstimate, initialArimaNumber,
-                               arimaModel, arEstimate, maEstimate,
-                               arOrders, iOrders, maOrders,
-                               arRequired, maRequired, armaParameters,
-                               nonZeroARI, nonZeroMA, arimaPolynomials,
-                               arPolynomialMatrix, maPolynomialMatrix,
-                               xregModel, xregNumber,
-                               xregParametersMissing, xregParametersIncluded,
-                               xregParametersEstimated, xregParametersPersistence,
-                               constantRequired, constantEstimate,
-                               bounds, regressors, loss,
-                               ot, otLogical, obsInSample,
-                               nIterations, refineHead,
-                               occurrence, occurrenceChar,
-                               adamCpp){
-            adamElements <- adam_filler(B,
-                                        etsModel, Etype, Ttype, Stype,
-                                        modelIsTrendy, modelIsSeasonal,
-                                        componentsNumberETS, componentsNumberETSNonSeasonal,
-                                        componentsNumberETSSeasonal, componentsNumberARIMA,
-                                        lags, lagsModel, lagsModelMax,
-                                        matVt, matWt, matF, vecG,
-                                        persistenceEstimate, persistenceLevelEstimate,
-                                        persistenceTrendEstimate, persistenceSeasonalEstimate,
-                                        persistenceXregEstimate, phiEstimate,
-                                        initialType, initialEstimate,
-                                        initialLevelEstimate, initialTrendEstimate,
-                                        initialSeasonalEstimate, initialArimaEstimate,
-                                        initialXregEstimate,
-                                        arimaModel, arEstimate, maEstimate,
-                                        arOrders, iOrders, maOrders,
-                                        arRequired, maRequired, armaParameters,
-                                        nonZeroARI, nonZeroMA, arimaPolynomials,
-                                        xregModel, xregNumber,
-                                        xregParametersMissing, xregParametersIncluded,
-                                        xregParametersEstimated, xregParametersPersistence,
-                                        constantEstimate, adamCpp,
-                                        constantRequired, initialArimaNumber);
-            penalty <- adam_bounds_checker(adamElements, adamElements$arimaPolynomials,
-                                           bounds,
-                                           etsModel, modelIsTrendy, modelIsSeasonal,
-                                           componentsNumberETS, componentsNumberETSNonSeasonal,
-                                           componentsNumberETSSeasonal,
-                                           arimaModel, arEstimate, maEstimate,
-                                           xregModel, regressors, xregNumber,
-                                           componentsNumberARIMA,
-                                           lagsModelAll, obsInSample,
-                                           arPolynomialMatrix, maPolynomialMatrix,
-                                           phiEstimate);
-            if(penalty != 0){
-                return(penalty);
-            }
-            profilesRecentTable[] <- adamElements$matVt[, 1:lagsModelMax];
-            adamFitted <- adamCpp$fit(adamElements$matVt, adamElements$matWt,
-                                      adamElements$matF, adamElements$vecG,
-                                      indexLookupTable, profilesRecentTable,
-                                      as.numeric(ot), as.numeric(ot),
-                                      any(initialType == c("complete","backcasting")),
-                                      nIterations, refineHead, occurrenceChar);
-            yFitted <- omLinkFunction(adamFitted$fitted, Etype, occurrence);
-            if(any(is.nan(yFitted)) || any(yFitted<0) || any(yFitted>1)){
-                return(1e+300);
-            }
-            if(loss == "likelihood"){
-                CFValue <- -(sum(log(yFitted[otLogical])) + sum(log(1 - yFitted[!otLogical])));
-            }
-            else{
-                CFValue <- mean((as.numeric(ot) - yFitted)^2);
-            }
-            return(CFValue)
-        }
+        # omCF_local is defined at file scope (top of this file) — it is a
+        # pure function over its explicit arguments, so we just use the
+        # file-scope version. nloptr will receive it via eval_f below.
 
         adamArchitect <- adam_architector(etsModel, Etype, Ttype, Stype, lags,
                                           lagsModelSeasonal,
@@ -665,25 +638,16 @@ om <- function(data,
             occurrence=occurrence, occurrenceChar=occurrenceChar,
             adamCpp=adamCpp);
 
-        maxevalUsed <- if(is.null(maxeval)) length(B_used) * 40L else maxeval;
-        res <- suppressWarnings(do.call(nloptr,
-                                        c(list(x0=B_used, eval_f=omCF_local,
-                                               lb=lb, ub=ub,
-                                               opts=list(algorithm=algorithm,
-                                                         xtol_rel=xtol_rel, xtol_abs=xtol_abs,
-                                                         ftol_rel=ftol_rel, ftol_abs=ftol_abs,
-                                                         maxeval=maxevalUsed, maxtime=maxtime,
-                                                         print_level=print_level)),
-                                          nloptrArgs)));
-        res$call <- quote(nloptr(x0=B_used, eval_f=omCF_local, lb=lb, ub=ub, opts=opts));
-
-        # Retry from BValues$B if the first run hit the infeasibility plateau,
-        # but only when the user did NOT supply their own B — their B is the
-        # authoritative starting point and must not be silently replaced.
-        if(is.null(B) && (is.infinite(res$objective) || res$objective == 1e+300)){
-            B_used[] <- BValues$B;
-            B_used[] <- 0.001;
-            B_used[1] <- 0.01;
+        # If there is nothing to estimate (e.g. a degenerate/tiny sample where
+        # the initialiser produced an empty parameter vector), skip nloptr —
+        # calling it with a zero-length x0 errors. Just evaluate the cost once
+        # at the empty B. Mirrors the guard in omgEstimator().
+        if(length(B_used) == 0){
+            res <- list(solution=B_used,
+                        objective=do.call(omCF_local, c(list(B=B_used), nloptrArgs)));
+        }
+        else{
+            maxevalUsed <- if(is.null(maxeval)) length(B_used) * 40L else maxeval;
             res <- suppressWarnings(do.call(nloptr,
                                             c(list(x0=B_used, eval_f=omCF_local,
                                                    lb=lb, ub=ub,
@@ -694,6 +658,25 @@ om <- function(data,
                                                              print_level=print_level)),
                                               nloptrArgs)));
             res$call <- quote(nloptr(x0=B_used, eval_f=omCF_local, lb=lb, ub=ub, opts=opts));
+
+            # Retry from BValues$B if the first run hit the infeasibility plateau,
+            # but only when the user did NOT supply their own B — their B is the
+            # authoritative starting point and must not be silently replaced.
+            if(is.null(B) && (is.infinite(res$objective) || res$objective == 1e+300)){
+                B_used[] <- BValues$B;
+                B_used[] <- 0.001;
+                B_used[1] <- 0.01;
+                res <- suppressWarnings(do.call(nloptr,
+                                                c(list(x0=B_used, eval_f=omCF_local,
+                                                       lb=lb, ub=ub,
+                                                       opts=list(algorithm=algorithm,
+                                                                 xtol_rel=xtol_rel, xtol_abs=xtol_abs,
+                                                                 ftol_rel=ftol_rel, ftol_abs=ftol_abs,
+                                                                 maxeval=maxevalUsed, maxtime=maxtime,
+                                                                 print_level=print_level)),
+                                                  nloptrArgs)));
+                res$call <- quote(nloptr(x0=B_used, eval_f=omCF_local, lb=lb, ub=ub, opts=opts));
+            }
         }
 
         B_used <- res$solution;
@@ -702,33 +685,11 @@ om <- function(data,
         nParamEstimated <- length(B_used);
         logLikValue <- -CFValue;
 
-        #### Fisher Information ####
-        # Negative log-likelihood Hessian at the optimum gives FI directly
-        # because omCF_local already returns -logLik. Wrap omCF_local in a
-        # try() so numerical perturbations that violate bounds get a finite
-        # large penalty instead of a hard error.
-        if(isTRUE(FI)){
-            CFAtOptimum <- omCF_local(B_used);
-            omCF_FI <- function(B){
-                names(B) <- names(B_used);
-                val <- tryCatch(suppressWarnings(omCF_local(B)),
-                                error = function(e) CFAtOptimum + 1e6);
-                if(!is.finite(val)){
-                    val <- CFAtOptimum + 1e6;
-                }
-                return(val);
-            }
-            FIMatrix <- try(suppressWarnings(pracma::hessian(omCF_FI, B_used, h=stepSize)),
-                            silent=TRUE);
-            if(inherits(FIMatrix, "try-error") || any(!is.finite(FIMatrix))){
-                FIMatrix <- NULL;
-            } else {
-                colnames(FIMatrix) <- names(B_used);
-                rownames(FIMatrix) <- names(B_used);
-            }
-        } else {
-            FIMatrix <- NULL;
-        }
+        # Fisher Information is NOT computed inside omEstimator. The canonical
+        # path is vcov(om_object) -> om(model=object, FI=TRUE) which routes
+        # via the modelDo=="use" branch where the hessian is taken at the
+        # fixed B. This mirrors how adam() handles FI (adam.R:2698+).
+        FIMatrix <- NULL;
 
         return(list(B=B_used, CFValue=CFValue, nParamEstimated=nParamEstimated,
                     logLikADAMValue=logLikValue,
@@ -1016,9 +977,7 @@ om <- function(data,
             forecast = yForecast,
             states = matVt,
             profile = adamFitted$profile,
-            profileInitial = if(exists("profilesRecentInitial", inherits=FALSE)) {
-                profilesRecentInitial
-            } else NULL,
+            profileInitial = prof,
             persistence = persistenceVec,
             phi = if(nla$phiEstimate) res$B["phi"] else phi,
             transition = adamFilled$matF,
@@ -1361,13 +1320,121 @@ om <- function(data,
             occurrence=occurrence, occurrenceChar=occurrenceChar,
             adamCpp=adamArchitectUse$adamCpp);
 
+        # Fisher Information at the supplied / fitted parameters. Mirrors
+        # the FI block in adam.R:2698+ — the hessian of -logLik (which is
+        # what omCF_local returns) IS the observed Fisher Information.
+        # This is the path vcov.om uses: om(..., model=object, FI=TRUE, ...).
+        # The trick: omCF_local only varies the elements of B that the
+        # *Estimate flags say are estimated. With a fitted-model intake,
+        # those flags are FALSE (parameters are "provided"), so the CF
+        # ignores B and the hessian comes out as zero. We override the
+        # flags here based on names(B) so the hessian is taken over
+        # exactly the parameters that appear in B.
+        FIMatrixUse <- NULL;
+        if(isTRUE(ellipsis$FI)){
+            stepSize <- if(is.null(ellipsis$stepSize)) {
+                .Machine$double.eps^(1/4);
+            } else {
+                ellipsis$stepSize;
+            };
+            B_for_FI <- ellipsis$B;
+            if(!is.null(B_for_FI) && length(B_for_FI) > 0){
+                # Derive *EstimateFI flags from names(B) — adam.R:2768+
+                Bnames <- names(B_for_FI);
+                ncSeas <- adamArchitectUse$componentsNumberETSSeasonal;
+                pLvlFI   <- any(Bnames=="alpha");
+                pTrdFI   <- any(Bnames=="beta");
+                if(any(substr(Bnames,1,5)=="gamma")){
+                    gammasMask <- substr(Bnames,1,5)=="gamma";
+                    if(sum(gammasMask)==1){
+                        pSeaFI <- TRUE;
+                    }
+                    else{
+                        pSeaFI <- vector("logical", ncSeas);
+                        pSeaFI[as.numeric(substr(Bnames,6,6)[gammasMask])] <- TRUE;
+                    }
+                } else {
+                    pSeaFI <- FALSE;
+                }
+                pXrgFI    <- any(substr(Bnames,1,5)=="delta");
+                pEstFI    <- any(c(pLvlFI, pTrdFI, pSeaFI, pXrgFI));
+                phiEstFI  <- any(Bnames=="phi");
+                iLvlFI    <- any(Bnames=="level");
+                iTrdFI    <- any(Bnames=="trend");
+                if(any(substr(Bnames,1,8)=="seasonal")){
+                    sn <- Bnames[substr(Bnames,1,8)=="seasonal"];
+                    iSeaFI <- vector("logical", ncSeas);
+                    if(any(substr(sn,1,9)=="seasonal_")){
+                        iSeaFI[] <- TRUE;
+                    } else {
+                        iSeaFI[unique(as.numeric(substr(sn,9,9)))] <- TRUE;
+                    }
+                } else {
+                    iSeaFI <- FALSE;
+                }
+                iAriFI <- if(arimaModel) any(substr(Bnames,1,10)=="ARIMAState") else FALSE;
+                iXrgFI <- if(xregModel) any(colnames(xregData) %in% Bnames) else FALSE;
+                iEstFI <- any(c(iLvlFI, iTrdFI, iSeaFI, iAriFI, iXrgFI));
+                # If initials are in B, FI sees the model as initial="optimal";
+                # otherwise leave the user's initialType (backcasting / provided).
+                iTypeFI <- if(iEstFI) "optimal" else initialType;
+
+                # Patch nloptrArgsUse with the FI-specific flags and disable
+                # bounds so omCF_local never short-circuits with 1e+300.
+                nlaFI <- nloptrArgsUse;
+                nlaFI$persistenceEstimate        <- pEstFI;
+                nlaFI$persistenceLevelEstimate   <- pLvlFI;
+                nlaFI$persistenceTrendEstimate   <- pTrdFI;
+                nlaFI$persistenceSeasonalEstimate<- pSeaFI;
+                nlaFI$persistenceXregEstimate    <- pXrgFI;
+                nlaFI$phiEstimate                <- phiEstFI;
+                nlaFI$initialType                <- iTypeFI;
+                nlaFI$initialEstimate            <- iEstFI;
+                nlaFI$initialLevelEstimate       <- iLvlFI;
+                nlaFI$initialTrendEstimate       <- iTrdFI;
+                nlaFI$initialSeasonalEstimate    <- iSeaFI;
+                nlaFI$initialArimaEstimate       <- iAriFI;
+                nlaFI$initialXregEstimate        <- iXrgFI;
+                nlaFI$bounds                     <- "none";
+                if(arimaModel){
+                    nlaFI$arPolynomialMatrix <- NULL;
+                    nlaFI$maPolynomialMatrix <- NULL;
+                }
+
+                CFAtOptimum <- do.call(omCF_local,
+                                       c(list(B=B_for_FI), nlaFI));
+                omCF_for_FI <- function(B){
+                    names(B) <- Bnames;
+                    val <- tryCatch(suppressWarnings(
+                                        do.call(omCF_local,
+                                                c(list(B=B), nlaFI))),
+                                    error = function(e) CFAtOptimum + 1e6);
+                    if(!is.finite(val)){
+                        val <- CFAtOptimum + 1e6;
+                    }
+                    return(val);
+                }
+                FIMatrixUse <- try(suppressWarnings(
+                                       pracma::hessian(omCF_for_FI, B_for_FI,
+                                                       h=stepSize)),
+                                   silent=TRUE);
+                if(inherits(FIMatrixUse, "try-error") ||
+                   any(!is.finite(FIMatrixUse))){
+                    FIMatrixUse <- NULL;
+                } else {
+                    colnames(FIMatrixUse) <- Bnames;
+                    rownames(FIMatrixUse) <- Bnames;
+                }
+            }
+        }
+
         estimatorResult <- list(
-            B=numeric(0),
+            B=if(is.null(ellipsis$B)) numeric(0) else ellipsis$B,
             CFValue=0, nParamEstimated=nParamEstimated,
             logLikADAMValue=NULL,
             xregData=xregData, xregNames=xregNames,
             xregModelInitials=xregModelInitials, formula=formula,
-            res=list(objective=0), FI=NULL,
+            res=list(objective=0), FI=FIMatrixUse,
             iRequired=iRequired,
             adamArchitect=adamArchitectUse, adamCreated=adamCreatedUse,
             nloptrArgs=nloptrArgsUse);
@@ -1575,6 +1642,357 @@ omLinkFunction <- function(x, Etype, occurrence){
            "fixed"              =,
            "direct"             = pmin(pmax(x, 0), 1),
            x);
+}
+
+# File-scope occurrence-model cost function. Used by omEstimator() during
+# optimisation and by the modelDo=="use" branch of om() for FI computation.
+# Takes all dependencies as explicit arguments — no closure state.
+omCF_local <- function(B,
+                       etsModel, Etype, Ttype, Stype,
+                       modelIsTrendy, modelIsSeasonal,
+                       componentsNumberETS, componentsNumberETSNonSeasonal,
+                       componentsNumberETSSeasonal, componentsNumberARIMA,
+                       lags, lagsModel, lagsModelMax, lagsModelAll,
+                       indexLookupTable, profilesRecentTable,
+                       matVt, matWt, matF, vecG,
+                       persistenceEstimate, persistenceLevelEstimate,
+                       persistenceTrendEstimate, persistenceSeasonalEstimate,
+                       persistenceXregEstimate, phiEstimate,
+                       initialType, initialEstimate,
+                       initialLevelEstimate, initialTrendEstimate,
+                       initialSeasonalEstimate, initialArimaEstimate,
+                       initialXregEstimate, initialArimaNumber,
+                       arimaModel, arEstimate, maEstimate,
+                       arOrders, iOrders, maOrders,
+                       arRequired, maRequired, armaParameters,
+                       nonZeroARI, nonZeroMA, arimaPolynomials,
+                       arPolynomialMatrix, maPolynomialMatrix,
+                       xregModel, xregNumber,
+                       xregParametersMissing, xregParametersIncluded,
+                       xregParametersEstimated, xregParametersPersistence,
+                       constantRequired, constantEstimate,
+                       bounds, regressors, loss,
+                       ot, otLogical, obsInSample,
+                       nIterations, refineHead,
+                       occurrence, occurrenceChar,
+                       adamCpp){
+    adamElements <- adam_filler(B,
+                                etsModel, Etype, Ttype, Stype,
+                                modelIsTrendy, modelIsSeasonal,
+                                componentsNumberETS, componentsNumberETSNonSeasonal,
+                                componentsNumberETSSeasonal, componentsNumberARIMA,
+                                lags, lagsModel, lagsModelMax,
+                                matVt, matWt, matF, vecG,
+                                persistenceEstimate, persistenceLevelEstimate,
+                                persistenceTrendEstimate, persistenceSeasonalEstimate,
+                                persistenceXregEstimate, phiEstimate,
+                                initialType, initialEstimate,
+                                initialLevelEstimate, initialTrendEstimate,
+                                initialSeasonalEstimate, initialArimaEstimate,
+                                initialXregEstimate,
+                                arimaModel, arEstimate, maEstimate,
+                                arOrders, iOrders, maOrders,
+                                arRequired, maRequired, armaParameters,
+                                nonZeroARI, nonZeroMA, arimaPolynomials,
+                                xregModel, xregNumber,
+                                xregParametersMissing, xregParametersIncluded,
+                                xregParametersEstimated, xregParametersPersistence,
+                                constantEstimate, adamCpp,
+                                constantRequired, initialArimaNumber);
+    penalty <- adam_bounds_checker(adamElements, adamElements$arimaPolynomials,
+                                   bounds,
+                                   etsModel, modelIsTrendy, modelIsSeasonal,
+                                   componentsNumberETS, componentsNumberETSNonSeasonal,
+                                   componentsNumberETSSeasonal,
+                                   arimaModel, arEstimate, maEstimate,
+                                   xregModel, regressors, xregNumber,
+                                   componentsNumberARIMA,
+                                   lagsModelAll, obsInSample,
+                                   arPolynomialMatrix, maPolynomialMatrix,
+                                   phiEstimate);
+    if(penalty != 0){
+        return(penalty);
+    }
+    profilesRecentTable[] <- adamElements$matVt[, 1:lagsModelMax];
+    adamFitted <- adamCpp$fit(adamElements$matVt, adamElements$matWt,
+                              adamElements$matF, adamElements$vecG,
+                              indexLookupTable, profilesRecentTable,
+                              as.numeric(ot), as.numeric(ot),
+                              any(initialType == c("complete","backcasting")),
+                              nIterations, refineHead, occurrenceChar);
+    yFitted <- omLinkFunction(adamFitted$fitted, Etype, occurrence);
+    if(any(is.nan(yFitted)) || any(yFitted<0) || any(yFitted>1)){
+        return(1e+300);
+    }
+    if(loss == "likelihood"){
+        CFValue <- -(sum(log(yFitted[otLogical])) + sum(log(1 - yFitted[!otLogical])));
+    }
+    else{
+        CFValue <- mean((as.numeric(ot) - yFitted)^2);
+    }
+    return(CFValue)
+}
+
+#' @export
+coefbootstrap.om <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
+                             replace=FALSE, prob=NULL, parallel=FALSE,
+                             method=c("cr","dsr"), ...){
+
+    startTime <- Sys.time();
+
+    cl <- match.call();
+    yInSample <- actuals(object);
+
+    method <- match.arg(method);
+
+    if(is.numeric(parallel)){
+        nCores <- parallel;
+        parallel <- TRUE;
+    }
+    else if(is.logical(parallel) && parallel){
+        nCores <- min(parallel::detectCores() - 1, nsim);
+    }
+
+    if(parallel){
+        if(!requireNamespace("foreach", quietly = TRUE)){
+            stop("In order to run the function in parallel, 'foreach' package must be installed.", call. = FALSE);
+        }
+        if(!requireNamespace("parallel", quietly = TRUE)){
+            stop("In order to run the function in parallel, 'parallel' package must be installed.", call. = FALSE);
+        }
+        if(Sys.info()['sysname']=="Windows"){
+            if(requireNamespace("doParallel", quietly = TRUE)){
+                cluster <- parallel::makeCluster(nCores);
+                doParallel::registerDoParallel(cluster);
+            }
+            else{
+                stop("Sorry, but in order to run the function in parallel, you need 'doParallel' package.",
+                     call. = FALSE);
+            }
+        }
+        else{
+            if(requireNamespace("doMC", quietly = TRUE)){
+                doMC::registerDoMC(nCores);
+                cluster <- NULL;
+            }
+            else if(requireNamespace("doParallel", quietly = TRUE)){
+                cluster <- parallel::makeCluster(nCores);
+                doParallel::registerDoParallel(cluster);
+            }
+            else{
+                stop("Sorry, but in order to run the function in parallel, you need either 'doMC' (prefered) or 'doParallel' packages.",
+                     call. = FALSE);
+            }
+        }
+    }
+
+    # Coefficients of the model
+    coefficientsOriginal <- coef(object);
+    nVariables <- length(coefficientsOriginal);
+    variablesNames <- names(coefficientsOriginal);
+    obsInsample <- nobs(object);
+
+    coefBootstrap <- matrix(0, nsim, nVariables, dimnames=list(NULL, variablesNames));
+    indices <- c(1:obsInsample);
+
+    # Form the call for om()
+    newCall <- object$call;
+    newCall$silent <- TRUE;
+    if(newCall[[1]]=="auto.om"){
+        newCall[[1]] <- as.symbol("om");
+    }
+    newCall$holdout <- FALSE;
+    newCall$model <- modelType(object);
+    newCall$occurrence <- object$occurrence;
+    if(!is.null(object$call$orders$select)){
+        newCall$orders <- orders(object);
+        newCall$orders$select <- FALSE;
+    }
+    newCall$constant <- !is.null(object$constant);
+    lags <- lags(object);
+    newCall$lags <- lags;
+    newCall$B <- object$B;
+    newCall$lb <- rep(-Inf, length(object$B));
+    newCall$ub <- rep(Inf, length(object$B));
+    newCall$data <- object$data;
+
+    regressionPure <- substr(object$model,1,10)=="Regression";
+
+    obsMinimum <- max(lags, nVariables) + 2;
+    if(obsMinimum>=obsInsample && method=="cr"){
+        warning("Not enough observations to do Case Resampling bootstrap. Changing method to 'dsr'.",
+                call.=FALSE, immediate.=TRUE);
+        method <- "dsr";
+    }
+
+    # If this is backcasting, do sampling with moving origin
+    changeOrigin <- any(object$initialType==c("backcasting","complete"));
+
+    sampler <- function(indices,size,replace,prob,regressionPure=FALSE,changeOrigin=FALSE){
+        if(regressionPure){
+            return(sample(indices,size=size,replace=replace,prob=prob));
+        }
+        else{
+            indices <- c(1:ceiling(runif(1,obsMinimum,obsInsample)));
+            startingIndex <- 0;
+            if(changeOrigin){
+                startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
+            }
+            return(startingIndex+indices);
+        }
+    }
+
+    #### Bootstrap the data
+    if(method=="dsr"){
+        #### Data Shape Replication bootstrap (on the 0/1 occurrence response)
+        type <- "additive";
+        if(all(yInSample>=0) && any(yInSample>1)){
+            type[] <- "multiplicative";
+        }
+        dataBoot <- dsrboot(yInSample, nsim=nsim, type=type, intermittent=FALSE);
+        if(!parallel){
+            for(i in 1:nsim){
+                newCall$data <- dataBoot$boot[,i];
+                testModel <- tryCatch(suppressWarnings(eval(newCall)), error=function(e) NULL);
+                if(!is.null(testModel)){
+                    coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+                }
+            }
+        }
+        else{
+            coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+                newCall$data <- dataBoot$boot[,i];
+                testModel <- tryCatch(eval(newCall), error=function(e) NULL);
+                if(is.null(testModel)){ return(NULL); }
+                return(coef(testModel));
+            })
+            for(i in 1:nsim){
+                if(!is.null(coefBootstrapParallel[[i]])){
+                    coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+                }
+            }
+        }
+    }
+    else{
+        #### Case Resampling bootstrap
+        # A subsample can be too short / too sparse (few non-zero occurrences)
+        # for the model to be re-estimated. Such draws are resampled (up to
+        # maxAttempts) so every replicate is a genuine re-estimation with the
+        # provided B as the starting point.
+        maxAttempts <- 100L;
+        refitOM <- function(){
+            testModel <- NULL; attempt <- 0L;
+            while(is.null(testModel) && attempt < maxAttempts){
+                attempt <- attempt + 1L;
+                subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+                newCall$data <- object$data[subsetValues];
+                testModel <- tryCatch(suppressWarnings(eval(newCall)), error=function(e) NULL);
+                if(!is.null(testModel) && length(coef(testModel))==0){ testModel <- NULL; }
+            }
+            return(testModel);
+        }
+        if(!parallel){
+            for(i in 1:nsim){
+                testModel <- refitOM();
+                if(!is.null(testModel)){
+                    coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+                }
+            }
+        }
+        else{
+            coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+                testModel <- refitOM();
+                if(is.null(testModel)){ return(NULL); }
+                return(coef(testModel));
+            })
+            for(i in 1:nsim){
+                if(!is.null(coefBootstrapParallel[[i]])){
+                    coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+                }
+            }
+        }
+    }
+
+    if(parallel && !is.null(cluster)){
+        parallel::stopCluster(cluster);
+    }
+
+    # Get rid of NAs. They mean "zero"
+    coefBootstrap[is.na(coefBootstrap)] <- 0;
+    colnames(coefBootstrap) <- names(coefficientsOriginal);
+
+    # Centre the coefficients for the calculation of the vcov
+    coefvcov <- coefBootstrap - matrix(coefficientsOriginal, nsim, nVariables, byrow=TRUE);
+
+    return(structure(list(vcov=(t(coefvcov) %*% coefvcov)/nsim,
+                          coefficients=coefBootstrap, method=method,
+                          nsim=nsim, size=NA, replace=NA, prob=NA,
+                          parallel=parallel, model=object$call[[1]], timeElapsed=Sys.time()-startTime),
+                     class="bootstrap"));
+}
+
+#' @export
+vcov.om <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
+    ellipsis <- list(...);
+
+    if(!is.null(heuristics) && is.numeric(heuristics)){
+        return(diag(abs(coef(object)) * heuristics));
+    }
+
+    if(bootstrap){
+        return(coefbootstrap(object, ...)$vcov);
+    }
+
+    h <- if(any(!is.na(object$forecast))) length(object$forecast) else 0;
+    stepSize <- if(is.null(ellipsis$stepSize)) {
+        .Machine$double.eps^(1/4);
+    } else {
+        ellipsis$stepSize;
+    };
+
+    modelReturn <- suppressWarnings(
+        om(object$data, h=h, model=object,
+           formula=formula(object), FI=TRUE, stepSize=stepSize));
+
+    if(is.null(modelReturn$FI)){
+        stop("Could not compute Fisher Information for this om model. ",
+             "Try a different stepSize.", call.=FALSE);
+    }
+
+    # Rows / cols that are all zero (or contain NaN) carry no information.
+    brokenVariables <- apply(modelReturn$FI==0, 1, all) |
+                       apply(is.nan(modelReturn$FI), 1, any);
+    if(any(brokenVariables)){
+        modelReturn <- suppressWarnings(
+            om(object$data, h=h, model=object,
+               formula=formula(object), FI=TRUE,
+               stepSize=.Machine$double.eps^(1/6)));
+        brokenVariables <- apply(modelReturn$FI==0, 1, all);
+    }
+    if(any(is.nan(modelReturn$FI))){
+        stop("Fisher Information contains NaN; try a different stepSize ",
+             "(e.g. stepSize=1e-6).", call.=FALSE);
+    }
+    if(any(eigen(modelReturn$FI, only.values=TRUE)$values < 0)){
+        warning("Observed Fisher Information is not positive semi-definite; ",
+                "covariance matrix may be unreliable.", call.=FALSE);
+    }
+
+    FIMatrix <- modelReturn$FI[!brokenVariables, !brokenVariables, drop=FALSE];
+    vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
+    if(inherits(vcovMatrix, "try-error")){
+        vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20),
+                          silent=TRUE);
+        if(inherits(vcovMatrix, "try-error")){
+            warning("Hessian is singular; cannot invert.", call.=FALSE);
+            vcovMatrix <- diag(1e+100, ncol(FIMatrix));
+        }
+    }
+    modelReturn$FI[!brokenVariables, !brokenVariables] <- vcovMatrix;
+    modelReturn$FI[brokenVariables, ] <- Inf;
+    modelReturn$FI[, brokenVariables] <- Inf;
+    diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
+    return(modelReturn$FI);
 }
 
 #' @rdname forecast.smooth
