@@ -977,9 +977,7 @@ om <- function(data,
             forecast = yForecast,
             states = matVt,
             profile = adamFitted$profile,
-            profileInitial = if(exists("profilesRecentInitial", inherits=FALSE)) {
-                profilesRecentInitial
-            } else NULL,
+            profileInitial = prof,
             persistence = persistenceVec,
             phi = if(nla$phiEstimate) res$B["phi"] else phi,
             transition = adamFilled$matF,
