@@ -84,8 +84,6 @@
 #' \item \code{B} - the vector of all the estimated parameters.
 #' }
 #' @seealso \code{\link[smooth]{es}, \link[smooth]{oes}}
-#' @keywords iss intermittent demand intermittent demand state space model
-#' exponential smoothing forecasting
 #' @examples
 #'
 #' y <- rpois(100,0.1)

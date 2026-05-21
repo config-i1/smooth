@@ -182,3 +182,128 @@ test_that("omg() with fixed persistenceA is respected in modelA", {
     expect_s3_class(m, "omg")
     expect_equal(as.numeric(m$modelA$persistence), 0.2)
 })
+
+# ---------------------------------------------------------------------
+# vcov.omg — phase 2 of vcov mechanism mirroring vcov.adam / vcov.om
+# ---------------------------------------------------------------------
+
+test_that("vcov.omg returns a finite joint covariance matrix", {
+    set.seed(12);
+    y <- rbinom(150, 1, 0.5);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    V <- suppressWarnings(vcov(m));
+    expect_true(is.matrix(V));
+    expect_equal(nrow(V), length(m$modelA$B) + length(m$modelB$B));
+    expect_equal(ncol(V), nrow(V));
+    expect_true(all(is.finite(V)));        # no Inf / NaN
+    expect_true(all(abs(V) < 1e+50));      # no 1e+100 singular fallback
+    expect_equal(V, t(V), tolerance=1e-3); # symmetric
+    expect_true(all(diag(V) >= 0));        # non-negative diagonal
+})
+
+test_that("vcov.omg dimension matches the joint B vector", {
+    set.seed(7);
+    y <- rbinom(150, 1, 0.5);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    V <- suppressWarnings(vcov(m));
+    nJoint <- length(m$modelA$B) + length(m$modelB$B);
+    expect_equal(dim(V), c(nJoint, nJoint));
+    expect_true(is.matrix(V));
+})
+
+test_that("vcov.omg respects the heuristics argument", {
+    set.seed(11);
+    y <- rbinom(60, 1, 0.4);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    V <- vcov(m, heuristics=0.1);
+    expect_true(is.matrix(V));
+    expect_equal(nrow(V), length(m$modelA$B) + length(m$modelB$B));
+})
+
+# ---------------------------------------------------------------------
+# confint.omg / summary.omg — joint CI table and per-model summary blocks
+# ---------------------------------------------------------------------
+
+test_that("confint.omg returns a finite joint CI table", {
+    set.seed(12);
+    y <- rbinom(150, 1, 0.5);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    ci <- suppressWarnings(confint(m));
+    expect_true(is.matrix(ci));
+    expect_equal(nrow(ci), length(m$modelA$B) + length(m$modelB$B));
+    expect_equal(ncol(ci), 3);                       # S.E., lower, upper
+    expect_true(all(is.finite(ci)));
+    expect_true(any(grepl("^A:", rownames(ci))));
+    expect_true(any(grepl("^B:", rownames(ci))));
+})
+
+test_that("summary.omg builds two coefficient sub-tables", {
+    set.seed(12);
+    y <- rbinom(150, 1, 0.5);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    s <- suppressWarnings(summary(m));
+    expect_s3_class(s, "summary.omg");
+    expect_true(is.matrix(s$coefficientsA));
+    expect_true(is.matrix(s$coefficientsB));
+    expect_equal(nrow(s$coefficientsA), length(m$modelA$B));
+    expect_equal(nrow(s$coefficientsB), length(m$modelB$B));
+    expect_equal(colnames(s$coefficientsA),
+                 c("Estimate","Std. Error","Lower 2.5%","Upper 97.5%"));
+    expect_true(all(is.finite(s$coefficientsA)));
+    expect_true(all(is.finite(s$coefficientsB)));
+})
+
+test_that("print.summary.omg prints per-model blocks", {
+    set.seed(12);
+    y <- rbinom(150, 1, 0.5);
+    m <- suppressWarnings(omg(y, modelA="ANN", modelB="ANN", silent=TRUE));
+    s <- suppressWarnings(summary(m));
+    expect_output(print(s), "Model A:");
+    expect_output(print(s), "Model B:");
+})
+
+# ---------------------------------------------------------------------
+# coefbootstrap.omg — joint bootstrap covariance over c(modelA$B, modelB$B)
+# ---------------------------------------------------------------------
+
+test_that("coefbootstrap.omg returns a joint bootstrap object", {
+    set.seed(41);
+    x <- sim.oes("MNN", 120, frequency=12, occurrence="general",
+                 persistence=0.01, initial=2, initialB=1);
+    x <- sim.es("MNN", 120, frequency=12, probability=x$probability, persistence=0.1);
+    m <- suppressWarnings(omg(x$data, modelA="ANN", modelB="ANN", silent=TRUE));
+    nJoint <- length(m$modelA$B) + length(m$modelB$B);
+    bs <- suppressWarnings(coefbootstrap(m, nsim=20));
+    expect_s3_class(bs, "bootstrap");
+    expect_equal(nrow(bs$coefficients), 20);
+    expect_equal(ncol(bs$coefficients), nJoint);
+    expect_equal(dim(bs$vcov), c(nJoint, nJoint));
+    expect_true(all(is.finite(bs$vcov)));
+})
+
+# ---------------------------------------------------------------------
+# vcov / confint / summary with bootstrap=TRUE for omg
+# ---------------------------------------------------------------------
+
+test_that("vcov/confint/summary accept bootstrap=TRUE for omg", {
+    set.seed(41);
+    x <- sim.oes("MNN", 120, frequency=12, occurrence="general",
+                 persistence=0.01, initial=2, initialB=1);
+    x <- sim.es("MNN", 120, frequency=12, probability=x$probability, persistence=0.1);
+    m <- suppressWarnings(omg(x$data, modelA="ANN", modelB="ANN", silent=TRUE));
+    nJoint <- length(m$modelA$B) + length(m$modelB$B);
+
+    set.seed(1); V <- suppressWarnings(vcov(m, bootstrap=TRUE, nsim=20));
+    expect_equal(dim(V), c(nJoint, nJoint));
+    expect_true(all(is.finite(V)));
+
+    set.seed(1); ci <- suppressWarnings(confint(m, bootstrap=TRUE, nsim=20));
+    expect_equal(nrow(ci), nJoint);
+    expect_equal(ncol(ci), 3);
+    expect_true(all(is.finite(ci)));
+
+    set.seed(1); s <- suppressWarnings(summary(m, bootstrap=TRUE, nsim=20));
+    expect_s3_class(s, "summary.omg");
+    expect_true(is.matrix(s$coefficientsA));
+    expect_true(is.matrix(s$coefficientsB));
+})
