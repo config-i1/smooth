@@ -1934,11 +1934,15 @@ coefbootstrap.om <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
 }
 
 #' @export
-vcov.om <- function(object, heuristics=NULL, ...){
+vcov.om <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
     ellipsis <- list(...);
 
     if(!is.null(heuristics) && is.numeric(heuristics)){
         return(diag(abs(coef(object)) * heuristics));
+    }
+
+    if(bootstrap){
+        return(coefbootstrap(object, ...)$vcov);
     }
 
     h <- if(any(!is.na(object$forecast))) length(object$forecast) else 0;

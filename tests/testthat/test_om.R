@@ -372,3 +372,26 @@ test_that("coefbootstrap.om returns a bootstrap object", {
     expect_equal(dim(bs$vcov), c(length(coef(m)), length(coef(m))));
     expect_true(all(is.finite(bs$vcov)));
 })
+
+# ---------------------------------------------------------------------
+# vcov / confint / summary with bootstrap=TRUE for om
+# ---------------------------------------------------------------------
+
+test_that("vcov/confint/summary accept bootstrap=TRUE for om", {
+    set.seed(41);
+    x <- sim.oes("MNN", 120, frequency=12, occurrence="general",
+                 persistence=0.01, initial=2, initialB=1);
+    x <- sim.es("MNN", 120, frequency=12, probability=x$probability, persistence=0.1);
+    m <- suppressWarnings(om(x$data, "MNN", occurrence="odds-ratio", silent=TRUE));
+
+    set.seed(1); V <- suppressWarnings(vcov(m, bootstrap=TRUE, nsim=20));
+    expect_equal(dim(V), c(length(coef(m)), length(coef(m))));
+    expect_true(all(is.finite(V)));
+
+    set.seed(1); ci <- suppressWarnings(confint(m, bootstrap=TRUE, nsim=20));
+    expect_equal(nrow(ci), length(coef(m)));
+    expect_true(all(is.finite(ci)));
+
+    set.seed(1); s <- suppressWarnings(summary(m, bootstrap=TRUE, nsim=20));
+    expect_s3_class(s, "summary.adam");
+})

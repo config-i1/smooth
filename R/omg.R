@@ -1584,31 +1584,41 @@ coefbootstrap.omg <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
 }
 
 #' @export
-confint.omg <- function(object, parm, level=0.95, ...){
+confint.omg <- function(object, parm, level=0.95, bootstrap=FALSE, ...){
     confintNames <- c(paste0((1-level)/2*100,"%"),
                       paste0((1+level)/2*100,"%"))
 
-    V  <- vcov(object, ...)               # JOINT covariance (vcov.omg)
-    SE <- sqrt(abs(diag(V)))
+    if(bootstrap){
+        # Empirical bootstrap quantiles, mirroring confint.adam.
+        coefValues <- coefbootstrap(object, ...)
+        out <- cbind(sqrt(diag(coefValues$vcov)),
+                     apply(coefValues$coefficients, 2, quantile, probs=(1-level)/2),
+                     apply(coefValues$coefficients, 2, quantile, probs=(1+level)/2))
+        colnames(out) <- c("S.E.", confintNames)
+    }
+    else{
+        V  <- vcov(object, ...)               # JOINT covariance (vcov.omg)
+        SE <- sqrt(abs(diag(V)))
 
-    coefJoint <- c(object$modelA$B, object$modelB$B)
-    nParamsA  <- length(object$modelA$B)
-    idxA <- seq_len(nParamsA)
-    idxB <- seq_len(length(coefJoint) - nParamsA) + nParamsA
+        coefJoint <- c(object$modelA$B, object$modelB$B)
+        nParamsA  <- length(object$modelA$B)
+        idxA <- seq_len(nParamsA)
+        idxB <- seq_len(length(coefJoint) - nParamsA) + nParamsA
 
-    # Base t-interval half-widths with the JOINT nobs / nparam, exactly like
-    # confint.adam (R/adam.R:4430-4431).
-    tLo <- qt((1-level)/2, df=nobs(object)-nparam(object))
-    tHi <- qt((1+level)/2, df=nobs(object)+nparam(object))
+        # Base t-interval half-widths with the JOINT nobs / nparam, exactly like
+        # confint.adam (R/adam.R:4430-4431).
+        tLo <- qt((1-level)/2, df=nobs(object)-nparam(object))
+        tHi <- qt((1+level)/2, df=nobs(object)+nparam(object))
 
-    sideA <- omgConfintSide(object$modelA, coefJoint[idxA], SE[idxA], tLo, tHi)
-    sideB <- omgConfintSide(object$modelB, coefJoint[idxB], SE[idxB], tLo, tHi)
+        sideA <- omgConfintSide(object$modelA, coefJoint[idxA], SE[idxA], tLo, tHi)
+        sideB <- omgConfintSide(object$modelB, coefJoint[idxB], SE[idxB], tLo, tHi)
 
-    out <- rbind(cbind(SE[idxA], sideA),
-                 cbind(SE[idxB], sideB))
-    colnames(out) <- c("S.E.", confintNames)
-    rownames(out) <- c(paste0("A:", names(object$modelA$B)),
-                       paste0("B:", names(object$modelB$B)))
+        out <- rbind(cbind(SE[idxA], sideA),
+                     cbind(SE[idxB], sideB))
+        colnames(out) <- c("S.E.", confintNames)
+        rownames(out) <- c(paste0("A:", names(object$modelA$B)),
+                           paste0("B:", names(object$modelB$B)))
+    }
 
     if(!missing(parm)){
         out <- out[parm, , drop=FALSE]
@@ -1617,12 +1627,16 @@ confint.omg <- function(object, parm, level=0.95, ...){
 }
 
 #' @export
-vcov.omg <- function(object, heuristics=NULL, ...){
+vcov.omg <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
     ellipsis <- list(...)
 
     if(!is.null(heuristics) && is.numeric(heuristics)){
         # Heuristic shortcut over the joint coef vector
         return(diag(abs(c(object$modelA$B, object$modelB$B)) * heuristics))
+    }
+
+    if(bootstrap){
+        return(coefbootstrap(object, ...)$vcov)
     }
 
     h <- if(any(!is.na(object$forecast))) length(object$forecast) else 0
@@ -1744,8 +1758,8 @@ print.omg <- function(x, digits=4, ...) {
 }
 
 #' @export
-summary.omg <- function(object, level=0.95, ...) {
-    ci <- confint(object, level=level, ...)   # joint table, A:/B: rows
+summary.omg <- function(object, level=0.95, bootstrap=FALSE, ...) {
+    ci <- confint(object, level=level, bootstrap=bootstrap, ...)   # joint table, A:/B: rows
 
     nParamsA <- length(object$modelA$B)
     idxA <- seq_len(nParamsA)
