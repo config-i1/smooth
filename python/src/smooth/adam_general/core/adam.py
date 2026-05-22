@@ -2754,8 +2754,9 @@ class ADAM:
                 fc_values = np.asarray(predictions.mean, dtype=float).ravel()
                 y_holdout_arr = np.asarray(y_holdout, dtype=float).ravel()
                 n = min(len(fc_values), len(y_holdout_arr))
+                # ``lags`` can be empty (e.g. non-seasonal SMA); fall back to 1
                 period = (
-                    max(self._lags_model.get("lags", [1])) if self._lags_model else 1
+                    max(self._lags_model.get("lags") or [1]) if self._lags_model else 1
                 )
                 self.accuracy = _compute_forecast_errors(
                     y_holdout_arr[:n],
@@ -3759,7 +3760,8 @@ class ADAM:
         fc_values = np.asarray(auto_fc.mean, dtype=float).ravel()
         y_holdout_arr = np.asarray(y_holdout, dtype=float).ravel()
         n = min(len(fc_values), len(y_holdout_arr))
-        period = max(self._lags_model.get("lags", [1])) if self._lags_model else 1
+        # ``lags`` can be an empty list (e.g. non-seasonal SMA), so fall back to 1
+        period = max(self._lags_model.get("lags") or [1]) if self._lags_model else 1
         self.accuracy = _compute_forecast_errors(
             y_holdout_arr[:n],
             fc_values[:n],

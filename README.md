@@ -20,6 +20,8 @@ The **smooth** package implements Single Source of Error (SSOE) state-space mode
 
 ![hex-sticker of the smooth package for R](https://github.com/config-i1/smooth/blob/master/man/figures/smooth-web.png?raw=true) ![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
 
+Both the R and Python versions of **smooth** depend on the [**greybox**](https://github.com/config-i1/greybox) package for distributions, information criteria, and supporting utilities (in Python this also provides the LOWESS smoother). It is installed automatically with **smooth**.
+
 
 ## Installation
 

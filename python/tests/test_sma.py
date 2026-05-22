@@ -118,3 +118,26 @@ class TestSMAPredict:
         m = SMA(order=3).fit(y60)
         fc = m.predict(h=5)
         assert np.all(np.isfinite(fc.mean.values))
+
+
+class TestSMAHoldout:
+    """Holdout path (regression guard for the empty-``lags`` fix)."""
+
+    def test_fit_with_holdout(self, y60):
+        m = SMA(order=4, h=12, holdout=True).fit(y60)
+        assert m.model == "SMA(4)"
+
+    def test_auto_with_holdout(self, y60):
+        m = SMA(h=12, holdout=True).fit(y60)
+        assert m.model.startswith("SMA(")
+
+    def test_predict_with_holdout(self, y60):
+        m = SMA(order=4, h=12, holdout=True).fit(y60)
+        fc = m.predict(h=12)
+        assert len(fc.mean) == 12
+        assert np.all(np.isfinite(fc.mean.values))
+
+    def test_prediction_interval_with_holdout(self, y60):
+        m = SMA(order=4, h=12, holdout=True).fit(y60)
+        fc = m.predict(h=12, interval="prediction")
+        assert len(fc.mean) == 12
