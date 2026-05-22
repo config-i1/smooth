@@ -53,10 +53,13 @@ OCCURRENCE_OPTIONS = Literal[
     "none", "auto", "fixed", "general", "odds-ratio", "inverse-odds-ratio", "direct"
 ]
 
+# ``str`` is included alongside the documented literals because wrapper classes
+# (ES, MSARIMA, AutoADAM, …) accept arbitrary user strings and the value is
+# validated at runtime by ``parameters_checker``.
 INITIAL_OPTIONS = Optional[
     Union[
         Dict[str, Any],
-        Literal["backcasting", "optimal", "complete", "two-stage", "provided"],
+        str,
         Tuple[str, ...],
     ]
 ]
@@ -348,7 +351,7 @@ class ADAM:
     def __init__(
         self,
         model: Union[str, List[str]] = "ZXZ",
-        lags: Optional[NDArray] = None,
+        lags: Optional[Union[List[int], NDArray]] = None,
         # ARIMA specific parameters
         ar_order: Union[int, List[int]] = 0,
         i_order: Union[int, List[int]] = 0,
@@ -356,9 +359,11 @@ class ADAM:
         orders: Optional[Dict[str, Any]] = None,
         arima_select: bool = False,
         # end of ARIMA specific parameters
-        constant: bool = False,
+        constant: Union[bool, float] = False,
         regressors: Literal["use", "select", "adapt"] = "use",
-        distribution: Optional[DISTRIBUTION_OPTIONS] = None,
+        # ``str`` accepted alongside DISTRIBUTION_OPTIONS for wrapper/selector
+        # call sites that hold runtime-validated strings.
+        distribution: Optional[Union[DISTRIBUTION_OPTIONS, str]] = None,
         loss: LOSS_OPTIONS = "likelihood",
         loss_horizon: Optional[int] = None,
         # outlier detection
@@ -367,10 +372,12 @@ class ADAM:
         # end of outlier detection
         ic: Literal["AIC", "AICc", "BIC", "BICc"] = "AICc",
         bounds: Literal["usual", "admissible", "none"] = "usual",
-        occurrence: OCCURRENCE_OPTIONS = "none",
+        # ``str`` (not just OCCURRENCE_OPTIONS) so OM/wrappers can forward
+        # runtime-validated strings and OM may override it as a property.
+        occurrence: Union[OCCURRENCE_OPTIONS, str] = "none",
         # ---- These are the estimated parameters that we can choose to fix ----
         # Dictionary of terms e.g. {"alpha": 0.5, "beta": 0.5}
-        persistence: Optional[Dict[str, float]] = None,
+        persistence: Optional[Union[Dict[str, float], float]] = None,
         phi: Optional[float] = None,
         initial: INITIAL_OPTIONS = "backcasting",
         # Number of iterations for backcasting (default 2 for backcasting, 1 otherwise)
@@ -916,10 +923,12 @@ class ADAM:
             _level = self.outliers_level
             od = self.outlierdummy(level=_level)
             if len(od.id) > 0:
+                dummies = od.outliers
+                assert dummies is not None  # non-empty od.id guarantees outliers
                 D = (
-                    self._expand_outlier_dummies(od.outliers)
+                    self._expand_outlier_dummies(dummies)
                     if _outliers == "select"
-                    else od.outliers
+                    else dummies
                 )
                 h_eff = len(y) - self.nobs
                 if h_eff > 0:
@@ -932,7 +941,7 @@ class ADAM:
                 return self  # _config already built by the recursive fit()
 
         # Consolidate init params into _config and remove individual attributes
-        self._config = {
+        self._config: Dict[str, Any] = {
             "lags": self.lags,
             "ar_order": self.ar_order,
             "i_order": self.i_order,
@@ -2504,7 +2513,7 @@ class ADAM:
         >>> name = model.model_name  # 'ETS(AAN)'
         """
         self._check_is_fitted()
-        return self.model
+        return self.model if isinstance(self.model, str) else str(self.model)
 
     @property
     def lags_used(self) -> List[int]:
@@ -2696,8 +2705,9 @@ class ADAM:
         # Pre-compute p_forecast so forecaster can use it for both point forecasts
         # and interval adjustment (R: forecast.adam lines 6134-6172, 6204-6210).
         p_forecast_arr = None
-        if getattr(self, "_om_model", None) is not None:
-            occ_fc = self._om_model.predict(h=h)
+        om_model = getattr(self, "_om_model", None)
+        if om_model is not None:
+            occ_fc = om_model.predict(h=h)
             p_forecast_arr = np.asarray(occ_fc.mean.values, dtype=float)
             # Store in occurrence_dict so _process_occurrence_forecast can use it
             self._occurrence["p_forecast"] = p_forecast_arr

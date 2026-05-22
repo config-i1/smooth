@@ -1,262 +1,14 @@
+from typing import Literal
+
 import numpy as np
 import pandas as pd
+from greybox import lowess as _greybox_lowess
 from scipy import stats
 from scipy.special import beta, digamma, gamma
 from statsmodels.tsa.stattools import acf, pacf
 
-# Import C++ lowess for performance (with Python fallback)
-try:
-    from smooth.adam_general import lowess_cpp as _lowess_cpp
-
-    _USE_CPP_LOWESS = True
-except ImportError:
-    _USE_CPP_LOWESS = False
-
-# Note: Custom lowess_r function is kept as reference/fallback implementation
-
 # Default smoother for ADAM/ES model initialisation (msdecompose keeps "lowess")
-SMOOTHER_DEFAULT = "global"
-
-
-def lowess_r(x, y, f=2 / 3, nsteps=3, delta=None):
-    """
-    Pure Python/NumPy implementation of Cleveland's LOWESS algorithm.
-
-    Performs locally weighted polynomial regression with a tricube weight
-    function and iterative reweighting for robustness to outliers.
-
-    Parameters
-    ----------
-    x : array-like
-        X values (will be converted to float)
-    y : array-like
-        Y values (will be converted to float)
-    f : float
-        Smoother span (fraction of points), default 2/3
-    nsteps : int
-        Number of robustifying iterations, default 3
-    delta : float or None
-        Distance threshold for interpolation. If None, uses 0.01 * range(x)
-
-    Returns
-    -------
-    ndarray
-        Smoothed y values
-
-    References
-    ----------
-    Cleveland, W.S. (1979) "Robust Locally Weighted Regression and
-    Smoothing Scatterplots". JASA 74(368): 829-836.
-    """
-    x = np.asarray(x, dtype=np.float64)
-    y = np.asarray(y, dtype=np.float64)
-    n = len(x)
-
-    if n < 2:
-        return y.copy()
-
-    if delta is None:
-        delta = 0.01 * (x.max() - x.min())
-
-    # Number of points in local window - at least 2, at most n
-    ns = max(2, min(n, int(f * n + 1e-7)))
-
-    # Sort by x if not already sorted
-    order = np.argsort(x)
-    x_sorted = x[order]
-    y_sorted = y[order]
-
-    ys = np.zeros(n)  # smoothed values
-    rw = np.ones(n)  # robustness weights
-    res = np.zeros(n)  # residuals
-
-    # Compute range for stability checks
-    x_range = x_sorted[n - 1] - x_sorted[0]
-
-    def lowest(xs, nleft, nright, rw_iter):
-        """
-        Compute weighted local regression at point xs using the tricube
-        weight function applied to the [nleft, nright] window.
-        """
-        # Compute bandwidth h
-        h = max(xs - x_sorted[nleft], x_sorted[nright] - xs)
-
-        # Thresholds for the tricube weight (h9 = upper, h1 = lower)
-        h9 = 0.999 * h
-        h1 = 0.001 * h
-
-        # Sum of weights
-        a = 0.0
-        # Store weights - allocate enough space for potential ties beyond nright
-        w = np.zeros(n)
-
-        # Loop through points - continue past nright to pick up ties
-        j = nleft
-        nrt = nright  # will track rightmost point with non-zero weight
-
-        while j < n:
-            # Compute absolute distance
-            r = abs(x_sorted[j] - xs)
-
-            # Check if within bandwidth (using h9 threshold)
-            if r <= h9:
-                if r <= h1:
-                    # Very close - weight = 1
-                    w[j] = 1.0
-                else:
-                    # Tricube weight: (1 - (r/h)^3)^3
-                    w[j] = (1.0 - (r / h) ** 3) ** 3
-
-                # Apply robustness weight from previous iteration
-                w[j] *= rw_iter[j]
-                a += w[j]
-                nrt = j
-            elif x_sorted[j] > xs:
-                # Past the point, no more ties possible
-                break
-
-            j += 1
-
-        # Check if we have any non-zero weights
-        if a <= 0.0:
-            return 0.0, False
-
-        # Normalize weights to sum to 1
-        for j in range(nleft, nrt + 1):
-            w[j] /= a
-
-        # Check if we can fit a line (h > 0)
-        if h > 0.0:
-            # Compute weighted center of x values
-            a = 0.0
-            for j in range(nleft, nrt + 1):
-                a += w[j] * x_sorted[j]
-
-            # Compute slope if points are spread out enough
-            b = xs - a
-            c = 0.0
-            for j in range(nleft, nrt + 1):
-                c += w[j] * (x_sorted[j] - a) ** 2
-
-            # Stability check - only use slope if points are spread out
-            # (R checks: sqrt(c) > 0.001 * range)
-            if np.sqrt(c) > 0.001 * x_range:
-                b /= c
-                # Adjust weights for linear fit
-                for j in range(nleft, nrt + 1):
-                    w[j] *= b * (x_sorted[j] - a) + 1.0
-
-        # Compute fitted value as weighted sum
-        ys_out = 0.0
-        for j in range(nleft, nrt + 1):
-            ys_out += w[j] * y_sorted[j]
-
-        return ys_out, True
-
-    # Main robustness iterations
-    iteration = 0
-    while iteration <= nsteps:
-        nleft = 0
-        nright = ns - 1
-        last = -1  # index of previous estimated point
-        i = 0  # index of current point
-
-        while True:
-            # Move window right if it decreases radius
-            if nright < n - 1:
-                d1 = x_sorted[i] - x_sorted[nleft]
-                d2 = x_sorted[nright + 1] - x_sorted[i]
-
-                if d1 > d2:
-                    # Radius decreases by moving right
-                    nleft += 1
-                    nright += 1
-                    continue
-
-            # Compute fitted value at x[i]
-            ys[i], ok = lowest(x_sorted[i], nleft, nright, rw)
-
-            if not ok:
-                # All weights zero - copy over value
-                ys[i] = y_sorted[i]
-
-            # Interpolate skipped points
-            if last < i - 1:
-                denom = x_sorted[i] - x_sorted[last]
-                # Should be non-zero by construction
-                if denom > 0:
-                    for j in range(last + 1, i):
-                        alpha = (x_sorted[j] - x_sorted[last]) / denom
-                        ys[j] = alpha * ys[i] + (1.0 - alpha) * ys[last]
-
-            # Update last estimated point
-            last = i
-
-            # Skip ahead using delta - find next point beyond delta
-            cut = x_sorted[last] + delta
-            i += 1
-            while i < n:
-                if x_sorted[i] > cut:
-                    break
-                # Special case: exact ties get same value
-                if x_sorted[i] == x_sorted[last]:
-                    ys[i] = ys[last]
-                    last = i
-                i += 1
-
-            # Adjust i (R's: i = max(last+1, i-1))
-            i = max(last + 1, i - 1)
-
-            if last >= n - 1:
-                break
-
-        # Compute residuals
-        for i in range(n):
-            res[i] = y_sorted[i] - ys[i]
-
-        # Overall scale estimate (mean absolute residual)
-        sc = np.sum(np.abs(res)) / n
-
-        # Compute robustness weights (except on last iteration)
-        if iteration >= nsteps:
-            break
-
-        # Compute median absolute deviation (cmad = 6 * median)
-        abs_res = np.abs(res)
-        m1 = n // 2
-
-        # Partial sort to find median
-        abs_res_sorted = np.partition(abs_res, m1)
-        if n % 2 == 0:
-            m2 = n - m1 - 1
-            abs_res_sorted = np.partition(abs_res_sorted, m2)
-            cmad = 3.0 * (abs_res_sorted[m1] + abs_res_sorted[m2])
-        else:
-            cmad = 6.0 * abs_res_sorted[m1]
-
-        # Check if effectively zero (R's threshold: 1e-7 * sc)
-        if cmad < 1e-7 * sc:
-            break
-
-        # Compute biweight robustness weights
-        c9 = 0.999 * cmad
-        c1 = 0.001 * cmad
-        for i in range(n):
-            r = abs(res[i])
-            if r <= c1:
-                rw[i] = 1.0
-            elif r <= c9:
-                rw[i] = (1.0 - (r / cmad) ** 2) ** 2
-            else:
-                rw[i] = 0.0
-
-        iteration += 1
-
-    # Restore original order
-    result = np.zeros(n)
-    result[order] = ys
-
-    return result
+SMOOTHER_DEFAULT: Literal["lowess", "ma", "global"] = "global"
 
 
 def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
@@ -456,8 +208,7 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
     if smoother not in ["ma", "lowess", "supsmu", "global"]:
         raise ValueError("smoother must be 'ma', 'lowess', 'supsmu', or 'global'")
 
-    # Note: lowess/supsmu use the bundled lowess_r implementation, so no
-    # external smoothing dependencies are required.
+    # Note: lowess/supsmu use greybox's lowess implementation.
 
     # Variable name handling
     y_name = "y"
@@ -518,11 +269,10 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         x_range = x_valid.max() - x_valid.min()
         delta = 0.01 * x_range if x_range > 0 else 0.0
 
-        # Use C++ lowess for performance, fall back to Python if unavailable
-        if _USE_CPP_LOWESS:
-            smoothed_y = _lowess_cpp(x_valid, y_valid, f=span, nsteps=3, delta=delta)
-        else:
-            smoothed_y = lowess_r(x_valid, y_valid, f=span, nsteps=3, delta=delta)
+        # greybox's lowess (x_valid is ascending, so its internal sort is a no-op)
+        smoothed_y = np.asarray(
+            _greybox_lowess(x_valid, y_valid, f=span, iter=3, delta=delta)["y"]
+        )
 
         # Map back to original indices
         result = np.full_like(y, np.nan)

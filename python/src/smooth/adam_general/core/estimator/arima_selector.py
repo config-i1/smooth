@@ -556,6 +556,8 @@ def arima_selector(
         **adam_kwargs,
     )
     if ima_model is not None:
+        # ima_i / ima_ma are produced together with ima_model
+        assert ima_i is not None and ima_ma is not None
         best_i, best_ma, best_model, best_ic = ima_i, ima_ma, ima_model, ima_ic
 
     # Final check: if ETS baseline is better or equal, return it

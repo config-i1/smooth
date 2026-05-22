@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import time
 import warnings
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import nlopt
 import numpy as np
@@ -403,7 +403,7 @@ class OM(ADAM):
     def __init__(
         self,
         model: Union[str, List[str]] = "ZXZ",
-        lags: Optional[NDArray] = None,
+        lags: Optional[Union[List[int], NDArray]] = None,
         ar_order: Union[int, List[int]] = 0,
         i_order: Union[int, List[int]] = 0,
         ma_order: Union[int, List[int]] = 0,
@@ -411,15 +411,16 @@ class OM(ADAM):
         constant: bool = False,
         formula: Optional[str] = None,
         regressors: Literal["use", "select", "adapt"] = "use",
-        occurrence: OM_OCCURRENCE_OPTIONS = "odds-ratio",
+        # ``str`` (not just the OM_OCCURRENCE_OPTIONS literals) because ``__new__``
+        # also routes "general"/"auto", and wrappers pass runtime-validated strings.
+        occurrence: str = "odds-ratio",
         loss: Literal["likelihood", "MSE"] = "likelihood",
         h: int = 0,
         holdout: bool = False,
-        persistence: Optional[Dict[str, float]] = None,
+        # ``float`` permitted so the "fixed" occurrence path can set persistence=0.
+        persistence: Optional[Union[Dict[str, float], float]] = None,
         phi: Optional[float] = None,
-        initial: Union[
-            Dict[str, Any], Literal["backcasting", "optimal", "two-stage", "complete"]
-        ] = "backcasting",
+        initial: Union[Dict[str, Any], str] = "backcasting",
         n_iterations: Optional[int] = None,
         arma: Optional[Dict[str, Any]] = None,
         ic: Literal["AIC", "AICc", "BIC", "BICc"] = "AICc",
@@ -565,7 +566,7 @@ class OM(ADAM):
             i_ = getattr(self, "i_order", 0) or 2
             ma = getattr(self, "ma_order", 0) or 3
             return AutoOM(
-                model=self.model,
+                model=cast(str, self.model),  # OM always carries a string spec
                 lags=getattr(self, "lags", None),
                 occurrence=[self._om_occurrence],
                 arima_select=True,
@@ -1270,7 +1271,9 @@ class OM(ADAM):
         self,
         h: int,
         X: Optional[NDArray] = None,
-        interval: Literal["none"] = "none",
+        # Wider than ADAM's interval literals (LSP-safe); only "none" is supported
+        # and other values warn and fall back to point forecasts.
+        interval: str = "none",
         level: Optional[Union[float, List[float]]] = 0.95,
         side: Literal["both", "upper", "lower"] = "both",
         cumulative: bool = False,
@@ -1334,7 +1337,7 @@ class OM(ADAM):
     def model_name(self) -> str:
         """Model name in ``oETS(...)[X]`` form (uppercase X = F/O/I/D)."""
         self._check_is_fitted()
-        return self.model
+        return self.model if isinstance(self.model, str) else str(self.model)
 
     @property
     def actuals(self) -> NDArray:

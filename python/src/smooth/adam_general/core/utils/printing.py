@@ -5,7 +5,7 @@ This module provides functions to generate formatted summaries of fitted ADAM mo
 similar to R's print.adam() method.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -88,7 +88,7 @@ def _get_persistence_from_model(model: Any) -> Dict[str, Any]:
     Dict[str, Any]
         Dictionary with persistence values: alpha, beta, gamma (list), xreg
     """
-    result = {"alpha": None, "beta": None, "gamma": [], "xreg": None}
+    result: Dict[str, Any] = {"alpha": None, "beta": None, "gamma": [], "xreg": None}
 
     # Try to get from _prepared first (if predict was called)
     if hasattr(model, "_prepared") and model._prepared:
@@ -155,7 +155,7 @@ def _extract_persistence_from_vec_g(model: Any, vec_g: np.ndarray) -> Dict[str, 
     Dict[str, Any]
         Dictionary with persistence values
     """
-    result = {"alpha": None, "beta": None, "gamma": [], "xreg": None}
+    result: Dict[str, Any] = {"alpha": None, "beta": None, "gamma": [], "xreg": None}
 
     if vec_g is None or len(vec_g) == 0:
         return result
@@ -274,7 +274,7 @@ def _format_arma_parameters(model: Any, digits: int = 4) -> str:
     ma_orders = arima.get("ma_orders") or []
 
     # Get lags from lags_original (the input lags, aligned with ar/ma orders)
-    lags = []
+    lags: List[Any] = []
     if hasattr(model, "_lags_model") and model._lags_model:
         lags = (
             model._lags_model.get("lags_original")
@@ -645,7 +645,9 @@ def _build_model_name(model: Any) -> str:
     model_str = getattr(model, "model", "") or ""
     ets_model = False
     arima_model = False
-    ar_orders = i_orders = ma_orders = []
+    ar_orders: List[Any] = []
+    i_orders: List[Any] = []
+    ma_orders: List[Any] = []
     lags = [1]
     xreg_model = False
     n_ets_seasonal = 0
@@ -963,8 +965,11 @@ def _format_holdout_errors(model: Any, digits: int) -> str:
 
 def _occurrence_label(model: Any) -> Optional[str]:
     """Human-readable occurrence type, mirroring R's summary.adam."""
-    occ = getattr(model, "_occurrence", None) or {}
+    occ: Dict[str, Any] = getattr(model, "_occurrence", None) or {}
     if not occ.get("occurrence_model"):
+        return None
+    occ_type = occ.get("occurrence")
+    if occ_type is None:
         return None
     return {
         "fixed": "Fixed probability",
@@ -972,7 +977,7 @@ def _occurrence_label(model: Any) -> Optional[str]:
         "inverse-odds-ratio": "Inverse odds ratio",
         "direct": "Direct",
         "general": "General",
-    }.get(occ.get("occurrence"), occ.get("occurrence"))
+    }.get(occ_type, occ_type)
 
 
 class ADAMSummary:
