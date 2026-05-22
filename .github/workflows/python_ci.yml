@@ -19,14 +19,18 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install ruff
-        run: pip install ruff
+      - name: Install ruff and mypy
+        run: pip install ruff mypy
 
       - name: Run ruff linter
         run: ruff check python/src/smooth/
 
       - name: Run ruff formatter check
         run: ruff format --check python/src/smooth/
+
+      - name: Run mypy
+        working-directory: python
+        run: mypy src/smooth
 
   build-and-test:
     name: Build & Test (${{ matrix.os }}, Python ${{ matrix.python-version }})

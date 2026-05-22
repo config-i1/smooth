@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "smooth"
-version = "1.0.3"
+version = "1.0.4"
 description = "Python version of the smooth forecasting library"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,7 +15,7 @@ dependencies = [
     "nlopt",
     "scipy>=1.11.0,<1.16.0",
     "statsmodels",
-    "greybox",
+    "greybox>=1.0.2",
     "matplotlib",
 ]
 
@@ -28,6 +28,7 @@ exclude = ["tests*", "tests.*", "*.tests", "*.tests.*"]
 dev = [
     "pytest",
     "ruff",
+    "mypy",
     "pre-commit",
     "ipykernel",
     "tqdm",
@@ -159,3 +160,9 @@ line-ending = "auto"
 dev = [
     "pytest-cov>=7.0.0",
 ]
+
+[tool.mypy]
+# Type-check the package source. Third-party deps (nlopt, greybox, statsmodels,
+# scipy, …) ship without stubs, so missing imports are ignored.
+files = ["src/smooth"]
+ignore_missing_imports = true

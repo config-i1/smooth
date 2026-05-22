@@ -147,6 +147,7 @@ class SMA(ADAM):
 
         self._sma_order = order
         self._sma_fast = fast
+        self._ICs_array: Optional[NDArray] = None
 
         super().__init__(
             model="NNN",
@@ -170,7 +171,7 @@ class SMA(ADAM):
         """Fit the SMA model to time series data."""
         # Determine order and obs_in_sample before calling super().fit()
         n = len(y)
-        h_eff = self.h if self.holdout else 0
+        h_eff = (self.h or 0) if self.holdout else 0
         obs_in_sample = n - h_eff
         y_is = np.asarray(y[:obs_in_sample], dtype=float)
         ic = self.ic

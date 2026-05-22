@@ -91,7 +91,7 @@ def _log_transform(y, dist):
 
 def _lowess_line(ax, x, y):
     """Draw a red LOWESS smoothing line on ax."""
-    from smooth.lowess import lowess
+    from greybox import lowess
 
     mask = ~(np.isnan(x) | np.isnan(y))
     if mask.sum() < 4:  # noqa: PLR2004
@@ -603,7 +603,7 @@ def _plot9(model, ax, type_, lowess, **kw):
 # Dispatch table and main entry point
 # ---------------------------------------------------------------------------
 
-_WHICH_MAP = {
+_WHICH_MAP: dict = {
     1: (_plot1, {}),
     2: (_plot2, {"resid_type": "rstandard"}),
     3: (_plot2, {"resid_type": "rstudent"}),
