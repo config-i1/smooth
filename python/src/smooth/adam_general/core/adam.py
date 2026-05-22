@@ -387,8 +387,11 @@ class ADAM:
         # Profile parameters
         profiles_recent_provided: bool = False,
         profiles_recent_table: Optional[Any] = None,
-        # Fisher information matrix: We're skipping for now and we'll use composition
-        # for it like Grid Search in scikit-learn.
+        # Fisher information matrix: when True, the observed FI is computed at the
+        # estimated parameters (mirrors R's adam(..., FI=TRUE)). step_size is the
+        # absolute finite-difference step (default .Machine$double.eps^(1/4)).
+        fi: bool = False,
+        step_size: Optional[float] = None,
         # initial values for optimization parameters:
         nlopt_initial: Optional[Dict[str, Any]] = None,
         nlopt_upper: Optional[Dict[str, Any]] = None,
@@ -603,6 +606,10 @@ class ADAM:
         # Store profile parameters
         self.profiles_recent_provided = profiles_recent_provided
         self.profiles_recent_table = profiles_recent_table
+
+        # Fisher Information settings
+        self.fi = fi
+        self.step_size = step_size
 
     def fit(
         self,
@@ -1799,6 +1806,39 @@ class ADAM:
         """
         self._check_is_fitted()
         return self._adam_estimated["B"]
+
+    @property
+    def coef_names(self) -> list:
+        """Parameter names aligned with :attr:`coef` (the B vector).
+
+        Mirrors ``names(coef(object))`` in R — e.g. ``alpha``, ``beta``,
+        ``gamma``/``gamma1``, ``phi``, ``level``, ``trend``, ``seasonal_2`` …,
+        ARIMA ``phi1``/``theta1``, regressor names, ``constant``. Falls back to
+        ``b1, b2, …`` if names are unavailable.
+        """
+        self._check_is_fitted()
+        names = self._adam_estimated.get("B_names")
+        if names is None or len(names) != len(self.coef):
+            return [f"b{i + 1}" for i in range(len(self.coef))]
+        return list(names)
+
+    @property
+    def fisher_information_(self) -> Optional[NDArray]:
+        """Observed Fisher Information matrix at the estimated parameters.
+
+        Computed only when the model was constructed with ``fi=True`` (mirrors
+        R's ``adam(..., FI=TRUE)$FI``); otherwise ``None``. The matrix is the
+        negative Hessian of the log-likelihood evaluated at the estimated
+        coefficient vector :attr:`coef`, with rows/columns in the same order.
+
+        Returns
+        -------
+        NDArray or None
+            ``len(coef) × len(coef)`` symmetric matrix, or ``None`` if
+            ``fi=False``.
+        """
+        self._check_is_fitted()
+        return self._adam_estimated.get("FI")
 
     @property
     def residuals(self) -> NDArray:
@@ -3000,6 +3040,8 @@ class ADAM:
                 adam_ets=(self.ets == "adam"),
                 other=other_value,
                 other_parameter_estimate=other_parameter_estimate,
+                fi=self.fi,
+                step_size=self.step_size,
                 **nlopt_params,
             )
             # Extract adam_cpp from estimation results
@@ -3908,19 +3950,297 @@ class ADAM:
             return f"ADAM({model_str}, fitted=True)"
         return f"ADAM(model={self.model}, fitted=False)"
 
-    def summary(self, digits: int = 4) -> str:
-        """
-        Generate a formatted summary of the fitted model.
+    def _fisher_information_matrix(self, step_size=None):
+        """Observed FI at the estimated coefficients (computed if not cached)."""
+        from smooth.adam_general.core.utils.var_covar import fisher_information
+
+        if step_size is None and self.fisher_information_ is not None:
+            return self.fisher_information_
+        return fisher_information(
+            self.coef,
+            self._model_type,
+            self._components,
+            self._lags_model,
+            self._adam_created,
+            self._persistence,
+            self._initials,
+            self._arima,
+            self._explanatory,
+            self._phi_internal,
+            self._constant,
+            self._observations,
+            self._occurrence,
+            self._general,
+            self._profile,
+            self._adam_cpp,
+            step_size=step_size,
+            other_parameter_estimate=self._adam_estimated.get(
+                "other_parameter_estimate", False
+            ),
+        )
+
+    def vcov(self, bootstrap=False, heuristics=None, step_size=None):
+        """Variance-covariance matrix of the estimated parameters.
+
+        Mirrors R's ``vcov.adam``: inverts the observed Fisher Information,
+        excluding non-informative ("broken") parameters and retrying with a
+        larger finite-difference step if any are detected.
 
         Parameters
         ----------
-        digits : int, default=4
-            Number of decimal places for numeric output
+        bootstrap : bool, default=False
+            Not yet supported in Python (no ``coefbootstrap`` for ADAM).
+        heuristics : float, optional
+            If given, returns ``diag(abs(coef) * heuristics)``.
+        step_size : float, optional
+            Finite-difference step for the Fisher Information.
 
         Returns
         -------
-        str
-            Formatted model summary
+        pandas.DataFrame
+            Covariance matrix indexed/columned by :attr:`coef_names`.
+        """
+        import pandas as pd
+
+        from smooth.adam_general.core.utils.var_covar import invert_fisher_information
+
+        self._check_is_fitted()
+        names = self.coef_names
+
+        if bootstrap:
+            raise NotImplementedError(
+                "bootstrap covariance is not yet implemented for ADAM in Python."
+            )
+
+        if heuristics is not None:
+            cov = np.diag(np.abs(np.asarray(self.coef, dtype=float)) * heuristics)
+            return pd.DataFrame(cov, index=names, columns=names)
+
+        FI = np.asarray(self._fisher_information_matrix(step_size=step_size))
+        # R retries with a coarser step when variables look "broken".
+        broken = np.all(FI == 0, axis=1) | np.any(np.isnan(FI), axis=1)
+        if np.any(broken) and step_size is None:
+            FI = np.asarray(
+                self._fisher_information_matrix(
+                    step_size=float(np.finfo(float).eps ** (1 / 6))
+                )
+            )
+
+        cov = invert_fisher_information(FI)
+        return pd.DataFrame(cov, index=names, columns=names)
+
+    def _persistence_index(self, name):
+        """vec_g row for a named persistence parameter (alpha/beta/gamma*/delta*)."""
+        n_ets = self._components["components_number_ets"]
+        n_nonseas = self._components["components_number_ets_non_seasonal"]
+        n_arima = self._components.get("components_number_arima", 0)
+        if name == "alpha":
+            return 0
+        if name == "beta":
+            return 1
+        if name.startswith("gamma"):
+            digits = "".join(ch for ch in name if ch.isdigit())
+            i = int(digits) - 1 if digits else 0
+            return n_nonseas + i
+        if name.startswith("delta"):
+            digits = "".join(ch for ch in name if ch.isdigit())
+            i = int(digits) - 1 if digits else 0
+            return n_ets + n_arima + i
+        raise ValueError(f"Unknown persistence parameter: {name}")
+
+    def confint(self, parm=None, level=0.95, step_size=None):
+        """Confidence intervals for the estimated parameters.
+
+        Mirrors R's ``confint.adam``: standard errors from :meth:`vcov`,
+        t-interval half-widths (with R's asymmetric degrees of freedom), then
+        clamping to the admissible region for ETS smoothing parameters
+        (``bounds="usual"`` or ``"admissible"``), multiplicative initial states,
+        and ARIMA AR/MA parameters.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Columns ``["S.E.", "<lo>%", "<hi>%"]`` indexed by :attr:`coef_names`.
+        """
+        import pandas as pd
+
+        from smooth.adam_general.core.utils.bounds import (
+            ar_polynomial_bounds,
+            eigen_bounds,
+        )
+
+        self._check_is_fitted()
+        names = self.coef_names
+        params = np.asarray(self.coef, dtype=float)
+
+        V = self.vcov(step_size=step_size).to_numpy()
+        se = np.sqrt(np.abs(np.diag(V)))
+
+        nobs = self.nobs
+        nparam = self.nparam
+        # R uses asymmetric degrees of freedom for the two tails.
+        lo = scipy_stats.t.ppf((1 - level) / 2, df=nobs - nparam) * se
+        hi = scipy_stats.t.ppf((1 + level) / 2, df=nobs + nparam) * se
+
+        idx = {name: i for i, name in enumerate(names)}
+        bounds_type = self._general.get("bounds", "usual")
+        ets_model = self._model_type.get("ets_model", False)
+        arima_model = self._arima.get("arima_model", False)
+        model_code = self.model_type
+
+        if ets_model:
+            vec_g = np.asarray(self._adam_created["vec_g"], dtype=float).ravel()
+            static_args = self._eigen_static_args()
+
+            def _eig(name):
+                return eigen_bounds(vec_g, self._persistence_index(name), **static_args)
+
+            if bounds_type == "usual":
+                if "alpha" in idx:
+                    a = idx["alpha"]
+                    lo[a] = max(-params[a], lo[a])
+                    hi[a] = min(1 - params[a], hi[a])
+                if "beta" in idx:
+                    b = idx["beta"]
+                    lo[b] = max(-params[b], lo[b])
+                    alpha_val = params[idx["alpha"]] if "alpha" in idx else vec_g[0]
+                    hi[b] = min(alpha_val - params[b], hi[b])
+                for name in [g for g in names if g.startswith("gamma")]:
+                    gi = idx[name]
+                    lo[gi] = max(-params[gi], lo[gi])
+                    alpha_val = params[idx["alpha"]] if "alpha" in idx else vec_g[0]
+                    hi[gi] = min((1 - alpha_val) - params[gi], hi[gi])
+                for name in [d for d in names if d.startswith("delta")]:
+                    di = idx[name]
+                    lo[di] = max(-params[di], lo[di])
+                    hi[di] = min(1 - params[di], hi[di])
+                if "phi" in idx:
+                    p = idx["phi"]
+                    lo[p] = max(-params[p], lo[p])
+                    hi[p] = min(1 - params[p], hi[p])
+            elif bounds_type == "admissible":
+                for name in names:
+                    if (
+                        name == "alpha"
+                        or name == "beta"
+                        or name.startswith(("gamma", "delta"))
+                    ):
+                        b1, b2 = _eig(name)
+                        k = idx[name]
+                        lo[k] = max(b1 - params[k], lo[k])
+                        hi[k] = min(b2 - params[k], hi[k])
+
+            # Multiplicative initial-state restrictions (both bounds >= -param).
+            trend_mult = len(model_code) >= 2 and model_code[1] == "M"
+            season_mult = len(model_code) >= 1 and model_code[-1] == "M"
+            if trend_mult and "trend" in idx:
+                t = idx["trend"]
+                lo[t] = max(-params[t], lo[t])
+                hi[t] = max(-params[t], hi[t])
+            if season_mult:
+                for name in [s for s in names if s.startswith("seasonal")]:
+                    s = idx[name]
+                    lo[s] = max(-params[s], lo[s])
+                    hi[s] = max(-params[s], hi[s])
+
+        if arima_model:
+            self._clamp_arima_bounds(
+                names, params, lo, hi, idx, eigen_bounds, ar_polynomial_bounds
+            )
+
+        lo = lo + params
+        hi = hi + params
+
+        lo_name = f"{(1 - level) / 2 * 100:g}%"
+        hi_name = f"{(1 + level) / 2 * 100:g}%"
+        out = pd.DataFrame(
+            np.column_stack([se, lo, hi]),
+            index=names,
+            columns=["S.E.", lo_name, hi_name],
+        )
+        if parm is not None:
+            out = out.loc[parm if isinstance(parm, (list, tuple)) else [parm]]
+        return out
+
+    def _eigen_static_args(self):
+        """Static arguments forwarded to ``eigen_bounds``/``eigen_values``."""
+        regressors = self._explanatory.get("regressors") or self._general.get(
+            "regressors", "use"
+        )
+        xreg_model = self._explanatory.get("xreg_model", False)
+        transition = self._prepared.get("transition", self._adam_created["mat_f"])
+        measurement = self._prepared.get("measurement", self._adam_created["mat_wt"])
+        return dict(
+            transition=np.asarray(transition, dtype=float),
+            measurement=np.asarray(measurement, dtype=float),
+            lags_model_all=self._lags_model["lags_model_all"],
+            xreg_model=xreg_model,
+            obs_in_sample=self._observations["obs_in_sample"],
+            has_delta=bool(xreg_model and regressors == "adapt"),
+            xreg_number=self._explanatory.get("xreg_number", 0),
+            constant_required=self._constant.get("constant_required", False),
+        )
+
+    def _clamp_arima_bounds(
+        self, names, params, lo, hi, idx, eigen_bounds, ar_polynomial_bounds
+    ):
+        """Clamp ARIMA AR (phi*) and MA (theta*) CIs (R confint.adam:4544-4590)."""
+        other = self._prepared.get("other", {})
+        poly = other.get("polynomial", {})
+        ari_polynomial = np.asarray(poly.get("ariPolynomial", []), dtype=float).ravel()
+        ar_polynomial = np.asarray(poly.get("arPolynomial", []), dtype=float).ravel()
+        non_zero_ari = np.atleast_2d(np.asarray(self._arima.get("non_zero_ari", [])))
+        non_zero_ma = np.atleast_2d(np.asarray(self._arima.get("non_zero_ma", [])))
+        ar_poly_matrix = other.get("ar_polynomial_matrix")
+        n_ets = self._components["components_number_ets"]
+
+        vec_g = np.asarray(self._adam_created["vec_g"], dtype=float).ravel()
+        static_args = self._eigen_static_args()
+
+        thetas = [nm for nm in names if nm.startswith("theta")]
+        for i, nm in enumerate(thetas):
+            k = idx[nm]
+            psi_row = n_ets + int(non_zero_ma[i, 1])
+            b1, b2 = eigen_bounds(vec_g, psi_row, **static_args)
+            adj = 0.0
+            if non_zero_ari.size and np.any(non_zero_ari[:, 1] == i):
+                ari_index = np.where(non_zero_ari[:, 1] == i)[0][0]
+                adj = ari_polynomial[int(non_zero_ari[ari_index, 0])]
+            lo[k] = max(b1 - params[k] + adj, lo[k])
+            hi[k] = min(b2 - params[k] + adj, hi[k])
+
+        if ar_poly_matrix is not None and len(ar_polynomial) > 0:
+            ar_mat = np.asarray(ar_poly_matrix, dtype=float)
+            nonzero_pos = [j for j in range(len(ar_polynomial)) if ar_polynomial[j]]
+            ar_positions = nonzero_pos[1:]  # drop the leading 1
+            phis = [nm for nm in names if nm.startswith("phi") and len(nm) > 3]
+            for i, nm in enumerate(phis):
+                k = idx[nm]
+                b1, b2 = ar_polynomial_bounds(ar_mat, ar_polynomial, ar_positions[i])
+                lo[k] = max(b1 - params[k], lo[k])
+                hi[k] = min(b2 - params[k], hi[k])
+
+    def summary(self, level: float = 0.95, digits: int = 4):
+        """
+        Generate a coefficient-table summary of the fitted model.
+
+        Mirrors R's ``summary.adam``: returns an object whose printed form is a
+        table of estimates with standard errors, confidence intervals and
+        significance marks, plus the error scale, sample size, parameter counts
+        and information criteria. This is distinct from ``print(model)`` /
+        ``str(model)``, which give the concise ``print.adam``-style report.
+
+        Parameters
+        ----------
+        level : float, default=0.95
+            Confidence level for the coefficient intervals.
+        digits : int, default=4
+            Number of decimal places for numeric output.
+
+        Returns
+        -------
+        ADAMSummary
+            Printable summary object (``print(model.summary())``).
 
         Examples
         --------
@@ -3928,12 +4248,10 @@ class ADAM:
         >>> model.fit(y)
         >>> print(model.summary())
         """
-        from smooth.adam_general.core.utils.printing import model_summary
+        from smooth.adam_general.core.utils.printing import ADAMSummary
 
-        if not hasattr(self, "_model_type"):
-            return "Model has not been fitted yet. Call fit() first."
-
-        return model_summary(self, digits=digits)
+        self._check_is_fitted()
+        return ADAMSummary(self, level=level, digits=digits)
 
     def plot(  # noqa: B006
         self,

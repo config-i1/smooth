@@ -698,7 +698,7 @@ def initialiser(
                         else:
                             Bl[j : j + lag - 1] = 0
                             Bu[j : j + lag - 1] = np.inf
-                        names.extend([f"seasonal_{m}" for m in range(2, lag)])
+                        names.extend([f"seasonal{k + 1}_{m}" for m in range(1, lag)])
                         j += lag - 1
             else:
                 # Get the correct seasonal component index and lag
@@ -713,7 +713,7 @@ def initialiser(
                 else:
                     Bl[j : j + temp_lag - 1] = 0
                     Bu[j : j + temp_lag - 1] = np.inf
-                # names.extend([f"seasonal_{m}" for m in range(2, temp_lag)])
+                names.extend([f"seasonal_{m}" for m in range(1, temp_lag)])
                 j += temp_lag - 1
     if (
         initials_checked["initial_type"] not in ["backcasting", "complete"]

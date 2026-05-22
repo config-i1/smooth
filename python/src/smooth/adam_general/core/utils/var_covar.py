@@ -664,3 +664,123 @@ def matrix_power_wrap(matrix, power):
             raise ValueError(
                 f"Error during numpy matrix_power for power {power}: {e}"
             ) from e
+
+
+def fisher_information(
+    B,
+    model_type_dict,
+    components_dict,
+    lags_dict,
+    adam_created,
+    persistence_dict,
+    initials_dict,
+    arima_dict,
+    explanatory_dict,
+    phi_dict,
+    constant_dict,
+    observations_dict,
+    occurrence_dict,
+    general_dict,
+    profile_dict,
+    adam_cpp,
+    step_size=None,
+    other=None,
+    other_parameter_estimate=False,
+):
+    """Observed Fisher Information matrix at the parameter vector ``B``.
+
+    Direct translation of R's ``FI <- -hessian(logLikADAM, B, h=stepSize)``
+    (``R/adam.R:2799``). The Hessian uses the pracma-exact finite-difference
+    scheme implemented in the C++ ``_numDeriv.hessian`` and is taken of the
+    log-likelihood (``log_Lik_ADAM`` ≡ R's ``logLikADAM``); the observed
+    information is its negative.
+
+    Parameters
+    ----------
+    B : array-like
+        Parameter vector at which to evaluate the information matrix
+        (typically the estimated optimum).
+    step_size : float, optional
+        Absolute finite-difference step ``h``. Defaults to
+        ``np.finfo(float).eps ** 0.25`` (``≈ 1.22e-4``), matching R's
+        ``.Machine$double.eps^(1/4)``.
+
+    Returns
+    -------
+    numpy.ndarray
+        Symmetric ``len(B) × len(B)`` observed Fisher Information matrix.
+    """
+    from smooth.adam_general._numDeriv import hessian as _hessian_cpp
+    from smooth.adam_general.core.utils.cost_functions import log_Lik_ADAM
+
+    B = np.asarray(B, dtype=float)
+    h = step_size if step_size else float(np.finfo(float).eps ** 0.25)
+
+    def loglik(b):
+        return float(
+            log_Lik_ADAM(
+                np.asarray(b, dtype=float),
+                model_type_dict,
+                components_dict,
+                lags_dict,
+                adam_created,
+                persistence_dict,
+                initials_dict,
+                arima_dict,
+                explanatory_dict,
+                phi_dict,
+                constant_dict,
+                observations_dict,
+                occurrence_dict,
+                general_dict,
+                profile_dict,
+                adam_cpp,
+                multisteps=False,
+                otherParameterEstimate=other_parameter_estimate,
+            )
+        )
+
+    return -np.asarray(_hessian_cpp(loglik, B, h))
+
+
+def invert_fisher_information(FI):  # noqa: N803
+    """Invert an observed Fisher Information matrix to a covariance matrix.
+
+    Reproduces R's ``vcov.adam`` inversion (``R/adam.R:5210``): "broken"
+    variables — rows that are all zero or contain NaN — carry no information and
+    are excluded from the inversion, then their rows/columns are set to ``inf``.
+    The remaining sub-matrix is inverted via a Cholesky solve, falling back to a
+    general solve and finally to a ``1e100`` diagonal if it is singular.
+
+    Parameters
+    ----------
+    FI : array-like
+        Observed Fisher Information matrix.
+
+    Returns
+    -------
+    numpy.ndarray
+        Covariance matrix (FI inverse) with broken rows/cols set to ``inf``.
+    """
+    FI = np.array(FI, dtype=float)
+    n = FI.shape[0]
+
+    broken = np.all(FI == 0, axis=1) | np.any(np.isnan(FI), axis=1)
+    good = ~broken
+
+    out = np.zeros((n, n))
+    if np.any(good):
+        sub = FI[np.ix_(good, good)]
+        try:
+            chol = np.linalg.cholesky(sub)
+            inv = np.linalg.solve(chol.T, np.linalg.solve(chol, np.eye(sub.shape[0])))
+        except np.linalg.LinAlgError:
+            try:
+                inv = np.linalg.solve(sub, np.eye(sub.shape[0]))
+            except np.linalg.LinAlgError:
+                inv = np.diag(np.full(sub.shape[0], 1e100))
+        out[np.ix_(good, good)] = inv
+
+    out[broken, :] = np.inf
+    out[:, broken] = np.inf
+    return out
