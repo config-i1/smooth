@@ -16,6 +16,7 @@ The package includes the following models:
 - [ETS](https://github.com/config-i1/smooth/wiki/ES) - Exponential Smoothing in the SSOE state space form, implemented in the `ES` class.
 - [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) - Multiple seasonal ARIMA in state space form, implemented in the `MSARIMA` class (fixed orders) and `AutoMSARIMA` class (automatic order selection).
 - [OM](https://github.com/config-i1/smooth/wiki/OM) - Occurrence Model for intermittent demand, implemented in the `OM` class (plus `OMG` for the general two-component model and `AutoOM` for automatic type selection).
+- [SMA](https://github.com/config-i1/smooth/wiki/SMA) - Simple Moving Average in state-space form (an AR(m) model with fixed coefficients), implemented in the `SMA` class with automatic order selection.
 
 All of these are implemented with the support of the following features:
 
@@ -25,6 +26,8 @@ All of these are implemented with the support of the following features:
 - Advanced loss functions
 - Fine tuning of any elements of ADAM/ETS/ARIMA/Regression
 - A variety of prediction interval construction methods
+
+Like the R version, the Python **smooth** depends on the [**greybox**](https://github.com/config-i1/greybox) package for distributions, information criteria, regressor selection, and the LOWESS smoother. It is installed automatically as a dependency.
 
 
 ## Installation
@@ -145,6 +148,15 @@ fc = model.predict(h=24)
 - [GitHub Wiki](https://github.com/config-i1/smooth/wiki) - Full documentation
 - [ADAM](https://github.com/config-i1/smooth/wiki/ADAM) - Main unified ETS/ARIMA framework
 - [Installation Guide](https://github.com/config-i1/smooth/wiki/Installation) - Dependencies and troubleshooting
+
+The pages below document the models and their Python classes:
+
+- [ADAM](https://github.com/config-i1/smooth/wiki/ADAM) — Augmented Dynamic Adaptive Model — unified ETS/ARIMA/regression framework
+- [AutoADAM](https://github.com/config-i1/smooth/wiki/AutoADAM) — Automatic ADAM with distribution and ARIMA order selection
+- [ES](https://github.com/config-i1/smooth/wiki/ES) — Exponential Smoothing (ETS) wrapper for ADAM
+- [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) — Multiple Seasonal ARIMA (fixed orders) and automatic selection (`AutoMSARIMA`)
+- [OM](https://github.com/config-i1/smooth/wiki/OM) — Occurrence Model for intermittent demand (`OM`, `OMG`, `AutoOM`)
+- [SMA](https://github.com/config-i1/smooth/wiki/SMA) — Simple Moving Average in state-space form with automatic order selection
 
 **Book:** Svetunkov, I. (2023). *Forecasting and Analytics with the Augmented Dynamic Adaptive Model (ADAM)*. Chapman and Hall/CRC. Online: https://openforecast.org/adam/
 
