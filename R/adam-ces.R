@@ -964,7 +964,8 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         boundsOriginal <- bounds
         bounds <- "none"
 
-        FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
+        logLikFunction_FI <- function(B) logLikFunction(B, matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
+        FI <- -hessianCpp(logLikFunction_FI, B, h=stepSize);
         colnames(FI) <- rownames(FI) <- names(B);
 
         if(any(substr(names(B),1,5)=="alpha")){

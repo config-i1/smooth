@@ -786,7 +786,7 @@ omg <- function(data,
                     return(val)
                 }
                 FIMatrixUse <- try(suppressWarnings(
-                                       pracma::hessian(omgCF_for_FI, B_use, h=stepSize)),
+                                       hessianCpp(omgCF_for_FI, B_use, h=stepSize)),
                                    silent=TRUE)
                 if(inherits(FIMatrixUse, "try-error") ||
                    any(!is.finite(FIMatrixUse))) {

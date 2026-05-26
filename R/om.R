@@ -1433,8 +1433,8 @@ om <- function(data,
                     return(val);
                 }
                 FIMatrixUse <- try(suppressWarnings(
-                                       pracma::hessian(omCF_for_FI, B_for_FI,
-                                                       h=stepSize)),
+                                       hessianCpp(omCF_for_FI, B_for_FI,
+                                                  h=stepSize)),
                                    silent=TRUE);
                 if(inherits(FIMatrixUse, "try-error") ||
                    any(!is.finite(FIMatrixUse))){
