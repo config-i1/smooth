@@ -1051,7 +1051,11 @@ omg <- function(data,
             subModel$holdout  <- yHoldout
         }
 
-        class(subModel) <- c("om","adam","smooth","occurrence")
+        # Tag the sub-model with an ``omg_submodel`` class ahead of ``om``
+        # so ``actuals()`` can dispatch to a custom method that returns the
+        # latent (unobservable) value the sub-model was implicitly fitting,
+        # rather than the binary occurrence indicator.
+        class(subModel) <- c("omg_submodel","om","adam","smooth","occurrence")
         return(subModel)
     }
 
@@ -1104,10 +1108,23 @@ omg <- function(data,
 
     modelName <- paste0("oETS[G](", modelType(modelA), ")(", modelType(modelB), ")")
 
+    # Wrap the in-sample series with its original class (ts / zoo) so the
+    # top-level omg object's ``data`` matches what ``om(y, ...)`` stores.
+    # Mirrors om.R:983-987.
+    if(any(yClasses == "ts")) {
+        yData <- ts(yInSample, start=yStart, frequency=yFrequency);
+    } else {
+        yData <- zoo(yInSample, order.by=yInSampleIndex);
+    }
+
     result <- list(
         model       = modelName,
         modelA      = modelA,
         modelB      = modelB,
+        # Store the raw in-sample series at the top level so ``actuals.omg``
+        # can return it with the same class (ts / zoo / numeric) that the
+        # standalone ``actuals.om`` would on a fresh ``om(y, ...)`` call.
+        data        = yData,
         fitted      = yFitted,
         forecast    = yForecast,
         occurrence  = "general",
@@ -1714,7 +1731,29 @@ forecast.omg <- function(object, h=10, ...) {
 }
 
 #' @export
-actuals.omg <- function(object, ...) { actuals.om(object$modelA, ...) }
+actuals.omg <- function(object, ...) {
+    # Mirror actuals.om's class-preserving binary indicator, but use the
+    # top-level object$data so the returned object has the same class
+    # (ts / zoo / numeric) as the omg-input series — not the sub-model's
+    # post-fit data, which may have been class-stripped.
+    if(is.null(object$data)){
+        return(actuals.om(object$modelA, ...));
+    }
+    yObs <- if(is.data.frame(object$data) || is.matrix(object$data)) object$data[,1] else object$data;
+    yObs[] <- (yObs != 0) * 1;
+    return(yObs);
+}
+
+#' @export
+actuals.omg_submodel <- function(object, ...) {
+    # Reconstruct the latent (unobservable) value the sub-model was implicitly
+    # fitting, before the link function turned it into a probability. The
+    # sub-model class is ``omg_submodel`` (set in omgFinalFit), so this method
+    # dispatches in preference to ``actuals.om`` which would return the
+    # binary occurrence indicator.
+
+    return(fitted(object) + residuals(object));
+}
 
 #' @export
 print.omg <- function(x, digits=4, ...) {
