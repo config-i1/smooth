@@ -346,6 +346,44 @@ class TestInputs:
 # --------------------------------------------------------------------------
 
 
+class TestInferenceMethods:
+    """vcov / confint / summary for OM."""
+
+    @pytest.fixture
+    def fitted_om(self, intermittent_y):
+        return OM(model="MNN", occurrence="odds-ratio", lags=[1]).fit(intermittent_y)
+
+    def test_vcov_shape(self, fitted_om):
+        V = fitted_om.vcov()
+        assert V.shape == (fitted_om.nparam - 1, fitted_om.nparam - 1) or V.shape == (
+            len(fitted_om.coef),
+            len(fitted_om.coef),
+        )
+        # Diagonal must be non-negative (covariance variances)
+        diag = np.diag(V.to_numpy())
+        assert np.all(diag >= 0)
+
+    def test_confint_columns(self, fitted_om):
+        ci = fitted_om.confint(level=0.95)
+        assert ci.columns.tolist() == ["S.E.", "2.5%", "97.5%"]
+        # SEs must be non-negative; lo <= hi
+        assert (ci["S.E."] >= 0).all()
+        assert (ci["2.5%"] <= ci["97.5%"]).all()
+
+    def test_summary_contains_occurrence_header(self, fitted_om):
+        text = str(fitted_om.summary())
+        assert "Occurrence model" in text
+        assert "Sample size" in text
+
+    def test_confint_level_changes_bounds(self, fitted_om):
+        ci90 = fitted_om.confint(level=0.90)
+        ci99 = fitted_om.confint(level=0.99)
+        # Higher confidence => wider intervals
+        width90 = ci90.iloc[:, 2] - ci90.iloc[:, 1]
+        width99 = ci99.iloc[:, 2] - ci99.iloc[:, 1]
+        assert (width99 >= width90).all()
+
+
 class TestRegressions:
     """Bug-fix regression tests."""
 
