@@ -4076,11 +4076,6 @@ class ADAM:
         """
         import pandas as pd
 
-        from smooth.adam_general.core.utils.bounds import (
-            ar_polynomial_bounds,
-            eigen_bounds,
-        )
-
         self._check_is_fitted()
         names = self.coef_names
         params = np.asarray(self.coef, dtype=float)
@@ -4093,6 +4088,55 @@ class ADAM:
         # R uses asymmetric degrees of freedom for the two tails.
         lo = scipy_stats.t.ppf((1 - level) / 2, df=nobs - nparam) * se
         hi = scipy_stats.t.ppf((1 + level) / 2, df=nobs + nparam) * se
+
+        self._clamp_confint_offsets(names, params, lo, hi)
+
+        lo = lo + params
+        hi = hi + params
+
+        lo_name = f"{(1 - level) / 2 * 100:g}%"
+        hi_name = f"{(1 + level) / 2 * 100:g}%"
+        out = pd.DataFrame(
+            np.column_stack([se, lo, hi]),
+            index=names,
+            columns=["S.E.", lo_name, hi_name],
+        )
+        if parm is not None:
+            out = out.loc[parm if isinstance(parm, (list, tuple)) else [parm]]
+        return out
+
+    def _eigen_static_args(self):
+        """Static arguments forwarded to ``eigen_bounds``/``eigen_values``."""
+        regressors = self._explanatory.get("regressors") or self._general.get(
+            "regressors", "use"
+        )
+        xreg_model = self._explanatory.get("xreg_model", False)
+        transition = self._prepared.get("transition", self._adam_created["mat_f"])
+        measurement = self._prepared.get("measurement", self._adam_created["mat_wt"])
+        return dict(
+            transition=np.asarray(transition, dtype=float),
+            measurement=np.asarray(measurement, dtype=float),
+            lags_model_all=self._lags_model["lags_model_all"],
+            xreg_model=xreg_model,
+            obs_in_sample=self._observations["obs_in_sample"],
+            has_delta=bool(xreg_model and regressors == "adapt"),
+            xreg_number=self._explanatory.get("xreg_number", 0),
+            constant_required=self._constant.get("constant_required", False),
+        )
+
+    def _clamp_confint_offsets(self, names, params, lo, hi):
+        """Clamp confint half-width offsets to the admissible region in place.
+
+        Mutates the ``lo`` / ``hi`` arrays so that ``param + lo`` and
+        ``param + hi`` stay inside the feasible ETS/ARIMA region (mirrors the
+        clamping block of R's ``confint.adam``). Extracted out of
+        :meth:`confint` so :class:`~smooth.adam_general.core.omg.OMG` can apply
+        the same per-sub-model clamping to slices of a joint CI half-width.
+        """
+        from smooth.adam_general.core.utils.bounds import (
+            ar_polynomial_bounds,
+            eigen_bounds,
+        )
 
         idx = {name: i for i, name in enumerate(names)}
         bounds_type = self._general.get("bounds", "usual")
@@ -4159,39 +4203,6 @@ class ADAM:
             self._clamp_arima_bounds(
                 names, params, lo, hi, idx, eigen_bounds, ar_polynomial_bounds
             )
-
-        lo = lo + params
-        hi = hi + params
-
-        lo_name = f"{(1 - level) / 2 * 100:g}%"
-        hi_name = f"{(1 + level) / 2 * 100:g}%"
-        out = pd.DataFrame(
-            np.column_stack([se, lo, hi]),
-            index=names,
-            columns=["S.E.", lo_name, hi_name],
-        )
-        if parm is not None:
-            out = out.loc[parm if isinstance(parm, (list, tuple)) else [parm]]
-        return out
-
-    def _eigen_static_args(self):
-        """Static arguments forwarded to ``eigen_bounds``/``eigen_values``."""
-        regressors = self._explanatory.get("regressors") or self._general.get(
-            "regressors", "use"
-        )
-        xreg_model = self._explanatory.get("xreg_model", False)
-        transition = self._prepared.get("transition", self._adam_created["mat_f"])
-        measurement = self._prepared.get("measurement", self._adam_created["mat_wt"])
-        return dict(
-            transition=np.asarray(transition, dtype=float),
-            measurement=np.asarray(measurement, dtype=float),
-            lags_model_all=self._lags_model["lags_model_all"],
-            xreg_model=xreg_model,
-            obs_in_sample=self._observations["obs_in_sample"],
-            has_delta=bool(xreg_model and regressors == "adapt"),
-            xreg_number=self._explanatory.get("xreg_number", 0),
-            constant_required=self._constant.get("constant_required", False),
-        )
 
     def _clamp_arima_bounds(
         self, names, params, lo, hi, idx, eigen_bounds, ar_polynomial_bounds

@@ -743,6 +743,36 @@ def fisher_information(
     return -np.asarray(_hessian_cpp(loglik, B, h))
 
 
+def numerical_hessian(callable_, B, step_size=None):  # noqa: N803
+    """Numerical Hessian of a scalar function via the pracma-exact scheme.
+
+    Wraps the C++ ``_numDeriv.hessian`` so OM/OMG/ADAM can compute observed
+    Fisher Information from their own cost functions without each rebuilding
+    the loglik dispatch in :func:`fisher_information`.
+
+    Parameters
+    ----------
+    callable_ : Callable[[np.ndarray], float]
+        Scalar function of a 1-D parameter vector.
+    B : array-like
+        Point at which to evaluate the Hessian (typically the estimated
+        optimum).
+    step_size : float, optional
+        Absolute finite-difference step ``h``. Defaults to
+        ``np.finfo(float).eps ** 0.25`` (matches R's ``.Machine$double.eps^(1/4)``).
+
+    Returns
+    -------
+    numpy.ndarray
+        Symmetric ``len(B) × len(B)`` Hessian matrix.
+    """
+    from smooth.adam_general._numDeriv import hessian as _hessian_cpp
+
+    B = np.asarray(B, dtype=float)
+    h = step_size if step_size else float(np.finfo(float).eps ** 0.25)
+    return np.asarray(_hessian_cpp(lambda b: float(callable_(b)), B, h))
+
+
 def invert_fisher_information(FI):  # noqa: N803
     """Invert an observed Fisher Information matrix to a covariance matrix.
 

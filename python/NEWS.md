@@ -12,6 +12,8 @@ Changes:
 * Bumped `cibuildwheel` to 3.x in CI to recognise cp314 build targets.
 * `lowess` smoother moved to the **greybox** dependency.
 * mypy added to the linting workflow.
+* `vcov`, `confint` and `summary` methods added to the `OM` and `OMG` classes, matching the R implementation. OMG uses a joint Fisher Information matrix and prefixes coefficient rows with `A:` / `B:` to identify the sub-model. `bootstrap=True` is reserved but not implemented yet.
+* `OM.coef_names` now returns the proper parameter names (`alpha`, `level`, …) instead of falling back to `b1, b2, …`. As a result, `OM.confint` correctly clamps lower bounds for persistence parameters (e.g. `alpha >= 0`) — previously the fallback names silently disabled the clamping.
 
 
 ## v1.0.3 (Release date: 2026-05-11)

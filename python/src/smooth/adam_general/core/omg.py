@@ -122,6 +122,7 @@ class OMG:
 
     def fit(self, y: NDArray, X: Optional[NDArray] = None) -> "OMG":
         self._start_time = time.time()
+        self._fi_cache = None
 
         # Build OM-style scaffolding for each side without doing the inner
         # estimation (we replace it with the joint nlopt run below). We
@@ -375,6 +376,199 @@ class OMG:
         p = self.fitted
         e = self.actuals - p
         return e / np.sqrt(p * (1 - p)) * np.sqrt(obs / df)
+
+    # ---------------------------------------------------------------------
+    # Inference — vcov / confint / summary (R: vcov.omg / confint.omg /
+    # summary.omg). Both sub-models share a single joint Fisher Information
+    # matrix; rows are prefixed ``A:`` / ``B:``.
+    # ---------------------------------------------------------------------
+
+    @property
+    def coef_names(self) -> List[str]:
+        """Joint parameter names with ``A:`` / ``B:`` prefixes.
+
+        Mirrors R's ``names(coef(omg))``. Falls back to ``b1, b2, …`` if a
+        sub-model's own names are unavailable.
+        """
+        if not hasattr(self, "model_a") or not hasattr(self, "model_b"):
+            return [f"b{i + 1}" for i in range(int(len(self._B_joint)))]
+        names_a = list(self.model_a.coef_names)
+        names_b = list(self.model_b.coef_names)
+        return [f"A:{n}" for n in names_a] + [f"B:{n}" for n in names_b]
+
+    def _fisher_information_matrix(self, step_size=None):
+        """Observed FI of the joint OMG cost at the estimated ``_B_joint``.
+
+        ``omg_cf`` returns the negative log-likelihood, so its Hessian *is* the
+        observed Fisher Information — no sign flip. Bounds checks are kept on
+        so the perturbed-point evaluations follow the same feasible region the
+        optimiser saw; near the optimum these stay clear of the penalty
+        plateau.
+        """
+        from smooth.adam_general.core.utils.var_covar import numerical_hessian
+
+        side_a = self._side_a
+        side_b = self._side_b
+        n_params_a = int(self._n_params_a)
+        observations = side_a["observations_dict"]
+        bounds = self.bounds
+        adam_ets = self.ets == "adam"
+
+        def _cost(b):
+            return omg_cf(
+                B=b,
+                side_a=side_a,
+                side_b=side_b,
+                n_params_a=n_params_a,
+                observations_dict=observations,
+                bounds=bounds,
+                adam_ets=adam_ets,
+            )
+
+        return numerical_hessian(_cost, self._B_joint, step_size=step_size)
+
+    @property
+    def fisher_information_(self) -> Optional[NDArray]:
+        """Cached observed Fisher Information at the estimated joint B.
+
+        Computed lazily on first access via :meth:`_fisher_information_matrix`;
+        cleared whenever :meth:`fit` is called again.
+        """
+        cached = getattr(self, "_fi_cache", None)
+        if cached is not None:
+            return cached
+        self._fi_cache = self._fisher_information_matrix()
+        return self._fi_cache
+
+    def vcov(self, bootstrap: bool = False, step_size=None):
+        """Joint variance–covariance matrix for both OMG sub-models.
+
+        Mirrors R's ``vcov.omg``: inverts the joint observed FI, retrying with
+        a coarser finite-difference step if any parameters look "broken"
+        (all-zero or NaN rows). Rows/cols are prefixed ``A:`` / ``B:``.
+
+        Parameters
+        ----------
+        bootstrap : bool, default=False
+            Not implemented for OMG yet.
+        step_size : float, optional
+            Finite-difference step for the Fisher Information.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Joint covariance matrix with prefixed row/col names.
+        """
+        import pandas as pd
+
+        from smooth.adam_general.core.utils.var_covar import invert_fisher_information
+
+        if bootstrap:
+            raise NotImplementedError(
+                "Bootstrap covariance is not yet implemented for OMG in Python."
+            )
+
+        FI = np.asarray(self._fisher_information_matrix(step_size=step_size))  # noqa: N806
+        broken = np.all(FI == 0, axis=1) | np.any(np.isnan(FI), axis=1)
+        if np.any(broken) and step_size is None:
+            FI = np.asarray(  # noqa: N806
+                self._fisher_information_matrix(
+                    step_size=float(np.finfo(float).eps ** (1 / 6))
+                )
+            )
+
+        cov = invert_fisher_information(FI)
+        names = self.coef_names
+        return pd.DataFrame(cov, index=names, columns=names)
+
+    def confint(
+        self,
+        parm=None,
+        level: float = 0.95,
+        bootstrap: bool = False,
+        step_size=None,
+    ):
+        """Confidence intervals for the joint OMG parameters.
+
+        Mirrors R's ``confint.omg``: SEs from the joint :meth:`vcov`, t-quantile
+        half-widths with R's asymmetric degrees of freedom, then per-sub-model
+        clamping to each side's admissible region (via the sub-model's own
+        :meth:`~ADAM._clamp_confint_offsets`). Rows are prefixed ``A:`` /
+        ``B:`` to identify which sub-model each parameter belongs to.
+
+        Parameters
+        ----------
+        parm : str or sequence of str, optional
+            Subset of (prefixed) names to return.
+        level : float, default=0.95
+            Confidence level for the interval.
+        bootstrap : bool, default=False
+            Not implemented for OMG yet.
+        step_size : float, optional
+            Finite-difference step forwarded to :meth:`vcov`.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Columns ``["S.E.", "<lo>%", "<hi>%"]`` indexed by prefixed names.
+        """
+        import pandas as pd
+        from scipy import stats as scipy_stats
+
+        if bootstrap:
+            raise NotImplementedError(
+                "Bootstrap confidence intervals are not yet implemented for OMG."
+            )
+
+        names = self.coef_names
+        params = np.asarray(self._B_joint, dtype=float)
+        n_a = int(self._n_params_a)
+
+        V = self.vcov(step_size=step_size).to_numpy()  # noqa: N806
+        se = np.sqrt(np.abs(np.diag(V)))
+
+        nobs = int(self.nobs)
+        nparam = int(self.nparam)
+        # R: asymmetric df for the two tails (omg.R:1611–1612).
+        lo = scipy_stats.t.ppf((1 - level) / 2, df=nobs - nparam) * se
+        hi = scipy_stats.t.ppf((1 + level) / 2, df=nobs + nparam) * se
+
+        # Per-sub-model clamping using each sub-model's own bounds knowledge.
+        # Slicing returns views; in-place mutations propagate back.
+        params_a = np.asarray(self.model_a.coef, dtype=float)
+        params_b = np.asarray(self.model_b.coef, dtype=float)
+        self.model_a._clamp_confint_offsets(
+            self.model_a.coef_names, params_a, lo[:n_a], hi[:n_a]
+        )
+        self.model_b._clamp_confint_offsets(
+            self.model_b.coef_names, params_b, lo[n_a:], hi[n_a:]
+        )
+
+        lo = lo + params
+        hi = hi + params
+
+        lo_name = f"{(1 - level) / 2 * 100:g}%"
+        hi_name = f"{(1 + level) / 2 * 100:g}%"
+        out = pd.DataFrame(
+            np.column_stack([se, lo, hi]),
+            index=names,
+            columns=["S.E.", lo_name, hi_name],
+        )
+        if parm is not None:
+            out = out.loc[parm if isinstance(parm, (list, tuple)) else [parm]]
+        return out
+
+    def summary(self, level: float = 0.95, digits: int = 4):
+        """Coefficient-table summary for the joint occurrence model.
+
+        Mirrors R's ``summary.omg``: two coefficient tables (one per
+        sub-model), each with significance indicators based on whether zero
+        falls inside the CI, followed by a shared footer (sample size, total
+        estimated parameters, loss value, AICc/BICc).
+        """
+        from smooth.adam_general.core.utils.printing import OMGSummary
+
+        return OMGSummary(self, level=level, digits=digits)
 
     # ---------------------------------------------------------------------
     # Internals — building the per-side scaffolding
