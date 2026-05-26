@@ -7,13 +7,8 @@ the current checkout.
 Tolerances:
 * Scalars (loss, loglik): rtol=1e-3, atol=1e-4 — tight because the optimised
   cost should agree closely.
-* Fitted / forecast: rtol=3e-3, atol=1e-3 — slightly looser because the
-  individual sub-model re-fitting after joint optimisation (backcasting) can
-  converge to values with a small but systematic offset vs R.
-
-``h2_seasonal_ana_mnm`` is exempted from scalar comparisons because Python's
-NLopt finds a strictly better (lower) loss than R's optimiser for this
-ANA/MNM seasonal scenario — the R reference is a suboptimal local minimum.
+* Fitted / forecast: rtol=3e-3, atol=1e-3 — slightly looser to absorb small
+  floating-point drift between the two C++ propagations.
 
 Skipped in CI by default (``r_parity`` marker — opt in with
 ``pytest -m r_parity``).
@@ -36,10 +31,6 @@ RTOL = 1e-3
 ATOL = 1e-4
 FITTED_RTOL = 3e-3
 FITTED_ATOL = 1e-3
-
-# Scenarios where Python finds a strictly better optimum than R; their
-# scalar/fitted comparisons skip with an explanatory message.
-_PYTHON_BEATS_R: set = {"h2_seasonal_ana_mnm"}
 
 
 def _scenario(
@@ -172,15 +163,9 @@ def _skip_if_degenerate(scenario, r_outputs):
         pytest.skip(f"{scenario['name']}: R returned a degenerate / penalty fit")
 
 
-def _skip_if_python_beats_r(scenario):
-    if scenario["name"] in _PYTHON_BEATS_R:
-        pytest.skip(f"{scenario['name']}: Python finds a better optimum than R")
-
-
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=[s["name"] for s in SCENARIOS])
 class TestOMGRComparison:
     def test_loss_value(self, scenario, inputs, r_outputs):
-        _skip_if_python_beats_r(scenario)
         _skip_if_degenerate(scenario, r_outputs)
         m = _python_fit(scenario, inputs)
         np.testing.assert_allclose(
@@ -192,7 +177,6 @@ class TestOMGRComparison:
         )
 
     def test_loglik(self, scenario, inputs, r_outputs):
-        _skip_if_python_beats_r(scenario)
         _skip_if_degenerate(scenario, r_outputs)
         m = _python_fit(scenario, inputs)
         np.testing.assert_allclose(
@@ -204,7 +188,6 @@ class TestOMGRComparison:
         )
 
     def test_fitted(self, scenario, inputs, r_outputs):
-        _skip_if_python_beats_r(scenario)
         _skip_if_degenerate(scenario, r_outputs)
         m = _python_fit(scenario, inputs)
         ref = np.asarray(r_outputs[scenario["name"]]["fitted"], dtype=float)
@@ -217,7 +200,6 @@ class TestOMGRComparison:
         )
 
     def test_forecast(self, scenario, inputs, r_outputs):
-        _skip_if_python_beats_r(scenario)
         _skip_if_degenerate(scenario, r_outputs)
         ref_raw = r_outputs[scenario["name"]].get("forecast")
         if ref_raw is None:

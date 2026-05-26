@@ -921,12 +921,16 @@ class OMG:
         scaffold._ic_selection = self._ic_value
         scaffold._select_distribution()
 
-        # Build fresh matrices with the ORIGINAL error/trend/season types
-        # rather than the forced-additive types used during optimisation.
-        # The difference matters for seasonal initial states that seed
-        # backcasting.
-        adam_created_final = scaffold._build_final_fit_adam_created(side["profile"])
-        scaffold._adam_created = adam_created_final
+        # Mirror R's ``omgFinalFit`` (R/omg.R:864-906): reuse the matrices the
+        # joint optimiser saw — built with ``Etype="A"`` for numerical
+        # stability — rather than rebuilding with the user-requested
+        # multiplicative types. Without this, the post-fit sub-model fitted
+        # values diverge from R's reference (the optimum agrees but the link
+        # function then takes ``log(fittedB)`` of values produced under a
+        # different state-space structure). Standalone Python ``OM`` still
+        # rebuilds via ``_build_final_fit_adam_created`` (matching standalone
+        # R ``om()``); only the OMG post-fit shares the joint matrices.
+        scaffold._adam_created = side["matrices_dict"]
 
         scaffold._prepared = om_preparator(
             model_type_dict=scaffold._model_type,
