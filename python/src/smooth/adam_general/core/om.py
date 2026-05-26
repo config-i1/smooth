@@ -1399,6 +1399,15 @@ class OM(ADAM):
 
         ``om_cf`` already returns the negative log-likelihood, so its Hessian
         is the observed Fisher Information directly — no sign flip.
+
+        Bounds are disabled (``bounds="none"``) during the Hessian call to
+        match R's ``vcov.adam`` (R/adam.R:2797 — ``boundsFI <- "none"``). With
+        the user's usual/admissible bounds left on, FD perturbations ``B ± h``
+        that cross the feasibility boundary would return the 1e300 penalty
+        instead of the actual log-likelihood — the resulting second
+        derivative blows up and the inverse FI collapses to ~0. ``bounds=
+        "none"`` lets the underlying ``adam_cpp.fit`` evaluate cleanly even
+        when smoothing parameters are nominally out of range.
         """
         from smooth.adam_general.core.utils.var_covar import numerical_hessian
 
@@ -1429,7 +1438,7 @@ class OM(ADAM):
                 adam_cpp=self._adam_cpp,
                 occurrence=self._om_occurrence,
                 occurrence_char=self._occurrence_char,
-                bounds=self._general["bounds"],
+                bounds="none",
                 arPolynomialMatrix=ar_polynomial_matrix,
                 maPolynomialMatrix=ma_polynomial_matrix,
                 regressors=self._explanatory.get("regressors"),

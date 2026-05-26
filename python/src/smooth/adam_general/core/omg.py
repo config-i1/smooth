@@ -400,10 +400,17 @@ class OMG:
         """Observed FI of the joint OMG cost at the estimated ``_B_joint``.
 
         ``omg_cf`` returns the negative log-likelihood, so its Hessian *is* the
-        observed Fisher Information — no sign flip. Bounds checks are kept on
-        so the perturbed-point evaluations follow the same feasible region the
-        optimiser saw; near the optimum these stay clear of the penalty
-        plateau.
+        observed Fisher Information — no sign flip.
+
+        Bounds are disabled (``bounds="none"``) during the Hessian call to
+        match R's ``vcov.adam`` / ``vcov.omg`` (R/adam.R:2797 —
+        ``boundsFI <- "none"``). With the user's usual/admissible bounds left
+        on, FD perturbations ``B ± h`` near a boundary parameter (e.g.
+        ``alpha=0``) would cross into the penalty region and return 1e300,
+        making the diagonal FI explode and the inverse covariance collapse
+        to ~0. Disabling bounds lets the underlying C++ propagation evaluate
+        the actual log-likelihood at the perturbed B, even when the
+        smoothing parameter is briefly out of range.
         """
         from smooth.adam_general.core.utils.var_covar import numerical_hessian
 
@@ -411,7 +418,6 @@ class OMG:
         side_b = self._side_b
         n_params_a = int(self._n_params_a)
         observations = side_a["observations_dict"]
-        bounds = self.bounds
         adam_ets = self.ets == "adam"
 
         def _cost(b):
@@ -421,7 +427,7 @@ class OMG:
                 side_b=side_b,
                 n_params_a=n_params_a,
                 observations_dict=observations,
-                bounds=bounds,
+                bounds="none",
                 adam_ets=adam_ets,
             )
 
@@ -671,6 +677,13 @@ class OMG:
         lb = np.concatenate([b_a["Bl"], b_b["Bl"]])
         ub = np.concatenate([b_a["Bu"], b_b["Bu"]])
 
+        # Cache the per-side parameter names so ``_om_from_side`` can set
+        # ``B_names`` on each sub-model. Without this, ``OM.coef_names`` falls
+        # back to ``b1, b2, …`` and ``_clamp_confint_offsets`` silently fails
+        # to clamp bounds on persistence parameters (cf. ``confint.omg``).
+        self._names_a = list(b_a.get("names") or [])
+        self._names_b = list(b_b.get("names") or [])
+
         # Respect user-supplied B / lb / ub from nlopt_kargs. B is the JOINT
         # vector spanning A-side then B-side. dict-keyed names are matched
         # against suffixed names ("alpha_A", "alpha_B", ...); array-like B is
@@ -908,8 +921,10 @@ class OMG:
         # Inject the joint estimate into the scaffold so its post-fit
         # plumbing (om_preparator, model_name, etc.) reflects the joint
         # solution rather than re-running its own optimiser.
+        side_names = self._names_a if occurrence_str == "odds-ratio" else self._names_b
         scaffold._adam_estimated = {
             "B": np.asarray(B, dtype=float),
+            "B_names": side_names if len(side_names) == len(B) else None,
             "CF_value": self._cf_value,
             "n_param_estimated": int(len(B)),
             "log_lik_adam_value": dict(self._log_lik_dict),

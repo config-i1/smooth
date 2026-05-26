@@ -813,4 +813,13 @@ def invert_fisher_information(FI):  # noqa: N803
 
     out[broken, :] = np.inf
     out[:, broken] = np.inf
+
+    # Mirror R (R/adam.R:5226, R/omg.R:1690): "Just in case, take absolute
+    # values for the diagonal in order to avoid possible issues with FI".
+    # Without this, a non-positive-semi-definite FI can produce negative
+    # variances on the diagonal (downstream ``sqrt(abs(diag(V)))`` recovers
+    # the SE, but a user inspecting ``vcov`` directly would see something
+    # algebraically impossible).
+    diag_idx = np.arange(n)
+    out[diag_idx, diag_idx] = np.abs(out[diag_idx, diag_idx])
     return out
