@@ -478,6 +478,10 @@ class OM(ADAM):
         )
 
         self._is_om = True
+        # Set to True by OMG._om_from_side when this OM instance is a
+        # sub-model of an OMG; flips ``actuals`` from binary-indicator to
+        # the latent reconstruction. See OM.actuals.
+        self._is_omg_submodel: bool = False
         self._om_occurrence = occurrence
         self._occurrence_char = _OCC_TO_CHAR[occurrence]
         self._formula = formula
@@ -1342,8 +1346,27 @@ class OM(ADAM):
 
     @property
     def actuals(self) -> NDArray:
-        """Binary 0/1 occurrence indicator for the in-sample series."""
+        """In-sample actuals.
+
+        For a standalone :class:`OM`, returns the binary 0/1 occurrence
+        indicator. For an OM that has been built as a sub-model of an
+        :class:`~smooth.adam_general.core.omg.OMG` (flag
+        ``_is_omg_submodel`` set by ``OMG._om_from_side``), returns the
+        latent unobservable value the sub-model was implicitly fitting:
+
+        - ``Etype="A"``: ``fitted + residuals``
+        - ``Etype="M"``: ``fitted * (1 + residuals)``
+
+        Mirrors R's ``actuals.om`` / ``actuals.omg_submodel`` dispatch.
+        """
         self._check_is_fitted()
+        if getattr(self, "_is_omg_submodel", False):
+            fitted = np.asarray(self.fitted, dtype=float)
+            residuals = np.asarray(self.residuals, dtype=float)
+            error_type = self._model_type.get("error_type", "A")
+            if error_type == "M":
+                return fitted * (1.0 + residuals)
+            return fitted + residuals
         return np.asarray(self._observations["ot"], dtype=float)
 
     @property

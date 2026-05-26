@@ -60,6 +60,22 @@ data to estimate reliably.
    print(model.fitted)
    print(model.b_value)
 
+actuals semantics
+~~~~~~~~~~~~~~~~~
+
+- ``OMG.actuals`` returns the **binary occurrence indicator** built from the
+  raw input series (``(y != 0).astype(float)``), with the same shape as the
+  series passed to ``fit``. Mirrors ``OM.actuals`` and R's ``actuals.omg``.
+- ``OMG.model_a.actuals`` / ``OMG.model_b.actuals`` return the **latent
+  unobservable** value the sub-model was implicitly fitting before the link
+  function, *not* the binary indicator:
+
+  - ``Etype="A"``: ``fitted + residuals``
+  - ``Etype="M"``: ``fitted * (1 + residuals)``
+
+  This is the reconstruction useful for diagnosing the sub-model in isolation
+  (e.g. inspecting how well its continuous component fits its target).
+
 AutoOM
 ------
 

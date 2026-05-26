@@ -216,6 +216,10 @@ class OMG:
         ot = np.asarray(side_a["observations_dict"]["ot"], dtype=np.float64)
         self._residuals_combined = ot - self._fitted_combined
         self._ot = ot
+        # Preserve the raw input y for ``actuals`` — equivalent to R's
+        # storing the original series on the omg object so that ``actuals(omg)``
+        # returns the same type and content as ``actuals(om)`` would.
+        self._y_raw = np.asarray(y, dtype=float)
         self._observations_dict = side_a["observations_dict"]
 
         # Auto-forecast if h > 0
@@ -256,7 +260,16 @@ class OMG:
 
     @property
     def actuals(self) -> NDArray:
-        return self._ot.copy()
+        """Binary 0/1 indicator built from the raw input series.
+
+        Mirrors R's ``actuals.omg``: returns ``(y != 0) * 1`` using the
+        original ``y`` (with its original dtype/shape preserved), not the
+        ``ot`` vector held in ``_observations_dict``.
+        """
+        y = getattr(self, "_y_raw", None)
+        if y is None:
+            return self._ot.copy()
+        return (np.asarray(y, dtype=float) != 0).astype(float)
 
     @property
     def coef(self) -> NDArray:
@@ -918,6 +931,10 @@ class OMG:
 
     def _om_from_side(self, side, B, occurrence_str) -> OM:
         scaffold: OM = side["scaffold"]
+        # Mark this sub-model so ``OM.actuals`` returns the latent
+        # (unobservable) reconstruction rather than the binary indicator.
+        # Mirrors R's ``omg_submodel`` S3 class tag on ``omg$modelA/B``.
+        scaffold._is_omg_submodel = True
         # Inject the joint estimate into the scaffold so its post-fit
         # plumbing (om_preparator, model_name, etc.) reflects the joint
         # solution rather than re-running its own optimiser.

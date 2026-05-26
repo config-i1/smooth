@@ -117,9 +117,9 @@ class AutoMSARIMA(AutoADAM):
     def __init__(
         self,
         lags: Optional[List[int]] = None,
-        ar_order: Union[int, List[int]] = [3, 3],  # noqa: B006
-        i_order: Union[int, List[int]] = [2, 1],  # noqa: B006
-        ma_order: Union[int, List[int]] = [3, 3],  # noqa: B006
+        ar_order: Union[int, List[int], None] = [3, 3],  # noqa: B006
+        i_order: Union[int, List[int], None] = [2, 1],  # noqa: B006
+        ma_order: Union[int, List[int], None] = [3, 3],  # noqa: B006
         orders: Optional[Dict[str, Any]] = None,
         constant: Union[bool, float] = False,
         initial: Union[str, Dict[str, Any], None] = "backcasting",
@@ -145,6 +145,20 @@ class AutoMSARIMA(AutoADAM):
             )
 
         initial_value = MSARIMA._build_initial(initial, initial_X)
+
+        # AutoMSARIMA's whole purpose is automatic ARIMA-order selection — so
+        # translate the scalar ``ar_order`` / ``i_order`` / ``ma_order`` (when
+        # used as upper search bounds, the AutoMSARIMA convention) into the
+        # equivalent ``orders`` dict with ``select=True``. AutoADAM's new
+        # precedence rule otherwise treats the scalar triplet as FIXED orders.
+        if orders is None and any(x is not None for x in (ar_order, i_order, ma_order)):
+            orders = {
+                "ar": ar_order if ar_order is not None else 0,
+                "i": i_order if i_order is not None else 0,
+                "ma": ma_order if ma_order is not None else 0,
+                "select": True,
+            }
+            ar_order = i_order = ma_order = None  # avoid the both-supplied warning
 
         super().__init__(
             model="NNN",

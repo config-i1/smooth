@@ -656,9 +656,12 @@ def scaler(distribution, Etype, errors, y_fitted, obs_in_sample, other):
     float: The calculated scale parameter
     """
 
-    # Helper function to safely compute complex logarithm
-    def safe_log(x):
-        return np.log(np.abs(x) + 1j * (x.imag - x.real))
+    # Helper: take ``log`` of a possibly-negative input via complex extension.
+    # ``log(as.complex(z))`` for z < 0 yields ``log|z| + iπ``; downstream the
+    # modulus ``abs(...)`` is taken so the result is finite and continuous.
+    # Mirrors R's ``log(as.complex(...))`` pattern used in ``adam_scaler``.
+    def complex_log(x):
+        return np.log(np.asarray(x, dtype=np.complex128))
 
     if distribution == "dnorm":
         return np.linalg.norm(errors) / np.sqrt(obs_in_sample)
@@ -677,49 +680,41 @@ def scaler(distribution, Etype, errors, y_fitted, obs_in_sample, other):
         return np.sum(errors * (other - (errors <= 0) * 1)) / obs_in_sample
 
     elif distribution == "dlnorm":
+        # Cast 1+errors (or 1+errors/yFitted) to complex so log() of negative
+        # arguments stays finite; the outer modulus turns the complex log
+        # into a real number. Mirrors R's ``log(as.complex(...))`` pattern.
         if Etype == "A":
-            temp = 1 - np.sqrt(
-                np.abs(
-                    1
-                    - np.linalg.norm(np.log(np.abs(1 + errors / y_fitted))) ** 2
-                    / obs_in_sample
-                )
-            )
+            log_term = np.abs(complex_log(1 + errors / y_fitted))
         else:  # "M"
-            temp = 1 - np.sqrt(
-                np.abs(1 - np.linalg.norm(np.log(1 + errors)) ** 2 / obs_in_sample)
-            )
+            log_term = np.abs(complex_log(1 + errors))
+        temp = 1 - np.sqrt(np.abs(1 - np.linalg.norm(log_term) ** 2 / obs_in_sample))
         return np.sqrt(2 * np.abs(temp))
 
     elif distribution == "dllaplace":
         if Etype == "A":
-            return np.real(
-                np.sum(np.abs(safe_log(1 + errors / y_fitted))) / obs_in_sample
-            )
+            return np.sum(np.abs(complex_log(1 + errors / y_fitted))) / obs_in_sample
         else:  # "M"
-            return np.sum(np.abs(np.log(1 + errors))) / obs_in_sample
+            return np.sum(np.abs(complex_log(1 + errors))) / obs_in_sample
 
     elif distribution == "dls":
         if Etype == "A":
-            return np.real(
-                np.sum(np.sqrt(np.abs(safe_log(1 + errors / y_fitted)))) / obs_in_sample
+            return (
+                np.sum(np.sqrt(np.abs(complex_log(1 + errors / y_fitted))))
+                / obs_in_sample
             )
         else:  # "M"
-            return np.sum(np.sqrt(np.abs(np.log(1 + errors)))) / obs_in_sample
+            return np.sum(np.sqrt(np.abs(complex_log(1 + errors)))) / obs_in_sample
 
     elif distribution == "dlgnorm":
         if Etype == "A":
-            return np.real(
-                (
-                    other
-                    * np.sum(np.abs(safe_log(1 + errors / y_fitted)) ** other)
-                    / obs_in_sample
-                )
-                ** (1 / other)
-            )
+            return (
+                other
+                * np.sum(np.abs(complex_log(1 + errors / y_fitted)) ** other)
+                / obs_in_sample
+            ) ** (1 / other)
         else:  # "M"
             return (
-                other * np.sum(np.abs(safe_log(1 + errors)) ** other) / obs_in_sample
+                other * np.sum(np.abs(complex_log(1 + errors)) ** other) / obs_in_sample
             ) ** (1 / other)
 
     elif distribution == "dinvgauss":

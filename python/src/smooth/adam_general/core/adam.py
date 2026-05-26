@@ -2823,22 +2823,20 @@ class ADAM:
         X : NDArray or pd.DataFrame, optional
             External regressors, shape (len(ts), n_features).
         """
-        # Build orders dict for parameters_checker.
-        # ar_order/i_order/ma_order take priority; fall back to orders dict.
-        if any(param != 0 for param in [self.ar_order, self.i_order, self.ma_order]):
-            orders = {
-                "ar": self.ar_order,
-                "i": self.i_order,
-                "ma": self.ma_order,
-                "select": self.arima_select,
-            }
-        elif self._init_orders is not None:
-            orders = {
-                **self._init_orders,
-                "select": self._init_orders.get("select", self.arima_select),
-            }
-        else:
-            orders = None
+        # Build orders dict for parameters_checker via the shared precedence
+        # resolver in ``checker/arima_checks.py``:
+        # ``orders`` dict → wins (scalars ignored, warns if both supplied).
+        # ``ar_order``/``i_order``/``ma_order`` (any non-zero) → fixed orders.
+        # Otherwise → no ARIMA.
+        from smooth.adam_general.core.checker.arima_checks import resolve_arima_orders
+
+        orders, _ = resolve_arima_orders(
+            self._init_orders,
+            self.ar_order,
+            self.i_order,
+            self.ma_order,
+            arima_select=self.arima_select,
+        )
 
         result = parameters_checker(
             ts,
