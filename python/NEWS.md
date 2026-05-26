@@ -15,6 +15,9 @@ Changes:
 * `vcov`, `confint` and `summary` methods added to the `OM` and `OMG` classes, matching the R implementation. OMG uses a joint Fisher Information matrix and prefixes coefficient rows with `A:` / `B:` to identify the sub-model. `bootstrap=True` is reserved but not implemented yet.
 * `OM.coef_names` now returns the proper parameter names (`alpha`, `level`, …) instead of falling back to `b1, b2, …`. As a result, `OM.confint` correctly clamps lower bounds for persistence parameters (e.g. `alpha >= 0`) — previously the fallback names silently disabled the clamping.
 
+Bugfixes:
+* `OMG.fitted` (and `model_a.fitted`, `model_b.fitted`) now match R's `omg()` to machine precision on mixed-error scenarios (e.g. `ANA`/`MNM`). The Python OMG post-fit reconstruction was rebuilding the sub-model state-space matrices with the user-requested error/trend/season types (e.g. multiplicative for `MNM`), while R's `omgFinalFit` reuses the forced-additive matrices the joint optimiser saw. The combined link function applied to the rebuilt-multiplicative raw fits drifted from R by up to 5–10% on the probability scale. Python now mirrors R: shares the joint-optimisation matrices with each sub-model post-fit (`OMG._om_from_side`). Coefficients, log-likelihood and loss were already identical between the two implementations.
+
 
 ## v1.0.3 (Release date: 2026-05-11)
 
