@@ -61,18 +61,16 @@ COEF_RTOL = 1e-2
 COEF_ATOL = 1e-3
 # After aligning Python's FI computation with R (bounds="none" during the
 # Hessian, abs(diag(vcov)), proper B_names plumbed to OMG sub-models for
-# clamping), OMG agreement is ~1e-9 (machine precision). Standalone OM
-# scenarios still carry a ~10-15% residual on the Hessian — both call
-# pracma-style FD on the same cost function but the underlying C++ kernels
-# differ slightly in how perturbed-B propagation accumulates over the
-# series (one-step vs multi-step backcasting interaction). atol bands
-# absorb that residual; the OMG case still matches at machine precision.
-VCOV_RTOL = 0.30
-VCOV_ATOL = 1e-2
-SE_RTOL = 0.20
-SE_ATOL = 2e-2
-CI_RTOL = 0.10
-CI_ATOL = 5e-2
+# clamping) AND fixing R's vcov.om to preserve the original initialType
+# during its FI refit (R/om.R fitted-model intake — see comments there),
+# both OM and OMG now agree with R to machine precision (~1e-9 / 1e-17).
+# Tolerances reflect that: very tight, catching any future regression.
+VCOV_RTOL = 1e-4
+VCOV_ATOL = 1e-6
+SE_RTOL = 1e-4
+SE_ATOL = 1e-6
+CI_RTOL = 1e-4
+CI_ATOL = 1e-6
 
 
 @pytest.fixture(scope="module")
