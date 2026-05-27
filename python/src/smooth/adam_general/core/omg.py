@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import time
 import warnings
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 import nlopt
 import numpy as np
@@ -98,19 +98,29 @@ class OMG:
         h: int = 0,
         holdout: bool = False,
         initial: Union[str, Dict[str, Any]] = "backcasting",
-        loss: Literal["likelihood"] = "likelihood",
+        loss: Union[
+            Literal["likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE"],
+            Callable,
+        ] = "likelihood",
+        reg_lambda: Optional[float] = None,
         ic: Literal["AIC", "AICc", "BIC", "BICc"] = "AICc",
         bounds: Literal["usual", "admissible", "none"] = "usual",
         verbose: int = 0,
         nlopt_kargs: Optional[Dict[str, Any]] = None,
         ets: Literal["conventional", "adam"] = "conventional",
     ) -> None:
-        if loss != "likelihood":
-            # The joint cost for OMG is fixed at the Bernoulli log-likelihood
-            # on the combined probability; no other loss is supported.
+        # Accept callable for user-defined custom loss (same API as ADAM,
+        # mirrors R/adamGeneral.R:574-602): signature
+        # ``(actual, fitted, B) -> scalar``.
+        loss_function: Optional[Callable] = None
+        if callable(loss):
+            loss_function = loss
+            loss = "custom"  # type: ignore[assignment]
+        elif loss not in ("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE"):
             raise ValueError(
-                "OMG only supports loss='likelihood' (Bernoulli log-likelihood "
-                "on the combined probability)."
+                f"Invalid loss={loss!r}; expected one of "
+                "'likelihood', 'MSE', 'MAE', 'HAM', 'LASSO', 'RIDGE', "
+                "or a callable returning a scalar."
             )
 
         self.model_a_spec = model_a
@@ -136,6 +146,8 @@ class OMG:
         self.holdout = holdout
         self.initial = initial
         self.loss = loss
+        self.loss_function = loss_function
+        self.reg_lambda = reg_lambda
         self.ic = ic
         self.bounds = bounds
         self.verbose = verbose
@@ -203,6 +215,9 @@ class OMG:
                 observations_dict=side_a["observations_dict"],
                 bounds=self.bounds,
                 adam_ets=(self.ets == "adam"),
+                loss=self.loss,  # type: ignore[arg-type]
+                loss_function=self.loss_function,
+                reg_lambda=self.reg_lambda,
             )
         else:
             cf_value = self._optimise(B_used, lb, ub, side_a, side_b, n_params_a)
@@ -470,6 +485,9 @@ class OMG:
                 observations_dict=observations,
                 bounds="none",
                 adam_ets=adam_ets,
+                loss=self.loss,  # type: ignore[arg-type]
+                loss_function=self.loss_function,
+                reg_lambda=self.reg_lambda,
             )
 
         return numerical_hessian(_cost, self._B_joint, step_size=step_size)
@@ -651,7 +669,10 @@ class OMG:
             h=0,
             holdout=False,
             initial=self.initial,
-            loss=self.loss,
+            # Carry the callable through so bootstrap refits replay the
+            # same custom loss; otherwise the resolved string flag.
+            loss=self.loss_function if self.loss_function is not None else self.loss,
+            reg_lambda=self.reg_lambda,
             ic=self.ic,
             bounds=self.bounds,
             verbose=0,
@@ -980,6 +1001,9 @@ class OMG:
                     observations_dict=side_a["observations_dict"],
                     bounds=self.bounds,
                     adam_ets=_adam_ets,
+                    loss=self.loss,  # type: ignore[arg-type]
+                    loss_function=self.loss_function,
+                    reg_lambda=self.reg_lambda,
                 )
             except Exception:
                 cf = 1e100

@@ -79,7 +79,41 @@ class TestInit:
 
     def test_init_rejects_invalid_loss(self):
         with pytest.raises(ValueError, match="Invalid loss"):
-            OM(loss="HAM")
+            OM(loss="not-a-real-loss")
+
+
+# --------------------------------------------------------------------------
+# Loss menu (mirrors R `om()`'s full single-step menu + LASSO/RIDGE + custom)
+# --------------------------------------------------------------------------
+
+
+class TestLossMenu:
+    @pytest.mark.parametrize("loss", ["likelihood", "MSE", "MAE", "HAM"])
+    def test_string_losses_fit(self, intermittent_y, loss):
+        m = OM(model="MNN", occurrence="odds-ratio", loss=loss).fit(intermittent_y)
+        assert m.loss_ == loss
+        assert np.isfinite(m.loss_value)
+
+    @pytest.mark.parametrize("loss", ["LASSO", "RIDGE"])
+    def test_regularised_losses_fit(self, intermittent_y, loss):
+        m = OM(
+            model="MNN", occurrence="odds-ratio", loss=loss, reg_lambda=0.3
+        ).fit(intermittent_y)
+        assert m.loss_ == loss
+        assert np.isfinite(m.loss_value)
+        assert m.reg_lambda == 0.3
+
+    def test_custom_callable_loss(self, intermittent_y):
+        def cube_abs(actual, fitted, B):  # noqa: N803
+            import numpy as _np
+
+            return float(_np.sum(_np.abs(actual - fitted) ** 3))
+
+        m = OM(
+            model="MNN", occurrence="odds-ratio", loss=cube_abs
+        ).fit(intermittent_y)
+        assert m.loss_ == "custom"
+        assert np.isfinite(m.loss_value)
 
 
 # --------------------------------------------------------------------------

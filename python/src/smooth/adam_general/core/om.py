@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import time
 import warnings
-from typing import Any, Dict, List, Literal, Optional, Union, cast
+from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
 
 import nlopt
 import numpy as np
@@ -414,7 +414,11 @@ class OM(ADAM):
         # ``str`` (not just the OM_OCCURRENCE_OPTIONS literals) because ``__new__``
         # also routes "general"/"auto", and wrappers pass runtime-validated strings.
         occurrence: str = "odds-ratio",
-        loss: Literal["likelihood", "MSE"] = "likelihood",
+        loss: Union[
+            Literal["likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "custom"],
+            Callable,
+        ] = "likelihood",
+        reg_lambda: Optional[float] = None,
         h: int = 0,
         holdout: bool = False,
         # ``float`` permitted so the "fixed" occurrence path can set persistence=0.
@@ -440,8 +444,25 @@ class OM(ADAM):
                 f"Invalid occurrence={occurrence!r}; expected one of "
                 f"{list(_OCC_TO_CHAR)}."
             )
-        if loss not in ("likelihood", "MSE"):
-            raise ValueError(f"Invalid loss={loss!r}; expected 'likelihood' or 'MSE'.")
+        # Accept callable for a user-defined custom loss (signature
+        # ``(actual, fitted, B) -> scalar`` — same as ADAM, mirrors R's
+        # ``adamGeneral.R:574-602``). The callable flows through to
+        # ADAM's ``parameter_checks._check_distribution_and_loss`` which
+        # detects ``callable(loss)`` and sets the internal flag to
+        # ``"custom"`` while populating ``_general["loss_function"]``.
+        if not callable(loss) and loss not in (
+            "likelihood",
+            "MSE",
+            "MAE",
+            "HAM",
+            "LASSO",
+            "RIDGE",
+        ):
+            raise ValueError(
+                f"Invalid loss={loss!r}; expected one of "
+                "'likelihood', 'MSE', 'MAE', 'HAM', 'LASSO', 'RIDGE', "
+                "or a callable returning a scalar."
+            )
 
         # For "fixed" occurrence the model is forced to ANN with persistence
         # disabled and an analytic initial level.
@@ -460,7 +481,10 @@ class OM(ADAM):
             constant=constant,
             regressors=regressors,
             distribution="dnorm",
-            loss=loss,
+            # ADAM.__init__ types `loss` as a string Literal; the callable
+            # path is handled by ADAM's parameter_checks (which natively
+            # accepts callables and flips the internal flag to "custom").
+            loss=loss,  # type: ignore[arg-type]
             ic=ic,
             bounds=bounds,
             occurrence=occurrence,
@@ -474,6 +498,13 @@ class OM(ADAM):
             holdout=holdout,
             nlopt_kargs=nlopt_kargs,
             ets=ets,
+            reg_lambda=reg_lambda,
+            # ``reg_lambda`` is the user-facing name on OM (mirrors ADAM's
+            # public surface), but the cost function reads
+            # ``_general["lambda"]`` which is populated from
+            # ``lambda_param`` in ``parameters_checker``. Forward both so
+            # LASSO / RIDGE actually see the chosen weight.
+            lambda_param=reg_lambda,
             **kwargs,
         )
 
@@ -659,7 +690,15 @@ class OM(ADAM):
             "orders": self._init_orders,
             "constant": self.constant,
             "regressors": self.regressors,
-            "loss": self.loss,
+            # Carry the callable through ``_config`` so ``coefbootstrap``
+            # refits replay the same custom loss; otherwise the resolved
+            # string flag.
+            "loss": (
+                self._general.get("loss_function")
+                if self._general.get("loss") == "custom"
+                else self.loss
+            ),
+            "reg_lambda": self.reg_lambda,
             "ic": self.ic,
             "bounds": self.bounds,
             "occurrence": self._om_occurrence,
@@ -962,7 +1001,8 @@ class OM(ADAM):
 
         regressors = self._explanatory.get("regressors")
         # Mirror R: omCF receives `loss` separately; we store it in a dict for
-        # om_cf to read.
+        # om_cf to read. ``loss_function`` is already in ``_general`` from
+        # ADAM's checker when the user passes a callable.
         general_for_cf = dict(self._general)
         general_for_cf["loss"] = self._general.get("loss", "likelihood")
 

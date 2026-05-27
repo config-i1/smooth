@@ -317,3 +317,36 @@ test_that("vcov/confint/summary accept bootstrap=TRUE for omg", {
     expect_true(is.matrix(s$coefficientsA));
     expect_true(is.matrix(s$coefficientsB));
 })
+
+# ---------------------------------------------------------------------
+# Loss menu — single-step losses, LASSO / RIDGE with lambda, callable
+# (the joint omfitGeneral step still runs first; the loss decides the
+#  scalar handed to nloptr).
+# ---------------------------------------------------------------------
+
+test_that("omg() honours all single-step loss strings", {
+    set.seed(31); y <- rbinom(150, 1, 0.4)
+    for(L in c("likelihood", "MSE", "MAE", "HAM")){
+        m <- omg(y, modelA="ANN", modelB="ANN", loss=L)
+        expect_equal(m$loss, L)
+        expect_true(is.finite(m$lossValue))
+    }
+})
+
+test_that("omg() runs LASSO and RIDGE with explicit lambda", {
+    set.seed(31); y <- rbinom(150, 1, 0.4)
+    for(L in c("LASSO", "RIDGE")){
+        m <- omg(y, modelA="ANN", modelB="ANN", loss=L, lambda=0.3)
+        expect_equal(m$loss, L)
+        expect_true(is.finite(m$lossValue))
+    }
+})
+
+test_that("omg() accepts a callable for custom loss", {
+    set.seed(31); y <- rbinom(150, 1, 0.4)
+    my_loss <- function(actual, fitted, B) sum(abs(actual - fitted)^3)
+    m <- omg(y, modelA="ANN", modelB="ANN", loss=my_loss)
+    expect_equal(m$loss, "custom")
+    expect_true(is.function(m$lossFunction))
+    expect_true(is.finite(m$lossValue))
+})
