@@ -2723,6 +2723,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             #                         "complete"=,
             #                         "backcasting"="provided",
             #                         initialType);
+            # Two-stage is identical to optimal in B shape (initials are in B);
+            # the staged start is just a better seed for the optimiser, not a
+            # different parameterisation. Treat them identically inside the FI
+            # refit so the Hessian has the same dimensions and the same
+            # initial-state SE rows as the optimal path.
+            if(initialTypeFI == "two-stage"){
+                initialTypeFI <- "optimal";
+            }
             initialEstimateFI <- FALSE;
             # Define parameters just for FI calculation
             if(initialTypeFI=="provided"){
