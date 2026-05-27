@@ -31,6 +31,34 @@ from smooth.adam_general.core.utils.ic import ic_function
 from smooth.adam_general.core.utils.omg_cost import omg_cf, omg_link_function
 
 
+def _omg_refit_one_replicate(
+    y_raw: NDArray,
+    idx_matrix: NDArray,
+    clone_kwargs: Dict[str, Any],
+    k: int,
+    i: int,
+) -> Optional[NDArray]:
+    """Refit one OMG bootstrap replicate; return the joint coef vector or ``None``.
+
+    Module-level so it can be pickled by ``joblib.Parallel`` workers. ``i``
+    is the last positional argument so callers can bind everything else
+    with :func:`functools.partial`. The OMG class is resolved locally to
+    avoid pickling the class object itself.
+    """
+    y_boot = y_raw[idx_matrix[i]]
+    # Pathological draw (all zeros or all ones) → OMG cannot fit; skip.
+    if np.all(y_boot == 0) or np.all(y_boot != 0):
+        return None
+    try:
+        boot_model = OMG(**clone_kwargs).fit(y_boot)
+        boot_coef = np.asarray(boot_model.coef, dtype=float)
+    except Exception:
+        return None
+    if boot_coef.shape[0] != k or not np.all(np.isfinite(boot_coef)):
+        return None
+    return boot_coef
+
+
 class OMG:
     """General occurrence model — two parallel ETS sub-models combined.
 
@@ -459,7 +487,7 @@ class OMG:
         self._fi_cache = self._fisher_information_matrix()
         return self._fi_cache
 
-    def vcov(self, bootstrap: bool = False, step_size=None):
+    def vcov(self, bootstrap: bool = False, step_size=None, **boot_kwargs):
         """Joint variance–covariance matrix for both OMG sub-models.
 
         Mirrors R's ``vcov.omg``: inverts the joint observed FI, retrying with
@@ -469,9 +497,12 @@ class OMG:
         Parameters
         ----------
         bootstrap : bool, default=False
-            Not implemented for OMG yet.
+            If True, delegate to :meth:`coefbootstrap` and return the
+            empirical replicate covariance instead of the Fisher-based one.
         step_size : float, optional
             Finite-difference step for the Fisher Information.
+        **boot_kwargs
+            Forwarded to :meth:`coefbootstrap` when ``bootstrap=True``.
 
         Returns
         -------
@@ -483,9 +514,7 @@ class OMG:
         from smooth.adam_general.core.utils.var_covar import invert_fisher_information
 
         if bootstrap:
-            raise NotImplementedError(
-                "Bootstrap covariance is not yet implemented for OMG in Python."
-            )
+            return self.coefbootstrap(**boot_kwargs).vcov
 
         FI = np.asarray(self._fisher_information_matrix(step_size=step_size))  # noqa: N806
         broken = np.all(FI == 0, axis=1) | np.any(np.isnan(FI), axis=1)
@@ -506,6 +535,7 @@ class OMG:
         level: float = 0.95,
         bootstrap: bool = False,
         step_size=None,
+        **boot_kwargs,
     ):
         """Confidence intervals for the joint OMG parameters.
 
@@ -534,13 +564,16 @@ class OMG:
         import pandas as pd
         from scipy import stats as scipy_stats
 
-        if bootstrap:
-            raise NotImplementedError(
-                "Bootstrap confidence intervals are not yet implemented for OMG."
-            )
-
         names = self.coef_names
         params = np.asarray(self._B_joint, dtype=float)
+
+        if bootstrap:
+            from smooth.adam_general.core.utils.bootstrap import (
+                bootstrap_confint_frame,
+            )
+
+            boot = self.coefbootstrap(**boot_kwargs)
+            return bootstrap_confint_frame(boot, names, params, level, parm)
         n_a = int(self._n_params_a)
 
         V = self.vcov(step_size=step_size).to_numpy()  # noqa: N806
@@ -588,6 +621,156 @@ class OMG:
         from smooth.adam_general.core.utils.printing import OMGSummary
 
         return OMGSummary(self, level=level, digits=digits)
+
+    def _bootstrap_clone_kwargs(self) -> Dict[str, Any]:
+        """Snapshot the init kwargs needed to instantiate a fresh OMG for refit.
+
+        OMG stores its init args directly as instance attributes (no
+        ``_config`` dict), so we collect them explicitly. Kept private so the
+        bootstrap doesn't depend on the precise attribute names of OMG's
+        :meth:`__init__`.
+        """
+        return dict(
+            model_a=self.model_a_spec,
+            model_b=self.model_b_spec,
+            lags=self.lags,
+            orders_a=self.orders_a,
+            orders_b=self.orders_b,
+            constant_a=self.constant_a,
+            constant_b=self.constant_b,
+            formula_a=self.formula_a,
+            formula_b=self.formula_b,
+            regressors_a=self.regressors_a,
+            regressors_b=self.regressors_b,
+            persistence_a=self.persistence_a,
+            persistence_b=self.persistence_b,
+            phi_a=self.phi_a,
+            phi_b=self.phi_b,
+            arma_a=self.arma_a,
+            arma_b=self.arma_b,
+            h=0,
+            holdout=False,
+            initial=self.initial,
+            loss=self.loss,
+            ic=self.ic,
+            bounds=self.bounds,
+            verbose=0,
+            nlopt_kargs=self.nlopt_kargs,
+            ets=self.ets,
+        )
+
+    def coefbootstrap(
+        self,
+        nsim: int = 1000,
+        size: Optional[int] = None,
+        replace: bool = False,
+        prob: Optional[NDArray] = None,
+        parallel: Union[bool, int] = False,
+        method: str = "cr",
+        seed: Optional[int] = None,
+        verbose: bool = False,
+    ):
+        """Bootstrap the joint OMG coefficient sampling distribution.
+
+        Mirrors R's ``coefbootstrap.omg`` (R/omg.R:1401-1600): case-resamples
+        the raw input series, refits the joint OMG on each replicate, and
+        stacks the prefixed ``A:`` / ``B:`` coefficient vectors.
+
+        ``parallel=True`` (or ``parallel=<int>``) runs replicates in
+        parallel via ``joblib.Parallel`` (``cpu_count - 1`` workers by
+        default, or the supplied integer). Requires the optional
+        ``joblib`` dependency; if unavailable, a warning is emitted and
+        the call falls back to serial. See
+        :meth:`smooth.adam_general.core.adam.ADAM.coefbootstrap` for the
+        full parameter documentation; the OMG version takes the same
+        signature and returns the same
+        :class:`~smooth.adam_general.core.utils.bootstrap.BootstrapResult`.
+        """
+        import time as _time
+        from functools import partial
+
+        from smooth.adam_general.core.utils.bootstrap import (
+            _build_result,
+            case_resample_indices,
+            run_replicates,
+            time_series_sample_indices,
+        )
+
+        if method not in ("cr", "dsr"):
+            raise ValueError(f"method must be 'cr' or 'dsr', got {method!r}.")
+        if method == "dsr":
+            raise NotImplementedError(
+                "method='dsr' requires greybox.dsrboot which is not yet "
+                "available in Python; use method='cr'."
+            )
+        any_regressors = self.regressors_a or self.regressors_b
+        if any_regressors and (self.formula_a or self.formula_b):
+            raise NotImplementedError(
+                "coefbootstrap does not yet support OMG models with external "
+                "regressors. File an issue if you need this."
+            )
+
+        y_raw = np.asarray(self._y_raw, dtype=float)
+        nobs = int(y_raw.size)
+        if size is None:
+            size = max(int(np.floor(0.75 * nobs)), 1)
+        size = int(size)
+        if size < 2:
+            raise ValueError(f"size={size} too small; need at least 2 observations.")
+
+        rng = np.random.default_rng(seed)
+        original_coef_names = list(self.coef_names)
+        k = len(original_coef_names)
+        clone_kwargs = self._bootstrap_clone_kwargs()
+
+        # Match R's coefbootstrap.omg sampler (omg.R:1496-1508): variable-
+        # length contiguous-window resampling. obs_minimum uses max(lags)
+        # across both sub-models — for OMG we use ``self.lags`` if set
+        # else 1.
+        lags = self.lags if self.lags else [1]
+        max_lag = int(np.max(lags)) if len(lags) else 1
+        obs_minimum = max(max_lag, k) + 2
+        if obs_minimum >= nobs:
+            raise ValueError(
+                f"Not enough observations to do case-resampling bootstrap "
+                f"(obs_minimum={obs_minimum}, nobs={nobs})."
+            )
+        initial_is_window = isinstance(self.initial, str) and self.initial in (
+            "backcasting",
+            "complete",
+        )
+        change_origin = initial_is_window
+        if replace or prob is not None:
+            idx_list = list(case_resample_indices(nobs, size, nsim, replace, prob, rng))
+        else:
+            idx_list = time_series_sample_indices(
+                nobs, nsim, obs_minimum, change_origin, rng
+            )
+
+        worker = partial(_omg_refit_one_replicate, y_raw, idx_list, clone_kwargs, k)
+
+        t0 = _time.time()
+        replicate_coefs, parallel_used = run_replicates(
+            worker,
+            nsim=nsim,
+            parallel=parallel,
+            verbose=verbose,
+            label="coefbootstrap[omg]",
+        )
+        elapsed = _time.time() - t0
+
+        return _build_result(
+            replicate_coefs,
+            original_coef_names,
+            method=method,
+            nsim=nsim,
+            size=size,
+            replace=replace,
+            prob=prob,
+            parallel=parallel_used,
+            model="omg",
+            time_elapsed=elapsed,
+        )
 
     # ---------------------------------------------------------------------
     # Internals — building the per-side scaffolding

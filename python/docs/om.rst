@@ -68,13 +68,12 @@ actuals semantics
   series passed to ``fit``. Mirrors ``OM.actuals`` and R's ``actuals.omg``.
 - ``OMG.model_a.actuals`` / ``OMG.model_b.actuals`` return the **latent
   unobservable** value the sub-model was implicitly fitting before the link
-  function, *not* the binary indicator:
-
-  - ``Etype="A"``: ``fitted + residuals``
-  - ``Etype="M"``: ``fitted * (1 + residuals)``
-
-  This is the reconstruction useful for diagnosing the sub-model in isolation
-  (e.g. inspecting how well its continuous component fits its target).
+  function, *not* the binary indicator: ``fitted + residuals``. OM stores
+  residuals additively (``ot - fitted``) regardless of error type, so the
+  same formula recovers the latent value for both ``Etype="A"`` and
+  ``Etype="M"`` sub-models. This is the reconstruction useful for diagnosing
+  the sub-model in isolation (e.g. inspecting how well its continuous
+  component fits its target).
 
 AutoOM
 ------

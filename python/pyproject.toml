@@ -42,6 +42,7 @@ dev = [
     "ipython>=8.0.0"
 ]
 r = ["rpy2>=3.5.0"]
+parallel = ["joblib>=1.3"]
 
 [tool.scikit-build]
 # wheel.expand-macos-universal-tags = true

@@ -76,6 +76,44 @@ class OutlierDummy:
     type: str  # "rstandard" or "rstudent"
 
 
+def _adam_refit_one_replicate(
+    actuals: NDArray,
+    idx_matrix: NDArray,
+    refit_cls_name: str,
+    model_spec: Any,
+    refit_kwargs: Dict[str, Any],
+    k: int,
+    include_model_kwarg: bool,
+    i: int,
+) -> Optional[NDArray]:
+    """Refit one bootstrap replicate; return the coef vector or ``None``.
+
+    Module-level so it can be pickled and sent to ``joblib.Parallel``
+    workers. The class is resolved by name inside the worker (a local
+    import) instead of pickling the class object itself — keeps the
+    pickled payload small and avoids any class-identity issues across
+    interpreters. ``i`` is the *last* positional argument so callers can
+    bind everything else with :func:`functools.partial` and pass the
+    integer index as the call site.
+    """
+    from smooth.adam_general.core.om import OM as _OM
+
+    refit_cls = _OM if refit_cls_name == "OM" else ADAM
+    y_boot = actuals[idx_matrix[i]]
+    try:
+        if include_model_kwarg:
+            boot_model = refit_cls(model=model_spec, **refit_kwargs)
+        else:
+            boot_model = refit_cls(**refit_kwargs)
+        boot_model.fit(y_boot)
+        boot_coef = np.asarray(boot_model.coef, dtype=float)
+    except Exception:
+        return None
+    if boot_coef.shape[0] != k or not np.all(np.isfinite(boot_coef)):
+        return None
+    return boot_coef
+
+
 class ADAM:
     """
     ADAM: Augmented Dynamic Adaptive Model for Time Series Forecasting.
@@ -3989,7 +4027,7 @@ class ADAM:
             ),
         )
 
-    def vcov(self, bootstrap=False, heuristics=None, step_size=None):
+    def vcov(self, bootstrap=False, heuristics=None, step_size=None, **boot_kwargs):
         """Variance-covariance matrix of the estimated parameters.
 
         Mirrors R's ``vcov.adam``: inverts the observed Fisher Information,
@@ -3999,11 +4037,15 @@ class ADAM:
         Parameters
         ----------
         bootstrap : bool, default=False
-            Not yet supported in Python (no ``coefbootstrap`` for ADAM).
+            If True, delegate to :meth:`coefbootstrap` and return the
+            empirical replicate covariance instead of the Fisher-based one.
         heuristics : float, optional
             If given, returns ``diag(abs(coef) * heuristics)``.
         step_size : float, optional
             Finite-difference step for the Fisher Information.
+        **boot_kwargs
+            Forwarded to :meth:`coefbootstrap` when ``bootstrap=True``
+            (``nsim``, ``size``, ``replace``, ``method``, ``seed``, …).
 
         Returns
         -------
@@ -4018,9 +4060,7 @@ class ADAM:
         names = self.coef_names
 
         if bootstrap:
-            raise NotImplementedError(
-                "bootstrap covariance is not yet implemented for ADAM in Python."
-            )
+            return self.coefbootstrap(**boot_kwargs).vcov
 
         if heuristics is not None:
             cov = np.diag(np.abs(np.asarray(self.coef, dtype=float)) * heuristics)
@@ -4058,14 +4098,32 @@ class ADAM:
             return n_ets + n_arima + i
         raise ValueError(f"Unknown persistence parameter: {name}")
 
-    def confint(self, parm=None, level=0.95, step_size=None):
+    def confint(
+        self, parm=None, level=0.95, bootstrap=False, step_size=None, **boot_kwargs
+    ):
         """Confidence intervals for the estimated parameters.
 
         Mirrors R's ``confint.adam``: standard errors from :meth:`vcov`,
         t-interval half-widths (with R's asymmetric degrees of freedom), then
         clamping to the admissible region for ETS smoothing parameters
         (``bounds="usual"`` or ``"admissible"``), multiplicative initial states,
-        and ARIMA AR/MA parameters.
+        and ARIMA AR/MA parameters. With ``bootstrap=True`` the intervals are
+        the empirical quantiles of the replicate matrix returned by
+        :meth:`coefbootstrap` (no clamping / no t-quantile).
+
+        Parameters
+        ----------
+        parm : str or sequence of str, optional
+            Subset of names to return.
+        level : float, default=0.95
+            Confidence level.
+        bootstrap : bool, default=False
+            Switch to empirical-quantile intervals via :meth:`coefbootstrap`.
+        step_size : float, optional
+            Finite-difference step forwarded to :meth:`vcov` for the
+            Fisher-based path. Ignored when ``bootstrap=True``.
+        **boot_kwargs
+            Forwarded to :meth:`coefbootstrap` (``nsim``, ``size``, …).
 
         Returns
         -------
@@ -4077,6 +4135,14 @@ class ADAM:
         self._check_is_fitted()
         names = self.coef_names
         params = np.asarray(self.coef, dtype=float)
+
+        if bootstrap:
+            from smooth.adam_general.core.utils.bootstrap import (
+                bootstrap_confint_frame,
+            )
+
+            boot = self.coefbootstrap(**boot_kwargs)
+            return bootstrap_confint_frame(boot, names, params, level, parm)
 
         V = self.vcov(step_size=step_size).to_numpy()
         se = np.sqrt(np.abs(np.diag(V)))
@@ -4273,6 +4339,206 @@ class ADAM:
 
         self._check_is_fitted()
         return ADAMSummary(self, level=level, digits=digits)
+
+    def coefbootstrap(
+        self,
+        nsim: int = 1000,
+        size: Optional[int] = None,
+        replace: bool = False,
+        prob: Optional[NDArray] = None,
+        parallel: Union[bool, int] = False,
+        method: str = "cr",
+        seed: Optional[int] = None,
+        verbose: bool = False,
+    ):
+        """Bootstrap the coefficient sampling distribution by refitting subsamples.
+
+        Mirrors R's ``coefbootstrap.adam`` (R/adam.R:4850-5113). Draws ``nsim``
+        case-resamples of the in-sample series, refits the same model on each,
+        and returns the empirical covariance / replicate matrix. The dispatch
+        in :meth:`vcov` and :meth:`confint` forwards ``bootstrap=True`` here.
+
+        Parameters
+        ----------
+        nsim : int, default=1000
+            Number of bootstrap replicates.
+        size : int, optional
+            Subsample size per replicate. Defaults to ``floor(0.75 * nobs)``,
+            matching R.
+        replace : bool, default=False
+            Resample with replacement.
+        prob : array-like, optional
+            Sampling probabilities per observation (uniform if ``None``).
+        parallel : bool or int, default=False
+            ``True`` runs replicates in parallel via ``joblib.Parallel``
+            (``cpu_count - 1`` workers). An integer specifies the exact
+            worker count. Requires the optional ``joblib`` dependency
+            (``pip install joblib`` or ``pip install "smooth[parallel]"``);
+            if ``joblib`` is not importable, a one-line warning is emitted
+            and the call falls back to a serial loop.
+        method : {"cr", "dsr"}, default="cr"
+            ``"cr"`` is case resampling (the implemented path). ``"dsr"``
+            (data-shape replication, R's ``greybox::dsrboot``) raises
+            ``NotImplementedError``.
+        seed : int, optional
+            Seed for the :class:`numpy.random.Generator` used to draw indices.
+            Makes the result reproducible (same indices in serial and
+            parallel modes — the optimiser is deterministic given a fixed
+            sample).
+        verbose : bool, default=False
+            Print a one-line progress message every 10% of replicates (in
+            parallel mode, forwards ``verbose=10`` to ``joblib.Parallel``).
+
+        Returns
+        -------
+        smooth.adam_general.core.utils.bootstrap.BootstrapResult
+            Container with ``.vcov``, ``.coefficients``, ``.method``,
+            ``.nsim``, ``.nsim_effective``, ``.size``, ``.time_elapsed``, …
+            Mirrors R's ``"bootstrap"`` S3 class. ``.parallel`` reflects
+            whether parallel execution actually ran (``False`` when we
+            fell back due to a missing ``joblib``).
+
+        Notes
+        -----
+        Replicates whose refit fails (non-convergence, mismatched parameter
+        count) are dropped silently; ``result.nsim_effective`` reports the
+        count that contributed to the variance estimate.
+
+        Bootstrap on a model with external regressors (``X``) is not yet
+        supported and will raise.
+
+        Examples
+        --------
+        >>> m = ADAM(model="ANN").fit(y)
+        >>> b = m.coefbootstrap(nsim=50, seed=42)
+        >>> b.vcov.shape
+        (1, 1)
+        """
+        import time as _time
+        from functools import partial
+
+        from smooth.adam_general.core.utils.bootstrap import (
+            _build_result,
+            case_resample_indices,
+            run_replicates,
+            time_series_sample_indices,
+        )
+
+        self._check_is_fitted()
+
+        if method not in ("cr", "dsr"):
+            raise ValueError(f"method must be 'cr' or 'dsr', got {method!r}.")
+        if method == "dsr":
+            raise NotImplementedError(
+                "method='dsr' requires greybox.dsrboot which is not yet "
+                "available in Python; use method='cr'."
+            )
+        if self._explanatory.get("xreg_model", False):
+            raise NotImplementedError(
+                "coefbootstrap does not yet support models with external "
+                "regressors (X). File an issue if you need this."
+            )
+
+        nobs = int(self.nobs)
+        if size is None:
+            size = max(int(np.floor(0.75 * nobs)), 1)
+        size = int(size)
+        if size < 2:
+            raise ValueError(f"size={size} too small; need at least 2 observations.")
+
+        rng = np.random.default_rng(seed)
+        initial_type = (
+            (self._initials or {}).get("initial_type")
+            if hasattr(self, "_initials")
+            else None
+        )
+        original_coef_names = list(self.coef_names)
+        k = len(original_coef_names)
+        model_spec = self._model_type.get("model", self.model)
+
+        # R's sampler picks variable-length contiguous windows for
+        # time-series models. ``size`` is honoured only on the
+        # ``regressionPure`` path (none of the supported Python models
+        # currently exercise that path — pure-regression ADAM is a future
+        # feature). For now, always use the time-series sampler.
+        lags = (
+            self._lags_model.get("lags_model_all", [1])
+            if hasattr(self, "_lags_model")
+            else [1]
+        )
+        max_lag = int(np.max(lags)) if len(lags) else 1
+        # Match R: obsMinimum = max(lags, nVariables) + 2.
+        obs_minimum = max(max_lag, k) + 2
+        if obs_minimum >= nobs:
+            raise ValueError(
+                f"Not enough observations to do case-resampling bootstrap "
+                f"(obs_minimum={obs_minimum}, nobs={nobs}). R warns and "
+                "falls back to method='dsr' here, which is not yet ported."
+            )
+        change_origin = initial_type in ("backcasting", "complete")
+        if replace or prob is not None:
+            # User explicitly asked for iid-style sampling; honour it.
+            idx_list = list(case_resample_indices(nobs, size, nsim, replace, prob, rng))
+        else:
+            idx_list = time_series_sample_indices(
+                nobs, nsim, obs_minimum, change_origin, rng
+            )
+
+        # OM has its own ``_config`` shape (already includes ``model`` and
+        # the occurrence flag) and must round-trip through ``OM.fit`` to
+        # rebuild the occurrence machinery — refitting as a plain ADAM
+        # would ignore the occurrence model. ADAM (and ES/MSARIMA, which
+        # inherit) use the plain ADAM path.
+        from smooth.adam_general.core.om import OM
+
+        if isinstance(self, OM):
+            refit_cls_name = "OM"
+            refit_kwargs = {key: value for key, value in self._config.items()}
+            include_model_kwarg = False  # already inside ``_config``
+        else:
+            refit_cls_name = "ADAM"
+            refit_kwargs = {key: value for key, value in self._config.items()}
+            include_model_kwarg = True
+        refit_kwargs["holdout"] = False
+        refit_kwargs.setdefault("verbose", 0)
+
+        actuals = np.asarray(self.actuals, dtype=float)
+
+        # ``functools.partial`` over the top-level worker is picklable —
+        # joblib needs that. Same callable works in serial mode too.
+        worker = partial(
+            _adam_refit_one_replicate,
+            actuals,
+            idx_list,
+            refit_cls_name,
+            model_spec,
+            refit_kwargs,
+            k,
+            include_model_kwarg,
+        )
+
+        t0 = _time.time()
+        replicate_coefs, parallel_used = run_replicates(
+            worker,
+            nsim=nsim,
+            parallel=parallel,
+            verbose=verbose,
+            label="coefbootstrap",
+        )
+        elapsed = _time.time() - t0
+
+        return _build_result(
+            replicate_coefs,
+            original_coef_names,
+            method=method,
+            nsim=nsim,
+            size=size,
+            replace=replace,
+            prob=prob,
+            parallel=parallel_used,
+            model=str(model_spec),
+            time_elapsed=elapsed,
+        )
 
     def plot(  # noqa: B006
         self,

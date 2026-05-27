@@ -1353,19 +1353,15 @@ class OM(ADAM):
         :class:`~smooth.adam_general.core.omg.OMG` (flag
         ``_is_omg_submodel`` set by ``OMG._om_from_side``), returns the
         latent unobservable value the sub-model was implicitly fitting:
-
-        - ``Etype="A"``: ``fitted + residuals``
-        - ``Etype="M"``: ``fitted * (1 + residuals)``
-
-        Mirrors R's ``actuals.om`` / ``actuals.omg_submodel`` dispatch.
+        ``fitted + residuals`` — mirrors R's ``actuals.omg_submodel``
+        (R/omg.R:1748-1756). OM stores residuals additively
+        (``ot - fitted``) regardless of error type, so the same formula
+        recovers the latent value for both ``Etype="A"`` and ``Etype="M"``.
         """
         self._check_is_fitted()
         if getattr(self, "_is_omg_submodel", False):
             fitted = np.asarray(self.fitted, dtype=float)
             residuals = np.asarray(self.residuals, dtype=float)
-            error_type = self._model_type.get("error_type", "A")
-            if error_type == "M":
-                return fitted * (1.0 + residuals)
             return fitted + residuals
         return np.asarray(self._observations["ot"], dtype=float)
 

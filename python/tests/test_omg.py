@@ -427,13 +427,14 @@ class TestInferenceMethods:
         assert (ci["S.E."] >= 0).all()
         assert (ci["2.5%"] <= ci["97.5%"]).all()
 
-    def test_confint_bootstrap_not_implemented(self, fitted_omg):
-        with pytest.raises(NotImplementedError):
-            fitted_omg.confint(bootstrap=True)
+    def test_confint_bootstrap_dispatches(self, fitted_omg):
+        ci = fitted_omg.confint(bootstrap=True, nsim=10, seed=42)
+        assert ci.columns.tolist() == ["S.E.", "2.5%", "97.5%"]
 
-    def test_vcov_bootstrap_not_implemented(self, fitted_omg):
-        with pytest.raises(NotImplementedError):
-            fitted_omg.vcov(bootstrap=True)
+    def test_vcov_bootstrap_dispatches(self, fitted_omg):
+        v = fitted_omg.vcov(bootstrap=True, nsim=10, seed=42)
+        k = len(fitted_omg.coef_names)
+        assert v.shape == (k, k)
 
     def test_summary_contains_block_markers(self, fitted_omg):
         text = str(fitted_omg.summary())
