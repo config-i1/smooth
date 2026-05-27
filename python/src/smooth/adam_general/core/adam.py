@@ -1021,6 +1021,18 @@ class ADAM:
 
         This follows scikit-learn conventions for fitted attributes.
         """
+        # Distribution-specific extra parameter — mirrors R's ``m$other``.
+        # For ``dgnorm`` / ``dlgnorm`` the estimated shape lives on
+        # ``self.gnorm_shape`` (set in ``_execute_estimation`` at the line
+        # ``self.gnorm_shape = float(abs(self._adam_estimated["B"][-1]))``).
+        # Exposing it under the same key as R lets ``_format_distribution``
+        # render ``"Generalised Normal with shape=2.4791"`` in ``print(m)``
+        # and ``m.summary()`` instead of ``shape=?``.
+        dist = self._general.get("distribution", "dnorm") if self._general else "dnorm"
+        gnorm_shape = getattr(self, "gnorm_shape", None)
+        if dist in ("dgnorm", "dlgnorm") and gnorm_shape is not None:
+            self.other = {"shape": float(gnorm_shape)}
+
         # Set persistence parameters (pre-estimation values for provided params)
         if self._persistence:
             if "persistence_level" in self._persistence:

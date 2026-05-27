@@ -874,7 +874,17 @@ def initialiser(
         j += 1
         B[j - 1] = other_value
         names.append("other")
-        Bl[j - 1] = 0.25  # penalty kicks in below 0.25 (cost_functions.py:323)
+        # Match R's `adam_checkOptimizer` (R/utils-adam.R:241ff) which uses a
+        # near-zero lower bound on the distribution shape parameter. A
+        # tighter bound (we previously used 0.25) changes NLopt's bounded
+        # initial simplex even when the boundary is never active at the
+        # optimum, which made Python's Nelder-Mead land in a different
+        # local minimum than R's nloptr on the same cost surface (e.g.
+        # AirPassengers with model="MAM", distribution="dgnorm"). The
+        # soft penalty for shape < 0.25 in ``cost_functions.py`` still
+        # protects against the genuinely-pathological region where the
+        # density becomes too peaked.
+        Bl[j - 1] = 1e-10
         Bu[j - 1] = np.inf
     return {"B": B, "Bl": Bl, "Bu": Bu, "names": names}
 
