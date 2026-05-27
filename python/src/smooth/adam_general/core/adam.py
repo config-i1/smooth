@@ -78,7 +78,7 @@ class OutlierDummy:
 
 def _adam_refit_one_replicate(
     actuals: NDArray,
-    idx_matrix: NDArray,
+    idx_matrix: Union[NDArray, list[NDArray]],
     refit_cls_name: str,
     model_spec: Any,
     refit_kwargs: Dict[str, Any],

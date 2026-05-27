@@ -33,7 +33,7 @@ from smooth.adam_general.core.utils.omg_cost import omg_cf, omg_link_function
 
 def _omg_refit_one_replicate(
     y_raw: NDArray,
-    idx_matrix: NDArray,
+    idx_matrix: Union[NDArray, list[NDArray]],
     clone_kwargs: Dict[str, Any],
     k: int,
     i: int,

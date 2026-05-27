@@ -278,17 +278,18 @@ def run_replicates(
             )
             use_parallel = False
 
+    replicate_coefs: list[NDArray] = []
+
     if use_parallel:
         n_jobs = _resolve_n_jobs(parallel, nsim)
         joblib_verbose = 10 if verbose else 0
         results = Parallel(n_jobs=n_jobs, backend="loky", verbose=joblib_verbose)(
             delayed(fn)(i) for i in range(nsim)
         )
-        replicate_coefs = [r for r in results if r is not None]
+        replicate_coefs.extend(r for r in results if r is not None)
         return replicate_coefs, True
 
     # Serial path
-    replicate_coefs: list[NDArray] = []
     log_every = max(1, nsim // 10) if verbose else None
     for i in range(nsim):
         r = fn(i)
