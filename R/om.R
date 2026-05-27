@@ -167,9 +167,27 @@ om <- function(data,
         return(result)
     }
     occurrenceType <- occurrence;
-    loss <- match.arg(loss);
+    # Custom callable loss — same convention as adam() (R/adamGeneral.R:574-602):
+    # flip the string flag to "custom" and stash the function for the cost
+    # dispatch. Use a uniquely-named slot so the later
+    # ``list2env(checkerReturn, ...)`` blast doesn't overwrite the closure
+    # with the NULL ``lossFunction`` produced by ``commonParametersChecker``
+    # (which sees the string ``"custom"`` and has no callable to capture).
+    if(is.function(loss)){
+        omUserLossFunction <- loss;
+        loss <- "custom";
+    }
+    else {
+        omUserLossFunction <- NULL;
+        loss <- match.arg(loss);
+    }
     ic <- match.arg(ic);
     bounds <- match.arg(bounds);
+
+    # Regularisation weight — mirrors adam()'s LASSO/RIDGE convention
+    # (passed via ellipsis in adam(); promoted to a first-class arg here
+    # for clarity).
+    lambda <- if(is.null(ellipsis$lambda)) 0 else as.numeric(ellipsis$lambda);
     # `regressors` is resolved earlier (above the auto.om/omg forwarding
     # blocks) — no need to repeat.
     ets <- match.arg(ets);
@@ -354,6 +372,12 @@ om <- function(data,
     }
 
     list2env(checkerReturn, envir=environment());
+    # ``commonParametersChecker`` resets ``lossFunction`` to ``NULL`` for a
+    # string-valued loss; restore the user-provided callable captured above
+    # so the optimiser-side cost dispatch can call it.
+    if(loss == "custom"){
+        lossFunction <- omUserLossFunction;
+    }
 
     # Delegate ARIMA order selection to auto.om() with the current occurrence type.
     if(is.list(orders) && !is.null(orders$select) && isTRUE(orders$select)){
@@ -654,7 +678,8 @@ om <- function(data,
             ot=ot, otLogical=otLogical, obsInSample=obsInSample,
             nIterations=nIterations, refineHead=refineHead,
             occurrence=occurrence, occurrenceChar=occurrenceChar,
-            adamCpp=adamCpp);
+            adamCpp=adamCpp,
+            lambda=lambda, lossFunction=lossFunction);
 
         # If there is nothing to estimate (e.g. a degenerate/tiny sample where
         # the initialiser produced an empty parameter vector), skip nloptr —
@@ -1693,7 +1718,8 @@ omCF_local <- function(B,
                        ot, otLogical, obsInSample,
                        nIterations, refineHead,
                        occurrence, occurrenceChar,
-                       adamCpp){
+                       adamCpp,
+                       lambda = 0, lossFunction = NULL){
     adamElements <- adam_filler(B,
                                 etsModel, Etype, Ttype, Stype,
                                 modelIsTrendy, modelIsSeasonal,
@@ -1742,11 +1768,43 @@ omCF_local <- function(B,
     if(any(is.nan(yFitted)) || any(yFitted<0) || any(yFitted>1)){
         return(1e+300);
     }
-    if(loss == "likelihood"){
+    # Loss dispatch — mirrors R/adam.R:885-940 single-step block. ``errors``
+    # are on the probability scale (``ot - yFitted``) since the OM target is
+    # binary. The LASSO/RIDGE branch follows the same penalty structure as
+    # adam() (R/adam.R:894-937).
+    errors <- as.numeric(ot) - yFitted;
+    if(loss == "custom"){
+        CFValue <- lossFunction(actual=as.numeric(ot), fitted=yFitted, B=B);
+    }
+    else if(loss == "likelihood"){
         CFValue <- -(sum(log(yFitted[otLogical])) + sum(log(1 - yFitted[!otLogical])));
     }
-    else{
-        CFValue <- mean((as.numeric(ot) - yFitted)^2);
+    else if(loss == "MSE"){
+        CFValue <- mean(errors^2);
+    }
+    else if(loss == "MAE"){
+        CFValue <- mean(abs(errors));
+    }
+    else if(loss == "HAM"){
+        CFValue <- mean(sqrt(abs(errors)));
+    }
+    else if(any(loss == c("LASSO","RIDGE"))){
+        # Trim initials out of B for the penalty — same convention as
+        # adam() (R/adam.R:897-916). For non-ARIMA OM the typical B is just
+        # the persistence; we keep that intact and drop nothing if there
+        # are no initials in B.
+        BPenalty <- B;
+        errorTerm <- (1 - lambda) * sqrt(mean(errors^2));
+        if(loss == "LASSO"){
+            CFValue <- errorTerm + lambda * sum(abs(BPenalty));
+        } else {
+            CFValue <- errorTerm + lambda * sqrt(sum(BPenalty^2));
+        }
+    }
+    else {
+        # Fallback to MSE — preserves the pre-existing behaviour for any
+        # unknown loss string that match.arg didn't catch upstream.
+        CFValue <- mean(errors^2);
     }
     return(CFValue)
 }
