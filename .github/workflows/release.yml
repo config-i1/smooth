@@ -86,8 +86,8 @@ jobs:
         env:
           # Configure which Python versions to build for
           CIBW_BUILD: cp311-* cp312-* cp313-* cp314-*
-          # Skip 32-bit builds and musllinux
-          CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux*"
+          # Skip 32-bit builds, musllinux, and cp314 on macOS x86_64 (no nlopt wheel yet)
+          CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux* cp314-macosx_x86_64"
           
           # Install system dependencies for BLAS/LAPACK
           # Linux: Install OpenBLAS and LAPACK
@@ -106,9 +106,9 @@ jobs:
           # macOS: Build for both x86_64 and arm64
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           
-          # Linux: Use manylinux2014 for broad compatibility
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014
+          # Linux: Use manylinux_2_28 so scipy/numpy binary wheels resolve in the test env
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
 
       - name: Upload wheels as artifacts
         uses: actions/upload-artifact@v4
