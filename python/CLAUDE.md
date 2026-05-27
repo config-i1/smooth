@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Always update `python/NEWS.md` after changing Python code
+
+When you make a user-visible change to the Python package — new feature, bugfix,
+dependency change, API change, supported-version change — add an entry under the
+current unreleased version in `python/NEWS.md`. If no unreleased section exists
+yet, create one above the latest released version. Keep entries terse and grouped
+under `Changes:` / `Bugfixes:`, matching the existing style.
+
+Skip the changelog only for: pure refactors with no behaviour change, comment/doc
+typo fixes, and edits to test files that don't change tested behaviour. When in
+doubt, add the entry.
+
 ## Never add a `frequency` parameter
 
 Do not add a `frequency` (or `period`, `seasonality`, or any equivalent) parameter

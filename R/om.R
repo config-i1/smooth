@@ -99,10 +99,28 @@ om <- function(data,
         if(is.null(formula)){
             formula <- formula(model);
         }
-        profilesRecentTable    <- model$profileInitial;
-        profilesRecentProvided <- TRUE;
         regressors   <- model$regressors;
         initialType  <- model$initialType;
+        # When the original fit used backcasting / complete, the FI must be
+        # computed on the SAME objective the optimiser saw — backcasting
+        # active, ``nIterations=2``, and initials derived from the data by
+        # the C++ kernel. Pass the type as a STRING to parametersChecker so
+        # it keeps all ``initial*Estimate=TRUE`` flags and lets
+        # ``adam_creator`` seed ``matVt`` from the data; ``adam_cpp$fit``
+        # then runs backcasting cleanly. Pinning the converged
+        # ``model$profileInitial`` as the recent profile while telling C++
+        # to backcast produces NaN in fitted values (the two seeds disagree).
+        # For ``optimal`` / ``provided`` fits, the converged numeric initials
+        # ARE the correct seed, so keep the original behaviour for that case.
+        if(any(model$initialType == c("backcasting","complete"))){
+            initial                <- model$initialType;
+            profilesRecentTable    <- NULL;
+            profilesRecentProvided <- FALSE;
+        }
+        else{
+            profilesRecentTable    <- model$profileInitial;
+            profilesRecentProvided <- TRUE;
+        }
         # NOTE: do NOT propagate model$ets — that is the etsModel boolean
         # flag, not the om() `ets` argument (which is a character of
         # c("conventional","adam")). Leave `ets` at the user's default.
@@ -1415,8 +1433,8 @@ om <- function(data,
                     return(val);
                 }
                 FIMatrixUse <- try(suppressWarnings(
-                                       pracma::hessian(omCF_for_FI, B_for_FI,
-                                                       h=stepSize)),
+                                       hessianCpp(omCF_for_FI, B_for_FI,
+                                                  h=stepSize)),
                                    silent=TRUE);
                 if(inherits(FIMatrixUse, "try-error") ||
                    any(!is.finite(FIMatrixUse))){

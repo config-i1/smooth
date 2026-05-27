@@ -50,6 +50,9 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.13"
             cibw-build: "cp313-manylinux*"
+          - os: ubuntu-latest
+            python-version: "3.14"
+            cibw-build: "cp314-manylinux*"
           # macOS
           - os: macos-latest
             python-version: "3.11"
@@ -65,7 +68,7 @@ jobs:
           submodules: recursive
 
       - name: Build and test with cibuildwheel
-        uses: pypa/cibuildwheel@v2.21
+        uses: pypa/cibuildwheel@v3.1
         with:
           package-dir: python
           output-dir: wheelhouse

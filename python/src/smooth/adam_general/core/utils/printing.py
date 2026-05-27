@@ -1088,3 +1088,123 @@ class ADAMSummary:
 
     def __repr__(self) -> str:
         return self._render()
+
+
+class OMSummary(ADAMSummary):
+    """Coefficient-table summary for the OM (occurrence) model.
+
+    Same content as :class:`ADAMSummary`, with an ``"Occurrence model"`` line
+    prepended to the printed report — mirrors R's ``summary.om`` wrapper.
+    """
+
+    def _render(self) -> str:
+        return "Occurrence model\n" + super()._render()
+
+
+class OMGSummary:
+    """Coefficient-table summary for the general occurrence model (OMG).
+
+    Mirrors R's ``summary.omg`` / ``print.summary.omg``: two coefficient
+    tables (one per sub-model A and B) with significance flags based on
+    whether zero falls inside the CI, followed by a shared footer with
+    sample size, total estimated parameters, loss value, and information
+    criteria.
+    """
+
+    def __init__(self, model: Any, level: float = 0.95, digits: int = 4):
+        import pandas as pd
+
+        self.digits = digits
+        self.level = level
+
+        ci = model.confint(level=level)
+        coef = np.asarray(model.coef, dtype=float)
+        names = list(ci.index)
+        lo_col, hi_col = ci.columns[1], ci.columns[2]
+
+        # Split rows by A:/B: prefix into two sub-tables. The prefix is
+        # dropped inside each block; the block heading carries the side.
+        idx_a = [i for i, n in enumerate(names) if n.startswith("A:")]
+        idx_b = [i for i, n in enumerate(names) if n.startswith("B:")]
+
+        def _block(idx_list):
+            sub = ci.iloc[idx_list]
+            estimate = coef[idx_list]
+            block = pd.DataFrame(
+                {
+                    "Estimate": estimate,
+                    "Std. Error": sub["S.E."].to_numpy(),
+                    f"Lower {lo_col}": sub[lo_col].to_numpy(),
+                    f"Upper {hi_col}": sub[hi_col].to_numpy(),
+                },
+                index=[n.split(":", 1)[1] for n in sub.index],
+            )
+            lower = block.iloc[:, 2].to_numpy()
+            upper = block.iloc[:, 3].to_numpy()
+            significance = ~((lower <= 0) & (upper >= 0))
+            return block, significance
+
+        self.coefficients_a, self.significance_a = _block(idx_a)
+        self.coefficients_b, self.significance_b = _block(idx_b)
+
+        self.model_a_name = getattr(model.model_a, "model_name", "A")
+        self.model_b_name = getattr(model.model_b, "model_name", "B")
+        self.model_name = getattr(model, "model_name", "OMG")
+        self.response_name = "y"
+        self.distribution = "plogis"
+        self.loss = "likelihood"
+        self.loss_value = getattr(model, "loss_value", None)
+        self.nobs = int(model.nobs)
+        self.nparam = int(model.nparam)
+        self.ICs: Optional[Dict[str, Any]] = None
+        try:
+            self.ICs = {
+                "AIC": model.aic,
+                "AICc": model.aicc,
+                "BIC": model.bic,
+                "BICc": model.bicc,
+            }
+        except Exception:
+            self.ICs = None
+
+    def _render(self) -> str:
+        import pandas as pd
+
+        d = self.digits
+        lines = []
+        lines.append("General occurrence model")
+        lines.append(f"Model: {self.model_name}")
+        lines.append(
+            f"Distribution used in the estimation: "
+            f"Mixture of Bernoulli sub-models ({self.distribution})"
+        )
+        loss_line = f"Loss function type: {self.loss}"
+        if self.loss_value is not None:
+            loss_line += f"; Loss function value: {round(self.loss_value, d)}"
+        lines.append(loss_line)
+
+        for label, model_label, table, significance in (
+            ("A", self.model_a_name, self.coefficients_a, self.significance_a),
+            ("B", self.model_b_name, self.coefficients_b, self.significance_b),
+        ):
+            lines.append(f"\nSub-model {label} ({model_label}) coefficients:")
+            rendered = table.round(d).copy()
+            rendered[" "] = ["*" if s else "" for s in significance]
+            lines.append(rendered.to_string())
+
+        lines.append(f"\nSample size: {self.nobs}")
+        lines.append(f"Number of estimated parameters: {self.nparam}")
+        lines.append(f"Number of degrees of freedom: {self.nobs - self.nparam}")
+
+        if self.ICs is not None:
+            lines.append("Information criteria:")
+            ic_row = pd.DataFrame([self.ICs]).round(d)
+            lines.append(ic_row.to_string(index=False))
+
+        return "\n".join(lines)
+
+    def __str__(self) -> str:
+        return self._render()
+
+    def __repr__(self) -> str:
+        return self._render()

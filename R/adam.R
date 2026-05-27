@@ -317,7 +317,6 @@
 #' @importFrom stats acf pacf
 #' @importFrom statmod dinvgauss
 #' @importFrom nloptr nloptr
-#' @importFrom pracma hessian
 #' @importFrom zoo zoo
 #' @importFrom utils head
 #' @importFrom methods new
@@ -2796,7 +2795,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # This is needed in order to avoid the 1e+300 in the CF
             boundsFI <- "none";
 
-            FI <- -hessian(logLikADAM, B, etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
+            # Use the shared C++ Hessian (src/hessianCpp.cpp), backed by the same
+            # algorithm header (src/headers/hessianCore.h) that Python uses.
+            # Replaces pracma::hessian — identical formula, no dependency.
+            logLikADAM_FI <- function(B){
+                logLikADAM(B, etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
                            modelIsSeasonal=modelIsSeasonal, yInSample=yInSample,
                            ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel, pFitted=pFitted, obsInSample=obsInSample,
                            componentsNumberETS=componentsNumberETS, componentsNumberETSSeasonal=componentsNumberETSSeasonal,
@@ -2828,8 +2831,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                            denominator=denominator, yDenominator=yDenominator,
                            other=other, otherParameterEstimate=otherParameterEstimateFI, lambda=lambda,
                            arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix,
-                           adamCpp=adamCpp,
-                           h=stepSize);
+                           adamCpp=adamCpp)
+            }
+            FI <- -hessianCpp(logLikADAM_FI, B, h=stepSize);
 
             colnames(FI) <- names(B);
             rownames(FI) <- names(B);

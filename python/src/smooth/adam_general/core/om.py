@@ -478,6 +478,10 @@ class OM(ADAM):
         )
 
         self._is_om = True
+        # Set to True by OMG._om_from_side when this OM instance is a
+        # sub-model of an OMG; flips ``actuals`` from binary-indicator to
+        # the latent reconstruction. See OM.actuals.
+        self._is_omg_submodel: bool = False
         self._om_occurrence = occurrence
         self._occurrence_char = _OCC_TO_CHAR[occurrence]
         self._formula = formula
@@ -1042,6 +1046,7 @@ class OM(ADAM):
 
         self._adam_estimated = {
             "B": B,
+            "B_names": list(names) if names is not None else None,
             "CF_value": float(cf_value),
             "n_param_estimated": n_param_estimated,
             "log_lik_adam_value": {
@@ -1341,8 +1346,23 @@ class OM(ADAM):
 
     @property
     def actuals(self) -> NDArray:
-        """Binary 0/1 occurrence indicator for the in-sample series."""
+        """In-sample actuals.
+
+        For a standalone :class:`OM`, returns the binary 0/1 occurrence
+        indicator. For an OM that has been built as a sub-model of an
+        :class:`~smooth.adam_general.core.omg.OMG` (flag
+        ``_is_omg_submodel`` set by ``OMG._om_from_side``), returns the
+        latent unobservable value the sub-model was implicitly fitting:
+        ``fitted + residuals`` — mirrors R's ``actuals.omg_submodel``
+        (R/omg.R:1748-1756). OM stores residuals additively
+        (``ot - fitted``) regardless of error type, so the same formula
+        recovers the latent value for both ``Etype="A"`` and ``Etype="M"``.
+        """
         self._check_is_fitted()
+        if getattr(self, "_is_omg_submodel", False):
+            fitted = np.asarray(self.fitted, dtype=float)
+            residuals = np.asarray(self.residuals, dtype=float)
+            return fitted + residuals
         return np.asarray(self._observations["ot"], dtype=float)
 
     @property
@@ -1387,3 +1407,72 @@ class OM(ADAM):
     def loglik(self) -> float:
         self._check_is_fitted()
         return float(self._adam_estimated["log_lik_adam_value"]["value"])
+
+    # ------------------------------------------------------------------
+    # Inference (overrides ADAM's FI path because om_cf — not the ADAM
+    # likelihood — is the cost the OM optimiser minimised)
+    # ------------------------------------------------------------------
+
+    def _fisher_information_matrix(self, step_size=None):
+        """Observed FI for OM (Hessian of ``om_cf`` at the estimated B).
+
+        ``om_cf`` already returns the negative log-likelihood, so its Hessian
+        is the observed Fisher Information directly — no sign flip.
+
+        Bounds are disabled (``bounds="none"``) during the Hessian call to
+        match R's ``vcov.adam`` (R/adam.R:2797 — ``boundsFI <- "none"``). With
+        the user's usual/admissible bounds left on, FD perturbations ``B ± h``
+        that cross the feasibility boundary would return the 1e300 penalty
+        instead of the actual log-likelihood — the resulting second
+        derivative blows up and the inverse FI collapses to ~0. ``bounds=
+        "none"`` lets the underlying ``adam_cpp.fit`` evaluate cleanly even
+        when smoothing parameters are nominally out of range.
+        """
+        from smooth.adam_general.core.utils.var_covar import numerical_hessian
+
+        self._check_is_fitted()
+
+        ar_polynomial_matrix, ma_polynomial_matrix = _setup_arima_polynomials(
+            self._model_type, self._arima, self._lags_model
+        )
+        general_for_cf = dict(self._general)
+        general_for_cf["loss"] = self._general.get("loss", "likelihood")
+
+        def _cost(b):
+            return om_cf(
+                B=b,
+                model_type_dict=self._model_type,
+                components_dict=self._components,
+                lags_dict=self._lags_model,
+                matrices_dict=self._adam_created,
+                persistence_checked=self._persistence,
+                initials_checked=self._initials,
+                arima_checked=self._arima,
+                explanatory_checked=self._explanatory,
+                phi_dict=self._phi_internal,
+                constants_checked=self._constant,
+                observations_dict=self._observations,
+                profile_dict=self._profile,
+                general=general_for_cf,
+                adam_cpp=self._adam_cpp,
+                occurrence=self._om_occurrence,
+                occurrence_char=self._occurrence_char,
+                bounds="none",
+                arPolynomialMatrix=ar_polynomial_matrix,
+                maPolynomialMatrix=ma_polynomial_matrix,
+                regressors=self._explanatory.get("regressors"),
+            )
+
+        return numerical_hessian(_cost, self.coef, step_size=step_size)
+
+    def summary(self, level: float = 0.95, digits: int = 4):
+        """Coefficient-table summary, mirroring R's ``summary.om``.
+
+        Identical content to :meth:`ADAM.summary`, but the printed report is
+        prefixed by an ``"Occurrence model"`` header (R's ``summary.om``
+        prepends the same line before delegating to ``summary.adam``).
+        """
+        from smooth.adam_general.core.utils.printing import OMSummary
+
+        self._check_is_fitted()
+        return OMSummary(self, level=level, digits=digits)

@@ -31,6 +31,34 @@ from smooth.adam_general.core.utils.ic import ic_function
 from smooth.adam_general.core.utils.omg_cost import omg_cf, omg_link_function
 
 
+def _omg_refit_one_replicate(
+    y_raw: NDArray,
+    idx_matrix: Union[NDArray, list[NDArray]],
+    clone_kwargs: Dict[str, Any],
+    k: int,
+    i: int,
+) -> Optional[NDArray]:
+    """Refit one OMG bootstrap replicate; return the joint coef vector or ``None``.
+
+    Module-level so it can be pickled by ``joblib.Parallel`` workers. ``i``
+    is the last positional argument so callers can bind everything else
+    with :func:`functools.partial`. The OMG class is resolved locally to
+    avoid pickling the class object itself.
+    """
+    y_boot = y_raw[idx_matrix[i]]
+    # Pathological draw (all zeros or all ones) → OMG cannot fit; skip.
+    if np.all(y_boot == 0) or np.all(y_boot != 0):
+        return None
+    try:
+        boot_model = OMG(**clone_kwargs).fit(y_boot)
+        boot_coef = np.asarray(boot_model.coef, dtype=float)
+    except Exception:
+        return None
+    if boot_coef.shape[0] != k or not np.all(np.isfinite(boot_coef)):
+        return None
+    return boot_coef
+
+
 class OMG:
     """General occurrence model — two parallel ETS sub-models combined.
 
@@ -122,6 +150,7 @@ class OMG:
 
     def fit(self, y: NDArray, X: Optional[NDArray] = None) -> "OMG":
         self._start_time = time.time()
+        self._fi_cache = None
 
         # Build OM-style scaffolding for each side without doing the inner
         # estimation (we replace it with the joint nlopt run below). We
@@ -215,6 +244,10 @@ class OMG:
         ot = np.asarray(side_a["observations_dict"]["ot"], dtype=np.float64)
         self._residuals_combined = ot - self._fitted_combined
         self._ot = ot
+        # Preserve the raw input y for ``actuals`` — equivalent to R's
+        # storing the original series on the omg object so that ``actuals(omg)``
+        # returns the same type and content as ``actuals(om)`` would.
+        self._y_raw = np.asarray(y, dtype=float)
         self._observations_dict = side_a["observations_dict"]
 
         # Auto-forecast if h > 0
@@ -255,7 +288,16 @@ class OMG:
 
     @property
     def actuals(self) -> NDArray:
-        return self._ot.copy()
+        """Binary 0/1 indicator built from the raw input series.
+
+        Mirrors R's ``actuals.omg``: returns ``(y != 0) * 1`` using the
+        original ``y`` (with its original dtype/shape preserved), not the
+        ``ot`` vector held in ``_observations_dict``.
+        """
+        y = getattr(self, "_y_raw", None)
+        if y is None:
+            return self._ot.copy()
+        return (np.asarray(y, dtype=float) != 0).astype(float)
 
     @property
     def coef(self) -> NDArray:
@@ -377,6 +419,360 @@ class OMG:
         return e / np.sqrt(p * (1 - p)) * np.sqrt(obs / df)
 
     # ---------------------------------------------------------------------
+    # Inference — vcov / confint / summary (R: vcov.omg / confint.omg /
+    # summary.omg). Both sub-models share a single joint Fisher Information
+    # matrix; rows are prefixed ``A:`` / ``B:``.
+    # ---------------------------------------------------------------------
+
+    @property
+    def coef_names(self) -> List[str]:
+        """Joint parameter names with ``A:`` / ``B:`` prefixes.
+
+        Mirrors R's ``names(coef(omg))``. Falls back to ``b1, b2, …`` if a
+        sub-model's own names are unavailable.
+        """
+        if not hasattr(self, "model_a") or not hasattr(self, "model_b"):
+            return [f"b{i + 1}" for i in range(int(len(self._B_joint)))]
+        names_a = list(self.model_a.coef_names)
+        names_b = list(self.model_b.coef_names)
+        return [f"A:{n}" for n in names_a] + [f"B:{n}" for n in names_b]
+
+    def _fisher_information_matrix(self, step_size=None):
+        """Observed FI of the joint OMG cost at the estimated ``_B_joint``.
+
+        ``omg_cf`` returns the negative log-likelihood, so its Hessian *is* the
+        observed Fisher Information — no sign flip.
+
+        Bounds are disabled (``bounds="none"``) during the Hessian call to
+        match R's ``vcov.adam`` / ``vcov.omg`` (R/adam.R:2797 —
+        ``boundsFI <- "none"``). With the user's usual/admissible bounds left
+        on, FD perturbations ``B ± h`` near a boundary parameter (e.g.
+        ``alpha=0``) would cross into the penalty region and return 1e300,
+        making the diagonal FI explode and the inverse covariance collapse
+        to ~0. Disabling bounds lets the underlying C++ propagation evaluate
+        the actual log-likelihood at the perturbed B, even when the
+        smoothing parameter is briefly out of range.
+        """
+        from smooth.adam_general.core.utils.var_covar import numerical_hessian
+
+        side_a = self._side_a
+        side_b = self._side_b
+        n_params_a = int(self._n_params_a)
+        observations = side_a["observations_dict"]
+        adam_ets = self.ets == "adam"
+
+        def _cost(b):
+            return omg_cf(
+                B=b,
+                side_a=side_a,
+                side_b=side_b,
+                n_params_a=n_params_a,
+                observations_dict=observations,
+                bounds="none",
+                adam_ets=adam_ets,
+            )
+
+        return numerical_hessian(_cost, self._B_joint, step_size=step_size)
+
+    @property
+    def fisher_information_(self) -> Optional[NDArray]:
+        """Cached observed Fisher Information at the estimated joint B.
+
+        Computed lazily on first access via :meth:`_fisher_information_matrix`;
+        cleared whenever :meth:`fit` is called again.
+        """
+        cached = getattr(self, "_fi_cache", None)
+        if cached is not None:
+            return cached
+        self._fi_cache = self._fisher_information_matrix()
+        return self._fi_cache
+
+    def vcov(self, bootstrap: bool = False, step_size=None, **boot_kwargs):
+        """Joint variance–covariance matrix for both OMG sub-models.
+
+        Mirrors R's ``vcov.omg``: inverts the joint observed FI, retrying with
+        a coarser finite-difference step if any parameters look "broken"
+        (all-zero or NaN rows). Rows/cols are prefixed ``A:`` / ``B:``.
+
+        Parameters
+        ----------
+        bootstrap : bool, default=False
+            If True, delegate to :meth:`coefbootstrap` and return the
+            empirical replicate covariance instead of the Fisher-based one.
+        step_size : float, optional
+            Finite-difference step for the Fisher Information.
+        **boot_kwargs
+            Forwarded to :meth:`coefbootstrap` when ``bootstrap=True``.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Joint covariance matrix with prefixed row/col names.
+        """
+        import pandas as pd
+
+        from smooth.adam_general.core.utils.var_covar import invert_fisher_information
+
+        if bootstrap:
+            return self.coefbootstrap(**boot_kwargs).vcov
+
+        FI = np.asarray(self._fisher_information_matrix(step_size=step_size))  # noqa: N806
+        broken = np.all(FI == 0, axis=1) | np.any(np.isnan(FI), axis=1)
+        if np.any(broken) and step_size is None:
+            FI = np.asarray(  # noqa: N806
+                self._fisher_information_matrix(
+                    step_size=float(np.finfo(float).eps ** (1 / 6))
+                )
+            )
+
+        cov = invert_fisher_information(FI)
+        names = self.coef_names
+        return pd.DataFrame(cov, index=names, columns=names)
+
+    def confint(
+        self,
+        parm=None,
+        level: float = 0.95,
+        bootstrap: bool = False,
+        step_size=None,
+        **boot_kwargs,
+    ):
+        """Confidence intervals for the joint OMG parameters.
+
+        Mirrors R's ``confint.omg``: SEs from the joint :meth:`vcov`, t-quantile
+        half-widths with R's asymmetric degrees of freedom, then per-sub-model
+        clamping to each side's admissible region (via the sub-model's own
+        :meth:`~ADAM._clamp_confint_offsets`). Rows are prefixed ``A:`` /
+        ``B:`` to identify which sub-model each parameter belongs to.
+
+        Parameters
+        ----------
+        parm : str or sequence of str, optional
+            Subset of (prefixed) names to return.
+        level : float, default=0.95
+            Confidence level for the interval.
+        bootstrap : bool, default=False
+            Not implemented for OMG yet.
+        step_size : float, optional
+            Finite-difference step forwarded to :meth:`vcov`.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Columns ``["S.E.", "<lo>%", "<hi>%"]`` indexed by prefixed names.
+        """
+        import pandas as pd
+        from scipy import stats as scipy_stats
+
+        names = self.coef_names
+        params = np.asarray(self._B_joint, dtype=float)
+
+        if bootstrap:
+            from smooth.adam_general.core.utils.bootstrap import (
+                bootstrap_confint_frame,
+            )
+
+            boot = self.coefbootstrap(**boot_kwargs)
+            return bootstrap_confint_frame(boot, names, params, level, parm)
+        n_a = int(self._n_params_a)
+
+        V = self.vcov(step_size=step_size).to_numpy()  # noqa: N806
+        se = np.sqrt(np.abs(np.diag(V)))
+
+        nobs = int(self.nobs)
+        nparam = int(self.nparam)
+        # R: asymmetric df for the two tails (omg.R:1611–1612).
+        lo = scipy_stats.t.ppf((1 - level) / 2, df=nobs - nparam) * se
+        hi = scipy_stats.t.ppf((1 + level) / 2, df=nobs + nparam) * se
+
+        # Per-sub-model clamping using each sub-model's own bounds knowledge.
+        # Slicing returns views; in-place mutations propagate back.
+        params_a = np.asarray(self.model_a.coef, dtype=float)
+        params_b = np.asarray(self.model_b.coef, dtype=float)
+        self.model_a._clamp_confint_offsets(
+            self.model_a.coef_names, params_a, lo[:n_a], hi[:n_a]
+        )
+        self.model_b._clamp_confint_offsets(
+            self.model_b.coef_names, params_b, lo[n_a:], hi[n_a:]
+        )
+
+        lo = lo + params
+        hi = hi + params
+
+        lo_name = f"{(1 - level) / 2 * 100:g}%"
+        hi_name = f"{(1 + level) / 2 * 100:g}%"
+        out = pd.DataFrame(
+            np.column_stack([se, lo, hi]),
+            index=names,
+            columns=["S.E.", lo_name, hi_name],
+        )
+        if parm is not None:
+            out = out.loc[parm if isinstance(parm, (list, tuple)) else [parm]]
+        return out
+
+    def summary(self, level: float = 0.95, digits: int = 4):
+        """Coefficient-table summary for the joint occurrence model.
+
+        Mirrors R's ``summary.omg``: two coefficient tables (one per
+        sub-model), each with significance indicators based on whether zero
+        falls inside the CI, followed by a shared footer (sample size, total
+        estimated parameters, loss value, AICc/BICc).
+        """
+        from smooth.adam_general.core.utils.printing import OMGSummary
+
+        return OMGSummary(self, level=level, digits=digits)
+
+    def _bootstrap_clone_kwargs(self) -> Dict[str, Any]:
+        """Snapshot the init kwargs needed to instantiate a fresh OMG for refit.
+
+        OMG stores its init args directly as instance attributes (no
+        ``_config`` dict), so we collect them explicitly. Kept private so the
+        bootstrap doesn't depend on the precise attribute names of OMG's
+        :meth:`__init__`.
+        """
+        return dict(
+            model_a=self.model_a_spec,
+            model_b=self.model_b_spec,
+            lags=self.lags,
+            orders_a=self.orders_a,
+            orders_b=self.orders_b,
+            constant_a=self.constant_a,
+            constant_b=self.constant_b,
+            formula_a=self.formula_a,
+            formula_b=self.formula_b,
+            regressors_a=self.regressors_a,
+            regressors_b=self.regressors_b,
+            persistence_a=self.persistence_a,
+            persistence_b=self.persistence_b,
+            phi_a=self.phi_a,
+            phi_b=self.phi_b,
+            arma_a=self.arma_a,
+            arma_b=self.arma_b,
+            h=0,
+            holdout=False,
+            initial=self.initial,
+            loss=self.loss,
+            ic=self.ic,
+            bounds=self.bounds,
+            verbose=0,
+            nlopt_kargs=self.nlopt_kargs,
+            ets=self.ets,
+        )
+
+    def coefbootstrap(
+        self,
+        nsim: int = 1000,
+        size: Optional[int] = None,
+        replace: bool = False,
+        prob: Optional[NDArray] = None,
+        parallel: Union[bool, int] = False,
+        method: str = "cr",
+        seed: Optional[int] = None,
+        verbose: bool = False,
+    ):
+        """Bootstrap the joint OMG coefficient sampling distribution.
+
+        Mirrors R's ``coefbootstrap.omg`` (R/omg.R:1401-1600): case-resamples
+        the raw input series, refits the joint OMG on each replicate, and
+        stacks the prefixed ``A:`` / ``B:`` coefficient vectors.
+
+        ``parallel=True`` (or ``parallel=<int>``) runs replicates in
+        parallel via ``joblib.Parallel`` (``cpu_count - 1`` workers by
+        default, or the supplied integer). Requires the optional
+        ``joblib`` dependency; if unavailable, a warning is emitted and
+        the call falls back to serial. See
+        :meth:`smooth.adam_general.core.adam.ADAM.coefbootstrap` for the
+        full parameter documentation; the OMG version takes the same
+        signature and returns the same
+        :class:`~smooth.adam_general.core.utils.bootstrap.BootstrapResult`.
+        """
+        import time as _time
+        from functools import partial
+
+        from smooth.adam_general.core.utils.bootstrap import (
+            _build_result,
+            case_resample_indices,
+            run_replicates,
+            time_series_sample_indices,
+        )
+
+        if method not in ("cr", "dsr"):
+            raise ValueError(f"method must be 'cr' or 'dsr', got {method!r}.")
+        if method == "dsr":
+            raise NotImplementedError(
+                "method='dsr' requires greybox.dsrboot which is not yet "
+                "available in Python; use method='cr'."
+            )
+        any_regressors = self.regressors_a or self.regressors_b
+        if any_regressors and (self.formula_a or self.formula_b):
+            raise NotImplementedError(
+                "coefbootstrap does not yet support OMG models with external "
+                "regressors. File an issue if you need this."
+            )
+
+        y_raw = np.asarray(self._y_raw, dtype=float)
+        nobs = int(y_raw.size)
+        if size is None:
+            size = max(int(np.floor(0.75 * nobs)), 1)
+        size = int(size)
+        if size < 2:
+            raise ValueError(f"size={size} too small; need at least 2 observations.")
+
+        rng = np.random.default_rng(seed)
+        original_coef_names = list(self.coef_names)
+        k = len(original_coef_names)
+        clone_kwargs = self._bootstrap_clone_kwargs()
+
+        # Match R's coefbootstrap.omg sampler (omg.R:1496-1508): variable-
+        # length contiguous-window resampling. obs_minimum uses max(lags)
+        # across both sub-models — for OMG we use ``self.lags`` if set
+        # else 1.
+        lags = self.lags if self.lags else [1]
+        max_lag = int(np.max(lags)) if len(lags) else 1
+        obs_minimum = max(max_lag, k) + 2
+        if obs_minimum >= nobs:
+            raise ValueError(
+                f"Not enough observations to do case-resampling bootstrap "
+                f"(obs_minimum={obs_minimum}, nobs={nobs})."
+            )
+        initial_is_window = isinstance(self.initial, str) and self.initial in (
+            "backcasting",
+            "complete",
+        )
+        change_origin = initial_is_window
+        if replace or prob is not None:
+            idx_list = list(case_resample_indices(nobs, size, nsim, replace, prob, rng))
+        else:
+            idx_list = time_series_sample_indices(
+                nobs, nsim, obs_minimum, change_origin, rng
+            )
+
+        worker = partial(_omg_refit_one_replicate, y_raw, idx_list, clone_kwargs, k)
+
+        t0 = _time.time()
+        replicate_coefs, parallel_used = run_replicates(
+            worker,
+            nsim=nsim,
+            parallel=parallel,
+            verbose=verbose,
+            label="coefbootstrap[omg]",
+        )
+        elapsed = _time.time() - t0
+
+        return _build_result(
+            replicate_coefs,
+            original_coef_names,
+            method=method,
+            nsim=nsim,
+            size=size,
+            replace=replace,
+            prob=prob,
+            parallel=parallel_used,
+            model="omg",
+            time_elapsed=elapsed,
+        )
+
+    # ---------------------------------------------------------------------
     # Internals — building the per-side scaffolding
     # ---------------------------------------------------------------------
 
@@ -476,6 +872,13 @@ class OMG:
         B_used = np.concatenate([b_a["B"], b_b["B"]])  # noqa: N806
         lb = np.concatenate([b_a["Bl"], b_b["Bl"]])
         ub = np.concatenate([b_a["Bu"], b_b["Bu"]])
+
+        # Cache the per-side parameter names so ``_om_from_side`` can set
+        # ``B_names`` on each sub-model. Without this, ``OM.coef_names`` falls
+        # back to ``b1, b2, …`` and ``_clamp_confint_offsets`` silently fails
+        # to clamp bounds on persistence parameters (cf. ``confint.omg``).
+        self._names_a = list(b_a.get("names") or [])
+        self._names_b = list(b_b.get("names") or [])
 
         # Respect user-supplied B / lb / ub from nlopt_kargs. B is the JOINT
         # vector spanning A-side then B-side. dict-keyed names are matched
@@ -711,11 +1114,17 @@ class OMG:
 
     def _om_from_side(self, side, B, occurrence_str) -> OM:
         scaffold: OM = side["scaffold"]
+        # Mark this sub-model so ``OM.actuals`` returns the latent
+        # (unobservable) reconstruction rather than the binary indicator.
+        # Mirrors R's ``omg_submodel`` S3 class tag on ``omg$modelA/B``.
+        scaffold._is_omg_submodel = True
         # Inject the joint estimate into the scaffold so its post-fit
         # plumbing (om_preparator, model_name, etc.) reflects the joint
         # solution rather than re-running its own optimiser.
+        side_names = self._names_a if occurrence_str == "odds-ratio" else self._names_b
         scaffold._adam_estimated = {
             "B": np.asarray(B, dtype=float),
+            "B_names": side_names if len(side_names) == len(B) else None,
             "CF_value": self._cf_value,
             "n_param_estimated": int(len(B)),
             "log_lik_adam_value": dict(self._log_lik_dict),
@@ -727,12 +1136,16 @@ class OMG:
         scaffold._ic_selection = self._ic_value
         scaffold._select_distribution()
 
-        # Build fresh matrices with the ORIGINAL error/trend/season types
-        # rather than the forced-additive types used during optimisation.
-        # The difference matters for seasonal initial states that seed
-        # backcasting.
-        adam_created_final = scaffold._build_final_fit_adam_created(side["profile"])
-        scaffold._adam_created = adam_created_final
+        # Mirror R's ``omgFinalFit`` (R/omg.R:864-906): reuse the matrices the
+        # joint optimiser saw — built with ``Etype="A"`` for numerical
+        # stability — rather than rebuilding with the user-requested
+        # multiplicative types. Without this, the post-fit sub-model fitted
+        # values diverge from R's reference (the optimum agrees but the link
+        # function then takes ``log(fittedB)`` of values produced under a
+        # different state-space structure). Standalone Python ``OM`` still
+        # rebuilds via ``_build_final_fit_adam_created`` (matching standalone
+        # R ``om()``); only the OMG post-fit shares the joint matrices.
+        scaffold._adam_created = side["matrices_dict"]
 
         scaffold._prepared = om_preparator(
             model_type_dict=scaffold._model_type,

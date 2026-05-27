@@ -1,4 +1,4 @@
-smooth v4.5.0 (Release data: 2026-05-21)
+smooth v4.5.0 (Release data: 2026-05-27)
 =======
 
 Change:
@@ -8,6 +8,8 @@ Change:
 * om() supports all types of occurrence and does automatic selection via auto.om().
 * vcov, confint and summary methods for the om class.
 * coefbootstrap for the om class.
+* We now use our own hessian function and no longer rely on pracma.
+* Changed how scale is calculated for the Log Normal distribution in case of the exotic additive error - we use complex numbers :D.
 
 Bugfixes:
 * forecast.adam() would not do the correct row repetition for explanatory variables when the new values are not provided.

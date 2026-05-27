@@ -107,9 +107,19 @@ test_that("forecast.omg values equal omgLinkFunction of forecast.adam sub-model 
     expect_equal(as.numeric(fc$mean), expected, tolerance=1e-10)
 })
 
-# 8. actuals.omg
-test_that("actuals(omg_obj) matches actuals from modelA", {
-    expect_equal(actuals(testModel), actuals(testModel$modelA))
+# 8. actuals.omg / actuals.omg_submodel
+test_that("actuals(omg_obj) returns the binary occurrence indicator", {
+    expect_equal(as.numeric(actuals(testModel)), (y != 0) * 1)
+})
+
+test_that("actuals(omg_obj$modelA) reconstructs the latent value", {
+    # Sub-models carry class 'omg_submodel'; actuals.omg_submodel returns
+    # fitted + residuals (OM stores residuals additively regardless of
+    # error type, so the same formula recovers the latent value for both
+    # 'A' and 'M' sub-models).
+    fA <- fitted(testModel$modelA)
+    rA <- residuals(testModel$modelA)
+    expect_equal(as.numeric(actuals(testModel$modelA)), as.numeric(fA + rA))
 })
 
 # 9. print / summary

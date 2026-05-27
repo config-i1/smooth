@@ -393,3 +393,58 @@ class TestInputs:
         m = OMG(model_a="MNN", lags=[1]).fit(binary_y)
         assert m.fitted.shape == binary_y.shape
         assert np.all(m.fitted > 0.0) and np.all(m.fitted < 1.0)
+
+
+# --------------------------------------------------------------------------
+# Inference: vcov / confint / summary
+# --------------------------------------------------------------------------
+
+
+class TestInferenceMethods:
+    """Joint vcov / confint / summary for OMG."""
+
+    def test_coef_names_are_prefixed(self, fitted_omg):
+        names = fitted_omg.coef_names
+        assert all(n.startswith(("A:", "B:")) for n in names)
+        assert any(n.startswith("A:") for n in names)
+        assert any(n.startswith("B:") for n in names)
+
+    def test_vcov_is_square_and_named(self, fitted_omg):
+        V = fitted_omg.vcov()
+        n = fitted_omg.nparam
+        assert V.shape == (n, n)
+        assert list(V.index) == fitted_omg.coef_names
+        assert list(V.columns) == fitted_omg.coef_names
+        assert np.all(np.diag(V.to_numpy()) >= 0)
+
+    def test_vcov_symmetry(self, fitted_omg):
+        V = fitted_omg.vcov().to_numpy()
+        np.testing.assert_allclose(V, V.T, atol=1e-10)
+
+    def test_confint_structure(self, fitted_omg):
+        ci = fitted_omg.confint(level=0.95)
+        assert ci.columns.tolist() == ["S.E.", "2.5%", "97.5%"]
+        assert (ci["S.E."] >= 0).all()
+        assert (ci["2.5%"] <= ci["97.5%"]).all()
+
+    def test_confint_bootstrap_dispatches(self, fitted_omg):
+        ci = fitted_omg.confint(bootstrap=True, nsim=10, seed=42)
+        assert ci.columns.tolist() == ["S.E.", "2.5%", "97.5%"]
+
+    def test_vcov_bootstrap_dispatches(self, fitted_omg):
+        v = fitted_omg.vcov(bootstrap=True, nsim=10, seed=42)
+        k = len(fitted_omg.coef_names)
+        assert v.shape == (k, k)
+
+    def test_summary_contains_block_markers(self, fitted_omg):
+        text = str(fitted_omg.summary())
+        assert "Sub-model A" in text
+        assert "Sub-model B" in text
+        assert "General occurrence model" in text
+        assert "Sample size" in text
+
+    def test_fi_cache_invalidates_on_refit(self, intermittent_y, fitted_omg):
+        V1 = fitted_omg.vcov().to_numpy()
+        fitted_omg.fit(intermittent_y)
+        V2 = fitted_omg.vcov().to_numpy()
+        np.testing.assert_allclose(V1, V2, atol=1e-6, rtol=1e-4)
