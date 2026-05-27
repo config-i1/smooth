@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from smooth import ADAM
+from smooth import ADAM, ES, MSARIMA
 from smooth.adam_general.core.utils.reapply import ReapplyResult
 
 AIRPASSENGERS = np.array(
@@ -272,20 +272,98 @@ def test_reapply_seasonal_closure_additive():
     assert np.all(np.isfinite(init_profile))
 
 
-def test_reapply_arima_not_implemented():
-    """ARIMA fits should raise NotImplementedError (phase 1 scope)."""
+def test_reapply_arima_runs_and_returns_finite():
+    """Phase 5: ARIMA models now go through ``reapply()``.
+
+    Uses a seasonal ARIMA(1,0,1)x(1,0,1)[12] spec so the state-space
+    has ``c=2, L=12`` — large enough to keep the carma allocator out
+    of the heap-corruption regime that ``c=1, L=1`` ANN-style fits
+    expose (documented in test_reapply at the parametric sweep).
+    """
     m = ADAM(
         model="NNN",
-        orders={"ar": [1], "i": [0], "ma": [0]},
-        lags=[1],
+        orders={"ar": [1, 1], "i": [0, 0], "ma": [1, 1]},
+        lags=[1, 12],
         initial="backcasting",
     ).fit(AIRPASSENGERS)
-    with pytest.raises(NotImplementedError, match="ARIMA"):
-        m.reapply(nsim=10, seed=0)
+    r = m.reapply(nsim=15, seed=0)
+    assert r.refitted.shape == (m.nobs, 15)
+    assert np.all(np.isfinite(r.refitted.to_numpy()))
+    assert any(nm.startswith("phi") for nm in r.random_parameters.columns)
+    assert any(nm.startswith("theta") for nm in r.random_parameters.columns)
+    assert any("ARIMAState" in nm for nm in r.persistence.index)
 
 
-def test_reapply_admissible_not_implemented():
-    """``bounds='admissible'`` is out of scope for phase 1."""
+def test_reapply_xreg_runs_and_returns_finite():
+    """Phase 5: ETS + numeric xreg goes through reapply()."""
+    n = len(AIRPASSENGERS)
+    t = np.arange(n, dtype=float)
+    X = np.column_stack([t / n, np.cos(2 * np.pi * t / 12), np.sin(2 * np.pi * t / 12)])
+    m = ADAM(model="ANN", lags=[12]).fit(AIRPASSENGERS, X=X)
+    r = m.reapply(nsim=15, seed=0)
+    assert r.refitted.shape == (m.nobs, 15)
+    assert np.all(np.isfinite(r.refitted.to_numpy()))
+    assert "xreg1" in r.random_parameters.columns
+    assert any("x" in nm for nm in r.persistence.index)
+
+
+def test_reapply_admissible_runs_and_returns_finite():
+    """``bounds='admissible'`` clips smoothing parameters via
+    ``eigen_bounds`` and produces finite refitted paths."""
     m = ADAM(model="AAA", lags=[12], bounds="admissible").fit(AIRPASSENGERS)
-    with pytest.raises(NotImplementedError, match="admissible"):
-        m.reapply(nsim=10, seed=0)
+    r = m.reapply(nsim=20, seed=0)
+    assert r.refitted.shape == (m.nobs, 20)
+    assert np.all(np.isfinite(r.refitted.to_numpy()))
+    # Sampled alpha / beta / gamma must lie inside the eigen-derived
+    # bounds region after clipping. Re-derive the bounds and check.
+    from smooth.adam_general.core.utils.bounds import eigen_bounds
+
+    vec_g = np.asarray(m._adam_created["vec_g"], dtype=float).ravel()
+    static_args = m._eigen_static_args()
+    for nm in ("alpha", "beta"):
+        if nm in r.random_parameters.columns:
+            lo, hi = eigen_bounds(vec_g, m._persistence_index(nm), **static_args)
+            col = r.random_parameters[nm].to_numpy()
+            assert (col >= lo - 1e-9).all() and (col <= hi + 1e-9).all(), (
+                f"{nm} outside admissible bounds [{lo}, {hi}]"
+            )
+
+
+def test_reapply_bootstrap_runs():
+    """``bootstrap=True`` routes ``vcov`` through ``coefbootstrap`` and
+    forwards ``nsim`` so the bootstrap uses the same replicate count
+    (R/reapply.R:95). Uses MAM lags=[12] to keep ``c, L`` away from
+    the heap-corruption regime documented at the parametric sweep."""
+    m = ADAM(model="MAM", lags=[12]).fit(AIRPASSENGERS)
+    r = m.reapply(nsim=10, bootstrap=True, seed=0)
+    assert r.refitted.shape == (m.nobs, 10)
+    assert np.all(np.isfinite(r.refitted.to_numpy()))
+
+
+def test_reapply_heuristics_runs():
+    """``heuristics`` forwards to ``vcov`` and yields a diagonal cov."""
+    m = ADAM(model="AAA", lags=[12]).fit(AIRPASSENGERS)
+    r = m.reapply(nsim=10, heuristics=0.1, seed=0)
+    assert r.refitted.shape == (m.nobs, 10)
+    assert np.all(np.isfinite(r.refitted.to_numpy()))
+
+
+def test_reapply_inherits_in_es_subclass():
+    """``ES`` is a thin subclass of ``ADAM`` — ``reapply`` works via
+    inheritance with no overrides."""
+    m = ES(model="MAM", lags=[12]).fit(AIRPASSENGERS)
+    r = m.reapply(nsim=10, seed=0)
+    assert isinstance(r, ReapplyResult)
+    assert r.refitted.shape == (m.nobs, 10)
+    assert np.all(np.isfinite(r.refitted.to_numpy()))
+
+
+def test_reapply_inherits_in_msarima_subclass():
+    """``MSARIMA`` is a thin subclass of ``ADAM`` — ``reapply`` works."""
+    m = MSARIMA(orders={"ar": [1, 1], "i": [0, 0], "ma": [1, 1]}, lags=[1, 12]).fit(
+        AIRPASSENGERS
+    )
+    r = m.reapply(nsim=10, seed=0)
+    assert isinstance(r, ReapplyResult)
+    assert r.refitted.shape == (m.nobs, 10)
+    assert np.all(np.isfinite(r.refitted.to_numpy()))

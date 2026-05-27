@@ -165,17 +165,21 @@ class TestPredictIntervalTypes:
         w95 = (r.upper.iloc[:, 1] - r.lower.iloc[:, 1]).to_numpy()
         assert (w80 <= w95 + 1e-6).all()
 
-    def test_interval_complete_rejects_arima(self):
-        """ARIMA inheritance: reapply raises NotImplementedError, which
-        propagates through predict('complete')."""
+    def test_interval_complete_arima_runs(self):
+        """Phase 5: ARIMA models go through ``predict(interval='complete')``
+        without raising. Uses a seasonal ARIMA spec to stay out of the
+        ``L=1`` carma heap-corruption regime (see ``test_reapply`` for
+        the same workaround)."""
         m = ADAM(
             model="NNN",
-            orders={"ar": [1], "i": [0], "ma": [0]},
-            lags=[1],
+            orders={"ar": [1, 1], "i": [0, 0], "ma": [1, 1]},
+            lags=[1, 12],
             initial="backcasting",
-        ).fit(_simple_data)
-        with pytest.raises(NotImplementedError, match="ARIMA"):
-            m.predict(h=4, interval="complete", nsim=10)
+        ).fit(_seasonal_data)
+        r = m.predict(h=4, interval="complete", nsim=10)
+        assert isinstance(r, ForecastResult)
+        assert r.lower is not None and r.lower.shape == (4, 1)
+        assert r.upper is not None and r.upper.shape == (4, 1)
 
 
 # ---------------------------------------------------------------------------

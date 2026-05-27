@@ -10,8 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from smooth import OM, AutoOM, OMG
-
+from smooth import OM, OMG, AutoOM
 
 # --------------------------------------------------------------------------
 # Fixtures

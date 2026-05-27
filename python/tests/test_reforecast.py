@@ -266,20 +266,56 @@ def test_reforecast_to_forecast_result_projection():
     pd.testing.assert_frame_equal(proj.upper, fc.upper)
 
 
-def test_reforecast_arima_not_implemented():
-    """ARIMA models inherit the reapply NotImplementedError."""
+def test_reforecast_arima_runs_and_returns_finite():
+    """Phase 5: ARIMA models now go through ``reforecast()``.
+
+    Uses a seasonal ARIMA(1,0,1)x(1,0,1)[12] spec for the same reason
+    as ``test_reapply_arima_runs_and_returns_finite`` — keeps
+    ``L > 1`` so the carma allocator stays out of the heap-corruption
+    regime documented in test_reapply.
+    """
     m = ADAM(
         model="NNN",
-        orders={"ar": [1], "i": [0], "ma": [0]},
-        lags=[1],
+        orders={"ar": [1, 1], "i": [0, 0], "ma": [1, 1]},
+        lags=[1, 12],
         initial="backcasting",
     ).fit(AIRPASSENGERS)
-    with pytest.raises(NotImplementedError, match="ARIMA"):
-        m.reforecast(h=6, nsim=10, seed=0)
+    fc = m.reforecast(h=6, nsim=15, interval="prediction", seed=0)
+    assert fc.mean.shape == (6,)
+    assert fc.lower is not None and fc.lower.shape == (6, 1)
+    assert fc.upper is not None and fc.upper.shape == (6, 1)
+    assert np.all(np.isfinite(fc.mean.to_numpy()))
 
 
-def test_reforecast_xreg_not_implemented():
-    """An explicit ``X=`` argument is rejected."""
-    m = _fit_mam()
-    with pytest.raises(NotImplementedError, match="external regressors"):
-        m.reforecast(h=6, X=np.zeros((6, 1)), nsim=10, seed=0)
+def test_reforecast_xreg_runs_with_newdata():
+    """Phase 5: numeric xreg + future X goes through reforecast()."""
+    n = len(AIRPASSENGERS)
+    t = np.arange(n, dtype=float)
+    X = np.column_stack([t / n, np.cos(2 * np.pi * t / 12), np.sin(2 * np.pi * t / 12)])
+    m = ADAM(model="ANN", lags=[12]).fit(AIRPASSENGERS, X=X)
+    h = 12
+    t_future = np.arange(n, n + h, dtype=float)
+    X_future = np.column_stack(
+        [
+            t_future / n,
+            np.cos(2 * np.pi * t_future / 12),
+            np.sin(2 * np.pi * t_future / 12),
+        ]
+    )
+    fc = m.reforecast(h=h, X=X_future, nsim=15, interval="prediction", seed=0)
+    assert fc.mean.shape == (h,)
+    assert fc.lower is not None and fc.lower.shape == (h, 1)
+    assert fc.upper is not None and fc.upper.shape == (h, 1)
+    assert np.all(np.isfinite(fc.mean.to_numpy()))
+
+
+def test_reforecast_xreg_warns_when_x_missing():
+    """Without future X, the in-sample tail is reused with a warning."""
+    n = len(AIRPASSENGERS)
+    X = np.column_stack(
+        [np.arange(n, dtype=float) / n, np.cos(2 * np.pi * np.arange(n) / 12)]
+    )
+    m = ADAM(model="ANN", lags=[12]).fit(AIRPASSENGERS, X=X)
+    with pytest.warns(UserWarning, match="newdata.*fallback"):
+        fc = m.reforecast(h=6, nsim=10, interval="prediction", seed=0)
+    assert fc.mean.shape == (6,)
