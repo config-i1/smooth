@@ -1321,13 +1321,35 @@ class OM(ADAM):
 
     @property
     def scale(self) -> float:
-        """Always NaN for occurrence models (no continuous error scale)."""
-        return float("nan")
+        """Link-scale residual std-dev — alias for :attr:`sigma`.
+
+        Mirrors :attr:`ADAM.scale`, which is an alias for ``sigma`` (the
+        Python convention is that ``scale`` and ``sigma`` both report the
+        std-dev, not the variance — even though R calls the variance
+        ``s2`` and ``sigma`` the std-dev). See :attr:`sigma` for the
+        underlying formula and R reference.
+        """
+        return self.sigma
 
     @property
     def sigma(self) -> float:
-        """Same as :attr:`scale`."""
-        return float("nan")
+        """Link-scale residual std-dev: ``sqrt(mean(residuals²))``.
+
+        Mirrors R's ``oes_old`` (R/oes.R:1253:
+        ``output$s2 <- mean(residuals²)``) and ``oesg_old`` (R/oesg.R:1039,
+        1049: ``s2=mean(errorsA²)``, ``s2=mean(errorsB²)``); R's
+        ``sigma(oes_old_obj)`` is then ``sqrt(s2)``. The residuals are on
+        the link-transformed scale (logit / log-odds), so their second
+        moment is a meaningful scale parameter for the underlying ETS,
+        even though there's no equivalent on the probability axis.
+
+        Returns NaN only if the model has no residuals yet (e.g.
+        constructed but not fitted).
+        """
+        residuals = getattr(self, "_prepared", {}).get("residuals")
+        if residuals is None:
+            return float("nan")
+        return float(np.sqrt(np.mean(np.asarray(residuals, dtype=float) ** 2)))
 
     @property
     def distribution_(self) -> str:

@@ -4540,6 +4540,198 @@ class ADAM:
             time_elapsed=elapsed,
         )
 
+    def multicov(
+        self,
+        type: str = "analytical",
+        h: int = 10,
+        nsim: int = 1000,
+    ) -> "pd.DataFrame":
+        """Covariance matrix of multi-step-ahead forecast errors.
+
+        Mirrors R's ``multicov.adam`` (R/adam.R:7051-7236). For an ``h``-step
+        horizon, returns a symmetric ``(h, h)`` matrix where the ``(i, j)``
+        entry is the covariance between the ``i``-step and ``j``-step
+        forecast errors. Useful for cumulative-forecast variance, joint
+        prediction-interval construction, and multi-step diagnostics.
+
+        Parameters
+        ----------
+        type : {"analytical", "empirical", "simulated"}, default="analytical"
+            * ``"analytical"`` — closed-form from the state-space matrices
+              ``(F, W, g, σ²)``. Uses the existing
+              :func:`~smooth.adam_general.core.utils.var_covar.covar_anal`
+              for additive errors; falls back to a diagonal built from
+              :func:`~smooth.adam_general.core.utils.var_covar.var_anal`
+              for multiplicative-error models on log/positive
+              distributions (matches the dispatch in
+              :mod:`~smooth.adam_general.core.forecaster.intervals`).
+            * ``"simulated"`` — averages the empirical covariance across
+              ``nsim`` simulator paths. Reuses the existing
+              ``predict(interval="simulated", scenarios=True)`` machinery
+              so distribution-specific error generation, scale de-biasing,
+              and occurrence handling are consistent with the
+              prediction-interval path.
+            * ``"empirical"`` — not yet implemented (requires a
+              rolling-origin multi-step-residuals helper that has not been
+              ported); raises :class:`NotImplementedError`.
+        h : int, default=10
+            Forecast horizon. The returned matrix is ``(h, h)``.
+        nsim : int, default=1000
+            Number of simulator paths when ``type="simulated"``. Ignored
+            otherwise.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Symmetric ``(h, h)`` covariance, indexed and columned by
+            ``["h1", "h2", ..., "hh"]``.
+
+        Notes
+        -----
+        Standalone :class:`OM` inherits this method and **produces a
+        link-scale covariance** with ``type="analytical"``. The OM's
+        ``sigma`` is ``sqrt(mean(residuals²))`` (mirroring R's
+        ``oes_old`` / ``oesg_old`` — R/oes.R:1253 and R/oesg.R:1039/1049),
+        so the returned matrix is the covariance of multi-step forecast
+        errors on the link-transformed (logit / log-odds) scale, not on
+        the probability axis. ``type="simulated"`` is not yet supported
+        on OM because the occurrence-aware predict route does not
+        populate the scenarios matrix the simulated branch relies on.
+
+        :class:`~smooth.adam_general.core.omg.OMG` overrides this method to
+        raise — the joint occurrence model's multi-step distribution does
+        not have a closed-form covariance in terms of the per-sub-model
+        state-space matrices; call ``model.model_a.multicov()`` and
+        ``model.model_b.multicov()`` instead.
+        """
+        import pandas as pd
+
+        from smooth.adam_general.core.utils.var_covar import covar_anal, var_anal
+
+        self._check_is_fitted()
+
+        if type not in ("analytical", "empirical", "simulated"):
+            raise ValueError(
+                "type must be one of 'analytical', 'empirical', 'simulated'; "
+                f"got {type!r}."
+            )
+        if int(h) < 1:
+            raise ValueError(f"h must be >= 1, got {h!r}.")
+        if int(nsim) < 1:
+            raise ValueError(f"nsim must be >= 1, got {nsim!r}.")
+        h = int(h)
+        nsim = int(nsim)
+
+        h_labels = [f"h{i + 1}" for i in range(h)]
+
+        if type == "empirical":
+            raise NotImplementedError(
+                "multicov(type='empirical') requires a rolling-origin "
+                "multi-step residuals helper that is not yet ported to "
+                "Python; use type='analytical' or type='simulated'."
+            )
+
+        if type == "analytical":
+            cov = self._multicov_analytical(h, covar_anal, var_anal)
+        else:
+            cov = self._multicov_simulated(h, nsim)
+
+        return pd.DataFrame(cov, index=h_labels, columns=h_labels)
+
+    def _multicov_analytical(self, h: int, covar_anal_fn, var_anal_fn) -> NDArray:
+        """Closed-form covariance — mirrors R/adam.R:7087-7088."""
+        # Pull the matrices the same way intervals.generate_prediction_interval
+        # does (intervals.py:67-103): pad/truncate measurement to h rows,
+        # transition + persistence as-is, σ² from the fitted scale.
+        mat_f = np.asarray(self._prepared["transition"], dtype=float)
+        # OM stores persistence as a dict {param_name: value}; ADAM stores it
+        # as an ndarray. Coerce both forms to a flat array.
+        persistence_raw = self._prepared["persistence"]
+        if isinstance(persistence_raw, dict):
+            vec_g = np.asarray(list(persistence_raw.values()), dtype=float).flatten()
+        else:
+            vec_g = np.asarray(persistence_raw, dtype=float).flatten()
+        meas_raw = np.asarray(self._prepared["measurement"], dtype=float)
+        if meas_raw.shape[0] < h:
+            mat_wt = np.tile(meas_raw[-1], (h, 1))
+        else:
+            mat_wt = meas_raw[-h:]
+        lags_all = np.asarray(self._lags_model["lags_model_all"]).flatten()
+        sigma_val = float(self.sigma) if self.sigma is not None else float("nan")
+        s2 = sigma_val * sigma_val
+
+        # Dispatch on error_type / distribution to mirror the
+        # intervals.py branch (line 81-104). Multiplicative-error models on
+        # log/positive distributions don't have a meaningful off-diagonal
+        # closed form — return a diagonal of per-horizon variances.
+        e_type = self._model_type.get("error_type", "A")
+        distribution = self._general.get("distribution", "dnorm")
+        log_or_pos = distribution in (
+            "dinvgauss",
+            "dgamma",
+            "dlnorm",
+            "dllaplace",
+            "dls",
+            "dlgnorm",
+        )
+        if self._model_type.get("ets_model") and e_type == "M" and log_or_pos:
+            diag = var_anal_fn(lags_all, h, mat_wt[0], mat_f, vec_g, s2)
+            diag = np.asarray(diag, dtype=float).flatten()
+            if distribution in ("dlnorm", "dls", "dllaplace", "dlgnorm"):
+                diag = np.log(1.0 + diag)
+            return np.diag(diag)
+
+        cov = covar_anal_fn(lags_all, h, mat_wt, mat_f, vec_g, s2)
+        return np.asarray(cov, dtype=float)
+
+    def _multicov_simulated(self, h: int, nsim: int) -> NDArray:
+        """Simulator-based covariance — mirrors R/adam.R:7203-7231.
+
+        Drives the existing ``predict(interval='simulated', scenarios=True)``
+        path so distribution sampling, scale de-biasing, and occurrence
+        handling all match the prediction-interval code. After the
+        simulator returns the ``(h, nsim)`` matrix of path values, we
+        subtract the per-horizon mean (and divide by the mean for
+        multiplicative errors) and form the empirical covariance.
+        """
+        prev_h = self._general.get("h")
+        prev_interval = self._general.get("interval")
+        prev_nsim = self._general.get("nsim")
+        prev_scenarios = self._general.get("scenarios")
+        prev_level = self._general.get("level")
+        try:
+            self.predict(
+                h=h,
+                interval="simulated",
+                nsim=nsim,
+                scenarios=True,
+                level=0.5,
+            )
+        finally:
+            self._general["h"] = prev_h
+            self._general["interval"] = prev_interval
+            self._general["nsim"] = prev_nsim
+            self._general["scenarios"] = prev_scenarios
+            if prev_level is not None:
+                self._general["level"] = prev_level
+
+        sim = self._general.get("_scenarios_matrix")
+        if sim is None:
+            raise RuntimeError(
+                "Simulated path did not return scenarios matrix — internal "
+                "forecaster did not populate `_scenarios_matrix`."
+            )
+        y_sim = np.asarray(sim, dtype=float)  # (h, nsim)
+
+        y_forecast = y_sim.mean(axis=1, keepdims=True)
+        y_centred = y_sim - y_forecast
+        if self._model_type.get("error_type", "A") == "M":
+            # Convert level-residuals to relative residuals: ε_t = (y - ŷ)/ŷ
+            # (R/adam.R:7227). Guard against zero forecast values.
+            safe = np.where(np.abs(y_forecast) < 1e-15, np.nan, y_forecast)
+            y_centred = y_centred / safe
+        return (y_centred @ y_centred.T) / nsim
+
     def plot(  # noqa: B006
         self,
         which=[1, 2, 4, 6],

@@ -772,6 +772,35 @@ class OMG:
             time_elapsed=elapsed,
         )
 
+    def multicov(
+        self,
+        type: str = "analytical",
+        h: int = 10,
+        nsim: int = 1000,
+    ):
+        """Multi-step forecast-error covariance — not defined for OMG.
+
+        R's ``multicov`` is dispatched on ``adam`` / ``smooth`` classes via
+        the state-space matrices ``(F, W, g, σ²)``. OMG has **two** parallel
+        sub-models joined by the non-linear link
+        ``p = pA / (pA + pB)``; the resulting joint multi-step distribution
+        has no closed-form covariance from those matrices and R does not
+        define a ``multicov.omg`` method either (it would dispatch to
+        ``multicov.smooth`` and crash on the missing ``$persistence``).
+
+        Call :meth:`smooth.adam_general.core.adam.ADAM.multicov` on each
+        sub-model — ``model.model_a.multicov(...)`` /
+        ``model.model_b.multicov(...)`` — for per-side multi-step
+        covariance instead. Raises :class:`NotImplementedError`.
+        """
+        raise NotImplementedError(
+            "multicov() is not defined for OMG — the joint occurrence "
+            "model has no closed-form multi-step covariance in terms of "
+            "the per-sub-model state-space matrices. Call "
+            "model.model_a.multicov(...) and model.model_b.multicov(...) "
+            "for per-side covariances."
+        )
+
     # ---------------------------------------------------------------------
     # Internals — building the per-side scaffolding
     # ---------------------------------------------------------------------

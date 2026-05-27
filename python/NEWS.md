@@ -3,6 +3,13 @@
 Release history of the Python implementation of the **smooth** forecasting package.
 
 
+## v1.0.5 (unreleased)
+
+Changes:
+* `multicov()` method added to `ADAM`, `ES`, `MSARIMA`, `OM`, and `OMG`, matching R's `multicov.adam` / `multicov.smooth`. Returns the `(h, h)` covariance matrix of multi-step-ahead forecast errors as a `pandas.DataFrame` labelled `h1..hh`. Supports `type="analytical"` (closed-form via the existing `covar_anal` / `var_anal` helpers) and `type="simulated"` (averages over `nsim` simulator paths via the existing `adam_simulator` pybind binding). `type="empirical"` raises `NotImplementedError` until the rolling-origin residuals helper is ported.
+* `OM.sigma` / `OM.scale` now return `sqrt(mean(residuals²))` — the link-scale residual std-dev — instead of `NaN`. Matches R's `oes_old` (R/oes.R:1253) and `oesg_old` (R/oesg.R:1039, 1049): the OM residuals are on the link-transformed (logit / log-odds) scale, so their second moment is a meaningful scale parameter for the underlying ETS, even though there's no equivalent on the probability axis. Makes `OM.multicov(type='analytical')` produce a finite, PSD covariance matrix that agrees with R to ~5% relative tolerance under matched fits. R-side: a new `sigma.om()` S3 method is registered (R/om.R) so `sigma(om_obj)` and `multicov(om_obj)` work on the R side too — previously they returned `numeric(0)` / crashed because `sigma.adam`'s distribution switch didn't include `"plogis"`.
+
+
 ## v1.0.4 (unreleased)
 
 Changes:

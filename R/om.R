@@ -2043,6 +2043,23 @@ actuals.om <- function(object, ...){
     return(yObs);
 }
 
+#' @importFrom stats sigma
+#' @export
+sigma.om <- function(object, ...){
+    # `sigma.adam` dispatches on `object$distribution`, which is "plogis"
+    # for occurrence models -- not in its switch table, so it would
+    # return `numeric(0)`. Mirror the legacy `oes_old` / `oesg_old`
+    # convention instead (R/oes.R:1253: `output$s2 <- mean(residuals^2)`,
+    # R/oesg.R:1039,1049: `s2=mean(errorsA^2)`, `s2=mean(errorsB^2)`):
+    # the residuals are on the link-transformed (logit / log-odds) scale,
+    # so their RMS is a meaningful scale parameter for the underlying ETS.
+    # This makes `multicov(om_obj)` and downstream callers work without
+    # `s2 = NA^2 = NA` propagating through `covarAnal`.
+    e <- residuals(object);
+    if(is.null(e) || length(e)==0) return(NA_real_);
+    return(sqrt(mean(e^2, na.rm=TRUE)));
+}
+
 #' @export
 print.om <- function(x, ...){
     cat("Occurrence model\n");
