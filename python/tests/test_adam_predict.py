@@ -8,20 +8,22 @@ import pytest
 from smooth.adam_general.core.adam import ADAM
 from smooth.adam_general.core.forecaster.result import ForecastResult
 
-
 # ---------------------------------------------------------------------------
 # Module-level data and pre-fitted models (created once, shared across tests)
 # ---------------------------------------------------------------------------
 
+
 def _make_simple():
     np.random.seed(42)
     return 10 + 0.5 * np.arange(50) + np.random.randn(50) * 2
+
 
 def _make_seasonal():
     np.random.seed(42)
     n = 120
     t = np.arange(n)
     return 100 + 0.5 * t + 10 * np.sin(2 * np.pi * t / 12) + np.random.randn(n) * 3
+
 
 def _make_multiplicative():
     np.random.seed(42)
@@ -51,6 +53,7 @@ _mult_model.fit(_mult_data)
 # ---------------------------------------------------------------------------
 # 1. Interval types
 # ---------------------------------------------------------------------------
+
 
 class TestPredictIntervalTypes:
     """Tests for each interval type with additive and multiplicative models."""
@@ -104,10 +107,81 @@ class TestPredictIntervalTypes:
         assert len(r.mean) == 5
         assert r.lower is not None and r.upper is not None
 
+    def test_interval_complete_returns_forecast_result(self):
+        """``interval='complete'`` dispatches through ``reforecast`` and
+        returns the stock :class:`ForecastResult` shape."""
+        r = _mult_model.predict(h=6, interval="complete", nsim=40)
+        assert isinstance(r, ForecastResult)
+        assert len(r.mean) == 6
+        assert r.lower is not None and r.lower.shape == (6, 1)
+        assert r.upper is not None and r.upper.shape == (6, 1)
+        # ``complete`` is an alias for ``prediction`` on reforecast — the
+        # returned ``ForecastResult.interval`` reflects the underlying
+        # reforecast mode, matching R's behaviour.
+        assert r.interval == "prediction"
+        assert (r.lower.iloc[:, 0].values <= r.mean.values + 1e-9).all()
+        assert (r.mean.values <= r.upper.iloc[:, 0].values + 1e-9).all()
+
+    def test_interval_confidence_returns_forecast_result(self):
+        r = _mult_model.predict(h=6, interval="confidence", nsim=40)
+        assert isinstance(r, ForecastResult)
+        assert len(r.mean) == 6
+        assert r.interval == "confidence"
+        assert r.lower is not None and r.upper is not None
+
+    def test_interval_confidence_narrower_than_complete(self):
+        """For the same fit + nsim, confidence intervals are strictly
+        narrower than prediction (= ``complete``) intervals on average."""
+        r_pred = _mult_model.predict(h=6, interval="complete", nsim=40)
+        r_conf = _mult_model.predict(h=6, interval="confidence", nsim=40)
+        pred_width = (
+            (r_pred.upper.iloc[:, 0] - r_pred.lower.iloc[:, 0]).to_numpy().mean()
+        )
+        conf_width = (
+            (r_conf.upper.iloc[:, 0] - r_conf.lower.iloc[:, 0]).to_numpy().mean()
+        )
+        assert conf_width < pred_width, (
+            f"confidence mean width {conf_width:.2f} not < prediction "
+            f"mean width {pred_width:.2f}"
+        )
+
+    def test_interval_complete_default_nsim_is_100(self):
+        """When the caller leaves ``nsim`` at the predict default, the
+        reforecast path uses R's ``forecast.adam`` default of 100. We
+        can't observe ``nsim`` directly from the ``ForecastResult``, but
+        a successful call confirms the dispatch routes through
+        reforecast (which has nsim=100 default) rather than failing on
+        a 10000-sample reapply that would be very slow."""
+        r = _additive_model.predict(h=4, interval="complete")
+        assert isinstance(r, ForecastResult)
+        assert len(r.mean) == 4
+
+    def test_interval_complete_multi_level(self):
+        r = _mult_model.predict(h=6, interval="complete", level=[0.8, 0.95], nsim=40)
+        assert r.lower.shape == (6, 2)
+        assert r.upper.shape == (6, 2)
+        # Tighter level must give narrower interval.
+        w80 = (r.upper.iloc[:, 0] - r.lower.iloc[:, 0]).to_numpy()
+        w95 = (r.upper.iloc[:, 1] - r.lower.iloc[:, 1]).to_numpy()
+        assert (w80 <= w95 + 1e-6).all()
+
+    def test_interval_complete_rejects_arima(self):
+        """ARIMA inheritance: reapply raises NotImplementedError, which
+        propagates through predict('complete')."""
+        m = ADAM(
+            model="NNN",
+            orders={"ar": [1], "i": [0], "ma": [0]},
+            lags=[1],
+            initial="backcasting",
+        ).fit(_simple_data)
+        with pytest.raises(NotImplementedError, match="ARIMA"):
+            m.predict(h=4, interval="complete", nsim=10)
+
 
 # ---------------------------------------------------------------------------
 # 2. Confidence levels
 # ---------------------------------------------------------------------------
+
 
 class TestPredictLevels:
     """Tests for different confidence level values."""
@@ -145,6 +219,7 @@ class TestPredictLevels:
 # 3. Side parameter
 # ---------------------------------------------------------------------------
 
+
 class TestPredictSides:
     """Tests for the side parameter (both, upper, lower)."""
 
@@ -174,6 +249,7 @@ class TestPredictSides:
 # 4. Cumulative forecasts
 # ---------------------------------------------------------------------------
 
+
 class TestPredictCumulative:
     """Tests for cumulative forecast output."""
 
@@ -192,9 +268,7 @@ class TestPredictCumulative:
 
     def test_cumulative_with_simulated_intervals(self):
         """Cumulative with simulated intervals produces single-row output."""
-        r = _simple_model.predict(
-            h=5, interval="simulated", cumulative=True, nsim=1000
-        )
+        r = _simple_model.predict(h=5, interval="simulated", cumulative=True, nsim=1000)
         assert len(r.mean) == 1
         assert r.lower is not None and r.upper is not None
         assert r.lower.iloc[0, 0] <= r.mean.values[0]
@@ -202,9 +276,7 @@ class TestPredictCumulative:
 
     def test_cumulative_with_approximate_intervals(self):
         """Cumulative with approximate intervals produces single-row output."""
-        r = _additive_model.predict(
-            h=12, interval="approximate", cumulative=True
-        )
+        r = _additive_model.predict(h=12, interval="approximate", cumulative=True)
         assert len(r.mean) == 1
         assert r.lower is not None and r.upper is not None
         assert r.lower.iloc[0, 0] <= r.mean.values[0]
@@ -225,20 +297,17 @@ class TestPredictCumulative:
 # 5. Scenarios
 # ---------------------------------------------------------------------------
 
+
 class TestPredictScenarios:
     """Tests for scenario output storage."""
 
     def test_scenarios_stored(self):
-        _simple_model.predict(
-            h=5, interval="simulated", nsim=1000, scenarios=True
-        )
+        _simple_model.predict(h=5, interval="simulated", nsim=1000, scenarios=True)
         sc = _simple_model._general.get("_scenarios_matrix")
         assert sc is not None
 
     def test_scenarios_shape(self):
-        _simple_model.predict(
-            h=5, interval="simulated", nsim=1000, scenarios=True
-        )
+        _simple_model.predict(h=5, interval="simulated", nsim=1000, scenarios=True)
         sc = _simple_model._general["_scenarios_matrix"]
         assert sc.shape == (5, 1000)
 
@@ -246,18 +315,15 @@ class TestPredictScenarios:
         """scenarios=True with interval='approximate' issues a warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            _simple_model.predict(
-                h=5, interval="approximate", scenarios=True
-            )
-            scenario_warnings = [
-                x for x in w if "scenarios=True" in str(x.message)
-            ]
+            _simple_model.predict(h=5, interval="approximate", scenarios=True)
+            scenario_warnings = [x for x in w if "scenarios=True" in str(x.message)]
             assert len(scenario_warnings) >= 1
 
 
 # ---------------------------------------------------------------------------
 # 6. Multiplicative model specifics
 # ---------------------------------------------------------------------------
+
 
 class TestPredictMultiplicative:
     """Tests specific to multiplicative models and simulation-based means."""
@@ -299,6 +365,7 @@ class TestPredictMultiplicative:
 # 7. Combined model prediction
 # ---------------------------------------------------------------------------
 
+
 class TestPredictCombined:
     """Tests for predict on combined (CXC) models."""
 
@@ -327,22 +394,19 @@ class TestPredictCombined:
 # 8. Multi-level prediction intervals
 # ---------------------------------------------------------------------------
 
+
 class TestPredictMultiLevel:
     """Tests for multi-level prediction intervals."""
 
     def test_multi_level_column_count(self):
         """Two levels produce 2 lower + 2 upper columns."""
-        r = _simple_model.predict(
-            h=5, interval="approximate", level=[0.9, 0.95]
-        )
+        r = _simple_model.predict(h=5, interval="approximate", level=[0.9, 0.95])
         assert len(r.mean) == 5
         assert r.lower.shape == (5, 2)
         assert r.upper.shape == (5, 2)
 
     def test_multi_level_column_names(self):
-        r = _simple_model.predict(
-            h=5, interval="approximate", level=[0.9, 0.95]
-        )
+        r = _simple_model.predict(h=5, interval="approximate", level=[0.9, 0.95])
         assert 0.05 in r.lower.columns
         assert 0.025 in r.lower.columns
         assert 0.95 in r.upper.columns
@@ -350,9 +414,7 @@ class TestPredictMultiLevel:
 
     def test_multi_level_nesting(self):
         """Wider level contains narrower level."""
-        r = _simple_model.predict(
-            h=5, interval="approximate", level=[0.8, 0.99]
-        )
+        r = _simple_model.predict(h=5, interval="approximate", level=[0.8, 0.99])
         lower80 = r.lower[0.1].values
         lower99 = r.lower[0.005].values
         upper80 = r.upper[0.9].values
@@ -387,9 +449,7 @@ class TestPredictMultiLevel:
 
     def test_three_levels(self):
         """Three levels produce 3 lower + 3 upper columns."""
-        r = _simple_model.predict(
-            h=5, interval="approximate", level=[0.8, 0.9, 0.99]
-        )
+        r = _simple_model.predict(h=5, interval="approximate", level=[0.8, 0.9, 0.99])
         assert r.lower.shape == (5, 3)
         assert r.upper.shape == (5, 3)
 
@@ -402,9 +462,7 @@ class TestPredictMultiLevel:
 
     def test_to_dataframe(self):
         """to_dataframe() returns a flat DataFrame with prefixed column names."""
-        r = _simple_model.predict(
-            h=5, interval="approximate", level=[0.9, 0.95]
-        )
+        r = _simple_model.predict(h=5, interval="approximate", level=[0.9, 0.95])
         df = r.to_dataframe()
         assert "mean" in df.columns
         assert "lower_0.05" in df.columns

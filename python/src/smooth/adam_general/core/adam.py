@@ -114,6 +114,191 @@ def _adam_refit_one_replicate(
     return boot_coef
 
 
+def _psd_correct(vcov: NDArray) -> NDArray:
+    """Ensure ``vcov`` is positive semi-definite for the MVN sampler.
+
+    Mirrors R's ``reapply.adam`` lines 96-115: if the smallest eigenvalue
+    is negative, shift the diagonal by ``|min_eig| + 1e-10`` when the
+    shift is small (PSD repair). When the eigenvalue is below ``-1`` the
+    repair is too aggressive — fall back to the diagonal-only matrix
+    which is always PSD.
+    """
+    vcov = np.asarray(vcov, dtype=float)
+    if vcov.size == 0:
+        return vcov
+    eig_min = float(np.min(np.linalg.eigvalsh(vcov)))
+    if eig_min < 0:
+        if eig_min > -1:
+            warnings.warn(
+                "The covariance matrix of parameters is not positive "
+                "semi-definite; shifting the diagonal to repair it. "
+                "Consider re-estimating the model with a different "
+                "optimiser configuration.",
+                stacklevel=3,
+            )
+            return vcov + (-eig_min + 1e-10) * np.eye(vcov.shape[0])
+        warnings.warn(
+            "The covariance matrix of parameters has a large negative "
+            "eigenvalue; falling back to the diagonal-only matrix for "
+            "MVN sampling. It is worth re-estimating the model.",
+            stacklevel=3,
+        )
+        return np.diag(np.diag(vcov))
+    return vcov
+
+
+def _clip_ets_usual(random_parameters: NDArray, idx: dict, model_type: dict) -> None:
+    """Clip ETS smoothing parameters in place (R/reapply.R:254-333).
+
+    Enforces ``alpha ∈ [0, 1]``, ``beta ∈ [0, alpha]``, ``gamma ∈ [0,
+    1 - alpha]`` (per seasonal index) and ``phi ∈ [0, 1]``. For
+    multiplicative trend / season, replaces non-positive initial-state
+    draws with a small positive ``1e-6`` per R lines 324-333. Mutates
+    ``random_parameters`` in place.
+    """
+    if "alpha" in idx:
+        np.clip(
+            random_parameters[:, idx["alpha"]],
+            0.0,
+            1.0,
+            out=random_parameters[:, idx["alpha"]],
+        )
+    if "beta" in idx and "alpha" in idx:
+        a = random_parameters[:, idx["alpha"]]
+        b_col = idx["beta"]
+        random_parameters[:, b_col] = np.clip(random_parameters[:, b_col], 0.0, a)
+    gamma_cols = [v for k, v in idx.items() if k.startswith("gamma")]
+    if gamma_cols and "alpha" in idx:
+        a = random_parameters[:, idx["alpha"]]
+        for c in gamma_cols:
+            random_parameters[:, c] = np.clip(random_parameters[:, c], 0.0, 1.0 - a)
+    if "phi" in idx:
+        np.clip(
+            random_parameters[:, idx["phi"]],
+            0.0,
+            1.0,
+            out=random_parameters[:, idx["phi"]],
+        )
+
+    # Multiplicative trend / season — keep initial states strictly positive.
+    if model_type.get("trend_type") == "M" and "trend" in idx:
+        col = random_parameters[:, idx["trend"]]
+        col[col < 0] = 1e-6
+    if model_type.get("season_type") == "M":
+        for k, v in idx.items():
+            if k.startswith("seasonal"):
+                col = random_parameters[:, v]
+                col[col < 0] = 1e-6
+
+
+def _clip_deltas(random_parameters: NDArray, idx: dict) -> None:
+    """Clip xreg ``delta`` smoothing parameters to ``[0, 1]`` in place.
+
+    Mirrors R/reapply.R:438-443. No-op when the model has no deltas.
+    """
+    for k, v in idx.items():
+        if k.startswith("delta"):
+            np.clip(
+                random_parameters[:, v],
+                0.0,
+                1.0,
+                out=random_parameters[:, v],
+            )
+
+
+def _level_bounds(levels, side, h):
+    """Build per-horizon lower / upper quantile matrices for an interval.
+
+    Mirrors R's ``levelLow`` / ``levelUp`` block in ``reforecast.adam``
+    (R/reapply.R:1080-1098). Returns two ``(h, n_levels)`` numpy arrays.
+    """
+    n_levels = len(levels)
+    level_arr = np.tile(np.asarray(levels, dtype=float), (h, 1))
+    low = np.zeros((h, n_levels))
+    high = np.zeros((h, n_levels))
+    if side == "both":
+        low[:] = (1.0 - level_arr) / 2.0
+        high[:] = (1.0 + level_arr) / 2.0
+    elif side == "upper":
+        low[:] = 0.0
+        high[:] = level_arr
+    else:  # "lower"
+        low[:] = 1.0 - level_arr
+        high[:] = 1.0
+    np.clip(low, 0.0, 1.0, out=low)
+    np.clip(high, 0.0, 1.0, out=high)
+    return low, high
+
+
+def _column_names_for_levels(levels, side):
+    """R-style bound-column labels for the lower / upper DataFrames."""
+    if side == "both":
+        lower = [f"Lower bound ({(1 - lvl) / 2 * 100:g}%)" for lvl in levels]
+        upper = [f"Upper bound ({(1 + lvl) / 2 * 100:g}%)" for lvl in levels]
+    elif side == "upper":
+        lower = ["Lower 0%"] * len(levels)
+        upper = [f"Upper bound ({lvl * 100:g}%)" for lvl in levels]
+    else:  # "lower"
+        lower = [f"Lower bound ({(1 - lvl) * 100:g}%)" for lvl in levels]
+        upper = ["Upper 100%"] * len(levels)
+    return lower, upper
+
+
+def _forecast_index(fitted, h):
+    """Build a ``h``-element pandas Index extrapolated from ``fitted.index``.
+
+    Falls back to a ``RangeIndex`` if the in-sample index isn't a
+    ``DatetimeIndex``-style monotonic step.
+    """
+    import pandas as _pd
+
+    if not isinstance(fitted, _pd.Series) or len(fitted.index) < 2:
+        return _pd.RangeIndex(start=0, stop=h)
+    idx = fitted.index
+    if isinstance(idx, _pd.DatetimeIndex):
+        freq = idx.freq if idx.freq is not None else (idx[-1] - idx[-2])
+        return _pd.date_range(start=idx[-1] + freq, periods=h, freq=freq)
+    # Numeric index — extrapolate by the last step.
+    try:
+        step = idx[-1] - idx[-2]
+        return _pd.Index([idx[-1] + step * (i + 1) for i in range(h)])
+    except (TypeError, ValueError):
+        return _pd.RangeIndex(start=len(idx), stop=len(idx) + h)
+
+
+def _trim_mean(arr, trim):
+    """Trimmed mean (R's ``mean(x, trim=...)``), NaN-safe.
+
+    R trims the same proportion from each tail; ``scipy.stats.trim_mean``
+    does the same, but ignores NaNs only when fed a filtered array.
+    """
+    a = np.asarray(arr, dtype=float).ravel()
+    a = a[np.isfinite(a)]
+    if a.size == 0:
+        return float("nan")
+    if trim <= 0:
+        return float(a.mean())
+    return float(scipy_stats.trim_mean(a, trim))
+
+
+def _build_profiles_array(arr_vt_seed: NDArray, L: int, nsim: int) -> NDArray:
+    """Stack the first-``L``-columns initial profile across ``nsim`` slices.
+
+    Returns shape ``(n_components, L, nsim)``, F-ordered. The initial
+    profile is the prefix of the fitted state matrix — R uses
+    ``object$profileInitial`` for the same purpose (R/reapply.R:639).
+    Built with ``np.zeros + assignment`` rather than ``np.repeat`` to
+    match the layout the C++ kernel + carma expect across sequential
+    reapply calls (see ``ADAM.reapply`` notes about heap corruption).
+    """
+    profile_seed = np.ascontiguousarray(arr_vt_seed[:, :L], dtype=np.float64)
+    c = profile_seed.shape[0]
+    profile = np.zeros((c, L, nsim), order="F")
+    for i in range(nsim):
+        profile[:, :, i] = profile_seed
+    return profile
+
+
 class ADAM:
     """
     ADAM: Augmented Dynamic Adaptive Model for Time Series Forecasting.
@@ -2773,6 +2958,29 @@ class ADAM:
         if occurrence is not None:
             self._occurrence["occurrence"] = occurrence
 
+        # ``interval="complete"`` / ``"confidence"`` delegate to
+        # :meth:`reforecast` — they need per-parameter-draw refitting of
+        # the in-sample data, which the existing forecaster path doesn't
+        # do. R's ``forecast.adam`` defaults ``nsim=100`` for both modes;
+        # honour that whenever the caller hasn't overridden the
+        # ``predict`` default of 10000.
+        if interval in ("complete", "confidence"):
+            reforecast_nsim = 100 if nsim == 10000 else int(nsim)
+            sub_interval: Literal["prediction", "confidence"] = (
+                "prediction" if interval == "complete" else "confidence"
+            )
+            reforecast_result = self.reforecast(
+                h=h,
+                X=X,
+                occurrence=occurrence,
+                interval=sub_interval,
+                level=level if level is not None else 0.95,
+                side=side,
+                cumulative=cumulative,
+                nsim=reforecast_nsim,
+            )
+            return reforecast_result.to_forecast_result()
+
         # Store new_xreg for forecast period (used in _generate_point_forecasts)
         if X is not None and self._explanatory.get("xreg_model"):
             new_xreg = np.asarray(X)
@@ -4591,6 +4799,717 @@ class ADAM:
             model=str(model_spec),
             time_elapsed=elapsed,
         )
+
+    def reapply(
+        self,
+        nsim: int = 1000,
+        bootstrap: bool = False,
+        heuristics: Optional[float] = None,
+        seed: Optional[int] = None,
+        **vcov_kwargs,
+    ):
+        """Re-run the model on the in-sample data for ``nsim`` parameter draws.
+
+        Python port of R's ``reapply.adam`` (R/reapply.R:87-778). Samples
+        ``nsim`` parameter vectors from a multivariate normal centred on
+        :attr:`coef` with covariance from :meth:`vcov`, clips each draw to
+        the admissible region, then re-runs the shared C++ ADAM kernel
+        (``adamCore::reapply``) once per draw. The resulting per-draw
+        fitted paths, states, transition / measurement matrices,
+        persistence vectors, and final profiles are returned in a
+        :class:`~smooth.adam_general.core.utils.reapply.ReapplyResult`
+        with array shapes matching R exactly.
+
+        Parameters
+        ----------
+        nsim : int, default=1000
+            Number of parameter draws.
+        bootstrap : bool, default=False
+            Forwarded to :meth:`vcov`. ``True`` uses the empirical
+            covariance from :meth:`coefbootstrap` instead of the analytical
+            inverse-Fisher matrix.
+        heuristics : float, optional
+            Forwarded to :meth:`vcov` — heuristic diagonal proportion
+            (``vcov = diag(|coef| * heuristics)``) when set.
+        seed : int, optional
+            Seed for the MVN sampler. Makes the draw reproducible.
+        **vcov_kwargs
+            Forwarded to :meth:`vcov` (``step_size``, bootstrap kwargs).
+
+        Returns
+        -------
+        ReapplyResult
+            Container with ``time_elapsed``, ``y``, ``states`` ``(c, n+L,
+            nsim)``, ``refitted`` ``(n, nsim)``, ``fitted``, ``model``,
+            ``transition`` ``(c, c, nsim)``, ``measurement`` ``(n, c,
+            nsim)``, ``persistence`` ``(c, nsim)``, ``profile`` ``(c, L,
+            nsim)``, ``random_parameters`` ``(nsim, k)`` and ``nsim``.
+
+        Notes
+        -----
+        Phase 1 of the port implements the **ETS path with ``bounds=
+        "usual"``** (the default and most common case) plus the ``delta``
+        slots for adaptive regressors. ARIMA, CES, GUM, ``bounds=
+        "admissible"`` and external-regressor (xreg) refitting raise
+        ``NotImplementedError`` so users get a clear signal instead of a
+        silently-wrong result; they will be added in follow-ups.
+        """
+        import time as _time
+
+        from smooth.adam_general.core.utils.reapply import ReapplyResult
+
+        self._check_is_fitted()
+        t0 = _time.time()
+
+        if self._model_type.get("arima_model", False):
+            raise NotImplementedError(
+                "ADAM.reapply for ARIMA models is not yet implemented. "
+                "Pure ETS models are supported in this phase; ARIMA / mixed "
+                "ETS+ARIMA support will be added in a follow-up."
+            )
+        if self._explanatory.get("xreg_model", False):
+            raise NotImplementedError(
+                "ADAM.reapply for models with external regressors (X) is "
+                "not yet implemented."
+            )
+        if self._general.get("bounds", "usual") == "admissible":
+            raise NotImplementedError(
+                "ADAM.reapply with bounds='admissible' is not yet "
+                "implemented (the eigenvalue-based clipping logic is not "
+                "ported). Refit with bounds='usual' or 'none' or wait for "
+                "the follow-up."
+            )
+
+        # 1. Sampling covariance + PSD repair (R/reapply.R:95-115)
+        vcov_df = self.vcov(bootstrap=bootstrap, heuristics=heuristics, **vcov_kwargs)
+        coef = np.asarray(self.coef, dtype=float)
+        coef_names = list(self.coef_names)
+        vcov_arr = np.asarray(vcov_df, dtype=float)
+        vcov_arr = _psd_correct(vcov_arr)
+
+        # 2. MVN sample (R/reapply.R:251)
+        rng = np.random.default_rng(seed)
+        random_parameters = rng.multivariate_normal(mean=coef, cov=vcov_arr, size=nsim)
+
+        # 3. ETS-usual clipping (R/reapply.R:254-333) + delta clipping (438-443)
+        idx = {nm: i for i, nm in enumerate(coef_names)}
+        _clip_ets_usual(random_parameters, idx, self._model_type)
+        _clip_deltas(random_parameters, idx)
+
+        # 4. Build the per-draw cubes (R/reapply.R:447-469)
+        n = int(self.nobs)
+        states_2d = np.asarray(self.states, dtype=np.float64)
+        n_components, n_states_time = states_2d.shape
+        L = int(self._lags_model["lags_model_max"])
+        # R's $states is [obsInSample + lagsModelMax, nComponents]; Python's
+        # ``self.states`` is its transpose, so we already have the cube-
+        # friendly (c, n+L) layout.
+        if n_states_time != n + L:
+            # Older fits may have stored ``n + 1`` instead of ``n + L``;
+            # pad / truncate so the C++ kernel sees the full grid.
+            arr_vt_seed = np.zeros((n_components, n + L))
+            cols = min(n_states_time, n + L)
+            arr_vt_seed[:, :cols] = states_2d[:, :cols]
+        else:
+            arr_vt_seed = states_2d
+
+        # Build cubes via ``np.zeros + slice assignment``. ``np.repeat`` +
+        # ``.astype(order="F")`` produces an array whose stride metadata
+        # carma's arma::cube view interprets in a way that triggers heap
+        # corruption when chained across multiple reapply calls (sequential
+        # ADAM models in one process). The zeros-then-fill pattern matches
+        # the proven simulator path (``intervals.py:493-507``).
+        arr_vt = np.zeros((n_components, n + L, nsim), order="F")
+        for i in range(nsim):
+            arr_vt[:, :, i] = arr_vt_seed
+        transition_seed = np.asarray(self.transition, dtype=np.float64)
+        arr_f = np.zeros(transition_seed.shape + (nsim,), order="F")
+        for i in range(nsim):
+            arr_f[:, :, i] = transition_seed
+        measurement_seed = np.asarray(self.measurement, dtype=np.float64)
+        arr_wt = np.zeros(measurement_seed.shape + (nsim,), order="F")
+        for i in range(nsim):
+            arr_wt[:, :, i] = measurement_seed
+
+        vec_g_seed = np.asarray(
+            self._prepared.get("vec_g", self._adam_created["vec_g"]),
+            dtype=np.float64,
+        ).ravel()
+        if len(vec_g_seed) != n_components:
+            # Pad with zeros (failsafe for xreg-with-no-deltas case, R 132-135)
+            vec_g_seed = np.concatenate(
+                [vec_g_seed, np.zeros(n_components - len(vec_g_seed))]
+            )
+        mat_g = np.zeros((n_components, nsim), order="F")
+        for i in range(nsim):
+            mat_g[:, i] = vec_g_seed
+
+        # 5. Fill cubes from random_parameters (R/reapply.R:471-743).
+        #    Phase 1: ETS-only. ``k`` mirrors R's column-stride counter.
+        k = 0
+        ets_model = self._model_type.get("ets_model", True)
+        if ets_model:
+            if "alpha" in idx:
+                mat_g[0, :] = random_parameters[:, idx["alpha"]]
+                k += 1
+            if "beta" in idx:
+                mat_g[1, :] = random_parameters[:, idx["beta"]]
+                k += 1
+            gamma_names = [nm for nm in coef_names if nm.startswith("gamma")]
+            if gamma_names:
+                n_nonseas = self._components["components_number_ets_non_seasonal"]
+                for j, nm in enumerate(gamma_names):
+                    mat_g[n_nonseas + j, :] = random_parameters[:, idx[nm]]
+                k += len(gamma_names)
+            if "phi" in idx:
+                phi_vals = random_parameters[:, idx["phi"]]
+                arr_f[0, 1, :] = phi_vals
+                arr_f[1, 1, :] = phi_vals
+                arr_wt[:, 1, :] = phi_vals[np.newaxis, :]
+                k += 1
+
+        # 6. Fill the profile array (R/reapply.R:637-674).
+        profiles_recent_array = _build_profiles_array(arr_vt_seed, L, nsim)
+        j = 0
+        if ets_model:
+            j += 1
+            if "level" in idx:
+                profiles_recent_array[j - 1, 0, :] = random_parameters[:, idx["level"]]
+                k += 1
+            if "trend" in idx:
+                profiles_recent_array[j, 0, :] = random_parameters[:, idx["trend"]]
+                j += 1
+                k += 1
+            seasonal_names = [nm for nm in coef_names if nm.startswith("seasonal")]
+            if seasonal_names:
+                # Two layouts mirror R's: ``seasonal_i`` (single seasonality)
+                # and ``seasonalX_i`` (multiple). Group by the prefix.
+                groups: dict[str, list[str]] = {}
+                for nm in seasonal_names:
+                    prefix = nm.rsplit("_", 1)[0]
+                    groups.setdefault(prefix, []).append(nm)
+                lags_seasonal = self._lags_model.get("lags_model_seasonal", [])
+                stype = self._model_type.get("season_type", "N")
+                for s_idx, (_prefix, members) in enumerate(groups.items()):
+                    lag_s = int(lags_seasonal[s_idx])
+                    # First ``lag_s - 1`` seasonal slots are free parameters;
+                    # the lag-th is closed by sum-to-zero (A) or product-to-1 (M).
+                    cols = [random_parameters[:, idx[nm]] for nm in members]
+                    arr = np.column_stack(cols)  # (nsim, lag_s - 1)
+                    profiles_recent_array[j, : lag_s - 1, :] = arr.T
+                    if stype == "A":
+                        profiles_recent_array[j, lag_s - 1, :] = -arr.sum(axis=1)
+                    elif stype == "M":
+                        prod = np.prod(arr, axis=1)
+                        # Guard against zero — fall back to 1 (R would emit NaN).
+                        profiles_recent_array[j, lag_s - 1, :] = np.where(
+                            prod != 0, 1.0 / prod, 1.0
+                        )
+                    j += 1
+                k += sum(len(v) for v in groups.values())
+
+        # 7. yt and ot (R/reapply.R:745-754)
+        y_in_sample = np.asarray(self.actuals, dtype=np.float64).reshape(-1, 1)
+        occurrence_dict = getattr(self, "_occurrence", {}) or {}
+        occurrence_model = occurrence_dict.get("occurrence_model", False)
+        if occurrence_model:
+            occ = occurrence_dict.get("occurrence_object")
+            if occ is not None:
+                ot = np.asarray(occ.actuals, dtype=np.float64).reshape(-1, 1)
+                pt = np.asarray(occ.fitted, dtype=np.float64).reshape(-1)
+            else:
+                ot = np.ones((n, 1), dtype=np.float64)
+                pt = np.ones(n, dtype=np.float64)
+        else:
+            ot = np.ones((n, 1), dtype=np.float64)
+            pt = np.ones(n, dtype=np.float64)
+
+        # 8. Build the index lookup table and call C++ (R/reapply.R:239, 757-761)
+        from smooth.adam_general.core.creator import adam_profile_creator
+
+        profiles = adam_profile_creator(
+            lags_model_all=self._lags_model["lags_model_all"],
+            lags_model_max=L,
+            obs_all=n,
+            lags=self._lags_model.get("lags"),
+        )
+        index_lookup_table = np.asfortranarray(
+            profiles["index_lookup_table"], dtype=np.uint64
+        )
+        profiles_recent_array_f = np.asfortranarray(
+            profiles_recent_array, dtype=np.float64
+        )
+
+        initial_type = self.initial_type
+        backcast = initial_type in ("backcasting", "complete")
+        refine_head = True
+
+        result = self._adam_cpp.reapply(
+            matrixYt=np.asfortranarray(y_in_sample),
+            matrixOt=np.asfortranarray(ot),
+            arrayVt=np.asfortranarray(arr_vt),
+            arrayWt=np.asfortranarray(arr_wt),
+            arrayF=np.asfortranarray(arr_f),
+            matrixG=np.asfortranarray(mat_g),
+            indexLookupTable=index_lookup_table,
+            arrayProfilesRecent=profiles_recent_array_f,
+            backcast=backcast,
+            refineHead=refine_head,
+        )
+
+        # 9. Unpack + scale fitted by occurrence probabilities (R/reapply.R:763-770).
+        # Take full ``copy()`` ownership of all data leaving the C++ kernel.
+        # pybind11/carma returns buffers whose lifetime is tied to the
+        # ``result`` struct on the C++ stack; pandas DataFrames built from
+        # those views can outlive the buffer and segfault at GC time.
+        new_states = np.array(result.states, copy=True, order="C")
+        new_fitted = np.array(result.fitted, copy=True, order="C") * pt.reshape(-1, 1)
+        new_fitted = np.ascontiguousarray(new_fitted).copy()
+        new_profile = np.array(result.profile, copy=True, order="C")
+
+        # 10. Build the result object
+        fitted_series = self.fitted
+        if not isinstance(fitted_series, pd.Series):
+            fitted_series = pd.Series(np.asarray(fitted_series).ravel())
+        index = fitted_series.index
+        y_series = pd.Series(
+            np.asarray(self.actuals).ravel().copy(),
+            index=index,
+        )
+
+        col_names = [f"nsim{i + 1}" for i in range(nsim)]
+        # Pandas 3.x is always copy-on-write — building a DataFrame from a
+        # numpy buffer takes a view, not a copy. The view is patched at the
+        # first write but never if the DataFrame is read-only. Stashing the
+        # data through a per-column ``dict`` forces pandas to own the
+        # memory immediately and avoids a shutdown-time dealloc crash when
+        # the original numpy buffer's refcount underflows.
+        refitted_df = pd.DataFrame(
+            {col: new_fitted[:, i].copy() for i, col in enumerate(col_names)},
+            index=index,
+        )
+        random_params_df = pd.DataFrame(
+            {nm: random_parameters[:, i].copy() for i, nm in enumerate(coef_names)},
+            index=pd.RangeIndex(start=1, stop=nsim + 1, name="nsim"),
+        )
+        component_names = self._component_names_for_states()
+        mat_g_owned = np.ascontiguousarray(mat_g).copy()
+        persistence_df = pd.DataFrame(
+            {col: mat_g_owned[:, i].copy() for i, col in enumerate(col_names)},
+            index=component_names,
+        )
+
+        # Convert the cubes to C-order copies before returning — keeps
+        # downstream numpy operations predictable and severs ownership ties
+        # to F-ordered scratch buffers built inside this method.
+        arr_f_out = np.array(arr_f, copy=True, order="C")
+        arr_wt_out = np.array(arr_wt, copy=True, order="C")
+
+        return ReapplyResult(
+            time_elapsed=_time.time() - t0,
+            y=y_series,
+            states=new_states,
+            refitted=refitted_df,
+            fitted=fitted_series,
+            model=str(self._prepared.get("model", self.model)),
+            transition=arr_f_out,
+            measurement=arr_wt_out,
+            persistence=persistence_df,
+            profile=new_profile,
+            random_parameters=random_params_df,
+            nsim=nsim,
+        )
+
+    def reforecast(
+        self,
+        h: int = 10,
+        X: Optional[NDArray] = None,
+        occurrence: Optional[NDArray] = None,
+        interval: Literal["prediction", "confidence", "none"] = "prediction",
+        level: Union[float, list] = 0.95,
+        side: Literal["both", "upper", "lower"] = "both",
+        cumulative: bool = False,
+        nsim: int = 100,
+        bootstrap: bool = False,
+        heuristics: Optional[float] = None,
+        seed: Optional[int] = None,
+        trim: float = 0.01,
+        **vcov_kwargs,
+    ):
+        """Produce ``h``-step-ahead forecasts via Monte-Carlo reforecasting.
+
+        Python port of R's ``reforecast.adam`` (R/reapply.R:941-1402).
+        Internally calls :meth:`reapply` to obtain per-draw refitted
+        states, samples per-distribution errors and occurrence draws,
+        then runs the shared C++ ``adamCore::reforecast`` kernel to
+        produce an ``(h, nsim, nsim)`` cube of trajectories. The cube
+        is reduced to a point forecast (trimmed mean across all paths)
+        and one of two interval flavours:
+
+        * ``interval="prediction"`` — quantile across all
+          ``nsim*nsim`` paths per horizon step (parameter + prediction
+          uncertainty mixed).
+        * ``interval="confidence"`` — for each error sample, average
+          across parameter sets first, then quantile across error
+          samples (parameter uncertainty only, conditional on a
+          marginalised error path).
+
+        Parameters
+        ----------
+        h : int, default=10
+            Forecast horizon. ``h<=0`` returns fitted-period CIs from
+            :meth:`reapply`.
+        X : array-like, optional
+            Future exogenous regressors (xreg). Phase 2 raises
+            ``NotImplementedError`` if the fitted model has xreg.
+        occurrence : array-like, optional
+            Future occurrence probabilities. Phase 2 raises
+            ``NotImplementedError`` if the fitted model has an
+            occurrence model.
+        interval : {"prediction", "confidence", "none"}
+            Interval type. ``"none"`` returns only the point forecast.
+        level : float or list of float, default=0.95
+            Confidence level(s). Values above 1 are interpreted as
+            percentages (e.g. ``95`` -> ``0.95``).
+        side : {"both", "upper", "lower"}, default="both"
+            Which side(s) of the interval to compute.
+        cumulative : bool, default=False
+            If True, sum trajectories over the horizon and return a
+            length-1 point + interval.
+        nsim : int, default=100
+            Number of parameter draws (the cube is ``(h, nsim, nsim)``).
+        bootstrap, heuristics, **vcov_kwargs
+            Forwarded to :meth:`reapply` (which forwards them to
+            :meth:`vcov`).
+        seed : int, optional
+            Forwarded to :meth:`reapply` for reproducible draws.
+        trim : float, default=0.01
+            Trim proportion for the point-forecast mean (R uses 1% by
+            default).
+
+        Returns
+        -------
+        ReforecastResult
+            Container with ``mean``, ``lower``, ``upper``, ``level``,
+            ``interval``, ``side``, ``cumulative``, ``h``, ``paths`` and
+            ``model``.
+        """
+        from smooth.adam_general.core.creator import adam_profile_creator
+        from smooth.adam_general.core.utils.reforecast import (
+            ReforecastResult,
+            sample_reforecast_errors,
+        )
+
+        self._check_is_fitted()
+
+        if X is not None or self._explanatory.get("xreg_model", False):
+            raise NotImplementedError(
+                "ADAM.reforecast for models with external regressors "
+                "(X) is not yet implemented."
+            )
+
+        if interval not in ("prediction", "confidence", "none"):
+            interval = "prediction"
+        # R accepts numeric arrays mistakenly used with percent units.
+        if np.isscalar(level):
+            level_iter: list = [float(level)]  # type: ignore[arg-type]
+        else:
+            level_iter = [float(lvl) for lvl in level]  # type: ignore[union-attr]
+        levels: list[float] = [lvl / 100.0 if lvl > 1.0 else lvl for lvl in level_iter]
+        n_levels = len(levels)
+
+        # 1. Reapply to get per-draw states / profile / measurement / etc.
+        refitted = self.reapply(
+            nsim=nsim,
+            bootstrap=bootstrap,
+            heuristics=heuristics,
+            seed=seed,
+            **vcov_kwargs,
+        )
+
+        n_obs = int(self.nobs)
+        n_components = int(self.transition.shape[0])
+        L = int(self._lags_model["lags_model_max"])
+        e_type = self._model_type.get("error_type", "A")
+        model_name = str(refitted.model)
+
+        # 2. h <= 0 — short-circuit on the refitted matrix (R lines 1101-1125).
+        if h <= 0:
+            h_final = n_obs
+            mean_arr = np.asarray(refitted.refitted, dtype=float).mean(axis=1)
+            mean_series = pd.Series(mean_arr, index=refitted.refitted.index)
+            if interval == "confidence":
+                level_low, level_up = _level_bounds(levels, side, h_final)
+                lower_cols, upper_cols = _column_names_for_levels(levels, side)
+                lower_df = pd.DataFrame(
+                    np.zeros((h_final, n_levels)),
+                    index=refitted.refitted.index,
+                    columns=lower_cols,
+                )
+                upper_df = pd.DataFrame(
+                    np.zeros((h_final, n_levels)),
+                    index=refitted.refitted.index,
+                    columns=upper_cols,
+                )
+                paths_in = np.asarray(refitted.refitted, dtype=float)
+                for i in range(h_final):
+                    lower_df.iloc[i, :] = np.quantile(paths_in[i, :], level_low[i, :])
+                    upper_df.iloc[i, :] = np.quantile(paths_in[i, :], level_up[i, :])
+                return ReforecastResult(
+                    mean=mean_series,
+                    lower=lower_df,
+                    upper=upper_df,
+                    level=levels,
+                    interval=interval,
+                    side=side,
+                    cumulative=cumulative,
+                    h=h,
+                    paths=None,
+                    model=model_name,
+                )
+            return ReforecastResult(
+                mean=mean_series,
+                lower=None,
+                upper=None,
+                level=levels,
+                interval="none",
+                side=side,
+                cumulative=cumulative,
+                h=h,
+                paths=None,
+                model=model_name,
+            )
+
+        # 3. Build the horizon arrays (R lines 1127-1132 + 1287-1291).
+        meas_cube = np.asarray(refitted.measurement, dtype=np.float64)
+        arr_wt = np.zeros((h, n_components, nsim), order="F")
+        if meas_cube.shape[0] >= h:
+            arr_wt[:, :, :] = meas_cube[-h:, :, :]
+        else:
+            # Pad by repeating the last in-sample measurement.
+            for hi in range(h):
+                src = meas_cube[min(hi, meas_cube.shape[0] - 1), :, :]
+                arr_wt[hi, :, :] = src
+
+        # Forecast-step index lookup (R: ``adamProfileCreator(..., obsInSample+h)``)
+        profiles = adam_profile_creator(
+            lags_model_all=self._lags_model["lags_model_all"],
+            lags_model_max=L,
+            obs_all=n_obs + h,
+            lags=self._lags_model.get("lags"),
+        )
+        ilt_full = profiles["index_lookup_table"]
+        index_lookup_table = np.asfortranarray(
+            ilt_full[:, n_obs + L :], dtype=np.uint64
+        )
+
+        # 4. Error sampling per R's switch (reapply.R:1254-1273)
+        distribution = (
+            (self._general.get("distribution_new") if self._general else None)
+            or (self._general.get("distribution") if self._general else "dnorm")
+            or "dnorm"
+        )
+        other_dict = (self._prepared or {}).get("other") or {}
+        rng = np.random.default_rng(seed if seed is None else seed + 1)
+        arr_errors = sample_reforecast_errors(
+            distribution=distribution,
+            h=h,
+            nsim=nsim,
+            sigma=float(self.sigma),
+            n_obs=n_obs,
+            n_param=int(self.nparam),
+            opt_scale=float(self.scale),
+            shape=other_dict.get("shape", getattr(self, "gnorm_shape", None)),
+            alpha=other_dict.get("alpha"),
+            rng=rng,
+        )
+
+        # R normalises the errors when nsim <= 500 to remove MC bias.
+        if nsim <= 500:
+            if e_type == "A":
+                arr_errors -= arr_errors.mean(axis=(1, 2), keepdims=True)
+            else:
+                shifted = 1.0 + arr_errors
+                arr_errors = shifted / shifted.mean(axis=(1, 2), keepdims=True) - 1.0
+            arr_errors = np.asfortranarray(arr_errors, dtype=np.float64)
+
+        # 5. Occurrence draws (no occurrence model → all-ones).
+        occurrence_dict = getattr(self, "_occurrence", {}) or {}
+        occurrence_model = occurrence_dict.get("occurrence_model", False)
+        if occurrence is not None:
+            p_forecast = np.asarray(occurrence, dtype=float).ravel()
+            if p_forecast.size < h:
+                p_forecast = np.concatenate(
+                    [p_forecast, np.full(h - p_forecast.size, p_forecast[-1])]
+                )
+            elif p_forecast.size > h:
+                p_forecast = p_forecast[:h]
+        elif occurrence_model:
+            raise NotImplementedError(
+                "ADAM.reforecast for occurrence models (mixture demand) "
+                "requires forecasting the occurrence probabilities and "
+                "is not yet implemented."
+            )
+        else:
+            p_forecast = np.ones(h, dtype=float)
+
+        rng_occ = np.random.default_rng(seed if seed is None else seed + 2)
+        # ``(h, nsim, nsim)`` Bernoulli draws with R's per-horizon p_forecast.
+        arr_ot = rng_occ.binomial(
+            1, p_forecast.reshape(-1, 1, 1), size=(h, nsim, nsim)
+        ).astype(np.float64)
+        arr_ot = np.asfortranarray(arr_ot)
+
+        # 6. C++ call (R: ``adamCpp$reforecast``).
+        # ``e_type_modified`` mirrors R lines 1248-1252: additive errors
+        # combined with a positive-support distribution route through the
+        # multiplicative branch of the kernel.
+        e_type_modified = e_type
+        if e_type == "A" and distribution in {
+            "dlnorm",
+            "dinvgauss",
+            "dgamma",
+            "dls",
+            "dllaplace",
+            "dlgnorm",
+        }:
+            e_type_modified = "M"
+
+        # Make per-call fresh F-ordered copies (mirrors the reapply hardening).
+        arr_f_call = np.array(
+            refitted.transition, copy=True, order="F", dtype=np.float64
+        )
+        mat_g_call = np.array(
+            refitted.persistence.to_numpy(), copy=True, order="F", dtype=np.float64
+        )
+        profile_call = np.array(
+            refitted.profile, copy=True, order="F", dtype=np.float64
+        )
+
+        result = self._adam_cpp.reforecast(
+            arrayErrors=arr_errors,
+            arrayOt=arr_ot,
+            arrayWt=arr_wt,
+            arrayF=arr_f_call,
+            matrixG=mat_g_call,
+            indexLookupTable=index_lookup_table,
+            arrayProfileRecent=profile_call,
+            E=e_type_modified,
+        )
+        paths = np.array(result.data, copy=True, order="C")  # (h, nsim, nsim)
+
+        # 7. Reduce to mean + intervals (R lines 1294-1316).
+        mean_index = _forecast_index(self.fitted, h)
+        if cumulative:
+            cumsums = np.nansum(paths, axis=0)  # (nsim, nsim)
+            mean_scalar = float(_trim_mean(cumsums.ravel(), trim))
+            mean_series = pd.Series([mean_scalar], index=mean_index[:1])
+        else:
+            # Trimmed mean per horizon step over all (k, j) pairs.
+            mean_arr = np.array(
+                [_trim_mean(paths[i, :, :].ravel(), trim) for i in range(h)],
+                dtype=float,
+            )
+            mean_series = pd.Series(mean_arr, index=mean_index)
+
+        if interval == "none":
+            return ReforecastResult(
+                mean=mean_series,
+                lower=None,
+                upper=None,
+                level=levels,
+                interval="none",
+                side=side,
+                cumulative=cumulative,
+                h=h,
+                paths=paths,
+                model=model_name,
+            )
+
+        level_low, level_up = _level_bounds(levels, side, 1 if cumulative else h)
+        lower_cols, upper_cols = _column_names_for_levels(levels, side)
+        idx = mean_index[:1] if cumulative else mean_index
+        lower_df = pd.DataFrame(
+            np.zeros(level_low.shape), index=idx, columns=lower_cols
+        )
+        upper_df = pd.DataFrame(np.zeros(level_up.shape), index=idx, columns=upper_cols)
+
+        if cumulative:
+            cumsums = np.nansum(paths, axis=0).ravel()
+            lower_df.iloc[0, :] = np.nanquantile(cumsums, level_low[0, :])
+            upper_df.iloc[0, :] = np.nanquantile(cumsums, level_up[0, :])
+        elif interval == "prediction":
+            for i in range(h):
+                flat = paths[i, :, :].ravel()
+                lower_df.iloc[i, :] = np.nanquantile(flat, level_low[i, :])
+                upper_df.iloc[i, :] = np.nanquantile(flat, level_up[i, :])
+        else:  # confidence
+            for i in range(h):
+                # Average across parameter sets (axis 0 of the (nsim, nsim)
+                # slice) first, then quantile across error samples.
+                col_means = np.array(
+                    [_trim_mean(paths[i, :, j], trim) for j in range(nsim)],
+                    dtype=float,
+                )
+                lower_df.iloc[i, :] = np.nanquantile(col_means, level_low[i, :])
+                upper_df.iloc[i, :] = np.nanquantile(col_means, level_up[i, :])
+
+        # Inf / NaN substitution (R lines 1320-1364).
+        if not cumulative:
+            inf_low_val = -np.inf if e_type == "A" else 0.0
+            lower_df = lower_df.where(level_low != 0.0, inf_low_val)
+            upper_df = upper_df.where(level_up != 1.0, np.inf)
+        else:
+            if e_type == "A" and np.any(level_low == 0.0):
+                lower_df[:] = -np.inf
+            elif e_type == "M" and np.any(level_low == 0.0):
+                lower_df[:] = 0.0
+            if np.any(level_up == 1.0):
+                upper_df[:] = np.inf
+
+        fill_val = 0.0 if e_type == "A" else 1.0
+        lower_df = lower_df.fillna(fill_val)
+        upper_df = upper_df.fillna(fill_val)
+
+        return ReforecastResult(
+            mean=mean_series,
+            lower=lower_df,
+            upper=upper_df,
+            level=levels,
+            interval=interval,
+            side=side,
+            cumulative=cumulative,
+            h=h,
+            paths=paths,
+            model=model_name,
+        )
+
+    def _component_names_for_states(self) -> list:
+        """Component-axis labels for state-space matrices.
+
+        Mirrors the column names of R's ``object$states`` / row names of
+        ``object$persistence``: ``level``, ``trend``, ``seasonal``/
+        ``seasonal1``..., ARIMA states, regressors, ``constant``. Falls
+        back to ``c1, c2, …`` if a definitive layout cannot be derived.
+        """
+        comp = self._components
+        n_total = int(self.transition.shape[0])
+        names: list[str] = []
+        ets = self._model_type.get("ets_model", False)
+        if ets:
+            ttype = self._model_type.get("trend_type", "N")
+            if ttype != "N":
+                names.append("level")
+                names.append("trend")
+            else:
+                names.append("level")
+            n_seas = int(comp.get("components_number_ets_seasonal", 0))
+            for i in range(n_seas):
+                names.append(f"seasonal{i + 1}" if n_seas > 1 else "seasonal")
+        # Pad with generic component names (ARIMA / xreg / constant)
+        while len(names) < n_total:
+            names.append(f"c{len(names) + 1}")
+        return names[:n_total]
 
     def multicov(
         self,
