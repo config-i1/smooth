@@ -55,8 +55,10 @@ def _scenarios() -> List[_Scenario]:
             f"{sim_code}; "
             f"m <- adam(y, {fit_args}); "
             f"M <- multicov(m, type='analytical', h={H}); "
+            f"Memp <- multicov(m, type='empirical', h={H}); "
             "list(y=as.numeric(y), "
             "M=as.numeric(M), Mdim=dim(M), "
+            "Memp=as.numeric(Memp), "
             "sigma=as.numeric(sigma(m)))"
             "}"
         )
@@ -81,8 +83,10 @@ def _scenarios() -> List[_Scenario]:
         "set.seed(31); y <- rbinom(200, 1, 0.4); "
         "m <- om(y, model='MNN', occurrence='odds-ratio'); "
         f"M <- multicov(m, type='analytical', h={H}); "
+        f"Memp <- multicov(m, type='empirical', h={H}); "
         "list(y=as.numeric(y), "
         "M=as.numeric(M), Mdim=dim(M), "
+        "Memp=as.numeric(Memp), "
         "sigma=as.numeric(sigma(m)))"
         "}"
     )
@@ -135,9 +139,11 @@ def r_results() -> Dict[str, Dict[str, Any]]:
         mdim = payload["Mdim"]
         k = int(mdim[0])
         M = np.asarray(payload["M"], dtype=float).reshape(k, k)
+        Memp = np.asarray(payload["Memp"], dtype=float).reshape(k, k)
         parsed[name] = dict(
             y=np.asarray(payload["y"], dtype=float),
             M=M,
+            Memp=Memp,
             sigma=float(
                 payload["sigma"][0]
                 if isinstance(payload["sigma"], list)
@@ -177,6 +183,37 @@ def test_multicov_analytical_parity(scen, r_results):
         rtol=ANALYTICAL_RTOL,
         atol=ANALYTICAL_ATOL,
         err_msg=f"{scen.name}: analytical multicov disagrees with R",
+    )
+
+
+@pytest.mark.parametrize("scen", _scenarios(), ids=lambda s: s.name)
+def test_multicov_empirical_parity(scen, r_results):
+    """Empirical covariance: both R and Python call the same C++
+    ``adamCore::ferrors`` backend for the per-cell residuals, so the
+    only divergence is fitted-parameter optimiser noise (which feeds
+    through to the rolled-forward state). Same tolerance as analytical."""
+    r = r_results[scen.name]
+    y_r = r["y"]
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        m = scen.py_fit(y_r)
+        M_py = m.multicov(type="empirical", h=H).to_numpy()
+
+    M_r = r["Memp"]
+
+    assert np.allclose(M_py, M_py.T, atol=1e-10), (
+        f"{scen.name}: Python empirical multicov not symmetric"
+    )
+    assert np.allclose(M_r, M_r.T, atol=1e-10), (
+        f"{scen.name}: R empirical multicov not symmetric"
+    )
+    np.testing.assert_allclose(
+        M_py,
+        M_r,
+        rtol=ANALYTICAL_RTOL,
+        atol=ANALYTICAL_ATOL,
+        err_msg=f"{scen.name}: empirical multicov disagrees with R",
     )
 
 

@@ -148,12 +148,46 @@ def test_simulated_does_not_corrupt_model_state(y_continuous):
 # --- Edge cases & errors -----------------------------------------------------
 
 
-def test_empirical_raises(y_continuous):
+def test_adam_multicov_empirical_shape_and_labels(y_continuous):
+    with _silence():
+        warnings.simplefilter("ignore")
+        m = ADAM(model="AAN").fit(y_continuous)
+    M = m.multicov(type="empirical", h=4)
+    assert isinstance(M, pd.DataFrame)
+    assert M.shape == (4, 4)
+    assert list(M.columns) == [f"h{i + 1}" for i in range(4)]
+    assert list(M.index) == [f"h{i + 1}" for i in range(4)]
+    arr = M.to_numpy()
+    assert _is_symmetric(arr)
+    assert _is_psd(arr)
+
+
+def test_adam_multicov_empirical_matches_rmultistep_formula(y_continuous):
+    """Internal-consistency check: multicov(empirical) is literally
+    ``(errorsᵀ errors) / (nobs - h)`` where ``errors = rmultistep(h)`` —
+    R/adam.R:7090-7092."""
     with _silence():
         warnings.simplefilter("ignore")
         m = ADAM(model="ANN").fit(y_continuous)
-    with pytest.raises(NotImplementedError, match="empirical"):
-        m.multicov(type="empirical", h=3)
+    h = 5
+    M = m.multicov(type="empirical", h=h).to_numpy()
+    errors = m.rmultistep(h=h).to_numpy()
+    expected = (errors.T @ errors) / (m.nobs - h)
+    np.testing.assert_allclose(M, expected, rtol=1e-12, atol=1e-12)
+
+
+def test_om_multicov_empirical_finite(y_intermittent):
+    """OM inherits multicov; the empirical branch routes through
+    ``rmultistep`` which works on OM (link-scale errors), producing a
+    finite, symmetric, PSD covariance."""
+    with _silence():
+        warnings.simplefilter("ignore")
+        m = OM(model="MNN", occurrence="odds-ratio").fit(y_intermittent)
+    M = m.multicov(type="empirical", h=4).to_numpy()
+    assert M.shape == (4, 4)
+    assert np.all(np.isfinite(M))
+    assert _is_symmetric(M)
+    assert _is_psd(M)
 
 
 def test_invalid_type_raises(y_continuous):

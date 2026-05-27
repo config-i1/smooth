@@ -4571,9 +4571,12 @@ class ADAM:
               so distribution-specific error generation, scale de-biasing,
               and occurrence handling are consistent with the
               prediction-interval path.
-            * ``"empirical"`` — not yet implemented (requires a
-              rolling-origin multi-step-residuals helper that has not been
-              ported); raises :class:`NotImplementedError`.
+            * ``"empirical"`` — rolling-origin cross-product:
+              ``(errorsᵀ errors) / (nobs - h)`` where ``errors`` is
+              :meth:`rmultistep`'s ``(T-h, h)`` output. Mirrors R's
+              ``multicov.adam`` empirical branch (R/adam.R:7090-7092);
+              both languages call the same C++ ``adamCore::ferrors``
+              backend so the per-cell residuals are bit-equivalent.
         h : int, default=10
             Forecast horizon. The returned matrix is ``(h, h)``.
         nsim : int, default=1000
@@ -4625,18 +4628,31 @@ class ADAM:
         h_labels = [f"h{i + 1}" for i in range(h)]
 
         if type == "empirical":
-            raise NotImplementedError(
-                "multicov(type='empirical') requires a rolling-origin "
-                "multi-step residuals helper that is not yet ported to "
-                "Python; use type='analytical' or type='simulated'."
-            )
-
-        if type == "analytical":
+            cov = self._multicov_empirical(h)
+        elif type == "analytical":
             cov = self._multicov_analytical(h, covar_anal, var_anal)
         else:
             cov = self._multicov_simulated(h, nsim)
 
         return pd.DataFrame(cov, index=h_labels, columns=h_labels)
+
+    def _multicov_empirical(self, h: int) -> NDArray:
+        """Rolling-origin empirical covariance — mirrors R/adam.R:7090-7092.
+
+        Calls :meth:`rmultistep` to get the ``(T-h, h)`` matrix of
+        rolling-origin multi-step forecast errors, then forms
+        ``(errorsᵀ errors) / (nobs - h)`` (R's ``multicov.adam`` empirical
+        formula). ``rmultistep`` itself routes through the same C++
+        ``adamCore::ferrors`` backend R uses, so the per-cell errors are
+        bit-equivalent between languages.
+        """
+        errors = self.rmultistep(h=h).to_numpy()
+        n_obs = int(self.nobs)
+        # Guard the denominator against pathological tiny samples
+        # (matches the spirit of R/methods.R:215 — ``df[df<=0] <-
+        # obs[df<=0]``).
+        df = max(n_obs - h, 1)
+        return (errors.T @ errors) / df
 
     def _multicov_analytical(self, h: int, covar_anal_fn, var_anal_fn) -> NDArray:
         """Closed-form covariance — mirrors R/adam.R:7087-7088."""
