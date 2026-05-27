@@ -1498,29 +1498,24 @@ class ADAM:
 
     @property
     def scale(self) -> float:
+        """Internal optimisation scale of the error distribution
+        (R: ``adam_obj$scale``).
+
+        This is the scale parameter the cost function uses inside the
+        density (e.g. for ``dgnorm`` it's the ``α`` in
+        ``f(x; β, σ) = β/(2σ Γ(1/β)) exp(-(|x|/σ)^β)``). It coincides
+        with the empirical residual std (:attr:`sigma`) only for the
+        Normal distribution; for non-normal distributions the two differ
+        — :attr:`sigma` is then the variance-adjusted residual std-dev
+        (matches R's ``sigma()`` generic), while ``scale`` is the
+        density-parameterising scalar used by the cost function.
+
+        Use :attr:`sigma` for reporting "error standard deviation" /
+        constructing intervals; use ``scale`` for re-evaluating the
+        likelihood or other quantities defined in terms of the density.
         """
-        Scale/dispersion parameter (R: $scale).
-
-        Alias for ``sigma`` property. The scale parameter represents the
-        estimated standard deviation of the residuals for normal distribution,
-        or the analogous dispersion parameter for other distributions.
-
-        Returns
-        -------
-        float
-            Estimated scale parameter.
-
-        See Also
-        --------
-        sigma : Primary property for scale parameter
-
-        Examples
-        --------
-        >>> model = ADAM(model="AAN")
-        >>> model.fit(y)
-        >>> print(f"Scale: {model.scale:.4f}")
-        """
-        return self.sigma
+        self._check_is_fitted()
+        return float(self._prepared.get("scale", float("nan")))
 
     @property
     def profile(self) -> Optional[Any]:
@@ -2292,30 +2287,75 @@ class ADAM:
 
     @property
     def sigma(self) -> float:
-        """
-        Return scale/standard error estimate.
+        """Empirical residual standard deviation (R: ``sigma(adam_obj)``).
 
-        This is the estimated scale parameter of the error distribution,
-        which equals the standard deviation for normal errors.
+        Mirrors R's ``sigma.adam`` (R/adam.R:4625-4658): df-adjusted sum
+        of squared residuals (with a distribution-specific transformation
+        for log-domain and multiplicative distributions). For likelihood
+        loss the scale parameter is subtracted from ``nparam`` to match
+        R's convention.
 
-        Returns
-        -------
-        float
-            Scale parameter estimate.
+        For the common case (``dnorm`` / ``dlaplace`` / ``ds`` / ``dgnorm``
+        / ``dt`` / ``dlogis`` / ``dalaplace``) this is
+        ``sqrt(sum(residuals²) / (nobs − nparam + 1))`` when loss is
+        likelihood, or ``sqrt(sum(residuals²) / (nobs − nparam))``
+        otherwise.
 
-        Raises
-        ------
-        ValueError
-            If the model has not been fitted yet.
-
-        Examples
-        --------
-        >>> model = ADAM(model="AAN")
-        >>> model.fit(y)
-        >>> std_error = model.sigma
+        Use :attr:`scale` if you want the model's internal optimisation
+        scale (R: ``adam_obj$scale``) — they coincide only for ``dnorm``
+        but differ for non-normal distributions where the optimisation
+        scale parameterises the density and the empirical residual std
+        is a separate scalar.
         """
         self._check_is_fitted()
-        return self._prepared["scale"]
+
+        residuals = np.asarray(self.residuals, dtype=float)
+        residuals = residuals[np.isfinite(residuals)]
+        n_obs = int(self.nobs)
+        # R's ``sigma.adam`` formula is ``df = nobs − (nparam − 1)`` for
+        # likelihood loss (subtract one for the scale parameter R counts
+        # but treats specially). Python's ``self.nparam`` already excludes
+        # the scale parameter, so the equivalent is just ``nobs - nparam``
+        # — no further subtraction needed. For non-likelihood losses R
+        # uses ``nobs - nparam`` directly; same here.
+        n_param = int(self.nparam)
+        df = n_obs - n_param
+        if df <= 0:
+            df = n_obs
+
+        distribution = (
+            (
+                self._general.get("distribution_new")
+                or self._general.get("distribution", "dnorm")
+            )
+            if self._general
+            else "dnorm"
+        )
+
+        # Log-domain distributions: R's residuals.adam returns 1+epsilon
+        # for these; the log of that recovers epsilon-on-log-scale. Use
+        # complex arithmetic so log(non-positive) doesn't NaN out — same
+        # pattern as ``adam_scaler``'s inline ``complex_log``.
+        def _complex_log_abs(x):
+            return np.abs(np.log(np.asarray(x, dtype=np.complex128)))
+
+        if distribution in ("dlnorm", "dllaplace", "dls"):
+            ss = float(np.sum(_complex_log_abs(1.0 + residuals) ** 2))
+        elif distribution == "dlgnorm":
+            opt_scale = float(self._prepared.get("scale", 0.0))
+            ss = float(
+                np.sum(_complex_log_abs(1.0 + residuals - opt_scale**2 / 2.0) ** 2)
+            )
+        elif distribution in ("dinvgauss", "dgamma"):
+            # R: sum((residuals − 1)²) where residuals is 1+epsilon — i.e.
+            # sum(epsilon²) in Python's additive convention.
+            ss = float(np.sum(residuals**2))
+        else:
+            # dnorm, dlaplace, ds, dgnorm, dt, dlogis, dalaplace — plain
+            # sum of squared residuals.
+            ss = float(np.sum(residuals**2))
+
+        return float(np.sqrt(ss / df))
 
     @property
     def loglik(self) -> float:
