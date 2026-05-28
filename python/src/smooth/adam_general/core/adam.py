@@ -5971,10 +5971,15 @@ class ADAM:
             self._prepared.get("measurement", self._adam_created["mat_wt"]),
             dtype=np.float64,
         )
-        persistence = np.asarray(
-            self._prepared.get("persistence", self._adam_created["vec_g"]),
-            dtype=np.float64,
-        ).reshape(-1)
+        # ``self._prepared["persistence"]`` is sometimes a flat array
+        # and sometimes a structured dict (e.g. OM stores it as
+        # ``{"alpha": 0.37}``); fall back to ``vec_g`` from
+        # ``_adam_created`` in the dict case since that's always the
+        # raw column-vector the C++ kernel wants.
+        persistence_raw = self._prepared.get("persistence")
+        if persistence_raw is None or isinstance(persistence_raw, dict):
+            persistence_raw = self._adam_created["vec_g"]
+        persistence = np.asarray(persistence_raw, dtype=np.float64).reshape(-1)
         states_fit = np.asarray(self._prepared["states"], dtype=np.float64)
 
         # ``states_fit`` has shape ``(n_components, obs_in_sample + lag_max)``.

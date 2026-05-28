@@ -104,6 +104,10 @@ class SimulateResult:
     model_a: Optional["SimulateResult"] = None
     model_b: Optional["SimulateResult"] = None
     occurrence_type: Optional[str] = None
+    # Pre-link state-space output (used by ``OM.simulate`` to expose
+    # the latent ETS draws so ``OMG.simulate`` can feed them to
+    # ``omg_link_function`` for the joint probability).
+    latent: Optional[np.ndarray] = None
 
     @property
     def _nsim(self) -> int:

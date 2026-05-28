@@ -28,6 +28,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
 
 import nlopt
 import numpy as np
+import pandas as pd
 from numpy.typing import NDArray
 
 from smooth.adam_general.core.adam import ADAM
@@ -1539,3 +1540,147 @@ class OM(ADAM):
 
         self._check_is_fitted()
         return OMSummary(self, level=level, digits=digits)
+
+    def simulate(
+        self,
+        nsim: int = 1,
+        seed: Optional[int] = None,
+        obs: Optional[int] = None,
+        randomizer: Optional[Any] = None,
+        **randomizer_kwargs,
+    ):
+        """Re-simulate probabilities + 0/1 occurrence indicators.
+
+        Python port of R's ``simulate.om`` (R/om.R:2272-2342). Calls
+        :meth:`ADAM.simulate` to obtain the latent ETS series via
+        ``super().simulate(...)``, maps it to a probability via
+        :func:`om_link_function`, and draws 0/1 occurrence indicators
+        via ``rng.binomial(1, prob)``.
+
+        Parameters
+        ----------
+        nsim : int, default 1
+            Number of simulated series.
+        seed : int, optional
+            RNG seed. Pins both the latent-error draw and the
+            binomial occurrence draw.
+        obs : int, optional
+            Observations per simulated series. Defaults to the
+            in-sample length.
+        randomizer : str | callable, optional
+            Forwarded to :meth:`ADAM.simulate`. When ``None`` (the
+            default), substitute a Gaussian-noise sampler with the
+            empirical residual std as the scale — needed because OM
+            stores ``distribution="plogis"`` for which
+            ``generate_errors()`` has no closed-form branch and
+            ``self.scale`` is ``NaN``.
+        **randomizer_kwargs
+            Forwarded to the randomizer.
+
+        Returns
+        -------
+        SimulateResult
+            ``data`` and ``probability`` carry the probability
+            series; ``occurrence`` carries the 0/1 indicators;
+            ``latent`` carries the pre-link state-space output (used
+            by :meth:`OMG.simulate` to combine sub-models).
+        """
+        from smooth.adam_general.core.simulate.result import SimulateResult
+
+        self._check_is_fitted()
+
+        # 1. Latent simulation via ADAM.simulate. Override the
+        # default ``randomizer`` with a Gaussian sampler on the
+        # empirical residual scale — OM uses ``distribution="plogis"``
+        # which has no branch in ``generate_errors()``.
+        effective_randomizer = randomizer
+        if effective_randomizer is None:
+            effective_randomizer = _om_default_randomizer(self, seed=seed)
+
+        latent_sim = super().simulate(
+            nsim=nsim,
+            seed=seed,
+            obs=obs,
+            randomizer=effective_randomizer,
+            **randomizer_kwargs,
+        )
+
+        # 2. Extract the latent matrix shape from latent_sim.data.
+        latent_arr = (
+            latent_sim.data.to_numpy()
+            if isinstance(latent_sim.data, pd.Series)
+            else latent_sim.data.to_numpy()
+        )
+        if latent_arr.ndim == 1:
+            latent_arr = latent_arr.reshape(-1, 1)
+        n_obs_out = latent_arr.shape[0]
+        nsim_out = latent_arr.shape[1]
+
+        # 3. latent → probability via the link function.
+        e_type = self._model_type.get("error_type", "A")
+        occurrence = self._om_occurrence
+        probability = om_link_function(latent_arr.ravel(), e_type, occurrence)
+        probability = np.asarray(probability, dtype=np.float64).reshape(
+            n_obs_out, nsim_out
+        )
+        # ``om_link_function``'s odds-ratio paths can overshoot under
+        # extreme latent noise; clip uniformly as a numerical guard.
+        # NaN can appear on multiplicative-ETS paths where the latent
+        # state collapses to zero — replace with the neutral 0.5 so
+        # the downstream binomial draw is well-defined.
+        probability = np.nan_to_num(probability, nan=0.5, posinf=1.0, neginf=0.0)
+        probability = np.clip(probability, 0.0, 1.0)
+
+        # 4. 0/1 indicator draw, seeded from the master seed.
+        rng = np.random.default_rng(seed)
+        occurrence_data = rng.binomial(1, probability)
+
+        # 5. Output assembly.
+        if nsim_out == 1:
+            data_out = pd.Series(probability[:, 0])
+        else:
+            data_out = pd.DataFrame(probability)
+
+        base_model = self._model_type.get("model", "oETS")
+        model_label = f"{base_model} (occurrence simulated)"
+
+        return SimulateResult(
+            model=model_label,
+            data=data_out,
+            states=latent_sim.states,
+            residuals=latent_sim.residuals,
+            latent=latent_arr,
+            probability=probability if nsim_out > 1 else probability[:, 0],
+            occurrence=occurrence_data,
+            occurrence_type=occurrence,
+            other={"binary_data": occurrence_data},
+        )
+
+
+def _om_default_randomizer(om_object, seed=None):
+    """Gaussian-noise randomizer keyed on the empirical residual std.
+
+    OM stores ``distribution="plogis"`` (the logit link) for which
+    :func:`generate_errors` has no closed-form branch, and
+    ``OM.scale`` returns ``NaN``. Substituting ``rnorm(0, sigma)``
+    with ``sigma = sqrt(mean(residuals**2))`` is the equivalent of
+    the R helper's fallback in ``simulateADAMCore`` for distributions
+    without a closed-form scale (R/adam.R, the post-refactor
+    ``simulateADAMCore`` body).
+
+    The ``seed`` argument is threaded through so the returned
+    callable is reproducible — same seed in, same draws out.
+    """
+    res = np.asarray(om_object.residuals, dtype=np.float64).ravel()
+    if res.size:
+        sigma = float(np.sqrt(np.nanmean(res**2)))
+    else:
+        sigma = 1.0
+    if not np.isfinite(sigma) or sigma == 0.0:
+        sigma = 1.0
+    rng = np.random.default_rng(seed)
+
+    def _draw(n):
+        return rng.normal(0.0, sigma, n)
+
+    return _draw

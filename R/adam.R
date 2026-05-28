@@ -7479,22 +7479,34 @@ simulateADAMCore <- function(object, nsim=1, obs=nobs(object), ...){
         }
         scaleValue <- fallback;
     }
-    matErrors <- matrix(switch(object$distribution,
-                               "dnorm"=rnorm(obsInSample*nsim, 0, scaleValue),
-                               "dlaplace"=rlaplace(obsInSample*nsim, 0, scaleValue),
-                               "ds"=rs(obsInSample*nsim, 0, scaleValue),
-                               "dgnorm"=rgnorm(obsInSample*nsim, 0, scaleValue, object$other$shape),
-                               "dlogis"=rlogis(obsInSample*nsim, 0, scaleValue),
-                               "dt"=rt(obsInSample*nsim, obsInSample-nparam(object)),
-                               "dalaplace"=ralaplace(obsInSample*nsim, 0, scaleValue, object$other$alpha),
-                               "dlnorm"=rlnorm(obsInSample*nsim, -scaleValue^2/2, scaleValue)-1,
-                               "dinvgauss"=rinvgauss(obsInSample*nsim, 1, dispersion=scaleValue)-1,
-                               "dgamma"=rgamma(obsInSample*nsim, shape=scaleValue^{-1}, scale=scaleValue)-1,
-                               "dllaplace"=exp(rlaplace(obsInSample*nsim, 0, scaleValue))-1,
-                               "dls"=exp(rs(obsInSample*nsim, 0, scaleValue))-1,
-                               "dlgnorm"=exp(rgnorm(obsInSample*nsim, 0, scaleValue, object$other$shape))-1,
-                               "plogis"=rnorm(obsInSample*nsim, 0, scaleValue)
-    ), obsInSample, nsim);
+    # Allow an external ``randomizer`` callable to override the
+    # distribution-based sampler — same pattern as ``sim.es`` /
+    # ``sim.oes``. Enables the R↔Python "plug-in numbers" parity tests
+    # for ``simulate.adam`` / ``simulate.om`` / ``simulate.omg``: both
+    # languages feed the C++ kernel the exact same error vector.
+    if(!is.null(ellipsis$randomizer)){
+        matErrors <- matrix(do.call(ellipsis$randomizer,
+                                    list(n=obsInSample*nsim)),
+                            obsInSample, nsim);
+    }
+    else{
+        matErrors <- matrix(switch(object$distribution,
+                                   "dnorm"=rnorm(obsInSample*nsim, 0, scaleValue),
+                                   "dlaplace"=rlaplace(obsInSample*nsim, 0, scaleValue),
+                                   "ds"=rs(obsInSample*nsim, 0, scaleValue),
+                                   "dgnorm"=rgnorm(obsInSample*nsim, 0, scaleValue, object$other$shape),
+                                   "dlogis"=rlogis(obsInSample*nsim, 0, scaleValue),
+                                   "dt"=rt(obsInSample*nsim, obsInSample-nparam(object)),
+                                   "dalaplace"=ralaplace(obsInSample*nsim, 0, scaleValue, object$other$alpha),
+                                   "dlnorm"=rlnorm(obsInSample*nsim, -scaleValue^2/2, scaleValue)-1,
+                                   "dinvgauss"=rinvgauss(obsInSample*nsim, 1, dispersion=scaleValue)-1,
+                                   "dgamma"=rgamma(obsInSample*nsim, shape=scaleValue^{-1}, scale=scaleValue)-1,
+                                   "dllaplace"=exp(rlaplace(obsInSample*nsim, 0, scaleValue))-1,
+                                   "dls"=exp(rs(obsInSample*nsim, 0, scaleValue))-1,
+                                   "dlgnorm"=exp(rgnorm(obsInSample*nsim, 0, scaleValue, object$other$shape))-1,
+                                   "plogis"=rnorm(obsInSample*nsim, 0, scaleValue)
+        ), obsInSample, nsim);
+    }
 
     # This stuff is needed in order to produce adequate values for weird models
     EtypeModified <- Etype;
