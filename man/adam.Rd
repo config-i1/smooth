@@ -296,12 +296,6 @@ can be provided here as well.}
 
 \item{object}{The model previously estimated using \code{adam()} function.}
 
-\item{nsim}{Number of series to generate from the model.}
-
-\item{seed}{Random seed used in simulation of data.}
-
-\item{obs}{Number of observations to produce in the simulated data.}
-
 \item{parallel}{If TRUE, the estimation of ADAM models is done in parallel (used in \code{auto.adam} only).
 If the number is provided (e.g. \code{parallel=41}), then the specified number of cores is set up.
 WARNING! Packages \code{foreach} and either \code{doMC} (Linux and Mac only)
@@ -428,11 +422,6 @@ plot(ourModel, c(1:11))}
 # ADAM ARIMA
 \donttest{ourModel <- adam(rnorm(100,100,10), model="NNN",
                           lags=c(1,4), orders=list(ar=c(1,0),i=c(1,0),ma=c(1,1)))}
-
-# Fit ADAM to the data
-ourModel <- adam(rnorm(100,100,10), model="AAdN")
-# Simulate the data
-x <- simulate(ourModel)
 
 # Automatic selection of appropriate distribution and orders of ADAM ETS+ARIMA
 \donttest{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
