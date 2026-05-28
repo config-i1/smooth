@@ -1,14 +1,25 @@
 name: Build release wheels
 
-# Single source of truth for release-quality Python wheels. Runs on
-# version-tag pushes (so release.yml can consume the artifacts via
-# ``workflow_run``) and on manual dispatch (so publish-testpypi.yml
-# can be fed a chosen run ID). PR-time / push-to-master continues to
-# go through python_ci.yml, which is intentionally lighter.
+# Builds release-quality Python wheels and stages them on a **draft**
+# GitHub release. Run manually; the workflow does not publish to PyPI
+# and does not create a git tag. The draft release is the "staging
+# area" — re-running this workflow with the same ``tag`` input
+# replaces the draft's assets in place, so build failures are
+# fully recoverable.
+#
+# Once the draft looks right, going to the repo's Releases page and
+# clicking "Publish release" creates the git tag and fires
+# release.yml, which uploads the just-attached wheels to PyPI.
+#
+# PR-time / push-to-master continues to go through python_ci.yml,
+# which is intentionally lighter.
 on:
-  push:
-    tags: ['v*.*.*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name for the draft release (e.g. v1.0.6). Re-runs with the same tag replace the existing draft.'
+        required: true
+        type: string
 
 jobs:
   build_wheels:
@@ -150,3 +161,62 @@ jobs:
           path: ./python/dist/*.tar.gz
           retention-days: 14
           if-no-files-found: error
+
+  prepare_draft_release:
+    name: Stage wheels on draft GitHub release
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # creating / updating the draft release
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: dist
+          merge-multiple: true
+          pattern: 'wheels-*'
+
+      - name: Download sdist artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: sdist
+          path: dist
+
+      - name: List staged files
+        run: ls -R dist/
+
+      - name: Create or update draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          # ``draft: true`` means no git tag is created yet —
+          # GitHub creates it at ``target_commitish`` when the
+          # user clicks "Publish release" in the UI.
+          # Re-running this workflow with the same ``tag_name``
+          # updates the existing draft (assets are replaced).
+          tag_name: ${{ inputs.tag }}
+          target_commitish: ${{ github.sha }}
+          draft: true
+          prerelease: false
+          generate_release_notes: true
+          files: dist/*
+          fail_on_unmatched_files: true
+          body: |
+            ## Installation
+
+            ```bash
+            pip install smooth
+            ```
+
+            ## Verification
+
+            Wheels are signed with [Sigstore](https://www.sigstore.dev/) and ship with [PEP 740 attestations](https://peps.python.org/pep-0740/) — SLSA Build Level 3 provenance. Verify a downloaded wheel:
+
+            ```bash
+            pip install pypi-attestations
+            pypi-attestations verify pypi --repository https://github.com/config-i1/smooth smooth-*.whl
+            ```
+
+            ## What's Changed
+            See the auto-generated release notes below.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
