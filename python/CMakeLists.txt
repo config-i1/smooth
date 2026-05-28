@@ -23,55 +23,63 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 # BLAS/LAPACK Detection
 # ==============================================================================
 
-# BLAS / LAPACK search. The same logic runs on every platform —
-# Windows wheels install OpenBLAS + LAPACK via vcpkg (see the
-# ``CIBW_BEFORE_ALL_WINDOWS`` step in ``.github/workflows/python_ci.yml``),
-# so CMake's ``find_package(BLAS)`` / ``find_package(LAPACK)`` resolve
-# against the vcpkg toolchain there. Without LAPACK linked,
-# Armadillo's ``eig_gen`` (used by ``ar_polynomial_bounds`` for
-# ARIMA reapply and ``eigen_bounds`` for admissible bounds) throws
-# at runtime — so we only fall back to ``ARMA_DONT_USE_LAPACK`` when
-# the dependency genuinely isn't present.
+# BLAS / LAPACK are required by Armadillo's ``eig_gen`` (used by
+# ``ar_polynomial_bounds`` for ARIMA reapply and ``eigen_bounds`` for
+# admissible bounds). Without LAPACK linked, ``eig_gen`` throws at
+# runtime, so we must detect them robustly on every platform.
 #
-# On Windows, ``FindBLAS`` / ``FindLAPACK`` need the ``BLA_VENDOR``
-# hint to locate the vcpkg-installed openblas import library — the
-# default heuristics scan a hard-coded list of canonical install
-# layouts that doesn't include vcpkg's. Setting the hint here is
-# safe on Linux / macOS too (FindBLAS treats it as a preference,
-# not a constraint).
-if(WIN32)
-  set(BLA_VENDOR OpenBLAS)
-endif()
-find_package(BLAS)
-find_package(LAPACK)
-
-# On Windows, FindLAPACK occasionally fails to detect LAPACK even
-# when OpenBLAS is found and ships LAPACK kernels in the same DLL.
-# vcpkg's ``openblas`` port bundles a full LAPACK; if ``BLAS_FOUND``
-# resolved against it, treat LAPACK as found and reuse the BLAS
-# libraries.
-if(WIN32 AND BLAS_FOUND AND NOT LAPACK_FOUND)
-  message(STATUS "LAPACK not found by FindLAPACK; assuming OpenBLAS bundles "
-                 "LAPACK kernels (typical for vcpkg ``openblas`` port).")
+# Detection strategy:
+#   1. Try CONFIG-mode ``find_package(OpenBLAS CONFIG)`` first — vcpkg
+#      ships ``OpenBLASConfig.cmake`` for its ``openblas`` port and
+#      that port is a full LAPACK build (BUILD_WITHOUT_LAPACK=OFF by
+#      default), so a single CONFIG package resolves both BLAS and
+#      LAPACK on Windows wheels. MODULE-mode FindBLAS/FindLAPACK never
+#      reliably picked up the vcpkg install layout, even with
+#      BLA_VENDOR=OpenBLAS, hence the silent fall-through to
+#      ARMA_DONT_USE_LAPACK and the ``eig_gen()`` runtime crash.
+#   2. Fall back to MODULE-mode ``find_package(BLAS)`` /
+#      ``find_package(LAPACK)`` for Linux / macOS, where the system
+#      packages (openblas-devel + lapack-devel on Linux,
+#      brew's openblas on macOS) are found by the canonical search.
+#   3. Final fallback only when the dependency is genuinely absent.
+find_package(OpenBLAS CONFIG QUIET)
+if(OpenBLAS_FOUND)
+  message(STATUS "Found OpenBLAS via CONFIG (vcpkg-style); "
+                 "provides BLAS + LAPACK in a single library.")
+  set(BLAS_FOUND TRUE)
   set(LAPACK_FOUND TRUE)
-  set(LAPACK_LIBRARIES "")  # already in BLAS_LIBRARIES
+  set(lapackblas_libraries OpenBLAS::OpenBLAS)
+else()
+  find_package(BLAS)
+  find_package(LAPACK)
+  if(LAPACK_FOUND AND BLAS_FOUND)
+    set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+    message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
+    message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
+  elseif(BLAS_FOUND)
+    set(lapackblas_libraries ${BLAS_LIBRARIES})
+    add_compile_definitions(ARMA_DONT_USE_LAPACK)
+    message(WARNING "LAPACK not found; eig_gen / ar_polynomial_bounds disabled.")
+  else()
+    message(WARNING "BLAS/LAPACK not found. Disabling BLAS/LAPACK in Armadillo. "
+                    "Modules requiring eig_gen / eigvalsh will fail at runtime.")
+    add_compile_definitions(ARMA_DONT_USE_BLAS ARMA_DONT_USE_LAPACK)
+    set(lapackblas_libraries "")
+  endif()
 endif()
 
-if(LAPACK_FOUND AND BLAS_FOUND)
-  set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-  message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
-  message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
-elseif(BLAS_FOUND)
-  set(lapackblas_libraries ${BLAS_LIBRARIES})
-  # BLAS without LAPACK: Armadillo would still try to call LAPACK
-  # routines unless we tell it not to.
-  add_compile_definitions(ARMA_DONT_USE_LAPACK)
-  message(WARNING "LAPACK not found; eig_gen / ar_polynomial_bounds disabled.")
-else()
-  message(WARNING "BLAS/LAPACK not found. Disabling BLAS/LAPACK in Armadillo. "
-                  "Modules requiring eig_gen / eigvalsh will fail at runtime.")
-  add_compile_definitions(ARMA_DONT_USE_BLAS ARMA_DONT_USE_LAPACK)
-  set(lapackblas_libraries "")
+# Fail loudly on Windows if LAPACK still isn't found — silently
+# shipping a wheel without LAPACK leaves every ARIMA / admissible
+# code path broken with a runtime crash, which is worse than a
+# build failure that surfaces the misconfiguration immediately.
+if(WIN32 AND NOT LAPACK_FOUND)
+  message(FATAL_ERROR
+    "LAPACK not found on Windows. The wheel build expects vcpkg's "
+    "openblas (which bundles LAPACK) — make sure "
+    "``CIBW_BEFORE_ALL_WINDOWS`` runs ``vcpkg install "
+    "openblas:x64-windows-release`` and that "
+    "``CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake`` "
+    "is exported via ``CIBW_ENVIRONMENT_WINDOWS``.")
 endif()
 
 # ==============================================================================

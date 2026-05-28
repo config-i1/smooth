@@ -126,7 +126,22 @@ def _psd_correct(vcov: NDArray) -> NDArray:
     vcov = np.asarray(vcov, dtype=float)
     if vcov.size == 0:
         return vcov
-    eig_min = float(np.min(np.linalg.eigvalsh(vcov)))
+    try:
+        eig_min = float(np.min(np.linalg.eigvalsh(vcov)))
+    except np.linalg.LinAlgError:
+        # ``Eigenvalues did not converge`` can fire on platform-specific
+        # LAPACK iteration noise (seen on Windows wheels under
+        # ``bounds="admissible"`` reapply) even when the input is a
+        # well-formed covariance matrix. The diagonal-only matrix is
+        # PSD by construction, so use it as the safe fallback for the
+        # MVN sampler — same response as the very-negative-eigenvalue
+        # branch below.
+        warnings.warn(
+            "Eigendecomposition of the covariance matrix did not converge; "
+            "falling back to the diagonal-only matrix for MVN sampling.",
+            stacklevel=3,
+        )
+        return np.diag(np.diag(vcov))
     if eig_min < 0:
         if eig_min > -1:
             warnings.warn(

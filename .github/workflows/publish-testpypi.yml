@@ -33,7 +33,13 @@ jobs:
           CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux* cp314-macosx_x86_64"
           CIBW_BEFORE_BUILD_LINUX: yum install -y openblas-devel lapack-devel
           CIBW_BEFORE_BUILD_MACOS: brew install openblas || true
-          CIBW_BEFORE_BUILD_WINDOWS: pip install numpy
+          # Windows: vcpkg-installed OpenBLAS (bundles LAPACK) is
+          # required for Armadillo's eig_gen — see python_ci.yml /
+          # release.yml for the matching steps.
+          CIBW_BEFORE_ALL_WINDOWS: vcpkg install openblas:x64-windows-release
+          CIBW_BEFORE_BUILD_WINDOWS: pip install numpy delvewheel
+          CIBW_ENVIRONMENT_WINDOWS: CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release"
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair -w {dest_dir} {wheel} --add-path C:/vcpkg/installed/x64-windows-release/bin
           CIBW_TEST_REQUIRES: pytest numpy
           CIBW_TEST_COMMAND: "pytest {project}/python/tests"
           CIBW_ARCHS_MACOS: "x86_64 arm64"

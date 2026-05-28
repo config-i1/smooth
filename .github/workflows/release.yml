@@ -92,13 +92,21 @@ jobs:
           # Install system dependencies for BLAS/LAPACK
           # Linux: Install OpenBLAS and LAPACK
           CIBW_BEFORE_BUILD_LINUX: yum install -y openblas-devel lapack-devel || dnf install -y openblas-devel lapack-devel
-          
+
           # macOS: Install OpenBLAS via brew
           CIBW_BEFORE_BUILD_MACOS: brew install openblas || true
-          
-          # Windows: Install NumPy (which provides OpenBLAS via our CMake fix)
-          CIBW_BEFORE_BUILD_WINDOWS: pip install numpy
-          
+
+          # Windows: Install OpenBLAS (with LAPACK) via vcpkg. The
+          # vcpkg toolchain file is loaded via CMAKE_ARGS so that
+          # CMakeLists.txt's CONFIG-mode find_package(OpenBLAS)
+          # resolves to the vcpkg port. delvewheel bundles the DLL
+          # into the wheel. Numpy is still pre-installed for runtime
+          # imports inside the test step.
+          CIBW_BEFORE_ALL_WINDOWS: vcpkg install openblas:x64-windows-release
+          CIBW_BEFORE_BUILD_WINDOWS: pip install numpy delvewheel
+          CIBW_ENVIRONMENT_WINDOWS: CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release"
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair -w {dest_dir} {wheel} --add-path C:/vcpkg/installed/x64-windows-release/bin
+
           # Run tests after building
           CIBW_TEST_REQUIRES: pytest numpy
           CIBW_TEST_COMMAND: "pytest {project}/python/tests"
