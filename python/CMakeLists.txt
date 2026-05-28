@@ -23,28 +23,33 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 # BLAS/LAPACK Detection
 # ==============================================================================
 
-if(WIN32)
-  message(STATUS "Windows build: disabling BLAS/LAPACK in Armadillo to avoid unresolved symbols")
-  # Disable use of BLAS/LAPACK in Armadillo on Windows
-  add_compile_definitions(ARMA_DONT_USE_BLAS ARMA_DONT_USE_LAPACK)
-  set(BLAS_FOUND FALSE)
-  set(LAPACK_FOUND FALSE)
-  set(lapackblas_libraries "")
-else()
-  # Standard BLAS and LAPACK search for Linux/macOS
-  find_package(BLAS)
-  find_package(LAPACK)
+# BLAS / LAPACK search. The same logic now runs on every platform —
+# Windows wheels installed OpenBLAS + LAPACK via vcpkg (see the
+# ``CIBW_BEFORE_ALL_WINDOWS`` step in ``.github/workflows/python_ci.yml``),
+# so CMake's ``find_package(BLAS)`` / ``find_package(LAPACK)`` resolve
+# against the vcpkg toolchain there. Without LAPACK linked,
+# Armadillo's ``eig_gen`` (used by ``ar_polynomial_bounds`` for
+# ARIMA reapply and ``eigen_bounds`` for admissible bounds) throws
+# at runtime — so we only fall back to ``ARMA_DONT_USE_LAPACK`` when
+# the dependency genuinely isn't present.
+find_package(BLAS)
+find_package(LAPACK)
 
-  if(LAPACK_FOUND AND BLAS_FOUND)
-    set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-    message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
-    message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
-  elseif(BLAS_FOUND)
-    set(lapackblas_libraries ${BLAS_LIBRARIES})
-  else()
-    message(WARNING "BLAS/LAPACK not found. Build may fail for modules requiring BLAS.")
-    set(lapackblas_libraries "")
-  endif()
+if(LAPACK_FOUND AND BLAS_FOUND)
+  set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+  message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
+  message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
+elseif(BLAS_FOUND)
+  set(lapackblas_libraries ${BLAS_LIBRARIES})
+  # BLAS without LAPACK: Armadillo would still try to call LAPACK
+  # routines unless we tell it not to.
+  add_compile_definitions(ARMA_DONT_USE_LAPACK)
+  message(WARNING "LAPACK not found; eig_gen / ar_polynomial_bounds disabled.")
+else()
+  message(WARNING "BLAS/LAPACK not found. Disabling BLAS/LAPACK in Armadillo. "
+                  "Modules requiring eig_gen / eigvalsh will fail at runtime.")
+  add_compile_definitions(ARMA_DONT_USE_BLAS ARMA_DONT_USE_LAPACK)
+  set(lapackblas_libraries "")
 endif()
 
 # ==============================================================================
