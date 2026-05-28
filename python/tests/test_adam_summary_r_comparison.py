@@ -6,13 +6,17 @@ R source through ``devtools::load_all``), so the comparison is always
 against the current checkout.
 
 Scenarios exercise every CI-clamping path: ``ANN`` / ``AAN`` (usual ETS),
-``AAdN`` with ``bounds="admissible"`` (eigen-bounds + phi), and an
-ARIMA(1,0,1) (AR/MA stationarity/invertibility clamping).
+``AAdN`` with ``bounds="admissible"`` (eigen-bounds + phi), an
+ARIMA(1,0,1) (AR/MA stationarity/invertibility clamping), and an
+``initial="two-stage"`` variant of ``AAN`` (which produces the same
+``B`` shape as ``optimal`` — locks in the per-parameter relative
+Hessian step's effect on the staged path).
 
-Coefficient-interval bounds match R tightly; standard errors of large-magnitude
-initial states (``level``, ``ARIMAState*``) carry a few-percent finite-difference
-Hessian noise, so those columns use a looser relative tolerance — matching
-the repo's existing R-parity convention for optimiser-sensitive quantities.
+With the per-parameter relative Hessian step
+``h_i = ε^(1/4) · max(|x_i|, 1)`` in ``src/headers/hessianCore.h``,
+SEs for the large-magnitude initial states (``level``, ``trend``,
+``ARIMAState*``) match R at the same tight ``rtol=2e-2`` as the
+smoothing parameters.
 
 Skipped in CI by default (``r_parity`` marker — opt in with
 ``pytest -m r_parity``).
@@ -60,6 +64,16 @@ SCENARIOS = {
         "r_fit": "adam(y, model='NNN', orders=list(ar=1, i=0, ma=1), "
         "initial='optimal')",
     },
+    # `initial="two-stage"` produces the same B shape as `optimal` (initials
+    # in B); the staged path is just a better optimiser seed. With the
+    # per-parameter relative Hessian step in hessianCore.h, the SEs match
+    # R at the same tight tolerance — locks in the two-stage parity.
+    "aan_two_stage": {
+        "py_kw": dict(model="AAN", initial="two-stage"),
+        "r_sim": "set.seed(42); y <- sim.es('AAN', obs=120, frequency=12, "
+        "persistence=c(0.3, 0.1))$data",
+        "r_fit": "adam(y, model='AAN', initial='two-stage')",
+    },
 }
 
 
@@ -88,7 +102,11 @@ def r_outputs():
 def _python_fit(scenario, r_outputs):
     spec = SCENARIOS[scenario]
     y = np.asarray(r_outputs[scenario]["series"], dtype=float)
-    return ADAM(lags=[1], initial="optimal", fi=True, **spec["py_kw"]).fit(y)
+    # Default to initial="optimal"; the scenario's py_kw may override
+    # (e.g. the two-stage scenario uses initial="two-stage").
+    kw = dict(lags=[1], initial="optimal", fi=True)
+    kw.update(spec["py_kw"])
+    return ADAM(**kw).fit(y)
 
 
 @pytest.mark.parametrize("scenario", list(SCENARIOS))
@@ -124,14 +142,10 @@ def test_vcov_matches_r_at_same_b(scenario, r_outputs):
         m._adam_cpp,
     )
     cov = invert_fisher_information(FI)
-    # Covariances of initial states (level/trend/ARIMAState) are computed from
-    # a numerical Hessian on unscaled, large-magnitude parameters; R and
-    # Python's finite differences land a few-to-~15% apart there. Confidence
-    # *bounds* (test_confint_matches_r) still agree to <1% because the
-    # half-widths are tiny relative to those magnitudes. So the full
-    # covariance is compared loosely; the smoothing-parameter block is checked
-    # tightly below.
-    np.testing.assert_allclose(cov, r_vcov, rtol=0.15, atol=1e-2)
+    # With per-parameter relative Hessian steps (h_i = ε^(1/4) · max(|x_i|, 1)
+    # in src/headers/hessianCore.h) the initial-state rows now agree with R
+    # to high precision; the headline tolerance can be tightened.
+    np.testing.assert_allclose(cov, r_vcov, rtol=2e-2, atol=1e-3)
 
     # Smoothing-parameter covariance block (alpha/beta/gamma/phi) matches tightly.
     names = m.coef_names
@@ -156,12 +170,11 @@ def test_confint_matches_r(scenario, r_outputs):
 
     # Confidence bounds (lower/upper) match R tightly.
     np.testing.assert_allclose(
-        ci.iloc[:, 1:].to_numpy(), r_ci[:, 1:], rtol=2e-2, atol=1.0
+        ci.iloc[:, 1:].to_numpy(), r_ci[:, 1:], rtol=2e-2, atol=1e-2
     )
-    # Standard errors: looser, to absorb FD-Hessian noise on initial states.
-    np.testing.assert_allclose(
-        ci["S.E."].to_numpy(), r_ci[:, 0], rtol=0.12, atol=1e-2
-    )
+    # SEs are now accurate even for initial-state rows thanks to the
+    # per-parameter relative Hessian step (src/headers/hessianCore.h).
+    np.testing.assert_allclose(ci["S.E."].to_numpy(), r_ci[:, 0], rtol=2e-2, atol=1e-3)
 
 
 def test_summary_layout_and_significance(r_outputs):

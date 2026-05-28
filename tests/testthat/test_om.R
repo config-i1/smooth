@@ -395,3 +395,36 @@ test_that("vcov/confint/summary accept bootstrap=TRUE for om", {
     set.seed(1); s <- suppressWarnings(summary(m, bootstrap=TRUE, nsim=20));
     expect_s3_class(s, "summary.adam");
 })
+
+# ---------------------------------------------------------------------
+# Loss menu — single-step losses, LASSO / RIDGE with lambda, callable
+# (mirrors adam()'s ``loss`` plumbing; om() previously only honoured
+#  "likelihood" and "MSE" and silently routed everything else to MSE).
+# ---------------------------------------------------------------------
+
+test_that("om() honours all single-step loss strings", {
+    set.seed(31); y <- rbinom(150, 1, 0.4)
+    for(L in c("likelihood", "MSE", "MAE", "HAM")){
+        m <- om(y, model="MNN", occurrence="odds-ratio", loss=L)
+        expect_equal(m$loss, L)
+        expect_true(is.finite(m$lossValue))
+    }
+})
+
+test_that("om() runs LASSO and RIDGE with explicit lambda", {
+    set.seed(31); y <- rbinom(150, 1, 0.4)
+    for(L in c("LASSO", "RIDGE")){
+        m <- om(y, model="MNN", occurrence="odds-ratio", loss=L, lambda=0.3)
+        expect_equal(m$loss, L)
+        expect_true(is.finite(m$lossValue))
+    }
+})
+
+test_that("om() accepts a callable for custom loss", {
+    set.seed(31); y <- rbinom(150, 1, 0.4)
+    my_loss <- function(actual, fitted, B) sum(abs(actual - fitted)^3)
+    m <- om(y, model="MNN", occurrence="odds-ratio", loss=my_loss)
+    expect_equal(m$loss, "custom")
+    expect_true(is.function(m$lossFunction))
+    expect_true(is.finite(m$lossValue))
+})

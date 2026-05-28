@@ -119,7 +119,16 @@ omg <- function(data,
         nParamsA_use <- NULL
     }
 
-    loss       <- match.arg(loss)
+    # Custom callable loss (same convention as adam() / om()).
+    if(is.function(loss)){
+        omgUserLossFunction <- loss
+        loss <- "custom"
+    } else {
+        omgUserLossFunction <- NULL
+        loss <- match.arg(loss)
+    }
+    # Regularisation weight for LASSO/RIDGE (mirrors adam()'s ellipsis$lambda).
+    lambda <- if(is.null(ellipsis$lambda)) 0 else as.numeric(ellipsis$lambda)
     ic         <- match.arg(ic)
     bounds     <- match.arg(bounds)
     initial    <- match.arg(initial)
@@ -643,7 +652,8 @@ omg <- function(data,
             bounds=bounds, regressors=regressorsA,
             ot=ot, otLogical=otLogical, obsInSample=obsInSample,
             nIterations=nIterations, refineHead=refineHead,
-            nParamsA=nParamsA)
+            nParamsA=nParamsA,
+            loss=loss, lossFunction=omgUserLossFunction, lambda=lambda)
 
         # --------------------------------------------------------------
         # FI placeholder. Populated when modelDo=="use" and ellipsis$FI is
@@ -1143,7 +1153,9 @@ omg <- function(data,
             nParamMat
         },
         distribution = "plogis",
-        loss        = "likelihood",
+        loss        = loss,
+        lossFunction = omgUserLossFunction,
+        lambda      = lambda,
         call        = cl,
         timeElapsed = Sys.time() - startTime,
         # FI is non-NULL only when omg() was called with model=<fitted omg>
@@ -1240,7 +1252,10 @@ omgCF_local <- function(B,
                         # Shared
                         bounds, regressors,
                         ot, otLogical, obsInSample,
-                        nIterations, refineHead, nParamsA) {
+                        nIterations, refineHead, nParamsA,
+                        loss = "likelihood",
+                        lossFunction = NULL,
+                        lambda = 0) {
 
     B_A <- B[seq_len(nParamsA)]
     B_B <- B[seq_len(length(B) - nParamsA) + nParamsA]
@@ -1335,8 +1350,34 @@ omgCF_local <- function(B,
         return(1e+300)
     }
 
-    return(-(sum(log(pCombined[otLogical])) +
-                 sum(log(1 - pCombined[!otLogical]))))
+    # Loss dispatch — joint Bernoulli for "likelihood", probability-scale
+    # residual for MSE/MAE/HAM, regularised for LASSO/RIDGE, user callable
+    # for "custom". The C++ joint state-space step ran first either way;
+    # this just decides what scalar to hand to nloptr.
+    errors <- as.numeric(ot) - pCombined
+    if(loss == "custom"){
+        return(lossFunction(actual=as.numeric(ot), fitted=pCombined, B=B))
+    } else if(loss == "likelihood"){
+        return(-(sum(log(pCombined[otLogical])) +
+                     sum(log(1 - pCombined[!otLogical]))))
+    } else if(loss == "MSE"){
+        return(mean(errors^2))
+    } else if(loss == "MAE"){
+        return(mean(abs(errors)))
+    } else if(loss == "HAM"){
+        return(mean(sqrt(abs(errors))))
+    } else if(any(loss == c("LASSO","RIDGE"))){
+        errorTerm <- (1 - lambda) * sqrt(mean(errors^2))
+        if(loss == "LASSO"){
+            return(errorTerm + lambda * sum(abs(B)))
+        } else {
+            return(errorTerm + lambda * sqrt(sum(B^2)))
+        }
+    } else {
+        # Fallback to likelihood for any unrecognised string.
+        return(-(sum(log(pCombined[otLogical])) +
+                     sum(log(1 - pCombined[!otLogical]))))
+    }
 }
 
 # Per-side ETS "usual"-bounds confint correction for one omg sub-model.

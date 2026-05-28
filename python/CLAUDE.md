@@ -129,7 +129,7 @@ make test
 
 ### Linting and Code Quality
 
-**Always run ruff check and ruff format after every code change:**
+**Always run ruff check, ruff format, and mypy after every code change:**
 
 ```bash
 # Run ruff linter (must pass with zero errors)
@@ -137,9 +137,14 @@ make test
 
 # Run ruff formatter
 .venv/bin/ruff format src/
+
+# Run mypy type checker (must pass with zero errors)
+.venv/bin/mypy src/smooth
 ```
 
-These two commands must be run together after any Python source edit. Fix all errors reported by `ruff check` before considering a task complete.
+These three commands must be run together after any Python source edit. Fix all errors reported by `ruff check` and `mypy` before considering a task complete.
+
+**Whenever you make an important change** — changing a function's signature (inputs/outputs), adding or removing parameters, changing return types, adding or removing classes or large blocks of code, touching any base class whose subclasses override the same method — **you MUST run all three checks**. Signature changes on a base class break LSP-compatibility on subclass overrides, and mypy is the only thing that will catch that before CI does. Don't skip mypy because "it's just a small change" — the LSP-break in `OM.predict` from a single added kwarg on `ADAM.predict` is exactly the class of bug it catches.
 
 **Linting Config**: Defined in `pyproject.toml` under `[tool.ruff]`
 - Line length: 88 (Black-compatible)

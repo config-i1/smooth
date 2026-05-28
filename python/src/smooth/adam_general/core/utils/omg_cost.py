@@ -12,6 +12,8 @@ two-model analogue.
 
 from __future__ import annotations
 
+from typing import Optional
+
 import numpy as np
 from numpy.linalg import eigvals
 
@@ -98,12 +100,24 @@ def omg_cf(  # noqa: N802
     observations_dict,
     bounds,
     adam_ets: bool = False,
+    loss: str = "likelihood",
+    loss_function=None,
+    reg_lambda: Optional[float] = None,
 ):
-    """OMG cost function — joint Bernoulli likelihood on combined probability.
+    """OMG cost function — joint Bernoulli likelihood on combined probability
+    (or a single-step / regularised / custom loss).
 
     ``side_a`` and ``side_b`` are dicts collecting everything ``filler`` and
     ``adam_cpp.omfitGeneral`` need for the two sub-models. ``n_params_a``
     splits the concatenated parameter vector.
+
+    The C++ joint state-space step always runs (returns the combined
+    probability via the link function), then ``loss`` decides what to
+    return as the scalar objective. ``"likelihood"`` is the joint
+    Bernoulli; ``"MSE" / "MAE" / "HAM"`` use the probability-scale
+    residual ``ot - p_combined``; ``"LASSO" / "RIDGE"`` add the standard
+    penalty on the joint ``B = [B_A | B_B]``; ``"custom"`` delegates to
+    ``loss_function(actual, fitted, B)``. Mirrors :func:`om_cf`.
     """
     B_A = B[:n_params_a]
     B_B = B[n_params_a:]
@@ -248,8 +262,67 @@ def omg_cf(  # noqa: N802
         return 1e300
 
     ot_logical = observations_dict["ot_logical"]
-    cf_value = -(
-        np.sum(np.log(p_combined[ot_logical]))
-        + np.sum(np.log(1.0 - p_combined[~ot_logical]))
-    )
-    return float(cf_value)
+    residual = ot - p_combined
+
+    if loss == "custom":
+        if loss_function is None:
+            raise ValueError(
+                "loss='custom' requires `loss_function`; OMG.__init__ should "
+                "have captured the callable and passed it through."
+            )
+        return float(loss_function(actual=ot, fitted=p_combined, B=np.asarray(B)))
+    if loss == "likelihood":
+        return float(
+            -(
+                np.sum(np.log(p_combined[ot_logical]))
+                + np.sum(np.log(1.0 - p_combined[~ot_logical]))
+            )
+        )
+    if loss == "MSE":
+        return float(np.mean(residual**2))
+    if loss == "MAE":
+        return float(np.mean(np.abs(residual)))
+    if loss == "HAM":
+        return float(np.mean(np.sqrt(np.abs(residual))))
+    if loss in ("LASSO", "RIDGE"):
+        from smooth.adam_general.core.utils.cost_functions import trim_b_for_penalty
+
+        lam = float(reg_lambda if reg_lambda is not None else 0.0)
+        # Trim each side separately (each has its own component layout)
+        # and concatenate for the joint penalty.
+        B_pen_a = trim_b_for_penalty(  # noqa: N806
+            B[:n_params_a],
+            side_a["components_dict"],
+            side_a["persistence"],
+            side_a["explanatory"],
+            side_a["phi"],
+            side_a["arima"],
+            side_a["initials"],
+            side_a["model_type_dict"],
+            side_a["lags_dict"],
+            {},
+        )
+        B_pen_b = trim_b_for_penalty(  # noqa: N806
+            B[n_params_a:],
+            side_b["components_dict"],
+            side_b["persistence"],
+            side_b["explanatory"],
+            side_b["phi"],
+            side_b["arima"],
+            side_b["initials"],
+            side_b["model_type_dict"],
+            side_b["lags_dict"],
+            {},
+        )
+        B_penalty = np.concatenate([B_pen_a, B_pen_b])  # noqa: N806
+
+        obs_in_sample = int(observations_dict.get("obs_in_sample", len(residual)))
+        error_term = (
+            (1.0 - lam)
+            * float(np.linalg.norm(residual))
+            / float(np.sqrt(obs_in_sample))
+        )
+        if loss == "LASSO":
+            return error_term + lam * float(np.sum(np.abs(B_penalty)))
+        return error_term + lam * float(np.linalg.norm(B_penalty))
+    raise ValueError(f"Unsupported OMG loss={loss!r}.")

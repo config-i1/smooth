@@ -10,6 +10,8 @@ Change:
 * coefbootstrap for the om class.
 * We now use our own hessian function and no longer rely on pracma.
 * Changed how scale is calculated for the Log Normal distribution in case of the exotic additive error - we use complex numbers :D.
+* MSE/MAE/HAM/RIDGE/LASSO and custom losses in om() and omg().
+* Hessian calculation is now done internally using a C++ function with relative steps (not absolute as in pracma). This should get slightly better estimates of covariance matrix.
 
 Bugfixes:
 * forecast.adam() would not do the correct row repetition for explanatory variables when the new values are not provided.
