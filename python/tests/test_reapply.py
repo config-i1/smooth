@@ -235,6 +235,54 @@ def test_reapply_repr_and_index():
     assert len(r.y) == m.nobs
 
 
+def test_reapply_plot_returns_figure_with_bands():
+    """``ReapplyResult.plot()`` returns a matplotlib Figure with five
+    quantile bands, an actuals line, and a fitted line (R parity:
+    ``plot.reapply``)."""
+    import matplotlib
+
+    matplotlib.use("Agg")  # headless
+    import matplotlib.pyplot as plt
+
+    m = ADAM(model="MAM", lags=[12]).fit(AIRPASSENGERS)
+    r = m.reapply(nsim=50, seed=0)
+    fig = r.plot()
+
+    assert isinstance(fig, plt.Figure)
+    ax = fig.axes[0]
+    assert ax.get_title() == "Refitted values of MAM"
+    # 5 fill_between PolyCollections + 2 Line2D (actuals + fitted)
+    poly_collections = [
+        c for c in ax.collections if hasattr(c, "get_paths") and c.get_paths()
+    ]
+    assert len(poly_collections) == 5, (
+        f"expected 5 quantile bands, got {len(poly_collections)}"
+    )
+    lines = ax.get_lines()
+    assert len(lines) == 2
+    # Actuals line is solid; fitted is dashed.
+    line_styles = [ln.get_linestyle() for ln in lines]
+    assert "--" in line_styles, f"expected a dashed line, got {line_styles}"
+    plt.close(fig)
+
+
+def test_reapply_plot_accepts_custom_axes_and_title():
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    m = ADAM(model="MAM", lags=[12]).fit(AIRPASSENGERS)
+    r = m.reapply(nsim=20, seed=0)
+    fig, ax = plt.subplots(figsize=(6, 3))
+    out = r.plot(ax=ax, title="custom title", legend=True)
+    assert out is fig
+    assert ax.get_title() == "custom title"
+    # Legend was requested, so an Axes.legend_ should be present.
+    assert ax.get_legend() is not None
+    plt.close(fig)
+
+
 def test_reapply_mc_consistency_large_nsim():
     """Mean(refitted) over many draws should approach the fitted vector."""
     m = ADAM(model="MAM", lags=[12]).fit(AIRPASSENGERS)
