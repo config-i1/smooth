@@ -1,0 +1,117 @@
+name: Build release wheels
+
+# Single source of truth for release-quality Python wheels. Runs on
+# version-tag pushes (so release.yml can consume the artifacts via
+# ``workflow_run``) and on manual dispatch (so publish-testpypi.yml
+# can be fed a chosen run ID). PR-time / push-to-master continues to
+# go through python_ci.yml, which is intentionally lighter.
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+jobs:
+  build_wheels:
+    name: Build ${{ matrix.cibw-build }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux: cp311–cp314 manylinux
+          - { os: ubuntu-latest,  cibw-build: 'cp311-manylinux*' }
+          - { os: ubuntu-latest,  cibw-build: 'cp312-manylinux*' }
+          - { os: ubuntu-latest,  cibw-build: 'cp313-manylinux*' }
+          - { os: ubuntu-latest,  cibw-build: 'cp314-manylinux*' }
+          # macOS: cp311–cp313 (cp314 not yet on macOS x86_64 — same
+          # skip rule release.yml uses today)
+          - { os: macos-latest,   cibw-build: 'cp311-macosx*' }
+          - { os: macos-latest,   cibw-build: 'cp312-macosx*' }
+          - { os: macos-latest,   cibw-build: 'cp313-macosx*' }
+          # Windows: cp311–cp313
+          - { os: windows-latest, cibw-build: 'cp311-win_amd64' }
+          - { os: windows-latest, cibw-build: 'cp312-win_amd64' }
+          - { os: windows-latest, cibw-build: 'cp313-win_amd64' }
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Build & test wheels
+        uses: pypa/cibuildwheel@v3.1
+        with:
+          package-dir: python
+          output-dir: wheelhouse
+        env:
+          CIBW_BUILD: ${{ matrix.cibw-build }}
+          # Skip 32-bit + musllinux; the cp314-macosx_x86_64 wheel
+          # is excluded by not having a matrix row for it.
+          CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux*"
+
+          CIBW_ARCHS_LINUX: x86_64
+          CIBW_ARCHS_MACOS: x86_64 arm64
+          CIBW_ARCHS_WINDOWS: AMD64
+
+          # Linux: install OpenBLAS + LAPACK so CMakeLists' module-mode
+          # ``find_package`` succeeds inside the manylinux container.
+          CIBW_BEFORE_ALL_LINUX: |
+            yum install -y openblas-devel lapack-devel pkgconfig || \
+            (apt-get update && apt-get install -y libopenblas-dev liblapack-dev pkg-config)
+          CIBW_ENVIRONMENT_LINUX: PKG_CONFIG_PATH="/usr/lib64/pkgconfig:/usr/lib/pkgconfig"
+
+          # macOS: brew's openblas ships LAPACK; ``brew install openblas``
+          # is enough for the module-mode find_package path.
+          CIBW_BEFORE_ALL_MACOS: brew install openblas
+
+          # Windows: vcpkg ports openblas + lapack-reference. Both
+          # required because openblas alone does NOT bundle LAPACK
+          # kernels on this port. delvewheel bundles the DLLs into the
+          # wheel via the ``--add-path`` to vcpkg's installed/bin.
+          CIBW_BEFORE_ALL_WINDOWS: vcpkg install openblas:x64-windows-release lapack:x64-windows-release
+          CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
+          CIBW_ENVIRONMENT_WINDOWS: CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release"
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair -w {dest_dir} {wheel} --add-path C:/vcpkg/installed/x64-windows-release/bin
+
+          # Use manylinux_2_28 so scipy/numpy binary wheels resolve in
+          # the test env.
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
+
+          CIBW_TEST_REQUIRES: pytest numpy
+          CIBW_TEST_COMMAND: pytest {project}/python/tests -v --tb=short
+
+      - name: Upload wheels as artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.cibw-build }}
+          path: ./wheelhouse/*.whl
+          retention-days: 14
+          if-no-files-found: error
+
+  build_sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install build
+        run: python -m pip install build
+
+      - name: Build sdist
+        run: python -m build --sdist python
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: sdist
+          path: ./python/dist/*.tar.gz
+          retention-days: 14
+          if-no-files-found: error

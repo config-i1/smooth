@@ -1,180 +1,67 @@
-name: Build and Release
+name: Release to PyPI
 
+# Triggered automatically when ``build-release-wheels.yml`` completes
+# successfully for a ``v*`` tag push. Downloads the wheels + sdist
+# that the build workflow already produced (no rebuild) and publishes
+# them to PyPI via trusted publishing, then creates a GitHub release
+# with the wheels and sdist attached.
 on:
-  push:
-    tags:
-      - 'v*.*.*'  # Trigger on version tags like v1.0.0, v0.1.2, etc.
-  workflow_dispatch:  # Allow manual triggering
-    inputs:
-      platforms:
-        description: 'Platforms to build for'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
-          - ubuntu-windows
-          - ubuntu-macos
-          - windows-macos
+  workflow_run:
+    workflows: ["Build release wheels"]
+    types: [completed]
 
 jobs:
-  setup:
-    name: Determine build matrix
+  publish:
+    name: Publish to PyPI + create GitHub release
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - id: set-matrix
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            case "${{ github.event.inputs.platforms }}" in
-              "ubuntu-latest")
-                echo 'matrix=["ubuntu-latest"]' >> $GITHUB_OUTPUT
-                ;;
-              "windows-latest")
-                echo 'matrix=["windows-latest"]' >> $GITHUB_OUTPUT
-                ;;
-              "macos-latest")
-                echo 'matrix=["macos-latest"]' >> $GITHUB_OUTPUT
-                ;;
-              "ubuntu-windows")
-                echo 'matrix=["ubuntu-latest","windows-latest"]' >> $GITHUB_OUTPUT
-                ;;
-              "ubuntu-macos")
-                echo 'matrix=["ubuntu-latest","macos-latest"]' >> $GITHUB_OUTPUT
-                ;;
-              "windows-macos")
-                echo 'matrix=["windows-latest","macos-latest"]' >> $GITHUB_OUTPUT
-                ;;
-              *)
-                echo 'matrix=["ubuntu-latest","windows-latest","macos-latest"]' >> $GITHUB_OUTPUT
-                ;;
-            esac
-          else
-            # Default for automatic triggers (tags, branches)
-            echo 'matrix=["ubuntu-latest","windows-latest","macos-latest"]' >> $GITHUB_OUTPUT
-          fi
-
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    needs: setup
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ${{ fromJson(needs.setup.outputs.matrix) }}
-
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          submodules: recursive  # Initialize and checkout all submodules including carma
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
-
-      - name: Install cibuildwheel
-        run: python -m pip install "cibuildwheel>=3.1,<4"
-
-      - name: Build wheels
-        run: python -m cibuildwheel python --output-dir wheelhouse
-        env:
-          # Configure which Python versions to build for
-          CIBW_BUILD: cp311-* cp312-* cp313-* cp314-*
-          # Skip 32-bit builds, musllinux, and cp314 on macOS x86_64 (no nlopt wheel yet)
-          CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux* cp314-macosx_x86_64"
-          
-          # Install system dependencies for BLAS/LAPACK
-          # Linux: Install OpenBLAS and LAPACK
-          CIBW_BEFORE_BUILD_LINUX: yum install -y openblas-devel lapack-devel || dnf install -y openblas-devel lapack-devel
-
-          # macOS: Install OpenBLAS via brew
-          CIBW_BEFORE_BUILD_MACOS: brew install openblas || true
-
-          # Windows: Install OpenBLAS (with LAPACK) via vcpkg. The
-          # vcpkg toolchain file is loaded via CMAKE_ARGS so that
-          # CMakeLists.txt's CONFIG-mode find_package(OpenBLAS)
-          # resolves to the vcpkg port. delvewheel bundles the DLL
-          # into the wheel. Numpy is still pre-installed for runtime
-          # imports inside the test step.
-          CIBW_BEFORE_ALL_WINDOWS: vcpkg install openblas:x64-windows-release
-          CIBW_BEFORE_BUILD_WINDOWS: pip install numpy delvewheel
-          CIBW_ENVIRONMENT_WINDOWS: CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release"
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair -w {dest_dir} {wheel} --add-path C:/vcpkg/installed/x64-windows-release/bin
-
-          # Run tests after building
-          CIBW_TEST_REQUIRES: pytest numpy
-          CIBW_TEST_COMMAND: "pytest {project}/python/tests"
-          
-          # macOS: Build for both x86_64 and arm64
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
-          
-          # Linux: Use manylinux_2_28 so scipy/numpy binary wheels resolve in the test env
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
-          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
-
-      - name: Upload wheels as artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: wheels-${{ matrix.os }}
-          path: ./wheelhouse/*.whl
-          retention-days: 5
-
-  build_sdist:
-    name: Build source distribution
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          submodules: recursive  # Initialize and checkout all submodules
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
-
-      - name: Install build
-        run: python -m pip install build
-
-      - name: Build sdist
-        run: python -m build --sdist python
-
-      - name: Upload sdist as artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: sdist
-          path: ./python/dist/*.tar.gz
-          retention-days: 5
-
-  create_release:
-    name: Create GitHub Release
-    needs: [build_wheels, build_sdist]
-    runs-on: ubuntu-latest
+    # Only fire when:
+    #   1. The build workflow succeeded (filters out failed runs).
+    #   2. The triggering event was a tag push (filters out manual
+    #      ``workflow_dispatch`` runs of the build workflow — those
+    #      are reserved for the TestPyPI flow).
+    #   3. The branch / ref label looks like a release tag.
+    # ``workflow_run.head_branch`` for a tag-push trigger equals the
+    # tag name (e.g. ``v1.0.6``), which is what we publish under.
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/smooth
     permissions:
-      contents: write  # Required to create releases
-    # Only create release on tag pushes, not on Python branch pushes or manual runs
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/checkout@v5
+      id-token: write     # trusted publishing
+      actions: read       # download-artifact across workflows
+      contents: write     # creating GitHub release
 
-      - name: Download all artifacts
+    steps:
+      - name: Download wheel artifacts from the build run
         uses: actions/download-artifact@v6
         with:
           path: dist
           merge-multiple: true
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          pattern: 'wheels-*'
 
-      - name: Display structure of downloaded files
+      - name: Download sdist artifact from the build run
+        uses: actions/download-artifact@v6
+        with:
+          name: sdist
+          path: dist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: List downloaded files
         run: ls -R dist/
 
-      - name: Create Release and Upload Assets
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.workflow_run.head_branch }}
           files: dist/*
           draft: false
           prerelease: false
@@ -185,41 +72,13 @@ jobs:
             ```bash
             pip install smooth
             ```
-            
-            Or install from this release:
+
+            Or install a specific wheel from this release:
             ```bash
             pip install <wheel-file-for-your-platform>
             ```
-            
+
             ## What's Changed
             See the release notes below.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Optional: Upload to PyPI
-  # Uncomment this job when you're ready to publish to PyPI
-  upload_pypi:
-    name: Upload to PyPI
-    needs: [build_wheels, build_sdist]
-    runs-on: ubuntu-latest
-    # Only upload to PyPI on tag pushes
-    if: startsWith(github.ref, 'refs/tags/')
-    environment:
-      name: pypi
-      url: https://pypi.org/p/smooth
-    permissions:
-      id-token: write  # Required for trusted publishing
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v6
-        with:
-          path: dist
-          merge-multiple: true
-
-      - name: Display downloaded files
-        run: ls -R dist/
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist
