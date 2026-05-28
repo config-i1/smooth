@@ -185,19 +185,12 @@ def _shape_assertions(r, n, c, L, nsim, k):
     assert r.random_parameters.shape == (nsim, k)
 
 
-# NOTE: ``lags=[1]`` ETS configurations (``ANN``, ``AAN``, ``AAdN`` etc.
-# at L=1) are intentionally absent from the parametrised sweep below.
-# The shared C++ kernel + carma binding has a pre-existing
-# heap-corruption issue when ``adamCore::reapply`` (and ``::simulate``)
-# is invoked repeatedly in a process with ``L=1`` cubes — verifiable by
-# calling ``ADAM('ANN').predict(interval='simulated')`` twice in a row.
-# The issue is independent of this port and is tracked separately; once
-# fixed in the kernel, the cases below can be re-enabled here.
-
-
 @pytest.mark.parametrize(
     "model_str,initial,lags",
     [
+        ("ANN", "backcasting", [1]),
+        ("AAN", "backcasting", [1]),
+        ("AAdN", "optimal", [1]),
         ("MAM", "backcasting", [12]),
         ("MAM", "optimal", [12]),
         ("AAA", "backcasting", [12]),
