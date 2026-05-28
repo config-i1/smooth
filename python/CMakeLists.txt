@@ -29,26 +29,42 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 # runtime, so we must detect them robustly on every platform.
 #
 # Detection strategy:
-#   1. Try CONFIG-mode ``find_package(OpenBLAS CONFIG)`` first — vcpkg
-#      ships ``OpenBLASConfig.cmake`` for its ``openblas`` port and
-#      that port is a full LAPACK build (BUILD_WITHOUT_LAPACK=OFF by
-#      default), so a single CONFIG package resolves both BLAS and
-#      LAPACK on Windows wheels. MODULE-mode FindBLAS/FindLAPACK never
-#      reliably picked up the vcpkg install layout, even with
-#      BLA_VENDOR=OpenBLAS, hence the silent fall-through to
-#      ARMA_DONT_USE_LAPACK and the ``eig_gen()`` runtime crash.
-#   2. Fall back to MODULE-mode ``find_package(BLAS)`` /
-#      ``find_package(LAPACK)`` for Linux / macOS, where the system
-#      packages (openblas-devel + lapack-devel on Linux,
-#      brew's openblas on macOS) are found by the canonical search.
+#   1. On Windows only, try CONFIG-mode ``find_package(OpenBLAS CONFIG)``
+#      first — vcpkg ships ``OpenBLASConfig.cmake`` for its ``openblas``
+#      port and that port is a full LAPACK build
+#      (BUILD_WITHOUT_LAPACK=OFF by default), so a single CONFIG
+#      package resolves both BLAS and LAPACK on Windows wheels.
+#      MODULE-mode FindBLAS/FindLAPACK never reliably picked up the
+#      vcpkg install layout, even with BLA_VENDOR=OpenBLAS, hence the
+#      silent fall-through to ARMA_DONT_USE_LAPACK and the
+#      ``eig_gen()`` runtime crash. We restrict CONFIG mode to
+#      Windows because some Linux distros (Debian/Ubuntu's
+#      libopenblas-dev) ship a broken ``OpenBLASConfig.cmake`` that
+#      points at ``/usr/lib/lib/libopenblas.so`` (one ``../`` too few
+#      in the path-resolution) — MODULE-mode FindBLAS finds the
+#      correct path there.
+#   2. MODULE-mode ``find_package(BLAS)`` / ``find_package(LAPACK)``
+#      handles Linux / macOS, where the system packages
+#      (openblas-devel + lapack-devel on Linux, brew's openblas on
+#      macOS) are found by the canonical search.
 #   3. Final fallback only when the dependency is genuinely absent.
-find_package(OpenBLAS CONFIG QUIET)
+if(WIN32)
+  find_package(OpenBLAS CONFIG QUIET)
+endif()
 if(OpenBLAS_FOUND)
-  message(STATUS "Found OpenBLAS via CONFIG (vcpkg-style); "
-                 "provides BLAS + LAPACK in a single library.")
+  # vcpkg's port exports an ``OpenBLAS::OpenBLAS`` imported target;
+  # fall back to the raw library path if the target isn't present.
+  if(TARGET OpenBLAS::OpenBLAS)
+    set(lapackblas_libraries OpenBLAS::OpenBLAS)
+    message(STATUS "Found OpenBLAS via CONFIG (imported target); "
+                   "provides BLAS + LAPACK in a single library.")
+  else()
+    set(lapackblas_libraries ${OpenBLAS_LIBRARIES})
+    message(STATUS "Found OpenBLAS via CONFIG (variable form): "
+                   "${OpenBLAS_LIBRARIES}; provides BLAS + LAPACK.")
+  endif()
   set(BLAS_FOUND TRUE)
   set(LAPACK_FOUND TRUE)
-  set(lapackblas_libraries OpenBLAS::OpenBLAS)
 else()
   find_package(BLAS)
   find_package(LAPACK)
