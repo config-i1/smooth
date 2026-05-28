@@ -1325,6 +1325,7 @@ class OM(ADAM):
         nsim: int = 10000,
         occurrence: Optional[NDArray] = None,
         scenarios: bool = False,
+        seed: Optional[int] = None,
     ):
         """Probability forecast for the occurrence model.
 
