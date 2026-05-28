@@ -88,7 +88,16 @@ def ar_polynomial_bounds(ar_polynomial_matrix, ar_polynomial, variable_index):
 
     def _roots_outside():
         mat[:, 0] = -ar[1:]
-        return bool(np.any(np.abs(np.linalg.eigvals(mat)) > 1))
+        try:
+            eig = np.linalg.eigvals(mat)
+        except np.linalg.LinAlgError:
+            # ``Eigenvalues did not converge`` happens on numerically
+            # pathological companion matrices that can appear at the
+            # extreme ends of the grid search — treat them as outside
+            # the stability region so the search advances toward the
+            # admissible interior.
+            return True
+        return bool(np.any(np.abs(eig) > 1))
 
     # Lower bound
     ar[variable_index] = -5.0
