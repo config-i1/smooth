@@ -186,6 +186,9 @@ def adam_simulator(
         nETS=int(nNonSeasonal + nSeasonal),
         nArima=int(nArima),
         nXreg=int(nXreg),
+        nComponents=int(
+            nNonSeasonal + nSeasonal + nArima + nXreg + int(bool(constant))
+        ),
         constant=bool(constant),
         adamETS=False,
     )

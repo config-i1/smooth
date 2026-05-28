@@ -21,6 +21,13 @@ to any class or function. Seasonal period is always inferred automatically from 
 data — from a pandas `DatetimeIndex`, from `lags`, or from the model specification.
 Exposing it as a parameter creates redundancy and diverges from the R API.
 
+**Exception:** the standalone `sim_*` simulators (`sim_es`, `sim_gum`, `sim_ces`,
+`sim_ssarima`, `sim_sma`, `sim_oes`) accept `frequency=<int>` to match the R API
+one-for-one. They are data-generators with no fitted state or input series to
+infer seasonality from, so the parameter is load-bearing. This exception does
+**not** extend to `ADAM.simulate()` / `ES.simulate()` / etc., which read `lags`
+straight off the fitted model.
+
 ## Never clip, clamp, or patch around bad numerics
 
 This rule applies across the whole project — `adam`, `OM`, `OMG`, `ES`,
