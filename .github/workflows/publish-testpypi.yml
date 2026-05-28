@@ -29,8 +29,9 @@ jobs:
       name: testpypi
       url: https://test.pypi.org/p/smooth
     permissions:
-      id-token: write   # trusted publishing
-      actions: read     # download-artifact across workflows
+      id-token: write       # trusted publishing
+      attestations: write   # PEP 740 / Sigstore attestations
+      actions: read         # download-artifact across workflows
 
     steps:
       - name: Download wheel artifacts from build run ${{ inputs.build-run-id }}
@@ -53,7 +54,8 @@ jobs:
       - name: List downloaded files
         run: ls -R dist/
 
-      - name: Publish to TestPyPI
+      - name: Publish to TestPyPI (with PEP 740 attestations)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          attestations: true

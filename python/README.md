@@ -4,11 +4,19 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/smooth.svg)](https://pypi.org/project/smooth/)
 [![Python versions](https://img.shields.io/pypi/pyversions/smooth.svg)](https://pypi.org/project/smooth/)
 [![Python CI](https://github.com/config-i1/smooth/actions/workflows/python_ci.yml/badge.svg)](https://github.com/config-i1/smooth/actions/workflows/python_ci.yml)
+[![SLSA Build Level 3](https://slsa.dev/images/gh-badge-level3.svg)](https://slsa.dev)
 [![License: LGPL-2.1](https://img.shields.io/badge/License-LGPL--2.1-blue.svg)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)
 
 ![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
 
 Python implementation of the **smooth** package for forecasting and time series analysis using Single Source of Error (SSOE) state-space models.
+
+Every wheel published to PyPI is signed via [Sigstore](https://www.sigstore.dev/) on the exact GitHub Actions runner that built it and ships with [PEP 740 attestations](https://peps.python.org/pep-0740/) (SLSA Build Level 3 provenance). Verify a downloaded wheel client-side with [`pypi-attestations`](https://pypi.org/project/pypi-attestations/):
+
+```bash
+pip install pypi-attestations
+pypi-attestations verify pypi --repository https://github.com/config-i1/smooth smooth-*.whl
+```
 
 The package includes the following models:
 

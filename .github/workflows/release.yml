@@ -30,9 +30,10 @@ jobs:
       name: pypi
       url: https://pypi.org/p/smooth
     permissions:
-      id-token: write     # trusted publishing
-      actions: read       # download-artifact across workflows
-      contents: write     # creating GitHub release
+      id-token: write       # trusted publishing
+      attestations: write   # PEP 740 / Sigstore attestations
+      actions: read         # download-artifact across workflows
+      contents: write       # creating GitHub release
 
     steps:
       - name: Download wheel artifacts from the build run
@@ -55,8 +56,14 @@ jobs:
       - name: List downloaded files
         run: ls -R dist/
 
-      - name: Publish to PyPI
+      - name: Publish to PyPI (with PEP 740 attestations)
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Produces an in-toto / Sigstore attestation for each
+          # uploaded file and publishes it alongside the wheel on
+          # PyPI (PEP 740). Verifiable client-side via
+          # ``pypi-attestations verify``.
+          attestations: true
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

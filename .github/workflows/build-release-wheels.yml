@@ -38,6 +38,32 @@ jobs:
         with:
           submodules: recursive
 
+      # Cache vcpkg's installed ports on Windows. The first run of
+      # ``vcpkg install openblas lapack:x64-windows-release`` takes
+      # ~10-15 minutes; once the install tree is cached, subsequent
+      # runs restore it in seconds and ``vcpkg install`` becomes a
+      # no-op for the already-present ports. Bump the key suffix
+      # when the port versions need to be force-rebuilt.
+      - name: Cache vcpkg installed ports (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: C:/vcpkg/installed
+          key: vcpkg-installed-openblas-lapack-x64-windows-release-v1
+
+      # Cache cibuildwheel's per-OS interpreter / pip download cache.
+      # Saves ~1-2 minutes per matrix row by reusing CPython binaries
+      # and the pip wheel cache that cibuildwheel populates inside
+      # the build environment. Scoped per (OS × Python build tag) so
+      # cache entries don't shadow each other.
+      - name: Cache cibuildwheel
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/cibuildwheel
+            ~/AppData/Local/Temp/cibuildwheel/Cache
+          key: cibuildwheel-${{ matrix.os }}-${{ matrix.cibw-build }}-v1
+
       - name: Build & test wheels
         uses: pypa/cibuildwheel@v3.1
         with:
@@ -101,6 +127,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'   # caches pip downloads keyed on requirements
 
       - name: Install build
         run: python -m pip install build
