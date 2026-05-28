@@ -23,8 +23,8 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 # BLAS/LAPACK Detection
 # ==============================================================================
 
-# BLAS / LAPACK search. The same logic now runs on every platform —
-# Windows wheels installed OpenBLAS + LAPACK via vcpkg (see the
+# BLAS / LAPACK search. The same logic runs on every platform —
+# Windows wheels install OpenBLAS + LAPACK via vcpkg (see the
 # ``CIBW_BEFORE_ALL_WINDOWS`` step in ``.github/workflows/python_ci.yml``),
 # so CMake's ``find_package(BLAS)`` / ``find_package(LAPACK)`` resolve
 # against the vcpkg toolchain there. Without LAPACK linked,
@@ -32,8 +32,30 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 # ARIMA reapply and ``eigen_bounds`` for admissible bounds) throws
 # at runtime — so we only fall back to ``ARMA_DONT_USE_LAPACK`` when
 # the dependency genuinely isn't present.
+#
+# On Windows, ``FindBLAS`` / ``FindLAPACK`` need the ``BLA_VENDOR``
+# hint to locate the vcpkg-installed openblas import library — the
+# default heuristics scan a hard-coded list of canonical install
+# layouts that doesn't include vcpkg's. Setting the hint here is
+# safe on Linux / macOS too (FindBLAS treats it as a preference,
+# not a constraint).
+if(WIN32)
+  set(BLA_VENDOR OpenBLAS)
+endif()
 find_package(BLAS)
 find_package(LAPACK)
+
+# On Windows, FindLAPACK occasionally fails to detect LAPACK even
+# when OpenBLAS is found and ships LAPACK kernels in the same DLL.
+# vcpkg's ``openblas`` port bundles a full LAPACK; if ``BLAS_FOUND``
+# resolved against it, treat LAPACK as found and reuse the BLAS
+# libraries.
+if(WIN32 AND BLAS_FOUND AND NOT LAPACK_FOUND)
+  message(STATUS "LAPACK not found by FindLAPACK; assuming OpenBLAS bundles "
+                 "LAPACK kernels (typical for vcpkg ``openblas`` port).")
+  set(LAPACK_FOUND TRUE)
+  set(LAPACK_LIBRARIES "")  # already in BLAS_LIBRARIES
+endif()
 
 if(LAPACK_FOUND AND BLAS_FOUND)
   set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
