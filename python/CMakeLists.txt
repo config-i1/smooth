@@ -25,24 +25,20 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 
 # BLAS / LAPACK are required by Armadillo's ``eig_gen`` (used by
 # ``ar_polynomial_bounds`` for ARIMA reapply and ``eigen_bounds`` for
-# admissible bounds). Without LAPACK linked, ``eig_gen`` throws at
-# runtime, so we must detect them robustly on every platform.
+# admissible bounds), and by ``adamCore`` / ``eigenCalc`` directly
+# (which call ``sposv``, ``dgesv``, ``sgeev`` etc. through Armadillo).
+# Without LAPACK linked the wheel fails at link time with
+# ``LNK2001: unresolved external symbol sposv_``-style errors, or at
+# runtime with ``eig_gen(): use of LAPACK must be enabled``.
 #
 # Detection strategy:
-#   1. On Windows only, try CONFIG-mode ``find_package(OpenBLAS CONFIG)``
-#      first — vcpkg ships ``OpenBLASConfig.cmake`` for its ``openblas``
-#      port and that port is a full LAPACK build
-#      (BUILD_WITHOUT_LAPACK=OFF by default), so a single CONFIG
-#      package resolves both BLAS and LAPACK on Windows wheels.
-#      MODULE-mode FindBLAS/FindLAPACK never reliably picked up the
-#      vcpkg install layout, even with BLA_VENDOR=OpenBLAS, hence the
-#      silent fall-through to ARMA_DONT_USE_LAPACK and the
-#      ``eig_gen()`` runtime crash. We restrict CONFIG mode to
-#      Windows because some Linux distros (Debian/Ubuntu's
-#      libopenblas-dev) ship a broken ``OpenBLASConfig.cmake`` that
-#      points at ``/usr/lib/lib/libopenblas.so`` (one ``../`` too few
-#      in the path-resolution) — MODULE-mode FindBLAS finds the
-#      correct path there.
+#   1. On Windows only, try vcpkg's CONFIG packages first —
+#      ``OpenBLAS::OpenBLAS`` for BLAS, ``lapack`` (from vcpkg's
+#      ``lapack-reference`` port) for LAPACK. vcpkg's openblas port
+#      does NOT bundle LAPACK kernels, so both must be linked.
+#      MODULE-mode FindBLAS/FindLAPACK don't reliably locate vcpkg's
+#      install layout even with ``BLA_VENDOR=OpenBLAS``, so CONFIG
+#      mode is the canonical path on Windows.
 #   2. MODULE-mode ``find_package(BLAS)`` / ``find_package(LAPACK)``
 #      handles Linux / macOS, where the system packages
 #      (openblas-devel + lapack-devel on Linux, brew's openblas on
@@ -50,21 +46,26 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 #   3. Final fallback only when the dependency is genuinely absent.
 if(WIN32)
   find_package(OpenBLAS CONFIG QUIET)
+  find_package(lapack CONFIG QUIET)
 endif()
-if(OpenBLAS_FOUND)
-  # vcpkg's port exports an ``OpenBLAS::OpenBLAS`` imported target;
-  # fall back to the raw library path if the target isn't present.
+
+if(OpenBLAS_FOUND AND lapack_FOUND)
+  # Windows / vcpkg path: link both CONFIG-mode packages.
+  set(lapackblas_libraries)
   if(TARGET OpenBLAS::OpenBLAS)
-    set(lapackblas_libraries OpenBLAS::OpenBLAS)
-    message(STATUS "Found OpenBLAS via CONFIG (imported target); "
-                   "provides BLAS + LAPACK in a single library.")
+    list(APPEND lapackblas_libraries OpenBLAS::OpenBLAS)
   else()
-    set(lapackblas_libraries ${OpenBLAS_LIBRARIES})
-    message(STATUS "Found OpenBLAS via CONFIG (variable form): "
-                   "${OpenBLAS_LIBRARIES}; provides BLAS + LAPACK.")
+    list(APPEND lapackblas_libraries ${OpenBLAS_LIBRARIES})
+  endif()
+  if(TARGET lapack)
+    list(APPEND lapackblas_libraries lapack)
+  else()
+    list(APPEND lapackblas_libraries ${lapack_LIBRARIES})
   endif()
   set(BLAS_FOUND TRUE)
   set(LAPACK_FOUND TRUE)
+  message(STATUS "Found OpenBLAS (BLAS) + lapack-reference (LAPACK) "
+                 "via vcpkg CONFIG packages.")
 else()
   find_package(BLAS)
   find_package(LAPACK)
@@ -91,10 +92,10 @@ endif()
 if(WIN32 AND NOT LAPACK_FOUND)
   message(FATAL_ERROR
     "LAPACK not found on Windows. The wheel build expects vcpkg's "
-    "openblas (which bundles LAPACK) — make sure "
+    "openblas + lapack-reference. Make sure "
     "``CIBW_BEFORE_ALL_WINDOWS`` runs ``vcpkg install "
-    "openblas:x64-windows-release`` and that "
-    "``CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake`` "
+    "openblas:x64-windows-release lapack:x64-windows-release`` and "
+    "that ``CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake`` "
     "is exported via ``CIBW_ENVIRONMENT_WINDOWS``.")
 endif()
 
