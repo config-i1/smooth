@@ -21,6 +21,11 @@ on:
         required: true
         type: string
 
+# Opt every JavaScript action into the Node.js 24 runtime — GitHub
+# deprecates Node 20 on 2026-06-02 and removes it on 2026-09-16.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   publish:
     name: Publish to TestPyPI

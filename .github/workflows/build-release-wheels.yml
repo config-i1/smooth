@@ -21,6 +21,14 @@ on:
         required: true
         type: string
 
+# Opt every JavaScript action (including those bundled inside
+# ``pypa/cibuildwheel@v3.1``, e.g. ``actions/setup-python@v5``) into
+# the Node.js 24 runtime. GitHub deprecates Node.js 20 on 2026-06-02
+# and removes it on 2026-09-16; this env var is the documented opt-in
+# mechanism for the transition period.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build_wheels:
     name: Build ${{ matrix.cibw-build }} on ${{ matrix.os }}
