@@ -2898,6 +2898,7 @@ class ADAM:
         nsim: int = 10000,
         occurrence: Optional[NDArray] = None,
         scenarios: bool = False,
+        seed: Optional[int] = None,
     ) -> NDArray:
         """
         Generate forecasts using the fitted ADAM model.
@@ -2948,6 +2949,11 @@ class ADAM:
         scenarios : bool, default=False
             If True and ``interval="simulated"``, store the raw simulation
             matrix in ``self._general["_scenarios_matrix"]``.
+        seed : int, optional
+            Seed forwarded to :meth:`reforecast` when ``interval`` is
+            ``"complete"`` or ``"confidence"``. Pins the Monte-Carlo
+            paths so the interval is reproducible across runs and
+            platforms. Ignored for the other ``interval`` modes.
 
         Returns
         -------
@@ -2998,6 +3004,7 @@ class ADAM:
                 side=side,
                 cumulative=cumulative,
                 nsim=reforecast_nsim,
+                seed=seed,
             )
             return reforecast_result.to_forecast_result()
 

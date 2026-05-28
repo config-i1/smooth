@@ -49,6 +49,160 @@ _additive_model.fit(_seasonal_data)
 _mult_model = ADAM(model="MAM", lags=[1, 12])
 _mult_model.fit(_mult_data)
 
+# Real AirPassengers (Box & Jenkins): a well-conditioned series we use
+# for tests that compare prediction-vs-confidence interval widths. The
+# synthetic ``_mult_data`` above sometimes yields an indefinite vcov,
+# which forces a PSD repair and distorts parameter draws.
+_AIRPASSENGERS = np.array(
+    [
+        112,
+        118,
+        132,
+        129,
+        121,
+        135,
+        148,
+        148,
+        136,
+        119,
+        104,
+        118,
+        115,
+        126,
+        141,
+        135,
+        125,
+        149,
+        170,
+        170,
+        158,
+        133,
+        114,
+        140,
+        145,
+        150,
+        178,
+        163,
+        172,
+        178,
+        199,
+        199,
+        184,
+        162,
+        146,
+        166,
+        171,
+        180,
+        193,
+        181,
+        183,
+        218,
+        230,
+        242,
+        209,
+        191,
+        172,
+        194,
+        196,
+        196,
+        236,
+        235,
+        229,
+        243,
+        264,
+        272,
+        237,
+        211,
+        180,
+        201,
+        204,
+        188,
+        235,
+        227,
+        234,
+        264,
+        302,
+        293,
+        259,
+        229,
+        203,
+        229,
+        242,
+        233,
+        267,
+        269,
+        270,
+        315,
+        364,
+        347,
+        312,
+        274,
+        237,
+        278,
+        284,
+        277,
+        317,
+        313,
+        318,
+        374,
+        413,
+        405,
+        355,
+        306,
+        271,
+        306,
+        315,
+        301,
+        356,
+        348,
+        355,
+        422,
+        465,
+        467,
+        404,
+        347,
+        305,
+        336,
+        340,
+        318,
+        362,
+        348,
+        363,
+        435,
+        491,
+        505,
+        404,
+        359,
+        310,
+        337,
+        360,
+        342,
+        406,
+        396,
+        420,
+        472,
+        548,
+        559,
+        463,
+        407,
+        362,
+        405,
+        417,
+        391,
+        419,
+        461,
+        472,
+        535,
+        622,
+        606,
+        508,
+        461,
+        390,
+        432,
+    ],
+    dtype=float,
+)
+
 
 # ---------------------------------------------------------------------------
 # 1. Interval types
@@ -131,9 +285,21 @@ class TestPredictIntervalTypes:
 
     def test_interval_confidence_narrower_than_complete(self):
         """For the same fit + nsim, confidence intervals are strictly
-        narrower than prediction (= ``complete``) intervals on average."""
-        r_pred = _mult_model.predict(h=6, interval="complete", nsim=40)
-        r_conf = _mult_model.predict(h=6, interval="confidence", nsim=40)
+        narrower than prediction (= ``complete``) intervals on average.
+
+        Uses AirPassengers + MAM (same well-conditioned setup as
+        ``test_reforecast_confidence_narrower_than_prediction``) and a
+        fixed ``seed`` so the inequality is deterministic and far
+        outside MC noise across platforms. The synthetic multiplicative
+        series shared by other tests in this class has an indefinite
+        vcov for some platform RNG seeds — the resulting PSD repair
+        distorts parameter draws enough that the confidence-vs-
+        prediction inequality is no longer a clean unit test of the
+        reforecast reduction.
+        """
+        m = ADAM(model="MAM", lags=[12], initial="backcasting").fit(_AIRPASSENGERS)
+        r_pred = m.predict(h=12, interval="complete", nsim=100, seed=42)
+        r_conf = m.predict(h=12, interval="confidence", nsim=100, seed=42)
         pred_width = (
             (r_pred.upper.iloc[:, 0] - r_pred.lower.iloc[:, 0]).to_numpy().mean()
         )
