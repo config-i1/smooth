@@ -62,7 +62,7 @@ jobs:
           path: |
             ~/.cache/cibuildwheel
             ~/AppData/Local/Temp/cibuildwheel/Cache
-          key: cibuildwheel-${{ matrix.os }}-${{ matrix.cibw-build }}-v1
+          key: cibuildwheel-${{ matrix.os }}-${{ replace(matrix.cibw-build, '*', '') }}-v1
 
       - name: Build & test wheels
         uses: pypa/cibuildwheel@v3.1
@@ -110,7 +110,11 @@ jobs:
       - name: Upload wheels as artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.cibw-build }}
+          # Strip the ``*`` glob from ``cibw-build`` — ``cp311-manylinux*``
+          # → ``cp311-manylinux``. ``actions/upload-artifact`` rejects
+          # asterisks in artifact names because some filesystems (NTFS)
+          # can't represent them.
+          name: wheels-${{ matrix.os }}-${{ replace(matrix.cibw-build, '*', '') }}
           path: ./wheelhouse/*.whl
           retention-days: 14
           if-no-files-found: error
