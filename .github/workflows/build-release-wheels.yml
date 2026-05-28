@@ -17,21 +17,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # The ``tag`` field is an artifact- and cache-key-safe version
+        # of ``cibw-build`` — GitHub Actions expression syntax has no
+        # ``replace()`` function, so the ``*`` glob would otherwise
+        # leak into artifact names and break the upload step.
         include:
           # Linux: cp311–cp314 manylinux
-          - { os: ubuntu-latest,  cibw-build: 'cp311-manylinux*' }
-          - { os: ubuntu-latest,  cibw-build: 'cp312-manylinux*' }
-          - { os: ubuntu-latest,  cibw-build: 'cp313-manylinux*' }
-          - { os: ubuntu-latest,  cibw-build: 'cp314-manylinux*' }
+          - { os: ubuntu-latest,  cibw-build: 'cp311-manylinux*', tag: 'cp311-linux' }
+          - { os: ubuntu-latest,  cibw-build: 'cp312-manylinux*', tag: 'cp312-linux' }
+          - { os: ubuntu-latest,  cibw-build: 'cp313-manylinux*', tag: 'cp313-linux' }
+          - { os: ubuntu-latest,  cibw-build: 'cp314-manylinux*', tag: 'cp314-linux' }
           # macOS: cp311–cp313 (cp314 not yet on macOS x86_64 — same
-          # skip rule release.yml uses today)
-          - { os: macos-latest,   cibw-build: 'cp311-macosx*' }
-          - { os: macos-latest,   cibw-build: 'cp312-macosx*' }
-          - { os: macos-latest,   cibw-build: 'cp313-macosx*' }
+          # skip rule release.yml uses today). Glob matches both
+          # x86_64 and arm64 — the row produces both wheels.
+          - { os: macos-latest,   cibw-build: 'cp311-macosx*',    tag: 'cp311-macos' }
+          - { os: macos-latest,   cibw-build: 'cp312-macosx*',    tag: 'cp312-macos' }
+          - { os: macos-latest,   cibw-build: 'cp313-macosx*',    tag: 'cp313-macos' }
           # Windows: cp311–cp313
-          - { os: windows-latest, cibw-build: 'cp311-win_amd64' }
-          - { os: windows-latest, cibw-build: 'cp312-win_amd64' }
-          - { os: windows-latest, cibw-build: 'cp313-win_amd64' }
+          - { os: windows-latest, cibw-build: 'cp311-win_amd64',  tag: 'cp311-win' }
+          - { os: windows-latest, cibw-build: 'cp312-win_amd64',  tag: 'cp312-win' }
+          - { os: windows-latest, cibw-build: 'cp313-win_amd64',  tag: 'cp313-win' }
 
     steps:
       - uses: actions/checkout@v5
@@ -62,7 +67,7 @@ jobs:
           path: |
             ~/.cache/cibuildwheel
             ~/AppData/Local/Temp/cibuildwheel/Cache
-          key: cibuildwheel-${{ matrix.os }}-${{ replace(matrix.cibw-build, '*', '') }}-v1
+          key: cibuildwheel-${{ matrix.tag }}-v1
 
       - name: Build & test wheels
         uses: pypa/cibuildwheel@v3.1
@@ -110,11 +115,10 @@ jobs:
       - name: Upload wheels as artifacts
         uses: actions/upload-artifact@v6
         with:
-          # Strip the ``*`` glob from ``cibw-build`` — ``cp311-manylinux*``
-          # → ``cp311-manylinux``. ``actions/upload-artifact`` rejects
-          # asterisks in artifact names because some filesystems (NTFS)
-          # can't represent them.
-          name: wheels-${{ matrix.os }}-${{ replace(matrix.cibw-build, '*', '') }}
+          # Use the artifact-safe ``tag`` matrix field instead of
+          # ``cibw-build`` directly — ``actions/upload-artifact``
+          # rejects ``*`` in artifact names (NTFS limitation).
+          name: wheels-${{ matrix.tag }}
           path: ./wheelhouse/*.whl
           retention-days: 14
           if-no-files-found: error
