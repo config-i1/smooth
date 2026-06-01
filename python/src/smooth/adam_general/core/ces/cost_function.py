@@ -5,11 +5,14 @@ Translates R/adam-ces.R CF() function (lines 486-563).
 Wraps ces_filler + adamCore.fit() + loss computation.
 """
 
+import math
+
 import numpy as np
-from scipy.stats import norm
 
 from smooth.adam_general._eigenCalc import smooth_eigens
 from smooth.adam_general.core.ces.filler import ces_filler
+
+_R_LN_SQRT_2PI = 0.918938533204672741780329736406
 
 
 def ces_cf(
@@ -162,10 +165,17 @@ def ces_cf(
         if loss == "likelihood":
             # CES scaler: sqrt(sum(errors^2)/obs) — R line 482
             errors_ot = errors[ot_logical]
-            scale = np.sqrt(np.sum(errors_ot**2) / obs_in_sample)
+            errors_sum = math.fsum(float(error) ** 2 for error in errors_ot)
+            scale = math.sqrt(errors_sum / obs_in_sample)
             y_ot = y_in_sample[ot_logical]
             fitted_ot = fitted[ot_logical]
-            cf_value = -np.sum(norm.logpdf(y_ot, loc=fitted_ot, scale=scale))
+            log_scale = math.log(scale)
+            cf_value = math.fsum(
+                _R_LN_SQRT_2PI
+                + 0.5 * ((float(actual) - float(fitted_value)) / scale) ** 2
+                + log_scale
+                for actual, fitted_value in zip(y_ot, fitted_ot)
+            )
         elif loss == "MSE":
             cf_value = np.sum(errors**2) / obs_in_sample
         elif loss == "MAE":

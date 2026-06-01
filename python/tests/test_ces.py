@@ -45,17 +45,14 @@ def _load_case(case_name):
 # ---------------------------------------------------------------------------
 # Tolerances
 # ---------------------------------------------------------------------------
-# Tight for deterministic outputs, slightly looser for optimizer-dependent values.
-# CES has a flat loss surface in some cases, so the optimizer may converge to
-# a slightly different (but equally good) point — hence generous tolerances
-# on B, persistence, fitted/residuals/forecasts/states.
-ATOL_TIGHT = 1e-6
-RTOL_TIGHT = 1e-6
-ATOL_FITTED = 3.0
-RTOL_FITTED = 1e-2
-ATOL_PARAM = 1e-1
-RTOL_PARAM = 1e-1
-ATOL_IC = 1.5
+# Rounding-level tolerances for deterministic R fixture parity.
+ATOL_TIGHT = 1e-9
+RTOL_TIGHT = 0.0
+ATOL_FITTED = 1e-9
+RTOL_FITTED = 0.0
+ATOL_PARAM = 1e-9
+RTOL_PARAM = 0.0
+ATOL_IC = 1e-9
 
 
 # ---------------------------------------------------------------------------
@@ -341,32 +338,30 @@ class TestCESFullQuarterly(CESCaseTests):
 
 
 class TestCESPartialOptimalAirPassengers(CESCaseTests):
-    # "optimal" initial type: optimizer converges to a different local minimum
-    # with similar logLik (diff ~0.04) but very different initial states.
     case_name = "partial_optimal_airpassengers"
-
-    @pytest.mark.skip(reason="different local minimum — initial states differ")
-    def test_b_vector(self):
-        pass
-
-    @pytest.mark.skip(reason="different local minimum — initial states differ")
-    def test_states_first_row(self):
-        pass
 
 
 @pytest.mark.parametrize(
-    ("case_name", "atol"),
+    "case_name",
     [
-        ("partial_airpassengers", 1e-10),
-        ("full_airpassengers", 1e-10),
+        "none_airpassengers",
+        "simple_airpassengers",
+        "partial_airpassengers",
+        "full_airpassengers",
+        "none_nonseasonal",
+        "none_quarterly",
+        "simple_quarterly",
+        "partial_quarterly",
+        "full_quarterly",
+        "partial_optimal_airpassengers",
     ],
 )
-def test_ces_cost_function_matches_r_reference(case_name, atol):
+def test_ces_cost_function_matches_r_reference(case_name):
     ref = _REF[case_name]
     assert np.isclose(
         _ces_cf_from_reference(case_name),
         ref["loss_value"],
-        atol=atol,
+        atol=1e-9,
         rtol=0,
     )
 

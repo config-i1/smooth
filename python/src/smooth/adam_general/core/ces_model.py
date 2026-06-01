@@ -69,11 +69,25 @@ class CES:
     algorithm : str, default="NLOPT_LN_NELDERMEAD"
         Second-stage optimizer algorithm.
     maxeval : int or None
-        Maximum optimizer evaluations (per stage). None = 40*len(B).
+        Maximum second-stage optimizer evaluations. None = 40*len(B).
+    maxeval0 : int or None
+        Maximum first-stage optimizer evaluations. None = maxeval default.
     xtol_rel0 : float, default=1e-8
         Relative tolerance for first-stage optimizer.
+    xtol_abs0 : float, default=0
+        Absolute tolerance for first-stage optimizer.
+    ftol_rel0 : float, default=0
+        Relative objective tolerance for first-stage optimizer.
+    ftol_abs0 : float, default=0
+        Absolute objective tolerance for first-stage optimizer.
     xtol_rel : float, default=1e-6
         Relative tolerance for second-stage optimizer.
+    xtol_abs : float, default=1e-8
+        Absolute tolerance for second-stage optimizer.
+    ftol_rel : float, default=1e-8
+        Relative objective tolerance for second-stage optimizer.
+    ftol_abs : float, default=0
+        Absolute objective tolerance for second-stage optimizer.
     """
 
     def __init__(
@@ -93,8 +107,17 @@ class CES:
         algorithm0: str = "NLOPT_LN_BOBYQA",
         algorithm: str = "NLOPT_LN_NELDERMEAD",
         maxeval: Optional[int] = None,
+        maxeval0: Optional[int] = None,
+        maxtime: float = -1,
+        maxtime0: float = -1,
         xtol_rel0: float = 1e-8,
+        xtol_abs0: float = 0,
+        ftol_rel0: float = 0,
+        ftol_abs0: float = 0,
         xtol_rel: float = 1e-6,
+        xtol_abs: float = 1e-8,
+        ftol_rel: float = 1e-8,
+        ftol_abs: float = 0,
     ) -> None:
         # Validate seasonality
         valid = {"none", "simple", "partial", "full"}
@@ -119,8 +142,17 @@ class CES:
         self.algorithm0 = algorithm0
         self.algorithm = algorithm
         self.maxeval = maxeval
+        self.maxeval0 = maxeval0
+        self.maxtime = maxtime
+        self.maxtime0 = maxtime0
         self.xtol_rel0 = xtol_rel0
+        self.xtol_abs0 = xtol_abs0
+        self.ftol_rel0 = ftol_rel0
+        self.ftol_abs0 = ftol_abs0
         self.xtol_rel = xtol_rel
+        self.xtol_abs = xtol_abs
+        self.ftol_rel = ftol_rel
+        self.ftol_abs = ftol_abs
 
     def fit(self, y: NDArray, X: Optional[NDArray] = None) -> "CES":
         """
@@ -322,6 +354,20 @@ class CES:
                 holdout=self.holdout,
                 bounds=self.bounds,
                 verbose=0,
+                algorithm0=self.algorithm0,
+                algorithm=self.algorithm,
+                maxeval=self.maxeval,
+                maxeval0=self.maxeval0,
+                maxtime=self.maxtime,
+                maxtime0=self.maxtime0,
+                xtol_rel0=self.xtol_rel0,
+                xtol_abs0=self.xtol_abs0,
+                ftol_rel0=self.ftol_rel0,
+                ftol_abs0=self.ftol_abs0,
+                xtol_rel=self.xtol_rel,
+                xtol_abs=self.xtol_abs,
+                ftol_rel=self.ftol_rel,
+                ftol_abs=self.ftol_abs,
             )
             ces_back.fit(y, X=X)
             B = ces_back.B.copy()
@@ -359,6 +405,7 @@ class CES:
             maxeval_used = len(B) * 40
             if xreg_model:
                 maxeval_used = max(1000, len(B) * 100)
+        maxeval0_used = self.maxeval0 if self.maxeval0 is not None else maxeval_used
 
         # CF arguments shared by both optimizer stages
         cf_kwargs = dict(
@@ -407,12 +454,12 @@ class CES:
         opt1.set_min_objective(objective)
         opt1.set_lower_bounds(np.full(len(B), -np.inf))
         opt1.set_upper_bounds(np.full(len(B), np.inf))
-        opt1.set_maxeval(maxeval_used)
+        opt1.set_maxeval(maxeval0_used)
         opt1.set_xtol_rel(self.xtol_rel0)
-        opt1.set_xtol_abs(0)
-        opt1.set_ftol_rel(0)
-        opt1.set_ftol_abs(0)
-        opt1.set_maxtime(-1)
+        opt1.set_xtol_abs(self.xtol_abs0)
+        opt1.set_ftol_rel(self.ftol_rel0)
+        opt1.set_ftol_abs(self.ftol_abs0)
+        opt1.set_maxtime(self.maxtime0)
         try:
             B = opt1.optimize(B)
         except nlopt.RoundoffLimited:
@@ -425,10 +472,10 @@ class CES:
         opt2.set_upper_bounds(np.full(len(B), np.inf))
         opt2.set_maxeval(maxeval_used)
         opt2.set_xtol_rel(self.xtol_rel)
-        opt2.set_xtol_abs(1e-8)
-        opt2.set_ftol_rel(1e-8)
-        opt2.set_ftol_abs(0)
-        opt2.set_maxtime(-1)
+        opt2.set_xtol_abs(self.xtol_abs)
+        opt2.set_ftol_rel(self.ftol_rel)
+        opt2.set_ftol_abs(self.ftol_abs)
+        opt2.set_maxtime(self.maxtime)
         try:
             B = opt2.optimize(B)
         except nlopt.RoundoffLimited:
