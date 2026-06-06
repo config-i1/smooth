@@ -13,6 +13,10 @@ matrixPowerWrap <- function(matA, power) {
     .Call('_smooth_matrixPowerWrap', PACKAGE = 'smooth', matA, power)
 }
 
+olsCpp <- function(X, y, tol = 1e-7) {
+    .Call('_smooth_olsCpp', PACKAGE = 'smooth', X, y, tol)
+}
+
 forecasterwrap <- function(matvt, matF, matw, h, Etype, Ttype, Stype, lagsModel, matxt, matat, matFX) {
     .Call('_smooth_forecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, Etype, Ttype, Stype, lagsModel, matxt, matat, matFX)
 }

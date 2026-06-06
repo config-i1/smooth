@@ -7,6 +7,8 @@ from scipy import stats
 from scipy.special import beta, digamma, gamma
 from statsmodels.tsa.stattools import acf, pacf
 
+from smooth.adam_general import _ols
+
 # Default smoother for ADAM/ES model initialisation (msdecompose keeps "lowess")
 SMOOTHER_DEFAULT: Literal["lowess", "ma", "global"] = "global"
 
@@ -296,7 +298,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
                     block_idx[:, None] == np.arange(n_groups - 1)[None, :]
                 ).astype(float)
                 X = np.column_stack([np.ones(n), dummies, np.arange(1, n + 1)])
-        coef = np.linalg.lstsq(X, y, rcond=None)[0]
+        X = np.ascontiguousarray(X, dtype=np.float64)
+        y = np.ascontiguousarray(y, dtype=np.float64)
+        coef = _ols.ols(X, y)
         return X @ coef
 
     # Initial data processing
@@ -340,8 +344,9 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         X_sin = np.column_stack(
             [np.sin(np.pi * t * k / max_lag) for k in range(1, max_lag + 1)]
         )
-        X = np.column_stack((X_poly, X_sin))
-        coef = np.linalg.lstsq(X[~y_na_values], y_insample[~y_na_values], rcond=None)[0]
+        X = np.ascontiguousarray(np.column_stack((X_poly, X_sin)), dtype=np.float64)
+        y_fit = np.ascontiguousarray(y_insample[~y_na_values], dtype=np.float64)
+        coef = _ols.ols(X[~y_na_values], y_fit)
         y_insample[y_na_values] = X[y_na_values] @ coef
 
     # Smoothing and trend extraction

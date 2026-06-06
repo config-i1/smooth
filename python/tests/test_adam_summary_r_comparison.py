@@ -142,10 +142,13 @@ def test_vcov_matches_r_at_same_b(scenario, r_outputs):
         m._adam_cpp,
     )
     cov = invert_fisher_information(FI)
-    # With per-parameter relative Hessian steps (h_i = ε^(1/4) · max(|x_i|, 1)
-    # in src/headers/hessianCore.h) the initial-state rows now agree with R
-    # to high precision; the headline tolerance can be tightened.
-    np.testing.assert_allclose(cov, r_vcov, rtol=2e-2, atol=1e-3)
+    # With both (i) the per-parameter relative FD Hessian step in
+    # hessianCore.h and (ii) the shared olsCore.h backend for the
+    # msdecompose global smoother, the residual gap collapses from the
+    # historical ~2% to the FD-Hessian discretisation floor (~1e-7 on
+    # ETS scenarios, ~1e-4 on the ARIMA scenario where extra polynomial
+    # ops accumulate).
+    np.testing.assert_allclose(cov, r_vcov, rtol=1e-3, atol=1e-6)
 
     # Smoothing-parameter covariance block (alpha/beta/gamma/phi) matches tightly.
     names = m.coef_names
@@ -156,7 +159,7 @@ def test_vcov_matches_r_at_same_b(scenario, r_outputs):
     ]
     if smooth_idx:
         sub = np.ix_(smooth_idx, smooth_idx)
-        np.testing.assert_allclose(cov[sub], r_vcov[sub], rtol=2e-2, atol=1e-3)
+        np.testing.assert_allclose(cov[sub], r_vcov[sub], rtol=1e-3, atol=1e-6)
 
 
 @pytest.mark.parametrize("scenario", list(SCENARIOS))
@@ -168,12 +171,19 @@ def test_confint_matches_r(scenario, r_outputs):
 
     assert list(ci.index) == r_rownames
 
-    # Confidence bounds (lower/upper) match R tightly.
+    # Confidence bounds are bounded by Python NLopt vs R nloptr
+    # convergence drift on the coefficient vector itself (Python runs
+    # its own fit here, so confint = py_coef ± py_SE × t-crit), not by
+    # the OLS-step ULP that the shared olsCore.h closed. Keep the
+    # historical 2e-2 bound for confint to reflect that optimiser floor.
     np.testing.assert_allclose(
         ci.iloc[:, 1:].to_numpy(), r_ci[:, 1:], rtol=2e-2, atol=1e-2
     )
-    # SEs are now accurate even for initial-state rows thanks to the
-    # per-parameter relative Hessian step (src/headers/hessianCore.h).
+    # SE column from confint() is computed at Python's own coefs (it
+    # runs its own fit), so it inherits the same NLopt-vs-nloptr
+    # optimiser-convergence floor as the lower/upper bounds. The vcov
+    # parity at R's coefs is the decisive measurement
+    # (test_vcov_matches_r_at_same_b) and tightened to 1e-3.
     np.testing.assert_allclose(ci["S.E."].to_numpy(), r_ci[:, 0], rtol=2e-2, atol=1e-3)
 
 
