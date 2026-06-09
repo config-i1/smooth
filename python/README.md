@@ -22,6 +22,7 @@ The package includes the following models:
 
 - [ADAM](https://openforecast.org/adam/) - Augmented Dynamic Adaptive Model, uniting exponential smoothing, ARIMA and regression, implemented in the `ADAM` class.
 - [ETS](https://github.com/config-i1/smooth/wiki/ES) - Exponential Smoothing in the SSOE state space form, implemented in the `ES` class.
+- [CES](https://github.com/config-i1/smooth/wiki/CES) - Complex Exponential Smoothing with complex-valued smoothing parameters, implemented in the `CES` class (fixed seasonality type) and `AutoCES` class (automatic seasonality selection).
 - [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) - Multiple seasonal ARIMA in state space form, implemented in the `MSARIMA` class (fixed orders) and `AutoMSARIMA` class (automatic order selection).
 - [OM](https://github.com/config-i1/smooth/wiki/OM) - Occurrence Model for intermittent demand, implemented in the `OM` class (plus `OMG` for the general two-component model and `AutoOM` for automatic type selection).
 - [SMA](https://github.com/config-i1/smooth/wiki/SMA) - Simple Moving Average in state-space form (an AR(m) model with fixed coefficients), implemented in the `SMA` class with automatic order selection.
@@ -151,6 +152,39 @@ model.fit(y)
 fc = model.predict(h=24)
 ```
 
+## CES — Complex Exponential Smoothing
+
+`CES` and `AutoCES` mirror R's `ces()` / `auto.ces()`. CES uses complex-valued
+smoothing parameters to capture both the level and the "potential" of a series,
+covering four seasonality modes: `"none"`, `"simple"`, `"partial"`, `"full"`.
+
+```python
+import numpy as np
+from smooth import CES, AutoCES
+
+y = np.array([
+    112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118,
+    115, 126, 141, 135, 125, 149, 170, 170, 158, 133, 114, 140,
+], dtype=float)
+
+# CES with a fixed seasonality type
+model = CES(seasonality="partial", lags=[1, 12], h=6, holdout=True)
+model.fit(y)
+print(model.model_name)         # e.g. "CES(partial)"
+print(model.a_, model.b_)       # complex smoothing parameters
+fc = model.predict(h=6)
+print(fc.mean)
+
+# AutoCES — select the best seasonality type by information criterion
+auto = AutoCES(lags=[1, 12], h=6, holdout=True, ic="AICc")
+auto.fit(y)
+print(auto.best_model_.model_name)
+```
+
+> **Note**: strict R-parity in the two-stage NLopt path requires
+> `nlopt>=2.10.0`; older versions still fit, but the BOBYQA stage-1 trajectory
+> may differ slightly from R.
+
 ## Documentation
 
 - [GitHub Wiki](https://github.com/config-i1/smooth/wiki) - Full documentation
@@ -162,6 +196,7 @@ The pages below document the models and their Python classes:
 - [ADAM](https://github.com/config-i1/smooth/wiki/ADAM) — Augmented Dynamic Adaptive Model — unified ETS/ARIMA/regression framework
 - [AutoADAM](https://github.com/config-i1/smooth/wiki/AutoADAM) — Automatic ADAM with distribution and ARIMA order selection
 - [ES](https://github.com/config-i1/smooth/wiki/ES) — Exponential Smoothing (ETS) wrapper for ADAM
+- [CES](https://github.com/config-i1/smooth/wiki/CES) — Complex Exponential Smoothing (`CES`, `AutoCES`)
 - [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) — Multiple Seasonal ARIMA (fixed orders) and automatic selection (`AutoMSARIMA`)
 - [OM](https://github.com/config-i1/smooth/wiki/OM) — Occurrence Model for intermittent demand (`OM`, `OMG`, `AutoOM`)
 - [SMA](https://github.com/config-i1/smooth/wiki/SMA) — Simple Moving Average in state-space form with automatic order selection
