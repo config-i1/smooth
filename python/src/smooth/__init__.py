@@ -5,6 +5,7 @@ from smooth.adam_general.core.adam import ADAM
 from smooth.adam_general.core.auto_adam import AutoADAM
 from smooth.adam_general.core.auto_msarima import AutoMSARIMA
 from smooth.adam_general.core.auto_om import AutoOM
+from smooth.adam_general.core.ces_model import CES, AutoCES
 from smooth.adam_general.core.es import ES
 from smooth.adam_general.core.msarima import MSARIMA
 from smooth.adam_general.core.om import OM
@@ -32,6 +33,8 @@ __all__ = [
     "AutoADAM",
     "AutoMSARIMA",
     "AutoOM",
+    "CES",
+    "AutoCES",
     "ES",
     "MSARIMA",
     "OM",
