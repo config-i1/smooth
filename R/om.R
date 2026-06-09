@@ -2215,3 +2215,128 @@ rstudent.om <- function(model, ...){
     e   <- as.numeric(model$residuals);
     return(e / sqrt(p * (1 - p)) * sqrt(obs / df));
 }
+
+#' @title Simulate methods for occurrence (om/omg) state-space models
+#' @description Re-simulates probabilities and occurrence indicators
+#' from a fitted \code{om} or \code{omg} model. The latent ETS is
+#' simulated via the shared C++ kernel (the same one
+#' \code{simulate.adam} uses), the latent series is mapped to a
+#' probability via \code{omLinkFunction} (or \code{omgLinkFunction}
+#' for \code{omg}), and a binomial draw with that probability gives
+#' the 0/1 occurrence series.
+#'
+#' @param object An object of class \code{om} (or \code{omg}).
+#' @param nsim Number of simulated series to draw.
+#' @param seed Optional integer; forwarded to \code{set.seed} at the
+#'   start of the simulation. Matches \code{stats::simulate}'s
+#'   generic signature. When \code{NULL} (default) the global RNG
+#'   state is used unchanged.
+#' @param obs Number of observations per simulated series. Defaults
+#'   to the in-sample length.
+#' @param ... Currently unused; kept for forward compatibility.
+#'
+#' @return An S3 list of class \code{c("om.sim","oes.sim","smooth.sim")}
+#'   (or \code{c("omg.sim","oes.sim","smooth.sim")} for \code{omg})
+#'   with fields:
+#'   \describe{
+#'     \item{\code{$probability}}{Simulated probability series of
+#'       shape \code{(obs, nsim)} -- the equivalent of
+#'       \code{sim.oes()}'s \code{$probability} output.}
+#'     \item{\code{$data}}{0/1 occurrence indicators of shape
+#'       \code{(obs, nsim)}, drawn via \code{rbinom} with the
+#'       simulated probability.}
+#'     \item{\code{$states}, \code{$residuals}}{Latent state cube
+#'       and the errors used internally.}
+#'     \item{\code{$model}, \code{$occurrence}}{Identifiers carried
+#'       over from the fit.}
+#'     \item{\code{$latent}}{Pre-link state-space output --
+#'       internal, used by \code{simulate.omg} to combine sub-models.}
+#'   }
+#'
+#' @details
+#' \code{print()} on the returned object dispatches to
+#' \code{print.oes.sim} via the inherited \code{"oes.sim"} class.
+#'
+#' @examples
+#' \dontrun{
+#' set.seed(7)
+#' y <- rbinom(120, 1, prob=0.3 + 0.005*(1:120))
+#' m <- om(y, model="MNN", occurrence="odds-ratio", silent=TRUE)
+#' sim <- simulate(m, nsim=5, seed=42)
+#' range(sim$probability)
+#' table(sim$data)
+#' }
+#'
+#' @rdname simulate.om
+#' @export
+simulate.om <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
+    startTime <- Sys.time();
+    if(!is.null(seed)){
+        set.seed(seed);
+    }
+
+    # 1. Simulate the latent ETS via the shared helper. ``om`` inherits
+    #    from ``adam`` so all required fields are present on ``object``.
+    inner <- simulateADAMCore(object, nsim=nsim, obs=obs, ...);
+
+    # 2. Apply the inverse link: latent state -> probability.
+    Etype       <- errorType(object);
+    occurrence  <- object$occurrence;
+    obsInSample <- inner$obsInSample;
+
+    latentMatrix <- matrix(inner$data, obsInSample, nsim);
+    probability  <- matrix(omLinkFunction(c(latentMatrix), Etype, occurrence),
+                           obsInSample, nsim);
+    # Numerical guard: omLinkFunction's "fixed" / "direct" branches
+    # already clip, but odds-ratio paths can overshoot under extreme
+    # latent noise. Clamp uniformly here.
+    probability[] <- pmin(pmax(probability, 0), 1);
+
+    # 3. Draw 0/1 occurrence indicators.
+    occurrenceData <- matrix(rbinom(obsInSample*nsim, 1, c(probability)),
+                             obsInSample, nsim);
+
+    # 4. Preserve time series structure from the in-sample series.
+    yInSample <- actuals(object);
+    yClasses  <- class(yInSample);
+    colnames(probability)    <- paste0("nsim", c(1:nsim));
+    colnames(occurrenceData) <- paste0("nsim", c(1:nsim));
+    if(any(yClasses=="zoo")){
+        yIndex <- time(yInSample);
+        yIndexDiff <- diff(head(yIndex, 2));
+        yTime <- yIndex[1] + yIndexDiff * c(1:(obsInSample-1));
+        probability    <- zoo(probability,    order.by=yTime);
+        occurrenceData <- zoo(occurrenceData, order.by=yTime);
+    }
+    else{
+        probability <- ts(probability, start=start(yInSample),
+                          frequency=frequency(yInSample));
+        occurrenceData <- ts(occurrenceData, start=start(yInSample),
+                             frequency=frequency(yInSample));
+    }
+
+    # Per-series log-likelihood, mirroring ``sim.oes`` (R/simoes.R:138-143).
+    # Operate on a plain matrix so the ts/zoo attributes don't get
+    # mangled by ``pmax``.
+    probMat  <- matrix(as.numeric(probability), obsInSample, nsim);
+    safeProb <- pmax(probMat, .Machine$double.eps);
+    if(nsim==1){
+        logLik <- sum(log(safeProb));
+    }
+    else{
+        logLik <- colSums(log(safeProb));
+    }
+
+    return(structure(list(timeElapsed = Sys.time() - startTime,
+                          model       = object$model,
+                          occurrence  = occurrence,
+                          probability = probability,
+                          data        = occurrenceData,
+                          ot          = occurrenceData,   # alias used by print.oes.sim
+                          states      = inner$states,
+                          residuals   = inner$matErrors,
+                          latent      = latentMatrix,
+                          logLik      = logLik,
+                          other       = inner$ellipsis),
+                     class=c("om.sim","oes.sim","smooth.sim")));
+}

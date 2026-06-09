@@ -1939,3 +1939,59 @@ rstudent.omg <- function(model, ...){
     e   <- as.numeric(actuals(model)) - p;
     return(e / sqrt(p * (1 - p)) * sqrt(obs / df));
 }
+
+#' @rdname simulate.om
+#' @export
+simulate.omg <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
+    startTime <- Sys.time();
+    if(!is.null(seed)){
+        set.seed(seed);
+    }
+    # Sub-calls pass ``seed=NULL`` so they don't re-seed; they consume
+    # the now-pinned global RNG state in order, giving a reproducible
+    # joint result from one master ``seed``.
+
+    simA <- simulate(object$modelA, nsim=nsim, obs=obs, ...);
+    simB <- simulate(object$modelB, nsim=nsim, obs=obs, ...);
+
+    # Combine the **latent** series via ``omgLinkFunction`` — that
+    # function operates on the pre-link magnitudes, not on the
+    # post-link probabilities. ``simulate.om`` exposes ``$latent``
+    # for exactly this reason.
+    EtypeA <- errorType(object$modelA);
+    EtypeB <- errorType(object$modelB);
+    obsInSample <- obs;
+    probMat <- matrix(omgLinkFunction(c(simA$latent), c(simB$latent),
+                                      EtypeA, EtypeB),
+                      obsInSample, nsim);
+    probMat[] <- pmin(pmax(probMat, 0), 1);
+    occurrenceData <- matrix(rbinom(obsInSample*nsim, 1, c(probMat)),
+                             obsInSample, nsim);
+
+    # Preserve ts/zoo timing — borrow the carrier from the A sub-sim
+    # (its dimensions and time index match what we need).
+    probability <- simA$probability;
+    probability[] <- probMat;
+    occurrenceOut <- simA$data;
+    occurrenceOut[] <- occurrenceData;
+
+    safeProb <- pmax(probMat, .Machine$double.eps);
+    if(nsim==1){
+        logLik <- sum(log(safeProb));
+    }
+    else{
+        logLik <- colSums(log(safeProb));
+    }
+
+    return(structure(list(timeElapsed = Sys.time() - startTime,
+                          model       = object$model,
+                          occurrence  = "general",
+                          probability = probability,
+                          data        = occurrenceOut,
+                          ot          = occurrenceOut,
+                          modelA      = simA,
+                          modelB      = simB,
+                          logLik      = logLik,
+                          other       = list(...)),
+                     class=c("omg.sim","oes.sim","smooth.sim")));
+}

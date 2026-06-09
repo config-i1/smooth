@@ -2,6 +2,7 @@ smooth v4.5.0 (Release data: 2026-05-27)
 =======
 
 Change:
+* msdecompose() now routes its two OLS calls (global smoother and missing-value imputation) through a shared C++ helper (olsCpp), implemented via pivoted QR with a scale-invariant rank cutoff in src/headers/olsCore.h. The same header is now used by the Python build, so the OLS step gives the same result on both sides. The QR backend changes from LINPACK (.lm.fit / dqrls.f) to LAPACK (Armadillo / geqp3), which can shift the seeded initial level / trend by a few ULPs versus prior versions on multi-parameter ETS models fitted with initial="optimal" / "two-stage".
 * om() function that implements the occurrence model. This substitutes oes() completely, having as much functionality as the adam() function does in comparison with es().
 * adam() now calls for om() by default, not oes().
 * auto.om() function to select occurrence and/or ARIMA orders.

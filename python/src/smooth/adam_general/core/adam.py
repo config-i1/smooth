@@ -8,6 +8,7 @@ import pandas as pd
 from numpy.typing import NDArray
 from scipy import stats as scipy_stats
 
+from smooth.adam_general._adam_general import adam_simulator
 from smooth.adam_general.core.checker import parameters_checker
 from smooth.adam_general.core.creator import architector, creator
 from smooth.adam_general.core.estimator import (
@@ -5898,6 +5899,254 @@ class ADAM:
             h=h,
             paths=paths,
             model=model_name,
+        )
+
+    def simulate(
+        self,
+        nsim: int = 1,
+        seed: Optional[int] = None,
+        obs: Optional[int] = None,
+        randomizer: Optional[Any] = None,
+        **randomizer_kwargs,
+    ):
+        """Re-simulate ``obs`` observations from the fitted model.
+
+        Python port of R's ``simulate.adam`` (R/adam.R:7365-7611). Pulls
+        the fitted state matrices off ``self`` and feeds them through
+        the shared C++ ``adamCore::simulate`` kernel. The default error
+        distribution / scale match what the model was fitted under, so
+        the simulated series statistically resembles the in-sample fit.
+
+        Parameters
+        ----------
+        nsim : int, default ``1``
+            Number of simulated series.
+        seed : int, optional
+            Seed for the RNG used by the error sampler. Set this to
+            make the result deterministic across runs.
+        obs : int, optional
+            Number of observations per simulated series. Defaults to
+            the in-sample length.
+        randomizer : str | callable, optional
+            Override the model's fitted distribution. Accepts the same
+            R-style names / callables as :func:`sim_es`. When ``None``
+            (the default), R's ``simulate.adam`` distribution dispatch
+            is used: ``self.distribution`` selects the per-distribution
+            sampler from ``sample_reforecast_errors`` (same dispatch as
+            ``reforecast``), scaled by ``self.scale``.
+        **randomizer_kwargs
+            Forwarded to the randomizer when overridden.
+
+        Returns
+        -------
+        SimulateResult
+            Container with ``data``, ``states``, ``residuals``,
+            ``persistence``, ``measurement``, ``transition``,
+            ``initial``, ``probability``, ``occurrence`` — matches R's
+            ``"adam.sim"`` S3 list field-for-field. The ``model``
+            string is suffixed with ``" estimated via adam()"`` so
+            ``print()`` reproduces R's ``print.adam.sim`` output.
+        """
+        from smooth.adam_general.core.creator import adam_profile_creator
+        from smooth.adam_general.core.simulate.randomizer import resolve_randomizer
+        from smooth.adam_general.core.simulate.result import SimulateResult
+        from smooth.adam_general.core.utils.distributions import generate_errors
+
+        self._check_is_fitted()
+
+        obs_in_sample = int(self._observations["obs_in_sample"])
+        if obs is None:
+            obs = obs_in_sample
+        obs = int(obs)
+        nsim = int(nsim)
+
+        e_type = self._model_type.get("error_type", "A")
+        t_type = self._model_type.get("trend_type", "N")
+        s_type = self._model_type.get("season_type", "N")
+        lags_model_all = list(self._lags_model["lags_model_all"])
+        lags_model_max = int(
+            self._lags_model.get("lags_model_max", max(lags_model_all))
+        )
+        n_ets = int(self._components.get("components_number_ets", 0))
+        n_ets_seas = int(self._components.get("components_number_ets_seasonal", 0))
+        n_ets_nonseas = int(
+            self._components.get("components_number_ets_non_seasonal", n_ets)
+        )
+        n_arima = int(self._components.get("components_number_arima", 0))
+        xreg_number = int(self._explanatory.get("xreg_number", 0))
+        constant_required = bool(self._constant.get("constant_required", False))
+
+        # Pull fitted matrices: prefer ``_prepared`` (post-fit) over
+        # ``_adam_created`` (pre-optimisation defaults).
+        transition = np.asarray(
+            self._prepared.get("transition", self._adam_created["mat_f"]),
+            dtype=np.float64,
+        )
+        measurement = np.asarray(
+            self._prepared.get("measurement", self._adam_created["mat_wt"]),
+            dtype=np.float64,
+        )
+        # ``self._prepared["persistence"]`` is sometimes a flat array
+        # and sometimes a structured dict (e.g. OM stores it as
+        # ``{"alpha": 0.37}``); fall back to ``vec_g`` from
+        # ``_adam_created`` in the dict case since that's always the
+        # raw column-vector the C++ kernel wants.
+        persistence_raw = self._prepared.get("persistence")
+        if persistence_raw is None or isinstance(persistence_raw, dict):
+            persistence_raw = self._adam_created["vec_g"]
+        persistence = np.asarray(persistence_raw, dtype=np.float64).reshape(-1)
+        states_fit = np.asarray(self._prepared["states"], dtype=np.float64)
+
+        # ``states_fit`` has shape ``(n_components, obs_in_sample + lag_max)``.
+        # Build the simulation state cube as a per-sim copy of those states,
+        # extended (or truncated) to the requested ``obs``.
+        n_components_states = states_fit.shape[0]
+        n_state_cols = obs + lags_model_max
+        arr_vt = np.full(
+            (n_components_states, n_state_cols, nsim), np.nan, dtype=np.float64
+        )
+        cols_to_copy = min(states_fit.shape[1], n_state_cols)
+        for s in range(nsim):
+            arr_vt[:, :cols_to_copy, s] = states_fit[:, :cols_to_copy]
+            if cols_to_copy < n_state_cols:
+                # Pad with last in-sample column (matches R's repeated tail).
+                arr_vt[:, cols_to_copy:, s] = states_fit[:, -1:].repeat(
+                    n_state_cols - cols_to_copy, axis=1
+                )
+
+        # Build the per-step measurement matrix (R/adam.R:7515-7519).
+        if measurement.shape[0] < obs:
+            pad_rows = obs - measurement.shape[0]
+            measurement = np.vstack(
+                [measurement, np.tile(measurement[-1:], (pad_rows, 1))]
+            )
+        elif measurement.shape[0] > obs:
+            measurement = measurement[:obs, :]
+
+        arr_f = np.repeat(transition[:, :, None], nsim, axis=2)
+        mat_g = np.repeat(persistence[:, None], nsim, axis=1)
+
+        # ---------- error sampling ----------------------------------------
+        rng = np.random.default_rng(seed)
+        n_errors = obs * nsim
+        if randomizer is None:
+            # R's distribution-aware default. ``self.scale`` is the
+            # optimisation-scale parameter that ``generate_errors`` consumes.
+            distribution = self._general.get("distribution", "dnorm") or "dnorm"
+            n_param = int(self.df_used) if hasattr(self, "df_used") else 0
+            df = max(obs_in_sample - n_param, 1)
+            scale_val = float(self.scale) * obs_in_sample / df
+            shape = (self.other or {}).get("shape") if hasattr(self, "other") else None
+            alpha = (self.other or {}).get("alpha") if hasattr(self, "other") else None
+            errors_flat = generate_errors(
+                distribution=distribution,
+                n=n_errors,
+                scale=scale_val,
+                obs_in_sample=obs_in_sample,
+                n_param=n_param,
+                shape=shape,
+                alpha=alpha,
+                random_state=rng,
+            )
+        else:
+            errors_flat = resolve_randomizer(randomizer, rng, **randomizer_kwargs)(
+                n_errors
+            )
+        mat_errors = np.asarray(errors_flat, dtype=np.float64).reshape(
+            (obs, nsim), order="F"
+        )
+
+        # ---------- occurrence mask --------------------------------------
+        occurrence_model = getattr(self, "occurrence", None)
+        if occurrence_model in (None, "none", "fixed"):
+            pt = np.ones(obs, dtype=np.float64)
+            mat_ot = np.ones((obs, nsim), dtype=np.float64)
+        else:
+            fitted_occ = getattr(self, "occurrence_fitted", None)
+            pt = (
+                np.asarray(fitted_occ, dtype=np.float64).ravel()
+                if fitted_occ is not None
+                else np.ones(obs, dtype=np.float64)
+            )
+            if pt.size < obs:
+                pt = np.concatenate(
+                    [pt, np.full(obs - pt.size, pt[-1] if pt.size else 1.0)]
+                )
+            else:
+                pt = pt[:obs]
+            mat_ot = rng.binomial(1, pt[:, None], size=(obs, nsim)).astype(np.float64)
+
+        # ---------- profile lookup ----------------------------------------
+        profiles = adam_profile_creator(
+            lags_model_all=lags_model_all,
+            lags_model_max=lags_model_max,
+            obs_all=obs,
+        )
+        index_lookup_table = profiles["index_lookup_table"]
+        profiles_recent_array = np.ascontiguousarray(
+            arr_vt[:, :lags_model_max, :], dtype=np.float64
+        )
+
+        # ---------- error-type modifier (R/adam.R:7573-7576) --------------
+        e_type_modified = e_type
+        if e_type == "A" and (
+            self._general.get("distribution")
+            in {"dlnorm", "dinvgauss", "dgamma", "dls", "dllaplace"}
+        ):
+            e_type_modified = "M"
+
+        # ---------- drive the C++ kernel ----------------------------------
+        result = adam_simulator(
+            matrixErrors=mat_errors,
+            matrixOt=mat_ot,
+            arrayVt=arr_vt,
+            matrixWt=measurement,
+            arrayF=arr_f,
+            matrixG=mat_g,
+            lags=np.asarray(lags_model_all, dtype=np.uint64),
+            indexLookupTable=index_lookup_table,
+            profilesRecent=profiles_recent_array,
+            E=e_type_modified,
+            T=t_type,
+            S=s_type,
+            nNonSeasonal=n_ets_nonseas,
+            nSeasonal=n_ets_seas,
+            nArima=n_arima,
+            nXreg=xreg_number,
+            constant=constant_required,
+        )
+        mat_yt = np.asarray(result["matrixYt"], dtype=np.float64)
+        arr_vt_out = np.asarray(result["arrayVt"], dtype=np.float64).reshape(
+            arr_vt.shape, order="F"
+        )
+
+        # ---------- wrap output ------------------------------------------
+        if nsim == 1:
+            data_out: Union[pd.Series, pd.DataFrame] = pd.Series(mat_yt[:, 0])
+            residuals_out: Union[pd.Series, pd.DataFrame] = pd.Series(mat_errors[:, 0])
+        else:
+            data_out = pd.DataFrame(mat_yt)
+            residuals_out = pd.DataFrame(mat_errors)
+
+        model_label = (
+            f"{self._model_type.get('model', '')} estimated via adam()"
+        ).strip()
+
+        initial_arr = np.asarray(states_fit[:, :lags_model_max], dtype=np.float64)
+
+        return SimulateResult(
+            model=model_label,
+            data=data_out,
+            states=arr_vt_out,
+            residuals=residuals_out,
+            persistence=np.asarray(persistence, dtype=np.float64).reshape(-1, 1),
+            measurement=np.asarray(measurement, dtype=np.float64),
+            transition=np.asarray(transition, dtype=np.float64),
+            initial=initial_arr,
+            probability=pt,
+            occurrence=mat_ot if not np.all(mat_ot == 1.0) else None,
+            profile=profiles_recent_array,
+            other=dict(randomizer_kwargs),
         )
 
     def _component_names_for_states(self) -> list:

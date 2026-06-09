@@ -16,6 +16,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 import nlopt
 import numpy as np
+import pandas as pd
 from numpy.typing import NDArray
 
 from smooth.adam_general.core.creator import initialiser
@@ -1288,6 +1289,88 @@ class OMG:
         p_combined = np.where(np.isnan(p_combined), 1.0, p_combined)
         fc_a.mean[:] = p_combined
         return fc_a
+
+    def simulate(
+        self,
+        nsim: int = 1,
+        seed: Optional[int] = None,
+        obs: Optional[int] = None,
+        **kwargs,
+    ):
+        """Re-simulate the combined OMG occurrence series.
+
+        Python port of R's ``simulate.omg`` (R/omg.R:1945-1997).
+        Simulates the two sub-models independently via
+        :meth:`OM.simulate`, combines their **latent** series via
+        :func:`omg_link_function`, then draws 0/1 occurrence
+        indicators with the resulting probability.
+
+        Parameters
+        ----------
+        nsim, obs, **kwargs
+            Forwarded to each sub-model's :meth:`OM.simulate`.
+        seed : int, optional
+            Master seed. Derived seeds ``seed`` and ``seed + 1`` are
+            passed to the two sub-model calls so the joint result is
+            reproducible from a single integer.
+
+        Returns
+        -------
+        SimulateResult
+            ``probability`` carries the combined probability series;
+            ``occurrence`` carries the 0/1 indicators; ``model_a`` /
+            ``model_b`` carry the sub-model :class:`SimulateResult`
+            instances (with their ``latent`` fields exposed for any
+            downstream inspection).
+        """
+        from smooth.adam_general.core.simulate.result import SimulateResult
+
+        if self.model_a is None or self.model_b is None:
+            raise RuntimeError("OMG must be fitted before ``simulate`` is called.")
+
+        # Derived sub-model seeds so the joint result is reproducible
+        # from one master seed.
+        seed_a = seed
+        seed_b = None if seed is None else seed + 1
+
+        sim_a = self.model_a.simulate(nsim=nsim, seed=seed_a, obs=obs, **kwargs)
+        sim_b = self.model_b.simulate(nsim=nsim, seed=seed_b, obs=obs, **kwargs)
+
+        e_type_a = self.model_a._model_type.get("error_type", "A")
+        e_type_b = self.model_b._model_type.get("error_type", "A")
+
+        prob = omg_link_function(sim_a.latent, sim_b.latent, e_type_a, e_type_b)
+        prob = np.asarray(prob, dtype=np.float64)
+        if prob.ndim == 1:
+            prob = prob.reshape(-1, 1)
+        prob = np.nan_to_num(prob, nan=0.5, posinf=1.0, neginf=0.0)
+        prob = np.clip(prob, 0.0, 1.0)
+
+        rng = np.random.default_rng(seed)
+        occurrence_data = rng.binomial(1, prob)
+
+        obs_out, nsim_out = prob.shape
+        if nsim_out == 1:
+            data_out = pd.Series(prob[:, 0])
+            residuals_out = pd.Series(np.zeros(obs_out))
+        else:
+            data_out = pd.DataFrame(prob)
+            residuals_out = pd.DataFrame(np.zeros((obs_out, nsim_out)))
+
+        model_label = f"{self.model} (occurrence simulated)"
+
+        return SimulateResult(
+            model=model_label,
+            data=data_out,
+            states=np.empty((0, 0, nsim_out)),
+            residuals=residuals_out,
+            probability=prob if nsim_out > 1 else prob[:, 0],
+            occurrence=occurrence_data,
+            model_a=sim_a,
+            model_b=sim_b,
+            occurrence_type="general",
+            other={"binary_data": occurrence_data},
+        )
 
 
 def _build_omg_from_om_kwargs(**om_kwargs) -> OMG:

@@ -30,12 +30,15 @@ from ._r_bridge import r_dict
 
 pytestmark = pytest.mark.r_parity
 
-# The analytical formula is deterministic but the optimiser produces
-# coefficients that differ between R's nloptr and NumPy/NLopt at ~1e-5
-# rtol. The resulting multicov values reflect that level of noise on
-# squared-and-summed σ² → loose tolerances per scenario.
-ANALYTICAL_RTOL = 0.05
-ANALYTICAL_ATOL = 1e-3
+# After (a) the per-parameter relative FD Hessian step in hessianCore.h
+# and (b) the shared olsCore.h backend for msdecompose's global smoother,
+# R and Python converge to the same B on these scenarios (the OLS ULP
+# that used to propagate through x0 -> NLopt -> different B is gone), so
+# the analytical formula -- and the empirical path that calls the shared
+# adamCore::ferrors backend -- agree to machine precision. The historical
+# ANALYTICAL_RTOL = 0.05 reflected the old gap and is no longer current.
+ANALYTICAL_RTOL = 1e-10
+ANALYTICAL_ATOL = 1e-12
 H = 6
 
 
