@@ -15,6 +15,17 @@ Never create files or folders in the repository root. The root holds R package f
 
 For Python, the local environment must always be `python/.venv`. Do not create venvs at the repo root, in `python/venv`, or anywhere else.
 
+**Always run linting (ruff check, ruff format) and mypy after every Python code change.** Whenever anything under `python/src/` is edited, run all three checks from the `python/` directory before considering the task complete:
+
+```bash
+cd python/
+.venv/bin/ruff check src/
+.venv/bin/ruff format src/
+.venv/bin/mypy src/smooth
+```
+
+All three must pass with zero errors. This applies to every Python edit — small or large, signature change or one-line tweak. See `python/CLAUDE.md` for the full rationale.
+
 When coding, use the best practice, focusing on the following principles:
 
 - Write as few lines as possible.

@@ -174,50 +174,53 @@ def sim_es(
     mat_wt = np.tile(np.asarray(mat_wt_row, dtype=np.float64), (obs, 1))
 
     # ---------- 3. validate / default persistence ----------------------
+    persistence_arr: Optional[np.ndarray] = None
     if persistence is not None:
-        persistence = np.asarray(persistence, dtype=float).reshape(-1)
-        if persistence.shape[0] not in (1, persistence_length):
+        persistence_arr = np.asarray(persistence, dtype=float).reshape(-1)
+        if persistence_arr.shape[0] not in (1, persistence_length):
             warnings.warn(
                 "The length of persistence vector does not correspond to the "
                 "chosen model! Falling back to random number generator.",
                 stacklevel=2,
             )
-            persistence = None
-        elif persistence.shape[0] == 1 and persistence_length > 1:
-            persistence = np.repeat(persistence, persistence_length)
+            persistence_arr = None
+        elif persistence_arr.shape[0] == 1 and persistence_length > 1:
+            persistence_arr = np.repeat(persistence_arr, persistence_length)
 
     # ---------- 4. validate / default initials -------------------------
+    initial_arr: Optional[np.ndarray] = None
     if initial is not None:
-        initial = np.asarray(initial, dtype=float).reshape(-1)
-        if initial.shape[0] > 2:
+        initial_arr = np.asarray(initial, dtype=float).reshape(-1)
+        if initial_arr.shape[0] > 2:
             raise ValueError(
                 "The length of the initial value is wrong! "
                 "It should not be greater than 2."
             )
-        if components_number != initial.shape[0]:
+        if components_number != initial_arr.shape[0]:
             warnings.warn(
                 "The length of initial state vector does not correspond to the "
                 "chosen model! Falling back to random number generator.",
                 stacklevel=2,
             )
-            initial = None
-        elif t_type == "M" and initial.shape[0] >= 2 and initial[1] <= 0:
+            initial_arr = None
+        elif t_type == "M" and initial_arr.shape[0] >= 2 and initial_arr[1] <= 0:
             warnings.warn(
                 "Wrong initial value for multiplicative trend! "
                 "It should be greater than zero! Falling back to random.",
                 stacklevel=2,
             )
-            initial = None
+            initial_arr = None
 
+    initial_season_arr: Optional[np.ndarray] = None
     if initial_season is not None:
-        initial_season = np.asarray(initial_season, dtype=float).reshape(-1)
-        if lags_model_max != initial_season.shape[0]:
+        initial_season_arr = np.asarray(initial_season, dtype=float).reshape(-1)
+        if lags_model_max != initial_season_arr.shape[0]:
             warnings.warn(
                 "The length of seasonal initial states does not correspond "
                 "to the chosen frequency! Falling back to random.",
                 stacklevel=2,
             )
-            initial_season = None
+            initial_season_arr = None
 
     # ---------- 5. randomizer guard (R/simes.R:294-297) -----------------
     if (
@@ -276,7 +279,7 @@ def sim_es(
     rng = np.random.default_rng(seed)
 
     # ---------- 8. fill persistence -------------------------------------
-    if persistence is None:
+    if persistence_arr is None:
         if bounds == "usual":
             mat_g[0, :] = rng.uniform(0.0, 1.0, nsim)
         elif bounds == "restricted":
@@ -297,10 +300,10 @@ def sim_es(
                 1.0 - 1.0 / phi, 1.0 + 1.0 / phi, (persistence_length, nsim)
             )
     else:
-        mat_g[:, :] = np.repeat(persistence[:, None], nsim, axis=1)
+        mat_g[:, :] = np.repeat(persistence_arr[:, None], nsim, axis=1)
 
     # ---------- 9. fill initials ----------------------------------------
-    if initial is None:
+    if initial_arr is None:
         if t_type == "N":
             level_draw = rng.uniform(0.0, 1000.0, nsim)
             for s in range(nsim):
@@ -319,12 +322,12 @@ def sim_es(
     else:
         for s in range(nsim):
             for j in range(components_number):
-                arr_vt[j, :lags_model_max, s] = initial[j]
+                arr_vt[j, :lags_model_max, s] = initial_arr[j]
     initial_out = np.asarray(arr_vt[:components_number, 0, :].T)
 
     # ---------- 10. fill seasonal initials ------------------------------
     initial_season_out = None
-    if component_seasonal and initial_season is None:
+    if component_seasonal and initial_season_arr is None:
         if s_type == "A":
             draws = rng.uniform(-500.0, 500.0, (lags_model_max, nsim))
             draws -= draws.mean(axis=0, keepdims=True)
@@ -335,9 +338,9 @@ def sim_es(
             arr_vt[components_number, :lags_model_max, :] = draws / log_geomean
         initial_season_out = np.asarray(arr_vt[components_number, :lags_model_max, :].T)
         components_number_plus = components_number + 1
-    elif component_seasonal and initial_season is not None:
+    elif component_seasonal and initial_season_arr is not None:
         for s in range(nsim):
-            arr_vt[components_number, :lags_model_max, s] = initial_season
+            arr_vt[components_number, :lags_model_max, s] = initial_season_arr
         initial_season_out = np.asarray(arr_vt[components_number, :lags_model_max, :].T)
         components_number_plus = components_number + 1
     else:
