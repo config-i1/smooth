@@ -5,8 +5,16 @@ smoothEigensR <- function(persistence, transition, measurement, lagsModelAll, xr
     .Call('_smooth_smoothEigensR', PACKAGE = 'smooth', persistence, transition, measurement, lagsModelAll, xregModel, obsInSample, hasDelta, xregNumber, constantRequired)
 }
 
+hessianCpp <- function(f, x0, h = 1.220703125e-4) {
+    .Call('_smooth_hessianCpp', PACKAGE = 'smooth', f, x0, h)
+}
+
 matrixPowerWrap <- function(matA, power) {
     .Call('_smooth_matrixPowerWrap', PACKAGE = 'smooth', matA, power)
+}
+
+olsCpp <- function(X, y, tol = 1e-7) {
+    .Call('_smooth_olsCpp', PACKAGE = 'smooth', X, y, tol)
 }
 
 forecasterwrap <- function(matvt, matF, matw, h, Etype, Ttype, Stype, lagsModel, matxt, matat, matFX) {

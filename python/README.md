@@ -2,10 +2,11 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/smooth.svg)](https://pypi.org/project/smooth/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/smooth.svg)](https://pypi.org/project/smooth/)
-[![Python CI](https://github.com/config-i1/smooth/actions/workflows/python_ci.yml/badge.svg)](https://github.com/config-i1/smooth/actions/workflows/python_ci.yml)
 [![Python versions](https://img.shields.io/pypi/pyversions/smooth.svg)](https://pypi.org/project/smooth/)
+[![Python CI](https://github.com/config-i1/smooth/actions/workflows/python_ci.yml/badge.svg)](https://github.com/config-i1/smooth/actions/workflows/python_ci.yml)
 [![License: LGPL-2.1](https://img.shields.io/badge/License-LGPL--2.1-blue.svg)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)
 
+![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
 
 Python implementation of the **smooth** package for forecasting and time series analysis using Single Source of Error (SSOE) state-space models.
 
@@ -13,7 +14,9 @@ The package includes the following models:
 
 - [ADAM](https://openforecast.org/adam/) - Augmented Dynamic Adaptive Model, uniting exponential smoothing, ARIMA and regression, implemented in the `ADAM` class.
 - [ETS](https://github.com/config-i1/smooth/wiki/ES) - Exponential Smoothing in the SSOE state space form, implemented in the `ES` class.
-- [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) - Multiple seasonal ARIMA in state space form, implemented in the `MSARIMA` class.
+- [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) - Multiple seasonal ARIMA in state space form, implemented in the `MSARIMA` class (fixed orders) and `AutoMSARIMA` class (automatic order selection).
+- [OM](https://github.com/config-i1/smooth/wiki/OM) - Occurrence Model for intermittent demand, implemented in the `OM` class (plus `OMG` for the general two-component model and `AutoOM` for automatic type selection).
+- [SMA](https://github.com/config-i1/smooth/wiki/SMA) - Simple Moving Average in state-space form (an AR(m) model with fixed coefficients), implemented in the `SMA` class with automatic order selection.
 
 All of these are implemented with the support of the following features:
 
@@ -24,8 +27,7 @@ All of these are implemented with the support of the following features:
 - Fine tuning of any elements of ADAM/ETS/ARIMA/Regression
 - A variety of prediction interval construction methods
 
-
-![hex-sticker of the smooth package for Python](https://github.com/config-i1/smooth/blob/master/python/img/smooth-python-web.png?raw=true)
+Like the R version, the Python **smooth** depends on the [**greybox**](https://github.com/config-i1/greybox) package for distributions, information criteria, regressor selection, and the LOWESS smoother. It is installed automatically as a dependency.
 
 
 ## Installation
@@ -109,11 +111,52 @@ model_adp.fit(y, X)
 `X` accepts a NumPy array or a pandas DataFrame (column names are preserved as regressor names).
 `regressors` controls treatment: `"use"` (fixed coefficients), `"select"` (stepwise selection via greybox), or `"adapt"` (ETS-style time-varying coefficients).
 
+## AutoMSARIMA — Automatic ARIMA Order Selection
+
+`AutoMSARIMA` selects the best ARIMA orders automatically using information criteria,
+mirroring R's `auto.msarima()`. It fixes `distribution="dnorm"` and uses pure ARIMA
+(no ETS components).
+
+```python
+import numpy as np
+from smooth import AutoMSARIMA
+
+# Monthly time series (e.g. AirPassengers, 144 observations)
+y = np.array([
+    112, 118, 132, 129, 121, 135, 148, 148, 136, 119, 104, 118,
+    # ... remaining observations
+], dtype=float)
+
+# Automatic seasonal ARIMA — searches up to ARIMA(3,2,3)(3,1,3)[12]
+model = AutoMSARIMA(lags=[1, 12])
+model.fit(y)
+print(model)   # AutoMSARIMA: ARIMA([p,P],[d,D],[q,Q])
+
+# Reduce search space for speed
+model = AutoMSARIMA(
+    lags=[1, 12],
+    ar_order=[2, 1],   # max AR: p≤2 at lag 1, P≤1 at lag 12
+    i_order=[2, 1],    # max I:  d≤2 at lag 1, D≤1 at lag 12
+    ma_order=[2, 1],   # max MA: q≤2 at lag 1, Q≤1 at lag 12
+)
+model.fit(y)
+fc = model.predict(h=24)
+```
+
 ## Documentation
 
 - [GitHub Wiki](https://github.com/config-i1/smooth/wiki) - Full documentation
 - [ADAM](https://github.com/config-i1/smooth/wiki/ADAM) - Main unified ETS/ARIMA framework
 - [Installation Guide](https://github.com/config-i1/smooth/wiki/Installation) - Dependencies and troubleshooting
+
+The pages below document the models and their Python classes:
+
+- [ADAM](https://github.com/config-i1/smooth/wiki/ADAM) — Augmented Dynamic Adaptive Model — unified ETS/ARIMA/regression framework
+- [AutoADAM](https://github.com/config-i1/smooth/wiki/AutoADAM) — Automatic ADAM with distribution and ARIMA order selection
+- [ES](https://github.com/config-i1/smooth/wiki/ES) — Exponential Smoothing (ETS) wrapper for ADAM
+- [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) — Multiple Seasonal ARIMA (fixed orders) and automatic selection (`AutoMSARIMA`)
+- [OM](https://github.com/config-i1/smooth/wiki/OM) — Occurrence Model for intermittent demand (`OM`, `OMG`, `AutoOM`)
+- [SMA](https://github.com/config-i1/smooth/wiki/SMA) — Simple Moving Average in state-space form with automatic order selection
 
 **Book:** Svetunkov, I. (2023). *Forecasting and Analytics with the Augmented Dynamic Adaptive Model (ADAM)*. Chapman and Hall/CRC. Online: https://openforecast.org/adam/
 

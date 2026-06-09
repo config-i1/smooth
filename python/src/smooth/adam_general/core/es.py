@@ -181,6 +181,7 @@ class ES(ADAM):
             "orders",
             "arima_select",
             "constant",
+            "ets",
         }
         _bad = _blocked & set(kwargs)
         if _bad:
@@ -216,6 +217,7 @@ class ES(ADAM):
             constant=False,
             verbose=verbose,
             regressors=regressors,
+            ets="conventional",
             **kwargs,
         )
 

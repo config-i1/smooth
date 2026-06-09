@@ -147,8 +147,8 @@ def _setup_optimization_parameters(
             xreg_end = xreg_start + xreg_number
             mat_wt_xreg = adam_created["mat_wt"][:, xreg_start:xreg_end]
 
-            # Calculate standard deviation for each xreg column
-            # Use ddof=1 to match R's sd() which uses sample std (n-1 denominator)
+            # Calculate standard deviation for each xreg column using the
+            # unbiased sample estimator (n-1 denominator, ddof=1).
             general_dict_updated["denominator"] = np.std(mat_wt_xreg, axis=0, ddof=1)
             # Replace infinite values with 1
             general_dict_updated["denominator"][
@@ -157,8 +157,8 @@ def _setup_optimization_parameters(
         else:
             general_dict_updated["denominator"] = None
 
-        # Calculate denominator for y values
-        # Use ddof=1 to match R's sd() which uses sample std (n-1 denominator)
+        # Calculate denominator for y values using the unbiased sample
+        # estimator (n-1 denominator, ddof=1).
         y_diff = np.diff(observations_dict["y_in_sample"])
         y_std = np.std(y_diff, ddof=1)
         general_dict_updated["y_denominator"] = max(y_std, 1)
@@ -222,11 +222,12 @@ def _configure_optimizer(
     opt.set_ftol_abs(ftol_abs)
     opt.set_xtol_abs(xtol_abs)
 
-    # Set maximum evaluations - use the value computed by _setup_optimization_parameters
-    # which matches R's defaults: len(B)*40 standard, max(1000, len(B)*100) for xreg
+    # Set maximum evaluations — use the value computed by
+    # _setup_optimization_parameters: ``len(B) * 40`` by default, raised to
+    # ``max(1000, len(B) * 100)`` when external regressors are present.
     opt.set_maxeval(maxeval_used)
 
-    # Set timeout if specified; R default is -1 (no limit)
+    # Set timeout if specified (default: no time limit)
     if maxtime is not None:
         opt.set_maxtime(maxtime)
     else:
@@ -252,6 +253,8 @@ def _create_objective_function(
     print_level,
     ar_polynomial_matrix=None,
     ma_polynomial_matrix=None,
+    other=None,
+    other_parameter_estimate=False,
 ):
     """
     Create objective function for optimization.
@@ -316,6 +319,8 @@ def _create_objective_function(
                 general=general_dict,
                 adam_cpp=adam_cpp,
                 bounds=general_dict["bounds"],
+                other=other,
+                otherParameterEstimate=other_parameter_estimate,
                 arPolynomialMatrix=ar_polynomial_matrix,
                 maPolynomialMatrix=ma_polynomial_matrix,
             )
@@ -387,6 +392,7 @@ def _calculate_loglik(
     adam_cpp,
     multisteps,
     n_param_estimated,
+    other_parameter_estimate=False,
 ):
     """
     Calculate log-likelihood for the estimated model.
@@ -451,6 +457,7 @@ def _calculate_loglik(
         profile_dict,
         adam_cpp,
         multisteps=multisteps,
+        otherParameterEstimate=other_parameter_estimate,
     )
 
     # In case of likelihood, we typically have one more parameter to estimate - scale.

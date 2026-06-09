@@ -94,9 +94,22 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
             return(supsmu(1:length(y), y, span=span, ...)$y)
         }
         else if(smoother=="global"){
-            X <- cbind("Intercept"=1, trend=1:length(y));
-            trendDetermAdd <- .lm.fit(X,y);
-            return(y - trendDetermAdd$residuals);
+            n <- length(y);
+            if(is.null(order) || order <= 1){
+                X <- cbind(1L, seq_len(n));
+            }
+            else{
+                nGroups <- ceiling(lagsMax / order);
+                if(nGroups <= 1L){
+                    X <- cbind(1L, seq_len(n));
+                }
+                else{
+                    blockIdx <- rep(seq_len(nGroups) - 1L, each=order, length.out=n);
+                    dummies  <- outer(blockIdx, seq_len(nGroups - 1L) - 1L, `==`) + 0L;
+                    X <- cbind(1L, dummies, seq_len(n));
+                }
+            }
+            return(as.vector(X %*% olsCpp(X, y)));
         }
     }
 
@@ -133,8 +146,8 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
     if(any(yNAValues)){
         X <- cbind(1,poly(c(1:obsInSample),degree=min(max(trunc(obsInSample/10),1),5)),
                    sinpi(matrix(c(1:obsInSample)*rep(c(1:lagsMax),each=obsInSample)/lagsMax, ncol=lagsMax)));
-        lmFit <- .lm.fit(X[!yNAValues,,drop=FALSE], matrix(yInsample[!yNAValues],ncol=1));
-        yInsample[yNAValues] <- (X %*% coef(lmFit))[yNAValues];
+        b <- olsCpp(X[!yNAValues,,drop=FALSE], yInsample[!yNAValues]);
+        yInsample[yNAValues] <- (X %*% b)[yNAValues];
         rm(X)
     }
 

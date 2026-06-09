@@ -1,3 +1,23 @@
+smooth v4.5.0 (Release data: 2026-05-27)
+=======
+
+Change:
+* msdecompose() now routes its two OLS calls (global smoother and missing-value imputation) through a shared C++ helper (olsCpp), implemented via pivoted QR with a scale-invariant rank cutoff in src/headers/olsCore.h. The same header is now used by the Python build, so the OLS step gives the same result on both sides. The QR backend changes from LINPACK (.lm.fit / dqrls.f) to LAPACK (Armadillo / geqp3), which can shift the seeded initial level / trend by a few ULPs versus prior versions on multi-parameter ETS models fitted with initial="optimal" / "two-stage".
+* om() function that implements the occurrence model. This substitutes oes() completely, having as much functionality as the adam() function does in comparison with es().
+* adam() now calls for om() by default, not oes().
+* auto.om() function to select occurrence and/or ARIMA orders.
+* om() supports all types of occurrence and does automatic selection via auto.om().
+* vcov, confint and summary methods for the om class.
+* coefbootstrap for the om class.
+* We now use our own hessian function and no longer rely on pracma.
+* Changed how scale is calculated for the Log Normal distribution in case of the exotic additive error - we use complex numbers :D.
+* MSE/MAE/HAM/RIDGE/LASSO and custom losses in om() and omg().
+* Hessian calculation is now done internally using a C++ function with relative steps (not absolute as in pracma). This should get slightly better estimates of covariance matrix.
+
+Bugfixes:
+* forecast.adam() would not do the correct row repetition for explanatory variables when the new values are not provided.
+
+
 smooth v4.4.1 (Release data: 2026-02-26)
 =======
 

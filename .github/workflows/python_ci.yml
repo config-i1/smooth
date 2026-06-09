@@ -12,21 +12,25 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
-      - name: Install ruff
-        run: pip install ruff
+      - name: Install ruff and mypy
+        run: pip install ruff mypy
 
       - name: Run ruff linter
         run: ruff check python/src/smooth/
 
       - name: Run ruff formatter check
         run: ruff format --check python/src/smooth/
+
+      - name: Run mypy
+        working-directory: python
+        run: mypy src/smooth
 
   build-and-test:
     name: Build & Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
@@ -46,6 +50,9 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.13"
             cibw-build: "cp313-manylinux*"
+          - os: ubuntu-latest
+            python-version: "3.14"
+            cibw-build: "cp314-manylinux*"
           # macOS
           - os: macos-latest
             python-version: "3.11"
@@ -56,12 +63,12 @@ jobs:
             cibw-build: "cp311-win_amd64"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
       - name: Build and test with cibuildwheel
-        uses: pypa/cibuildwheel@v2.21
+        uses: pypa/cibuildwheel@v3.1
         with:
           package-dir: python
           output-dir: wheelhouse

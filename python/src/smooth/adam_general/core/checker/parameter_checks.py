@@ -36,6 +36,7 @@ def _check_distribution_loss(distribution, loss, silent=False):
         "dinvgauss",
         "dgamma",
         "dpois",
+        "plogis",
     ]
 
     # Valid loss functions
@@ -61,8 +62,12 @@ def _check_distribution_loss(distribution, loss, silent=False):
         "RIDGE",
     ]
 
-    # Check distribution
-    if distribution not in valid_distributions:
+    # Check distribution. ``None`` is the ADAM constructor's default and
+    # means "auto-select", which maps to ``"default"`` internally — no
+    # warning needed for that. Warn only on actually-invalid strings.
+    if distribution is None:
+        distribution = "default"
+    elif distribution not in valid_distributions:
         _warn(f"Unknown distribution: {distribution}. Switching to 'default'.", silent)
         distribution = "default"
 

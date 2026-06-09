@@ -742,7 +742,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
         profilesRecentArray[j+1,1,] <- randomParameters[,k+1];
     }
 
-    if(is.null(object$occurrence)){
+    if(is.null(object$occurrence) || !is.occurrence(object$occurrence)){
         ot <- matrix(rep(1, obsInSample));
         pt <- rep(1, obsInSample);
     }
@@ -1052,7 +1052,8 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         else{
             occurrenceModel <- FALSE;
             # If this was provided occurrence, then use provided values
-            if(!is.null(object$occurrence) && !is.null(object$occurrence$occurrence) &&
+            if(!is.null(object$occurrence) && is.list(object$occurrence) &&
+               !is.null(object$occurrence$occurrence) &&
                (object$occurrence$occurrence=="provided")){
                 pForecast <- object$occurrence$forecast;
             }

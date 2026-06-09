@@ -23,28 +23,55 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 # BLAS/LAPACK Detection
 # ==============================================================================
 
+# BLAS / LAPACK search. The same logic runs on every platform —
+# Windows wheels install OpenBLAS + LAPACK via vcpkg (see the
+# ``CIBW_BEFORE_ALL_WINDOWS`` step in ``.github/workflows/python_ci.yml``),
+# so CMake's ``find_package(BLAS)`` / ``find_package(LAPACK)`` resolve
+# against the vcpkg toolchain there. Without LAPACK linked,
+# Armadillo's ``eig_gen`` (used by ``ar_polynomial_bounds`` for
+# ARIMA reapply and ``eigen_bounds`` for admissible bounds) throws
+# at runtime — so we only fall back to ``ARMA_DONT_USE_LAPACK`` when
+# the dependency genuinely isn't present.
+#
+# On Windows, ``FindBLAS`` / ``FindLAPACK`` need the ``BLA_VENDOR``
+# hint to locate the vcpkg-installed openblas import library — the
+# default heuristics scan a hard-coded list of canonical install
+# layouts that doesn't include vcpkg's. Setting the hint here is
+# safe on Linux / macOS too (FindBLAS treats it as a preference,
+# not a constraint).
 if(WIN32)
-  message(STATUS "Windows build: disabling BLAS/LAPACK in Armadillo to avoid unresolved symbols")
-  # Disable use of BLAS/LAPACK in Armadillo on Windows
-  add_compile_definitions(ARMA_DONT_USE_BLAS ARMA_DONT_USE_LAPACK)
-  set(BLAS_FOUND FALSE)
-  set(LAPACK_FOUND FALSE)
-  set(lapackblas_libraries "")
-else()
-  # Standard BLAS and LAPACK search for Linux/macOS
-  find_package(BLAS)
-  find_package(LAPACK)
+  set(BLA_VENDOR OpenBLAS)
+endif()
+find_package(BLAS)
+find_package(LAPACK)
 
-  if(LAPACK_FOUND AND BLAS_FOUND)
-    set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-    message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
-    message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
-  elseif(BLAS_FOUND)
-    set(lapackblas_libraries ${BLAS_LIBRARIES})
-  else()
-    message(WARNING "BLAS/LAPACK not found. Build may fail for modules requiring BLAS.")
-    set(lapackblas_libraries "")
-  endif()
+# On Windows, FindLAPACK occasionally fails to detect LAPACK even
+# when OpenBLAS is found and ships LAPACK kernels in the same DLL.
+# vcpkg's ``openblas`` port bundles a full LAPACK; if ``BLAS_FOUND``
+# resolved against it, treat LAPACK as found and reuse the BLAS
+# libraries.
+if(WIN32 AND BLAS_FOUND AND NOT LAPACK_FOUND)
+  message(STATUS "LAPACK not found by FindLAPACK; assuming OpenBLAS bundles "
+                 "LAPACK kernels (typical for vcpkg ``openblas`` port).")
+  set(LAPACK_FOUND TRUE)
+  set(LAPACK_LIBRARIES "")  # already in BLAS_LIBRARIES
+endif()
+
+if(LAPACK_FOUND AND BLAS_FOUND)
+  set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+  message(STATUS "BLAS libraries: ${BLAS_LIBRARIES}")
+  message(STATUS "LAPACK libraries: ${LAPACK_LIBRARIES}")
+elseif(BLAS_FOUND)
+  set(lapackblas_libraries ${BLAS_LIBRARIES})
+  # BLAS without LAPACK: Armadillo would still try to call LAPACK
+  # routines unless we tell it not to.
+  add_compile_definitions(ARMA_DONT_USE_LAPACK)
+  message(WARNING "LAPACK not found; eig_gen / ar_polynomial_bounds disabled.")
+else()
+  message(WARNING "BLAS/LAPACK not found. Disabling BLAS/LAPACK in Armadillo. "
+                  "Modules requiring eig_gen / eigvalsh will fail at runtime.")
+  add_compile_definitions(ARMA_DONT_USE_BLAS ARMA_DONT_USE_LAPACK)
+  set(lapackblas_libraries "")
 endif()
 
 # ==============================================================================
@@ -88,23 +115,6 @@ endif()
 # Install to match module name
 install(TARGETS _adamCore DESTINATION smooth/adam_general)
 
-# LOWESS smoother module
-pybind11_add_module(_lowess ../src/python/lowess.cpp)
-target_compile_definitions(_lowess PRIVATE PYTHON_BUILD)
-target_include_directories(_lowess PRIVATE ../src)
-target_link_libraries(_lowess PRIVATE carma::carma)
-if(lapackblas_libraries)
-  target_link_libraries(_lowess PRIVATE ${lapackblas_libraries})
-endif()
-if(Armadillo_FOUND)
-  if(TARGET Armadillo::armadillo)
-    target_link_libraries(_lowess PRIVATE Armadillo::armadillo)
-  else()
-    target_link_libraries(_lowess PRIVATE ${ARMADILLO_LIBRARIES})
-  endif()
-endif()
-install(TARGETS _lowess DESTINATION smooth/adam_general)
-
 # EigenCalc module for eigenvalue calculations
 pybind11_add_module(_eigenCalc ../src/python/eigenCalc.cpp)
 target_compile_definitions(_eigenCalc PRIVATE PYTHON_BUILD)
@@ -121,3 +131,37 @@ if(Armadillo_FOUND)
   endif()
 endif()
 install(TARGETS _eigenCalc DESTINATION smooth/adam_general)
+
+# numDeriv module for numerical derivatives (pracma-exact Hessian)
+pybind11_add_module(_numDeriv ../src/python/numDeriv.cpp)
+target_compile_definitions(_numDeriv PRIVATE PYTHON_BUILD)
+target_include_directories(_numDeriv PRIVATE ../src)
+target_link_libraries(_numDeriv PRIVATE carma::carma)
+if(lapackblas_libraries)
+  target_link_libraries(_numDeriv PRIVATE ${lapackblas_libraries})
+endif()
+if(Armadillo_FOUND)
+  if(TARGET Armadillo::armadillo)
+    target_link_libraries(_numDeriv PRIVATE Armadillo::armadillo)
+  else()
+    target_link_libraries(_numDeriv PRIVATE ${ARMADILLO_LIBRARIES})
+  endif()
+endif()
+install(TARGETS _numDeriv DESTINATION smooth/adam_general)
+
+# OLS module - shared least-squares backend (msdecompose parity with R)
+pybind11_add_module(_ols ../src/python/olsWrap.cpp)
+target_compile_definitions(_ols PRIVATE PYTHON_BUILD)
+target_include_directories(_ols PRIVATE ../src)
+target_link_libraries(_ols PRIVATE carma::carma)
+if(lapackblas_libraries)
+  target_link_libraries(_ols PRIVATE ${lapackblas_libraries})
+endif()
+if(Armadillo_FOUND)
+  if(TARGET Armadillo::armadillo)
+    target_link_libraries(_ols PRIVATE Armadillo::armadillo)
+  else()
+    target_link_libraries(_ols PRIVATE ${ARMADILLO_LIBRARIES})
+  endif()
+endif()
+install(TARGETS _ols DESTINATION smooth/adam_general)

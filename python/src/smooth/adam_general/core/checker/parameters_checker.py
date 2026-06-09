@@ -53,7 +53,6 @@ def parameters_checker(
     silent=False,
     fast=False,
     lambda_param=None,
-    frequency=None,
     interval="none",
     interval_level=[0.95],
     side="both",
@@ -375,16 +374,8 @@ def parameters_checker(
 
         Typical values: 0.01-0.1 for moderate regularization.
 
-    frequency : str or None, default=None
-        Time series frequency for date/time indexing.
-
-        Pandas frequency strings: "D" (daily), "W" (weekly), "M" (monthly),
-        "Q" (quarterly), "Y" (yearly), "H" (hourly), etc.
-
-        If None, inferred from data if it has DatetimeIndex.
-
     interval : str, default="prediction"
-        Prediction interval type (matches R's ``forecast.adam()``).
+        Prediction interval type.
 
         - **"none"**: No intervals.
         - **"prediction"**: Auto-selects "simulated" or "approximate".
@@ -458,12 +449,12 @@ def parameters_checker(
     suboptimal choices are detected (e.g., multiplicative seasonality with negative
     data).
 
-    **Relationship to R Implementation**:
+    **Output Structure**:
 
-    This function consolidates checks that are distributed across multiple functions in
-    the R package (adam, adamSelection, etc.). The Python version performs equivalent
-    validation but returns more structured outputs (dictionaries) rather than R's
-    list objects.
+    The function consolidates parameter validation into a single entry
+    point and returns structured dictionaries grouping related settings
+    (model type, distribution, ARIMA spec, occurrence, observations, etc.)
+    that the downstream architector / creator / estimator consume.
 
     **Performance**:
 
@@ -530,7 +521,7 @@ def parameters_checker(
         except Exception:
             raise ValueError("Data must be numeric or convertible to numeric values")
 
-    occ_info = _check_occurrence(data_values, occurrence, frequency, silent, holdout, h)
+    occ_info = _check_occurrence(data_values, occurrence, silent, holdout, h)
     obs_in_sample = occ_info["obs_in_sample"]
     obs_nonzero = occ_info["obs_nonzero"]
     occurrence_model = occ_info["occurrence_model"]
@@ -576,8 +567,8 @@ def parameters_checker(
     loss = dist_info["loss"]
     loss_function = dist_info.get("loss_function", None)
 
-    # If ETS is off (e.g. NNN), set error_type from distribution
-    # mirrors R adamGeneral.R:1410
+    # If ETS is off (e.g. NNN), infer error_type from the distribution:
+    # log/multiplicative distributions imply multiplicative errors.
     if not ets_model:
         _mult_dists = {"dinvgauss", "dlnorm", "dllaplace", "dls", "dlgnorm", "dgamma"}
         ets_info["error_type"] = "M" if distribution in _mult_dists else "A"
@@ -839,7 +830,6 @@ def parameters_checker(
         occurrence=occurrence_dict["occurrence"],
         occurrence_model=occurrence_dict["occurrence_model"],
         obs_in_sample=obs_in_sample,
-        frequency=frequency,
         h=h,
         holdout=holdout,
     )
@@ -989,6 +979,31 @@ def parameters_checker(
         "lags_model_arima": arima_info.get("lags_model_arima", []),
     }
 
+    # Pure-regression early exit: when model="NNN" (no ETS, no ARIMA) and
+    # regressors are provided (not adaptive), delegate directly to
+    # greybox.ALM and return it instead of the 13-tuple.
+    _arima_nonzero = any(
+        v > 0
+        for orders_list in (ar_orders or [], i_orders or [], ma_orders or [])
+        for v in orders_list
+    )
+    if not ets_model and not _arima_nonzero and has_xreg and regressors != "adapt":
+        from greybox import ALM
+
+        n = observations_dict["obs_in_sample"]
+        y_is = np.asarray(observations_dict["y_in_sample"], dtype=float)
+        dist = _map_distribution_for_greybox(distribution)
+        if regressors == "select":
+            names = xreg_names_from_input or [f"x{i + 1}" for i in range(xreg_number)]
+            X_df = pd.DataFrame(X[:n], columns=names)
+            X_df.insert(0, "y", y_is)
+            from greybox import stepwise
+
+            return stepwise(X_df, ic=ic, distribution=dist, silent=True)
+        alm = ALM(distribution=dist)
+        alm.fit(np.column_stack([np.ones(n), X[:n]]), y_is)
+        return alm
+
     # Build explanatory variables dictionary
     if has_xreg:
         xreg_dict = _process_xreg(
@@ -997,6 +1012,7 @@ def parameters_checker(
             y_in_sample=observations_dict["y_in_sample"],
             obs_in_sample=observations_dict["obs_in_sample"],
             distribution=distribution,
+            e_type=ets_info["error_type"],
             ic=ic,
             xreg_names_from_input=xreg_names_from_input,
             initial_xreg=initials_dict.get("initial_xreg"),
@@ -1089,7 +1105,14 @@ def _validate_x(X, obs_all):
     else:
         names = None
 
-    X = np.asarray(X, dtype=float)
+    X = np.asarray(X)
+    # Structured / record arrays (e.g. from R data frames via rpy2)
+    if X.dtype.names is not None:
+        if names is None:
+            names = list(X.dtype.names)
+        X = np.column_stack([X[f].astype(float) for f in X.dtype.names])
+    else:
+        X = X.astype(float)
     if X.ndim == 1:
         X = X.reshape(-1, 1)
 
@@ -1118,6 +1141,7 @@ def _map_distribution_for_greybox(distribution):
         "ds": "ds",
         "dgnorm": "dgnorm",
         "dinvgauss": "dinvgauss",
+        "plogis": "plogis",
     }
     return _map.get(distribution, "dnorm")
 
@@ -1128,6 +1152,7 @@ def _process_xreg(
     y_in_sample,
     obs_in_sample,
     distribution,
+    e_type,
     ic,
     xreg_names_from_input=None,
     initial_xreg=None,
@@ -1211,22 +1236,63 @@ def _process_xreg(
                 f"initial['xreg'] has {len(initial_xreg_flat)} values "
                 f"but model has {p} regressors."
             )
-        initial_coefs = initial_xreg_flat
+        xreg_initials = [
+            {"initial_xreg": initial_xreg_flat.reshape(-1, 1)},
+            {"initial_xreg": initial_xreg_flat.reshape(-1, 1)},
+        ]
     else:
-        alm_dist = _map_distribution_for_greybox(distribution)
         X_aug = np.column_stack([np.ones(obs_in_sample), X_in_sel])
-        try:
-            alm = ALM(distribution=alm_dist)
-            alm.fit(X_aug, y_is, feature_names=names_selected)
-            initial_coefs = np.asarray(alm.coef, dtype=float)
-        except Exception:
-            initial_coefs = np.zeros(p)
+        # R log-transforms y for multiplicative models with these distributions
+        # (adamGeneral.R:1400). For dlnorm/dgamma/dinvgauss the distribution
+        # itself handles the multiplicative structure, so no log-transform.
+        _log_dists = {
+            "dnorm",
+            "dlaplace",
+            "ds",
+            "dgnorm",
+            "dlogis",
+            "dt",
+            "dalaplace",
+        }
 
-    # Store as a 2-element list [additive_dict, multiplicative_dict_or_None].
-    # initialization.py selects [0] for additive errors and [1] for multiplicative;
-    # setting [1]=None makes it always fall back to [0].
-    # Shape must be (p, 1) so it broadcasts into the (p, lags_model_max) mat_vt slice.
-    xreg_initials = [{"initial_xreg": initial_coefs.reshape(-1, 1)}, None]
+        def _resolve_dist_for_alm(etype, dist):
+            """Resolve distribution for ALM, matching R's xregInitialiser."""
+            if dist == "default":
+                return "dnorm" if etype == "A" else "dlnorm"
+            return _map_distribution_for_greybox(dist)
+
+        def _fit_alm(y_response, etype):
+            alm_dist = _resolve_dist_for_alm(etype, distribution)
+            try:
+                alm = ALM(distribution=alm_dist)
+                alm.fit(X_aug, y_response, feature_names=names_selected)
+                return np.asarray(alm.coef, dtype=float)
+            except Exception:
+                return np.zeros(p)
+
+        def _mult_response():
+            """Get response for multiplicative ALM: log(y) if needed."""
+            resolved = distribution if distribution != "default" else "dlnorm"
+            if resolved in _log_dists:
+                return np.log(np.maximum(y_is, 1e-10))
+            return y_is
+
+        if e_type == "A":
+            xreg_initials = [
+                {"initial_xreg": _fit_alm(y_is, "A").reshape(-1, 1)},
+                None,
+            ]
+        elif e_type == "M":
+            xreg_initials = [
+                None,
+                {"initial_xreg": _fit_alm(_mult_response(), "M").reshape(-1, 1)},
+            ]
+        else:
+            # "Z" — error type selection, need both additive and multiplicative
+            xreg_initials = [
+                {"initial_xreg": _fit_alm(y_is, "A").reshape(-1, 1)},
+                {"initial_xreg": _fit_alm(_mult_response(), "M").reshape(-1, 1)},
+            ]
 
     return {
         "xreg_model": True,

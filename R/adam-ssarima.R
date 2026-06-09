@@ -234,15 +234,16 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
                                        # This is not needed by the gum() function
                                        ic=ic, bounds=boundsOriginal,
                                        regressors=regressors, yName=yName,
-                                       silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
-
-    # A fix to make sure that usual bounds are possible
-    bounds <- boundsOriginal;
+                                       silent, modelDo, ellipsis, fast=FALSE);
 
     # If the regression was returned, just return it
     if(is.alm(checkerReturn)){
         return(checkerReturn);
     }
+    list2env(checkerReturn, envir=environment());
+
+    # A fix to make sure that usual bounds are possible
+    bounds <- boundsOriginal;
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. In case of SSARIMA this only creates a mess
@@ -440,7 +441,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
                                   indexLookupTable, profilesRecentTable,
                                   yInSample, ot,
                                   any(initialType==c("complete","backcasting")), nIterations,
-                                  refineHead);
+                                  refineHead, "n");
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -1092,10 +1093,11 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
         boundsOriginal <- bounds;
         bounds <- "none";
 
-        # Calculate hessian
-        FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
-                       arRequired=arRequired, maRequired=maRequired,
-                       arEstimate=arEstimate, maEstimate=maEstimate);
+        # Calculate hessian via the shared C++ implementation (src/hessianCpp.cpp).
+        logLikFunction_FI <- function(B) logLikFunction(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                                                        arRequired=arRequired, maRequired=maRequired,
+                                                        arEstimate=arEstimate, maEstimate=maEstimate);
+        FI <- -hessianCpp(logLikFunction_FI, B, h=stepSize);
         colnames(FI) <- rownames(FI) <- names(B);
 
         if(any(substr(names(B),1,3)=="phi")){
@@ -1131,7 +1133,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1, frequency(
                               indexLookupTable, profilesRecentTable,
                               yInSample, ot,
                               any(initialType==c("complete","backcasting")), nIterations,
-                              refineHead);
+                              refineHead, "n");
 
     errors[] <- adamFitted$errors;
     yFitted[] <- adamFitted$fitted;

@@ -30,6 +30,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// hessianCpp
+NumericMatrix hessianCpp(Function f, NumericVector x0, double h);
+RcppExport SEXP _smooth_hessianCpp(SEXP fSEXP, SEXP x0SEXP, SEXP hSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Function >::type f(fSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type x0(x0SEXP);
+    Rcpp::traits::input_parameter< double >::type h(hSEXP);
+    rcpp_result_gen = Rcpp::wrap(hessianCpp(f, x0, h));
+    return rcpp_result_gen;
+END_RCPP
+}
 // matrixPowerWrap
 RcppExport SEXP matrixPowerWrap(SEXP matA, SEXP power);
 RcppExport SEXP _smooth_matrixPowerWrap(SEXP matASEXP, SEXP powerSEXP) {
@@ -39,6 +52,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type matA(matASEXP);
     Rcpp::traits::input_parameter< SEXP >::type power(powerSEXP);
     rcpp_result_gen = Rcpp::wrap(matrixPowerWrap(matA, power));
+    return rcpp_result_gen;
+END_RCPP
+}
+// olsCpp
+arma::vec olsCpp(const arma::mat& X, const arma::vec& y, double tol);
+RcppExport SEXP _smooth_olsCpp(SEXP XSEXP, SEXP ySEXP, SEXP tolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(olsCpp(X, y, tol));
     return rcpp_result_gen;
 END_RCPP
 }

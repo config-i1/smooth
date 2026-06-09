@@ -38,6 +38,8 @@ def estimator(
     maxeval=None,
     B_initial=None,
     return_matrices=False,
+    other=None,
+    other_parameter_estimate=False,
     # NLopt parameters
     xtol_rel=1e-6,
     xtol_abs=1e-8,
@@ -45,6 +47,9 @@ def estimator(
     ftol_abs=0,
     algorithm="NLOPT_LN_NELDERMEAD",
     smoother="global",
+    adam_ets: bool = False,
+    fi: bool = False,
+    step_size=None,
 ):
     """
     Estimate parameters for ADAM model using non-linear optimization.
@@ -455,6 +460,7 @@ def estimator(
         constant_dict,
         profiles_recent_table,
         profiles_recent_provided,
+        adam_ets,
     )
 
     # Step 2: Create model matrices
@@ -489,6 +495,8 @@ def estimator(
         phi_dict=phi_dict,
         profile_dict=profile_dict,
         adam_cpp=adam_cpp,
+        other_parameter_estimate=other_parameter_estimate,
+        other_value=other if other is not None else 2.0,
     )
     # Get initial parameter vector and bounds; user-provided values are used as-is
     B = np.asarray(B_initial, dtype=float) if B_initial is not None else b_values["B"]
@@ -552,6 +560,8 @@ def estimator(
         print_level,
         ar_polynomial_matrix=ar_polynomial_matrix,
         ma_polynomial_matrix=ma_polynomial_matrix,
+        other=other,
+        other_parameter_estimate=other_parameter_estimate,
     )
 
     # Set objective function
@@ -561,12 +571,12 @@ def estimator(
     B[:] = _run_optimization(opt, B)
     CF_value = opt.last_optimum_value()
 
-    # Step 9a: R uses only Nelder-Mead; no BOBYQA refinement. Disabling BOBYQA
-    # pass to match R exactly and achieve 100% identical ARIMA results.
+    # Step 9a: a BOBYQA refinement pass was tried in the past but produced
+    # less stable ARIMA estimates, so only the Nelder-Mead pass is run.
 
-    # Step 10a: Retry optimization with zero smoothing parameters if initial
-    # optimization failed
-    # Matches R: is.infinite(res$objective) || res$objective==1e+300
+    # Step 10a: Retry optimisation with zero smoothing parameters if the
+    # initial optimisation failed to converge (non-finite or penalty-valued
+    # cost function).
     if not np.isfinite(CF_value) or CF_value >= 1e300:
         # Calculate number of ETS persistence parameters (alpha, beta, gamma)
         components_number_ets = 0
@@ -658,16 +668,50 @@ def estimator(
         adam_cpp,
         multisteps,
         n_param_estimated,
+        other_parameter_estimate=other_parameter_estimate,
     )
+
+    # Step 11a: Fisher Information matrix (observed), if requested. Mirrors the
+    # FI block in R/adam.R:2698-2836 — the negative Hessian of the
+    # log-likelihood at the estimated B, computed in the same scope so the
+    # estimation-time flags/matrices match the fitted parameters.
+    FI = None
+    if fi and not multisteps and general_dict["loss"] not in ("LASSO", "RIDGE"):
+        from smooth.adam_general.core.utils.var_covar import fisher_information
+
+        FI = fisher_information(
+            B,
+            model_type_dict,
+            components_dict,
+            lags_dict,
+            adam_created,
+            persistence_dict,
+            initials_dict,
+            arima_dict,
+            explanatory_dict,
+            phi_dict,
+            constant_dict,
+            observations_dict,
+            occurrence_dict,
+            general_dict,
+            profile_dict,
+            adam_cpp,
+            step_size=step_size,
+            other=other,
+            other_parameter_estimate=other_parameter_estimate,
+        )
 
     # Step 12: Prepare and return results
     result = {
         "B": B,
+        "other_parameter_estimate": other_parameter_estimate,
         "CF_value": CF_value,
         "n_param_estimated": n_param_estimated,
         "log_lik_adam_value": log_lik_adam_value,
         "arima_polynomials": adam_created["arima_polynomials"],
         "adam_cpp": adam_cpp,  # Always return adam_cpp for forecasting
+        "FI": FI,
+        "B_names": list(b_values["names"]),
     }
 
     if return_matrices:
@@ -719,6 +763,7 @@ def estimator(
                 backcast=True,
                 nIterations=initials_dict.get("n_iterations", 2) or 2,
                 refineHead=True,  # Always True (fixed backcasting issue)
+                O="n",
             )
 
             # Update original matrices

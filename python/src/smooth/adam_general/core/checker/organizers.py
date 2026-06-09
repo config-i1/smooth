@@ -168,11 +168,8 @@ def _organize_occurrence_info(occurrence, occurrence_model, obs_in_sample, h=0):
     occurrence_dict = {
         "occurrence": occurrence,
         "occurrence_model": occurrence_model,
-        "oes_model": "none",  # Default OES model type
-        "probability": None,  # Will be filled during estimation
-        "occurrence_probability": None,  # Will be filled during estimation
-        "occurrence_parameters": None,  # Will be filled during estimation
-        "occurrence_y": None,  # Will be filled during estimation
+        "oes_model": "none",
+        "p_fitted": None,  # Filled by ADAM.fit() from a fitted OM/OMG/AutoOM
     }
 
     return occurrence_dict
@@ -246,7 +243,7 @@ def _calculate_parameters_number(
     # Handle pure constant model case (no ETS, no ARIMA, no xreg)
     if not ets_info["ets_model"] and not arima_info["arima_model"] and not xreg_info:
         parameters_number[0][0] = 0
-        parameters_number[1][0] = 2  # Matches R code line 3047
+        parameters_number[1][0] = 2  # constant + scale
 
     return parameters_number
     # return {
