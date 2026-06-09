@@ -7,7 +7,7 @@ from scipy import stats
 from scipy.special import beta, digamma, gamma
 from statsmodels.tsa.stattools import acf, pacf
 
-from smooth.adam_general import _ols
+from smooth.adam_general import _ols  # type: ignore[attr-defined]
 
 # Default smoother for ADAM/ES model initialisation (msdecompose keeps "lowess")
 SMOOTHER_DEFAULT: Literal["lowess", "ma", "global"] = "global"

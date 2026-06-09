@@ -23,6 +23,8 @@ from smooth.adam_general import _adamCore
 from smooth.adam_general.core.ces.cost_function import ces_cf
 from smooth.adam_general.core.ces.creator import ces_creator
 
+pytestmark = pytest.mark.r_parity
+
 # ---------------------------------------------------------------------------
 # Load reference data
 # ---------------------------------------------------------------------------

@@ -8,7 +8,7 @@ state-space filtering and forecasting.
 
 import re
 import warnings
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import nlopt
 import numpy as np
@@ -90,6 +90,11 @@ class CES:
         Absolute objective tolerance for second-stage optimizer.
     """
 
+    # Attributes set during .fit() (declared here so mypy can resolve them
+    # when one CES instance reads another's fitted state, e.g. two-stage init).
+    B: NDArray
+    initial_states_: Dict[str, NDArray]
+
     def __init__(
         self,
         seasonality: SEASONALITY_OPTIONS = "none",
@@ -122,12 +127,13 @@ class CES:
         # Validate seasonality
         valid = {"none", "simple", "partial", "full"}
         abbrev = {"n": "none", "s": "simple", "p": "partial", "f": "full"}
-        if seasonality in abbrev:
-            seasonality = abbrev[seasonality]
-        if seasonality not in valid:
-            raise ValueError(f"seasonality must be one of {valid}, got '{seasonality}'")
+        seasonality_resolved: str = abbrev.get(seasonality, seasonality)
+        if seasonality_resolved not in valid:
+            raise ValueError(
+                f"seasonality must be one of {valid}, got '{seasonality_resolved}'"
+            )
 
-        self.seasonality = seasonality
+        self.seasonality = cast(SEASONALITY_OPTIONS, seasonality_resolved)
         self.lags = lags
         self.initial = initial
         self._a_provided = a
@@ -207,7 +213,11 @@ class CES:
         y_frequency = max(lags)
 
         # Set up a and b parameter dicts — R lines 157-181
-        a = {"value": self._a_provided, "estimate": self._a_provided is None}
+        a: Dict[str, Any] = {
+            "value": self._a_provided,
+            "estimate": self._a_provided is None,
+        }
+        b: Dict[str, Any]
         if self._b_provided is None and self.seasonality in ("partial", "full"):
             b = {"value": None, "estimate": True}
         else:
@@ -239,9 +249,9 @@ class CES:
             components_number = 2 + 2 * n_seasonal
 
         # Xreg setup
-        xreg_model = X is not None and X.shape[1] > 0 if X is not None else False
-        xreg_number = X.shape[1] if xreg_model else 0
-        xreg_data = X[:obs_in_sample] if xreg_model else None
+        xreg_model = X is not None and X.shape[1] > 0
+        xreg_number = X.shape[1] if X is not None and xreg_model else 0
+        xreg_data = X[:obs_in_sample] if X is not None and xreg_model else None
         xreg_names = [f"x{i + 1}" for i in range(xreg_number)]
 
         # Build lags_model_all — R lines 584-590
@@ -341,7 +351,7 @@ class CES:
         )
 
         # Two-stage initialization — R lines 750-786
-        B = None
+        B: Optional[NDArray] = None
         if initial_type == "two-stage" and B is None:
             ces_back = CES(
                 seasonality=self.seasonality,
@@ -946,7 +956,7 @@ class AutoCES:
             if self.verbose > 0:
                 print(f'Estimating CES with seasonality: "{s}" ', end="")
             model = CES(
-                seasonality=s,
+                seasonality=cast(SEASONALITY_OPTIONS, s),
                 lags=self.lags,
                 initial=self.initial,
                 loss=self.loss,
@@ -969,7 +979,7 @@ class AutoCES:
             raise RuntimeError("All CES models failed to fit.")
 
         # Select best — R line 170
-        best_key = min(ics, key=ics.get)
+        best_key = min(ics, key=lambda k: ics[k])
         self.best_model_ = models[best_key]
         self.ICs = ics
         self.models_ = models
