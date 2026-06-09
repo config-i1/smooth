@@ -7350,19 +7350,6 @@ pointLik.adam <- function(object, log=TRUE, ...){
 }
 
 #### Simulate function ####
-
-#' @param obs Number of observations to produce in the simulated data.
-#' @param nsim Number of series to generate from the model.
-#' @param seed Random seed used in simulation of data.
-#' @examples
-#' # Fit ADAM to the data
-#' ourModel <- adam(rnorm(100,100,10), model="AAdN")
-#' # Simulate the data
-#' x <- simulate(ourModel)
-#'
-# ----------------------------------------------------------------------
-# simulateADAMCore() — non-exported helper.
-#
 # Does the matrix prep, distribution-aware error sampling, occurrence-mask
 # draw, and ``adamCpp$simulate(...)`` call shared by ``simulate.adam``,
 # ``simulate.om`` and ``simulate.omg``. Returns a raw list with the
@@ -7538,6 +7525,14 @@ simulateADAMCore <- function(object, nsim=1, obs=nobs(object), ...){
                 ellipsis    = ellipsis));
 }
 
+#' @param obs Number of observations to produce in the simulated data.
+#' @param nsim Number of series to generate from the model.
+#' @param seed Random seed used in simulation of data.
+#' @examples
+#' # Fit ADAM to the data
+#' ourModel <- adam(rnorm(100,100,10), model="AAdN")
+#' # Simulate the data
+#' x <- simulate(ourModel)
 #' @rdname adam
 #' @export
 simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
