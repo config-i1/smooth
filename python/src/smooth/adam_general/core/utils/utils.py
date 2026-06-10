@@ -1,3 +1,4 @@
+import math
 from typing import Literal
 
 import numpy as np
@@ -8,6 +9,38 @@ from scipy.special import beta, digamma, gamma
 from statsmodels.tsa.stattools import acf, pacf
 
 from smooth.adam_general import _ols  # type: ignore[attr-defined]
+
+
+def _fsum_mean(x):
+    # Shewchuk exact summation, matches R's LDOUBLE mean() to ULP.
+    n = len(x)
+    return math.fsum(x) / n if n else float("nan")
+
+
+def _fsum_nanmean(x):
+    arr = np.asarray(x, dtype=np.float64).ravel()
+    mask = ~np.isnan(arr)
+    n = int(mask.sum())
+    return math.fsum(arr[mask]) / n if n else float("nan")
+
+
+def _r_filter_mean(x):
+    # Mirror R's stats::filter(weights=1/N) summation order byte-for-byte:
+    # walk the array from the last element down to the first, accumulating
+    # `value * (1/N)` in IEEE-double. Without this exact order the seasonal
+    # init seeds drift by ≤1 ULP, which the undamped multiplicative ETS(M,M,M)
+    # recursion amplifies into a different NLopt basin on chaotic configs
+    # like taylor at lag=48.
+    n = len(x)
+    if not n:
+        return float("nan")
+    inv_n = 1.0 / n
+    arr = np.asarray(x, dtype=np.float64).ravel()
+    s = 0.0
+    for i in range(n - 1, -1, -1):
+        s += float(arr[i]) * inv_n
+    return s
+
 
 # Default smoother for ADAM/ES model initialisation (msdecompose keeps "lowess")
 SMOOTHER_DEFAULT: Literal["lowess", "ma", "global"] = "global"
@@ -380,7 +413,7 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
 
                 if len(y_seasonal_non_na) > 0:
                     if smoother_second == "ma":
-                        y_seasonal_smooth = np.mean(y_seasonal_non_na)
+                        y_seasonal_smooth = _r_filter_mean(y_seasonal_non_na)
                         pattern_i[indices] = y_seasonal_smooth
                     else:
                         y_seasonal_smooth = smoothing_function(
@@ -394,7 +427,7 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
             # Use only complete seasonal cycles for mean calculation
             obs_in_sample_lags = int(np.floor(obs_in_sample / lags[i]) * lags[i])
             if obs_in_sample_lags > 0:
-                pattern_i -= np.nanmean(pattern_i[:obs_in_sample_lags])
+                pattern_i -= _fsum_nanmean(pattern_i[:obs_in_sample_lags])
             patterns.append(pattern_i)
     else:
         patterns = None
@@ -415,7 +448,7 @@ def msdecompose(y, lags=[12], type="additive", smoother="lowess"):
         init_level = valid_data_for_initial[0]
         # Trend: NaN-skipping mean of first differences of the full series.
         diffs = np.diff(data_for_initial)
-        init_trend = np.nanmean(diffs) if len(diffs) > 0 else 0.0
+        init_trend = _fsum_nanmean(diffs) if len(diffs) > 0 else 0.0
 
     lags_max = max(lags)
 
