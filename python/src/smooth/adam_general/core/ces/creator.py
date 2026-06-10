@@ -95,14 +95,22 @@ def ces_creator(
 
     row_names = [""] * total_components
 
-    # Seasonal decomposition if needed — R line 400-401
+    # Seasonal decomposition if needed — R line 400-401.  We use
+    # smoother="global" instead of the historical default "lowess"
+    # because Python's greybox.lowess does not match R's stats::lowess
+    # byte-for-byte (~3e-13 output diff on real data), and the seed
+    # cascade through the CES recursion turns that into 4-ULP CF
+    # differences that send BOBYQA into a different basin on partial /
+    # full seasonality.  The shared olsCore.h backend behind
+    # smoother="global" produces byte-identical decompositions across
+    # languages (see msdecompose r-parity wiki).  R's CES creator is
+    # updated in parallel to call msdecompose(..., smoother="global").
     if seasonality != "none":
-        # R CES uses default smoother ("lowess") — R/adam-ces.R line 400
         decomp = msdecompose(
             y_in_sample,
             lags=lags_model_seasonal,
             type="additive",
-            smoother="lowess",
+            smoother="global",
         )
         y_decomposed_seasonal = decomp["seasonal"]
 
