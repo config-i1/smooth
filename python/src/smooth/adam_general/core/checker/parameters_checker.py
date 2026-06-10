@@ -573,6 +573,15 @@ def parameters_checker(
         _mult_dists = {"dinvgauss", "dlnorm", "dllaplace", "dls", "dlgnorm", "dgamma"}
         ets_info["error_type"] = "M" if distribution in _mult_dists else "A"
 
+    # Switch usual bounds to admissible if there's no ETS — mirrors R
+    # (adamGeneral.R:2829-2832: "this speeds up ARIMA"). Without this,
+    # Python takes the classical polynomial-companion eigvals path in CF
+    # while R takes the state-space smoothEigens path, producing different
+    # penalty values at NLopt's infeasibility probes and divergent
+    # optimisation trajectories on ARIMA-only models.
+    if not ets_model and bounds == "usual":
+        bounds = "admissible"
+
     #####################
     # 6) Check Outliers
     #####################

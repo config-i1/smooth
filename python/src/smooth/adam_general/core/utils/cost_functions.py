@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from numpy.linalg import eigvals
 
@@ -516,13 +518,20 @@ def CF(  # noqa: N802
 
     elif bounds == "admissible":
         if arima_checked["arima_model"]:
-            if arima_checked["ar_estimate"] and (
-                sum(-adam_elements["arima_polynomials"]["arPolynomial"][1:]) >= 1
-                or sum(-adam_elements["arima_polynomials"]["arPolynomial"][1:]) < 0
+            # Mirror R's admissible AR-check (utils-adam.R:1484-1486):
+            # AND of (all -arPoly[1:] > 0) AND (sum -arPoly[1:] >= 1).  The
+            # legacy `or sum(...) < 0` clause was a stale rule that fired the
+            # AR-eigvals penalty on B-points where R passes through to the
+            # state-space smoothEigens check; on ARIMA-only fits with negative
+            # AR seeds (e.g. NLopt simplex probes with ar1[1] ~= -2) it pushed
+            # Py into a different basin from R.
+            ar_neg_coefs = -adam_elements["arima_polynomials"]["arPolynomial"][1:]
+            if (
+                arima_checked["ar_estimate"]
+                and np.all(np.asarray(ar_neg_coefs) > 0)
+                and sum(ar_neg_coefs) >= 1
             ):
-                arPolynomialMatrix[:, 0] = -adam_elements["arima_polynomials"][
-                    "arPolynomial"
-                ][1:]
+                arPolynomialMatrix[:, 0] = ar_neg_coefs
                 eigenValues = np.abs(eigvals(arPolynomialMatrix))
                 if any(eigenValues > 1):
                     return 1e100 * np.max(eigenValues)
@@ -607,18 +616,21 @@ def CF(  # noqa: N802
                 observations_dict["obs_in_sample"],
                 other,
             )
-            # print(adam_fitted.errors)
-            # Calculate the likelihood
-            CFValue = -np.sum(
-                calculate_likelihood(
-                    general["distribution_new"],
-                    model_type_dict["error_type"],
-                    observations_dict["y_in_sample"][observations_dict["ot_logical"]],
-                    adam_fitted.fitted[observations_dict["ot_logical"]],
-                    scale,
-                    other,
-                )
+            # Calculate the likelihood.  Use math.fsum (Shewchuk exact) to
+            # mirror R's LDOUBLE-accumulator sum() — NumPy's default pairwise
+            # sum drifts by 1 ULP per call against R, which through NLopt's
+            # deterministic simplex moves becomes a different convergence
+            # point on flat ARIMA cost surfaces.  Same class of fix as the
+            # msdecompose summation-order work.
+            ll = calculate_likelihood(
+                general["distribution_new"],
+                model_type_dict["error_type"],
+                observations_dict["y_in_sample"][observations_dict["ot_logical"]],
+                adam_fitted.fitted[observations_dict["ot_logical"]],
+                scale,
+                other,
             )
+            CFValue = -math.fsum(np.asarray(ll, dtype=np.float64).ravel().tolist())
             # Differential entropy for the logLik of occurrence model
             if observations_dict.get("occurrence_model", False) or any(
                 ~observations_dict["ot_logical"]
