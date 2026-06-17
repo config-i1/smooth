@@ -65,8 +65,13 @@ jobs:
           - os: macos-latest
             python-version: "3.11"
             cibw-build: "cp311-macosx*"
-          # Windows
-          - os: windows-latest
+          # Windows — pin to windows-2022 (VS17 / MSVC 14.4x) until the
+          # vcpkg openblas port adds support for the VS18 / MSVC 14.51
+          # toolchain that windows-latest now ships. openblas 0.3.33
+          # fails to compile under MSVC 14.51, killing the
+          # ``vcpkg install openblas:x64-windows-release`` step in
+          # CIBW_BEFORE_ALL_WINDOWS.
+          - os: windows-2022
             python-version: "3.11"
             cibw-build: "cp311-win_amd64"
 
