@@ -16,6 +16,41 @@ FetchContent_Declare(
   GIT_TAG v2.12.0)
 FetchContent_MakeAvailable(pybind11)
 
+# ----------------------------------------------------------------------------
+# Armadillo source pre-declaration (overrides carma's default).
+#
+# carma/cmake/GetArmadillo.cmake declares CarmaArmadillo against
+# gitlab.com/conradsnicta/armadillo-code at branch ``15.2.x`` and does a
+# full ``git clone`` into the source tree, which is the most failure-prone
+# step in the whole build chain: gitlab.com is intermittently unreachable
+# from the GitHub Actions manylinux runners, so the populate sub-build
+# fails with::
+#
+#   Build step for carmaarmadillo failed: 1
+#   FAILED: carmaarmadillo-populate-prefix/.../carmaarmadillo-populate-download
+#
+# CMake FetchContent honours first-declared-wins, so this pre-declaration
+# is what carma actually consumes.  We swap the ``GIT_REPOSITORY`` +
+# ``GIT_TAG`` pair for a ``URL`` pointing at GitLab's branch-archive
+# endpoint: same content as the ``15.2.x`` branch carma already targets,
+# but the populate is now a single HTTPS GET (no git protocol handshake,
+# no checkout, retries handled by CMake's ``URL`` downloader instead of
+# git's network stack).  Empirically this is the failure mode that has
+# been observed on the runners; the change is invisible to downstream
+# consumers because the resulting source tree at the SOURCE_DIR path is
+# the same.
+#
+# If GitLab itself goes down the build still fails, but more cleanly and
+# with the URL in the error message.  Pinning to a tagged release
+# (``15.2.0``, etc.) is a follow-up — keep the ``15.2.x`` rolling source
+# here so behaviour matches carma's existing intent.
+FetchContent_Declare(
+  CarmaArmadillo
+  URL https://gitlab.com/conradsnicta/armadillo-code/-/archive/15.2.x/armadillo-code-15.2.x.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src/libs/carma/extern/armadillo-code
+)
+
 # CARMA
 ADD_SUBDIRECTORY(../src/libs/carma carma)
 
