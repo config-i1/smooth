@@ -96,20 +96,32 @@ jobs:
             (apt-get update && apt-get install -y libopenblas-dev liblapack-dev pkg-config)
           CIBW_ENVIRONMENT_LINUX: PKG_CONFIG_PATH="/usr/lib64/pkgconfig:/usr/lib/pkgconfig"
           CIBW_BEFORE_ALL_MACOS: brew install openblas
-          # Pin vcpkg to a release before vcpkg-gfortran@3#3 switched
-          # from MinGW gfortran to LLVMFlang. LLVMFlang 22.x cannot
-          # build lapack-reference 3.12.1 (the install step exits with
-          # BUILD_FAILED inside the Fortran compile), which kills the
-          # whole CIBW_BEFORE_ALL_WINDOWS step. The 2025.06.13 tag is
-          # the latest known-good baseline; if a later regression
-          # surfaces, fall back to 2025.04.09 / 2025.01.13.
+          # Stop using vcpkg for BLAS/LAPACK on Windows. The vcpkg
+          # ``openblas`` port does not bundle LAPACK kernels, so we
+          # used to pair it with ``lapack-reference``, which in turn
+          # needs a Fortran compiler. vcpkg's bundled Fortran
+          # (``vcpkg-gfortran``) silently switched to LLVMFlang
+          # somewhere in early 2025, and LLVMFlang 22.x doesn't build
+          # ``lapack-reference 3.12.1`` — every recent CI run dies
+          # there.
+          #
+          # OpenBLAS publishes pre-built Windows binaries on GitHub
+          # that already include LAPACK in ``libopenblas.dll`` (no
+          # Fortran compiler needed at build time). Download the
+          # release zip, extract it, and let CMakeLists.txt pick it
+          # up via ``OPENBLAS_HOME``. ``delvewheel`` then bundles the
+          # OpenBLAS DLL and its MinGW runtime DLLs
+          # (``libgfortran-5.dll``, ``libgcc_s_seh-1.dll``,
+          # ``libwinpthread-1.dll``) into the wheel.
           CIBW_BEFORE_ALL_WINDOWS: >
-            git -C C:/vcpkg fetch --tags &&
-            git -C C:/vcpkg checkout 2025.06.13 &&
-            C:/vcpkg/bootstrap-vcpkg.bat -disableMetrics &&
-            vcpkg install openblas:x64-windows-release lapack:x64-windows-release
+            curl -L -o C:/openblas.zip
+            https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.33/OpenBLAS-0.3.33-x64.zip
+            && mkdir C:\openblas
+            && tar -xf C:/openblas.zip -C C:/openblas
           CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
-          CIBW_ENVIRONMENT_WINDOWS: CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release"
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair -w {dest_dir} {wheel} --add-path C:/vcpkg/installed/x64-windows-release/bin
+          CIBW_ENVIRONMENT_WINDOWS: >
+            CMAKE_ARGS="-DOPENBLAS_HOME=C:/openblas"
+            OPENBLAS_HOME=C:/openblas
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair -w {dest_dir} {wheel} --add-path C:/openblas/bin
           CIBW_TEST_REQUIRES: pytest numpy
           CIBW_TEST_COMMAND: pytest {project}/python/tests -v --tb=short
