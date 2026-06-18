@@ -16,6 +16,41 @@ FetchContent_Declare(
   GIT_TAG v2.12.0)
 FetchContent_MakeAvailable(pybind11)
 
+# ----------------------------------------------------------------------------
+# Armadillo source pre-declaration (overrides carma's default).
+#
+# carma/cmake/GetArmadillo.cmake declares CarmaArmadillo against
+# gitlab.com/conradsnicta/armadillo-code at branch ``15.2.x`` and does a
+# full ``git clone`` into the source tree, which is the most failure-prone
+# step in the whole build chain: gitlab.com is intermittently unreachable
+# from the GitHub Actions manylinux runners, so the populate sub-build
+# fails with::
+#
+#   Build step for carmaarmadillo failed: 1
+#   FAILED: carmaarmadillo-populate-prefix/.../carmaarmadillo-populate-download
+#
+# CMake FetchContent honours first-declared-wins, so this pre-declaration
+# is what carma actually consumes.  We swap the ``GIT_REPOSITORY`` +
+# ``GIT_TAG`` pair for a ``URL`` pointing at GitLab's branch-archive
+# endpoint: same content as the ``15.2.x`` branch carma already targets,
+# but the populate is now a single HTTPS GET (no git protocol handshake,
+# no checkout, retries handled by CMake's ``URL`` downloader instead of
+# git's network stack).  Empirically this is the failure mode that has
+# been observed on the runners; the change is invisible to downstream
+# consumers because the resulting source tree at the SOURCE_DIR path is
+# the same.
+#
+# If GitLab itself goes down the build still fails, but more cleanly and
+# with the URL in the error message.  Pinning to a tagged release
+# (``15.2.0``, etc.) is a follow-up — keep the ``15.2.x`` rolling source
+# here so behaviour matches carma's existing intent.
+FetchContent_Declare(
+  CarmaArmadillo
+  URL https://gitlab.com/conradsnicta/armadillo-code/-/archive/15.2.x/armadillo-code-15.2.x.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src/libs/carma/extern/armadillo-code
+)
+
 # CARMA
 ADD_SUBDIRECTORY(../src/libs/carma carma)
 
@@ -32,41 +67,58 @@ ADD_SUBDIRECTORY(../src/libs/carma carma)
 # runtime with ``eig_gen(): use of LAPACK must be enabled``.
 #
 # Detection strategy:
-#   1. On Windows only, try vcpkg's CONFIG packages first —
-#      ``OpenBLAS::OpenBLAS`` for BLAS, ``lapack`` (from vcpkg's
-#      ``lapack-reference`` port) for LAPACK. vcpkg's openblas port
-#      does NOT bundle LAPACK kernels, so both must be linked.
-#      MODULE-mode FindBLAS/FindLAPACK don't reliably locate vcpkg's
-#      install layout even with ``BLA_VENDOR=OpenBLAS``, so CONFIG
-#      mode is the canonical path on Windows.
+#   1. On Windows, consume the OpenBLAS pre-built release from
+#      OpenMathLib (``libopenblas.dll`` ships both BLAS *and* LAPACK
+#      in a single library, with no Fortran compiler needed at our
+#      build time).  The CI step downloads / extracts the zip and
+#      sets ``-DOPENBLAS_HOME=C:/openblas``; we then point
+#      ``BLAS_LIBRARIES`` / ``LAPACK_LIBRARIES`` at the MinGW import
+#      lib ``libopenblas.dll.a`` (MSVC's linker accepts COFF import
+#      libs).  Avoids the whole vcpkg openblas + lapack-reference +
+#      vcpkg-gfortran chain that fell apart when
+#      ``vcpkg-gfortran@3#3`` switched to LLVMFlang.
 #   2. MODULE-mode ``find_package(BLAS)`` / ``find_package(LAPACK)``
 #      handles Linux / macOS, where the system packages
 #      (openblas-devel + lapack-devel on Linux, brew's openblas on
 #      macOS) are found by the canonical search.
 #   3. Final fallback only when the dependency is genuinely absent.
 if(WIN32)
-  find_package(OpenBLAS CONFIG QUIET)
-  find_package(lapack CONFIG QUIET)
+  if(NOT DEFINED OPENBLAS_HOME AND DEFINED ENV{OPENBLAS_HOME})
+    set(OPENBLAS_HOME $ENV{OPENBLAS_HOME})
+  endif()
+  if(OPENBLAS_HOME)
+    # OpenMathLib's pre-built zip lays out as:
+    #   <OPENBLAS_HOME>/bin/libopenblas.dll
+    #   <OPENBLAS_HOME>/lib/libopenblas.dll.a   (MinGW import lib)
+    #   <OPENBLAS_HOME>/include/cblas.h, openblas_config.h, ...
+    find_library(OPENBLAS_IMPLIB
+                 NAMES libopenblas.dll.a libopenblas.lib openblas
+                 PATHS "${OPENBLAS_HOME}/lib"
+                 NO_DEFAULT_PATH)
+    find_path(OPENBLAS_INCLUDE_DIR
+              NAMES openblas_config.h cblas.h
+              PATHS "${OPENBLAS_HOME}/include"
+                    "${OPENBLAS_HOME}/include/openblas"
+              NO_DEFAULT_PATH)
+    if(OPENBLAS_IMPLIB AND OPENBLAS_INCLUDE_DIR)
+      set(BLAS_FOUND TRUE)
+      set(LAPACK_FOUND TRUE)
+      set(BLAS_LIBRARIES   ${OPENBLAS_IMPLIB})
+      set(LAPACK_LIBRARIES ${OPENBLAS_IMPLIB})
+      include_directories(${OPENBLAS_INCLUDE_DIR})
+      set(lapackblas_libraries ${OPENBLAS_IMPLIB})
+      message(STATUS "Found OpenMathLib OpenBLAS pre-built (BLAS + LAPACK):")
+      message(STATUS "  import lib : ${OPENBLAS_IMPLIB}")
+      message(STATUS "  headers    : ${OPENBLAS_INCLUDE_DIR}")
+    else()
+      message(WARNING
+        "OPENBLAS_HOME=${OPENBLAS_HOME} set but the import lib / headers "
+        "were not found under it.  Falling back to find_package.")
+    endif()
+  endif()
 endif()
 
-if(OpenBLAS_FOUND AND lapack_FOUND)
-  # Windows / vcpkg path: link both CONFIG-mode packages.
-  set(lapackblas_libraries)
-  if(TARGET OpenBLAS::OpenBLAS)
-    list(APPEND lapackblas_libraries OpenBLAS::OpenBLAS)
-  else()
-    list(APPEND lapackblas_libraries ${OpenBLAS_LIBRARIES})
-  endif()
-  if(TARGET lapack)
-    list(APPEND lapackblas_libraries lapack)
-  else()
-    list(APPEND lapackblas_libraries ${lapack_LIBRARIES})
-  endif()
-  set(BLAS_FOUND TRUE)
-  set(LAPACK_FOUND TRUE)
-  message(STATUS "Found OpenBLAS (BLAS) + lapack-reference (LAPACK) "
-                 "via vcpkg CONFIG packages.")
-else()
+if(NOT BLAS_FOUND)
   find_package(BLAS)
   find_package(LAPACK)
   if(LAPACK_FOUND AND BLAS_FOUND)
@@ -91,12 +143,10 @@ endif()
 # build failure that surfaces the misconfiguration immediately.
 if(WIN32 AND NOT LAPACK_FOUND)
   message(FATAL_ERROR
-    "LAPACK not found on Windows. The wheel build expects vcpkg's "
-    "openblas + lapack-reference. Make sure "
-    "``CIBW_BEFORE_ALL_WINDOWS`` runs ``vcpkg install "
-    "openblas:x64-windows-release lapack:x64-windows-release`` and "
-    "that ``CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake`` "
-    "is exported via ``CIBW_ENVIRONMENT_WINDOWS``.")
+    "LAPACK not found on Windows. The wheel build expects the OpenMathLib "
+    "pre-built OpenBLAS zip extracted to a directory pointed at by the "
+    "``OPENBLAS_HOME`` cache variable (or environment variable) — see "
+    "``CIBW_BEFORE_ALL_WINDOWS`` in .github/workflows/python_ci.yml.")
 endif()
 
 # ==============================================================================

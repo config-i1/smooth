@@ -8,6 +8,8 @@ Bernoulli log-likelihood (or MSE on the binary indicators).
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 from numpy.linalg import eigvals
 
@@ -218,9 +220,16 @@ def om_cf(  # noqa: N802
         # If p hits 0 or 1 exactly, the resulting -Inf is a true signal that
         # the initialiser handed the optimiser a parameter region the model
         # cannot represent, and that should surface, not be hidden.
+        #
+        # Aggregate via math.fsum (Shewchuk exact summation) instead of
+        # np.sum (pairwise IEEE-double) to match R's LDOUBLE-accumulator
+        # sum() byte-for-byte at feasible points.  Same ULP-level
+        # difference can otherwise push NLopt's deterministic simplex
+        # into a different basin on flat-loss seasonal OM surfaces.
+        p_on = p_fitted[ot_logical]
+        p_off = p_fitted[~ot_logical]
         cf_value = -(
-            np.sum(np.log(p_fitted[ot_logical]))
-            + np.sum(np.log(1.0 - p_fitted[~ot_logical]))
+            math.fsum(np.log(p_on).tolist()) + math.fsum(np.log(1.0 - p_off).tolist())
         )
     elif loss == "MSE":
         cf_value = float(np.mean(residual**2))

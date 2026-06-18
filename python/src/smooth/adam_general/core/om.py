@@ -1007,6 +1007,21 @@ class OM(ADAM):
         general_for_cf = dict(self._general)
         general_for_cf["loss"] = self._general.get("loss", "likelihood")
 
+        # Snapshot the *pristine* mat_vt and profiles_recent_table BEFORE
+        # NLopt mutates them.  The C++ kernel's head-fill / backcasting
+        # passes overwrite ``adam_created["mat_vt"]`` and
+        # ``profile_dict["profiles_recent_table"]`` in place every CF
+        # evaluation; without this snapshot the post-fit Hessian (used by
+        # vcov / FI) would be computed off a CF that disagrees with R's
+        # by ~0.002 — R re-creates fresh matrices for FI via
+        # adam_creator + om_initial_transform on every Hessian probe
+        # (R/om.R:830-870).  We do the equivalent here by stashing the
+        # initial bytes and restoring them in _fisher_information_matrix.
+        self._fi_pristine = {
+            "mat_vt": adam_created["mat_vt"].copy(),
+            "profiles_recent_table": profile_dict["profiles_recent_table"].copy(),
+        }
+
         def _objective(x, _grad):
             try:
                 cf_value = om_cf(
@@ -1502,7 +1517,21 @@ class OM(ADAM):
         general_for_cf = dict(self._general)
         general_for_cf["loss"] = self._general.get("loss", "likelihood")
 
+        # R rebuilds adam_created fresh every Hessian probe via
+        # adam_creator + om_initial_transform (R/om.R:830-870).  We do the
+        # equivalent by restoring the pristine pre-NLopt snapshots of
+        # mat_vt and profiles_recent_table before each _cost call — the
+        # kernel will mutate them again inside om_cf via the
+        # backcasting / head-fill passes, so each call gets the same
+        # starting state R sees.
+        pristine = getattr(self, "_fi_pristine", None)
+
         def _cost(b):
+            if pristine is not None:
+                self._adam_created["mat_vt"][...] = pristine["mat_vt"]
+                self._profile["profiles_recent_table"][...] = pristine[
+                    "profiles_recent_table"
+                ]
             return om_cf(
                 B=b,
                 model_type_dict=self._model_type,

@@ -398,7 +398,15 @@ ces <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequ
         rownames(matVt) <- rep(" ", componentsNumber+xregNumber);
 
         if(seasonality!="none"){
-            yDecomposedSeasonal <- msdecompose(yInSample, lags=lagsModelSeasonal, type="additive")$seasonal;
+            # smoother="global" instead of the historical default "lowess":
+            # Python's greybox.lowess does not match R's stats::lowess
+            # byte-for-byte (~3e-13 output diff on real data); that ULP-level
+            # gap propagates through the CES seasonal seed into different
+            # BOBYQA basins on partial / full seasonality. The shared
+            # olsCore.h backend behind smoother="global" produces
+            # byte-identical decompositions across languages.
+            yDecomposedSeasonal <- msdecompose(yInSample, lags=lagsModelSeasonal,
+                                                type="additive", smoother="global")$seasonal;
         }
 
         # Fill in matrices for each of the special cases

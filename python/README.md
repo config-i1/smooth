@@ -27,6 +27,8 @@ The package includes the following models:
 - [OM](https://github.com/config-i1/smooth/wiki/OM) - Occurrence Model for intermittent demand, implemented in the `OM` class (plus `OMG` for the general two-component model and `AutoOM` for automatic type selection).
 - [SMA](https://github.com/config-i1/smooth/wiki/SMA) - Simple Moving Average in state-space form (an AR(m) model with fixed coefficients), implemented in the `SMA` class with automatic order selection.
 
+The package also provides standalone data generators that mirror R's `sim.*` family — `sim_es`, `sim_ssarima`, `sim_ces`, `sim_gum`, `sim_sma`, and `sim_oes` — plus a `.simulate()` method on fitted `ADAM`, `OM`, and `OMG` objects. See [Simulation Functions](https://github.com/config-i1/smooth/wiki/Simulation-Functions).
+
 All of these are implemented with the support of the following features:
 
 - Automatic components selection in ETS and forecasts combination
@@ -200,6 +202,7 @@ The pages below document the models and their Python classes:
 - [MSARIMA](https://github.com/config-i1/smooth/wiki/MSARIMA) — Multiple Seasonal ARIMA (fixed orders) and automatic selection (`AutoMSARIMA`)
 - [OM](https://github.com/config-i1/smooth/wiki/OM) — Occurrence Model for intermittent demand (`OM`, `OMG`, `AutoOM`)
 - [SMA](https://github.com/config-i1/smooth/wiki/SMA) — Simple Moving Average in state-space form with automatic order selection
+- [Simulation Functions](https://github.com/config-i1/smooth/wiki/Simulation-Functions) — `sim_es`, `sim_ssarima`, `sim_ces`, `sim_gum`, `sim_sma`, `sim_oes`, and the `.simulate()` method on fitted models
 
 **Book:** Svetunkov, I. (2023). *Forecasting and Analytics with the Augmented Dynamic Adaptive Model (ADAM)*. Chapman and Hall/CRC. Online: https://openforecast.org/adam/
 
