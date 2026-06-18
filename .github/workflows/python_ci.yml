@@ -96,7 +96,18 @@ jobs:
             (apt-get update && apt-get install -y libopenblas-dev liblapack-dev pkg-config)
           CIBW_ENVIRONMENT_LINUX: PKG_CONFIG_PATH="/usr/lib64/pkgconfig:/usr/lib/pkgconfig"
           CIBW_BEFORE_ALL_MACOS: brew install openblas
-          CIBW_BEFORE_ALL_WINDOWS: vcpkg install openblas:x64-windows-release lapack:x64-windows-release
+          # Pin vcpkg to a release before vcpkg-gfortran@3#3 switched
+          # from MinGW gfortran to LLVMFlang. LLVMFlang 22.x cannot
+          # build lapack-reference 3.12.1 (the install step exits with
+          # BUILD_FAILED inside the Fortran compile), which kills the
+          # whole CIBW_BEFORE_ALL_WINDOWS step. The 2025.06.13 tag is
+          # the latest known-good baseline; if a later regression
+          # surfaces, fall back to 2025.04.09 / 2025.01.13.
+          CIBW_BEFORE_ALL_WINDOWS: >
+            git -C C:/vcpkg fetch --tags &&
+            git -C C:/vcpkg checkout 2025.06.13 &&
+            C:/vcpkg/bootstrap-vcpkg.bat -disableMetrics &&
+            vcpkg install openblas:x64-windows-release lapack:x64-windows-release
           CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
           CIBW_ENVIRONMENT_WINDOWS: CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release"
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair -w {dest_dir} {wheel} --add-path C:/vcpkg/installed/x64-windows-release/bin
