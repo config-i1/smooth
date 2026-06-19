@@ -40,7 +40,7 @@ Successful checks for:
 
 - Windows latest release with latest R
 - MacOS 15.7.3 with latest R
-- Ubuntu 24.04.3 LTS with latest R
+- Ubuntu 24.04.4 LTS with latest R
 
 ## win-builder check results
 >* checking package dependencies ... NOTE
@@ -49,7 +49,12 @@ Successful checks for:
 This is expected, because doMC is not available for Windows.
 
 ## R-hub
-All is fine
+Successful checks for:
+
+- Windows Server 2022 x64 (build 26100), R 4.5.0
+- MacOS macOS Sequoia 15.7.7, R 4.5.0
+- MacOS 15.7.3, R 4.5.0
+- Ubuntu 24.04.4 LTS, R 4.5.0
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.
