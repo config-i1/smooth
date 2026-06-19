@@ -6242,10 +6242,10 @@ class ADAM:
         Standalone :class:`OM` inherits this method and **produces a
         link-scale covariance** with ``type="analytical"``. The OM's
         ``sigma`` is ``sqrt(mean(residuals²))`` (mirroring R's
-        ``oes_old`` / ``oesg_old`` — R/oes.R:1253 and R/oesg.R:1039/1049),
-        so the returned matrix is the covariance of multi-step forecast
-        errors on the link-transformed (logit / log-odds) scale, not on
-        the probability axis. ``type="simulated"`` is not yet supported
+        ``sigma.om`` in R/om.R), so the returned matrix is the covariance
+        of multi-step forecast errors on the link-transformed (logit /
+        log-odds) scale, not on the probability axis.
+        ``type="simulated"`` is not yet supported
         on OM because the occurrence-aware predict route does not
         populate the scenarios matrix the simulated branch relies on.
 

@@ -1,18 +1,26 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "5 February 2026"
+date: "20 June 2026"
 output: html_document
 ---
-## Update
-Fixed the link to the wiki, and changed the year from 2025 to 2026 in the DESCRIPTION file.
 
 ## Version
-This is ``smooth`` package, v4.4.0
+This is ``smooth`` package, v4.5.0
+
+This release retires the legacy occurrence-ETS code path. Four exports
+have been removed: ``oes_old()``, ``oesg_old()``, ``is.oes()`` and
+``is.oesg()`` (with their `.Rd` pages). Five unreachable S3 methods
+(``forecast.oes``, ``plot.oes``, ``print.oes``, ``pointLik.oes``,
+``modelType.oesg``) and one C++ translation unit
+(``src/ssOccurrence.cpp``, four ``RcppExport`` wrappers) have also been
+dropped. The new ``oes()`` / ``oesg()`` wrappers (backed by ``om()`` /
+``omg()``) cover every documented feature of the retired path and are
+unchanged.
 
 
 ## Test environments
-* local Ubuntu 25.04, R 4.5.1
+* local Ubuntu 26.04, R 4.5.2
 * github actions
 * win-builder (devel and release)
 * rhub v2

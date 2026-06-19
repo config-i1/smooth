@@ -1392,13 +1392,10 @@ class OM(ADAM):
     def sigma(self) -> float:
         """Link-scale residual std-dev: ``sqrt(mean(residuals²))``.
 
-        Mirrors R's ``oes_old`` (R/oes.R:1253:
-        ``output$s2 <- mean(residuals²)``) and ``oesg_old`` (R/oesg.R:1039,
-        1049: ``s2=mean(errorsA²)``, ``s2=mean(errorsB²)``); R's
-        ``sigma(oes_old_obj)`` is then ``sqrt(s2)``. The residuals are on
-        the link-transformed scale (logit / log-odds), so their second
-        moment is a meaningful scale parameter for the underlying ETS,
-        even though there's no equivalent on the probability axis.
+        Matches R's ``sigma.om`` (R/om.R): the OM residuals live on the
+        link-transformed scale (logit / log-odds), so their second moment
+        is a meaningful scale parameter for the underlying ETS, even
+        though there's no equivalent on the probability axis.
 
         Returns NaN only if the model has no residuals yet (e.g.
         constructed but not fitted).

@@ -98,11 +98,11 @@ def test_msarima_inherits_multicov(y_continuous):
 
 
 def test_om_multicov_analytical_finite(y_intermittent):
-    """OM's sigma is now the link-scale residual std-dev
-    (``sqrt(mean(residuals²))``), mirroring R's ``oes_old`` /
-    ``oesg_old``. multicov on that scale is finite, PSD, and symmetric —
-    interpreted as the multi-step covariance of the **link-transformed**
-    forecast errors (logit / log-odds), not on the probability axis."""
+    """OM's sigma is the link-scale residual std-dev
+    (``sqrt(mean(residuals²))``), mirroring R's ``sigma.om`` (R/om.R).
+    multicov on that scale is finite, PSD, and symmetric — interpreted
+    as the multi-step covariance of the **link-transformed** forecast
+    errors (logit / log-odds), not on the probability axis."""
     with _silence():
         warnings.simplefilter("ignore")
         m = OM(model="MNN", occurrence="odds-ratio").fit(y_intermittent)

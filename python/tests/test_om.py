@@ -177,7 +177,7 @@ class TestProperties:
 
     def test_scale_matches_link_residual_std(self, fitted_model):
         """OM.scale / sigma == sqrt(mean(residuals²)) — mirrors R's
-        ``oes_old`` (R/oes.R:1253) so multi-step covariances on the link
+        ``sigma.om`` (R/om.R) so multi-step covariances on the link
         scale are well-defined."""
         expected = float(np.sqrt(np.mean(np.asarray(fitted_model.residuals) ** 2)))
         assert np.isfinite(fitted_model.scale)

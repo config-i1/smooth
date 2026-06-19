@@ -1110,10 +1110,22 @@ omg <- function(data,
     yFitted   <- modelA$fitted
     yFitted[] <- omgLinkFunction(yFittedA, yFittedB, EtypeA, EtypeB)
 
-    yForecast <- NULL
     if(h > 0) {
         yForecast <- modelA$forecast;
         yForecast[] <- omgLinkFunction(modelA$forecast, modelB$forecast, EtypeA, EtypeB)
+    }
+    else {
+        # h=0: mirror om()'s convention (R/om.R:294, 319) and populate
+        # ``$forecast`` with a one-element ``ts(NA)`` / ``zoo(NA)``
+        # placeholder. Without it, ``plot.smooth`` strips ``$forecast``
+        # from the ellipsis (`ellipsis$forecast <- NULL` removes the slot)
+        # and ``graphmaker`` errors with "argument 'forecast' is missing".
+        if(any(yClasses == "ts")) {
+            yForecast <- ts(NA, start=yForecastStart, frequency=yFrequency);
+        }
+        else {
+            yForecast <- zoo(NA, order.by=yForecastIndex[1]);
+        }
     }
 
     modelName <- paste0("oETS[G](", modelType(modelA), ")(", modelType(modelB), ")")

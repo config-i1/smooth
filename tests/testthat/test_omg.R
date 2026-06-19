@@ -84,6 +84,20 @@ test_that("omg() internal forecast matches forecast.omg output", {
     expect_equal(as.numeric(testModelH$forecast), as.numeric(fc$mean), tolerance=1e-10)
 })
 
+# h=0 + silent=FALSE used to crash with "argument 'forecast' is missing,
+# with no default" because omg() left $forecast=NULL and plot.smooth would
+# then drop the slot from its do.call to graphmaker. Mirror om()'s NA
+# placeholder convention so plot() can be called on an h=0 fit.
+test_that("omg() populates $forecast with NA when h=0, and plot works", {
+    pdf(NULL); on.exit(dev.off(), add=TRUE)
+    m <- om(rpois(100, 1), occurrence="general", silent=FALSE)
+    expect_false(is.null(m$forecast))
+    expect_equal(length(m$forecast), 1)
+    expect_true(is.na(as.numeric(m$forecast)))
+    # plot() on h=0 should not error
+    expect_silent(plot(m, 7))
+})
+
 # 7. forecast.omg dispatch
 test_that("forecast(omg_obj) returns adam.forecast with expected fields", {
     m  <- omg(y, h=12)
