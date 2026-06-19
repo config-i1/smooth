@@ -20,7 +20,7 @@ unchanged.
 
 
 ## Test environments
-* local Ubuntu 26.04, R 4.5.2
+* local Ubuntu 26.04, R 4.6.0
 * github actions
 * win-builder (devel and release)
 * rhub v2
