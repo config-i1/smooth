@@ -8,15 +8,7 @@ output: html_document
 ## Version
 This is ``smooth`` package, v4.5.0
 
-This release retires the legacy occurrence-ETS code path. Four exports
-have been removed: ``oes_old()``, ``oesg_old()``, ``is.oes()`` and
-``is.oesg()`` (with their `.Rd` pages). Five unreachable S3 methods
-(``forecast.oes``, ``plot.oes``, ``print.oes``, ``pointLik.oes``,
-``modelType.oesg``) and one C++ translation unit
-(``src/ssOccurrence.cpp``, four ``RcppExport`` wrappers) have also been
-dropped. The new ``oes()`` / ``oesg()`` wrappers (backed by ``om()`` /
-``omg()``) cover every documented feature of the retired path and are
-unchanged.
+This release retires the legacy occurrence-ETS code path.
 
 
 ## Test environments
