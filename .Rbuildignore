@@ -19,3 +19,4 @@ CLAUDE.md
 .claude
 LICENSE
 conda
+^\.claude$
