@@ -1,6 +1,6 @@
 ---
 name: explain-smooth
-description: Explain and interpret smooth (ADAM) state-space forecasting outputs in plain language — ETS model notation (the three-letter code and Z/X/Y/C/F selection placeholders), persistence/smoothing parameters (alpha, beta, gamma, phi) and their constraints, ARIMA orders, error distributions, information-criteria model selection, point forecasts and prediction intervals, component/state decomposition, holdout accuracy, occurrence models for intermittent demand, and simulation. Use when the user asks what a fitted model means, how to read a summary/forecast/plot, why a model or distribution was selected, or which function fits their data — in either the R package or the Python port.
+description: Explain and interpret smooth (ADAM) state-space forecasting outputs in plain language, and pick the right model function — ADAM/AutoADAM, ES, CES/AutoCES, MSARIMA/AutoMSARIMA, SMA, the occurrence models OM/OMG/AutoOM for intermittent demand, msdecompose, and the sim_* simulators. Covers ETS model notation (the three-letter code and Z/X/Y/C/F selection placeholders), persistence/smoothing parameters (alpha, beta, gamma, phi) and their constraints, ARIMA orders, error distributions, information-criteria model selection, point forecasts and prediction intervals, component/state decomposition, and holdout accuracy. Use when the user asks what a fitted model means, how to read a summary/forecast/plot, why a model or distribution was selected, or which function fits their data — in either the R package or the Python port.
 ---
 
 # Explaining smooth (ADAM)
@@ -122,20 +122,99 @@ percentage/relative measures) come from **greybox** — see the
 [explain-greybox skill] in that repo for how to read each. Prefer scale-free
 measures (MASE, rMAE) to compare across series.
 
-## Function picker (when the user asks "which should I use?")
+## The model functions (what each one is, when to use it, how to read it)
 
-| Goal | Function (R / Python) |
-|---|---|
-| General-purpose forecasting (recommended default) | `adam()` / `ADAM` |
-| Pure exponential smoothing (ETS) | `es()` / `ES` |
-| State-space ARIMA | `(ms/ss)arima()` / `MSARIMA` |
-| Complex Exponential Smoothing | `ces()` / `CES` |
-| Simple moving average | `sma()` / `SMA` |
-| Generalised Uniform / GUM | `gum()` / `OMG` |
-| Intermittent demand (occurrence) | `oes()` / `OM` |
-| Automatic selection (ETS+ARIMA+distribution) | `auto.adam()` / `AutoADAM`, `AutoCES`, `AutoMSARIMA`, `AutoOM` |
-| Multiple-seasonal decomposition | `msdecompose()` / `msdecompose` |
-| Simulate from a model | `sim_*()` / `sim_es`, `sim_ces`, … |
+Quick picker:
+
+| Goal | R | Python |
+|---|---|---|
+| General-purpose forecasting (recommended default) | `adam()` | `ADAM` |
+| Automatic ADAM (select orders + distribution) | `auto.adam()` | `AutoADAM` |
+| Pure exponential smoothing (ETS only) | `es()` | `ES` |
+| Complex Exponential Smoothing | `ces()` | `CES` / `AutoCES` |
+| State-space (multiple seasonal) ARIMA | `(ms/ss)arima()` | `MSARIMA` / `AutoMSARIMA` |
+| Simple moving average | `sma()` | `SMA` |
+| Intermittent demand — occurrence probability | `oes()` | `OM` / `OMG` / `AutoOM` |
+| Multiple-seasonal decomposition | `msdecompose()` | `msdecompose` |
+| Simulate data from a model | `sim_*()` | `sim_es`, `sim_ces`, `sim_ssarima`, `sim_sma`, `sim_gum`, `sim_oes` |
+
+### `ADAM` — the unified model
+The recommended default and the engine behind every other class here. Combines
+**ETS + ARIMA + regression** in one SSOE state space. Fitted attributes to read:
+the ETS code chosen, the persistence parameters (`persistence_level_` = α,
+`persistence_trend_` = β, `persistence_seasonal_` = γ, `phi_` = φ), the ARIMA
+orders, the distribution, and `aic`/`aicc`/`bic`/`bicc`. Use it unless the user
+wants the simpler, more constrained behaviour of one of the wrappers below.
+
+### `AutoADAM` — automatic ADAM
+`ADAM` with **automatic selection of ARIMA orders and the error distribution**
+(ETS selection via the `Z/X/Y/C/F` codes is already handled inside ADAM). Explain
+the result by naming the winning ARIMA orders and distribution and noting the IC
+chose them. `AutoMSARIMA` is the same machinery restricted to pure ARIMA
+(`model="NNN"`, `dnorm`).
+
+### `ES` — Exponential Smoothing (ETS only)
+A thin `ADAM` wrapper for **pure ETS with no ARIMA**, normal errors, default
+`model="ZXZ"`. Use when the user wants classic ETS. Interpret exactly as the ETS
+notation + persistence parameters above; everything is level/trend/seasonal with
+no AR/MA dynamics.
+
+### `CES` — Complex Exponential Smoothing
+Uses **complex-valued smoothing parameters** to capture the level *and the
+"potential"* (rate of change) jointly, so it does not need an explicit
+trend/seasonal classification. `seasonality` ∈ `{"none","simple","partial",
+"full"}`; the smoothing parameters are `a` (complex) and, for partial/full, `b`
+(real for partial, complex for full). Stability is governed by `bounds=
+"admissible"` (eigenvalues inside the unit circle). When explaining, focus on the
+seasonality mode chosen and whether the complex roots imply stable, slowly
+evolving dynamics. `AutoCES` fits the candidate seasonality types and keeps the
+lowest-IC one — report which mode won.
+
+### `MSARIMA` / `AutoMSARIMA` — state-space ARIMA
+Pure (multiple-seasonal) ARIMA in SSOE form (`ADAM` with `model="NNN"`,
+`dnorm`); default is **ARIMA(0,1,1)**. Orders are `orders={"ar":p,"i":d,"ma":q}`
+(int or per-lag list) with `lags` giving the seasonal periods, e.g.
+`lags=[1,12]`. Explain `i`=differencing, `ar`=past-value dependence, `ma`=
+past-error dependence; `constant` adds a drift/intercept. `AutoMSARIMA` (or
+`orders={"select":True}`) chooses the orders by IC.
+
+### `SMA` — Simple Moving Average
+SMA(m) is an **AR(m) model with every coefficient fixed at 1/m**, implemented over
+`ADAM` so it still gives multi-step forecasts and intervals. If `order` is
+omitted it is **selected by IC** (ternary search when `fast=True`, full scan when
+`fast=False`). Explain the chosen order as the averaging window.
+
+### Occurrence models — `OM`, `OMG`, `AutoOM` (intermittent demand)
+For intermittent series these model the **probability that demand occurs** (the
+`o_t` Bernoulli term), independently of its size; pair them with a size model
+(e.g. an `ADAM`) for the full intermittent forecast.
+- **`OM`** — single occurrence ETS model on the `plogis` link. `occurrence` ∈
+  `{"fixed","odds-ratio","inverse-odds-ratio","direct"}`; model name renders as
+  `oETS(MNN)[O]`-style. Interpret `fitted` as occurrence probabilities ∈ (0,1).
+- **`OMG`** — the **general** occurrence model: two parallel ETS sub-models
+  (odds-ratio `model_a` and inverse-odds-ratio `model_b`) combined, name
+  `oETS[G](MNN)(MNN)`. Use when a single mechanism does not fit the on/off
+  pattern.
+- **`AutoOM`** — fits an `OM`/`OMG` for each requested `occurrence` type and
+  returns the lowest-IC one directly. (In R this is `oes(..., occurrence="auto")`;
+  in Python also reachable via `OM(occurrence="auto")`.)
+
+### `msdecompose` — multiple-seasonal decomposition
+Classical decomposition for series with one or more frequencies (`lags=[12]`,
+`type` ∈ `{"additive","multiplicative"}`, `smoother="lowess"`). Returns the
+level/trend, the seasonal profile(s) and the remainder — useful for an
+exploratory "what is in this series?" answer before modelling. (Compare with
+greybox's `stick()`, which quantifies the *strength* of each component.)
+
+### `sim_*` — simulation
+`sim_es`, `sim_ces`, `sim_ssarima`, `sim_sma`, `sim_gum`, `sim_oes` generate
+synthetic series from each model type (returning a `SimulateResult`). Use for
+explaining model behaviour, building intuition, or generating test data — not for
+forecasting an observed series.
+
+> **Note:** GUM (Generalised Uniform Model) currently has **no fitting class in
+> the Python port** — only `sim_gum`. It is available as `gum()` in R. Do not
+> confuse it with `OMG`, which is the *general occurrence* model.
 
 ## Reference map
 
@@ -146,10 +225,10 @@ measures (MASE, rMAE) to compare across series.
 | Exponential smoothing | `es` | `R/es.R`, `R/adam-es.R` | `core/es.py` |
 | State-space ARIMA | `ssarima` | `R/ssarima.R`, `R/adam-ssarima.R` | `core/msarima.py` |
 | CES | `ces` | `R/ces.R`, `R/adam-ces.R` | `core/ces_model.py` |
-| GUM | `gum` | `R/gum.R`, `R/adam-gum.R` | `core/omg.py` |
+| Occurrence / intermittent | `oes` | `R/oes.R` | `core/om.py`, `core/omg.py`, `core/auto_om.py` |
 | Moving average | `sma` | `R/sma.R` | `core/sma.py` |
-| Occurrence / intermittent | `oes` | `R/oes.R` | `core/om.py` |
-| Simulation | `simulate` | `R/sim*.R` | `core/simulate.py` |
+| GUM (R-only fitting; sim only in Python) | `gum` | `R/gum.R`, `R/adam-gum.R` | `core/simulate/gum.py` (`sim_gum`) |
+| Simulation | `simulate` | `R/sim*.R` | `core/simulate/` |
 | Decomposition | — | `R/msdecompose.R` | `core/utils/utils.py` (`msdecompose`) |
 
 `smooth` depends on **greybox** for distributions, information criteria, and
